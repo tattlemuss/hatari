@@ -88,6 +88,7 @@ const char M68000_fileid[] = "Hatari m68000.c : " __DATE__ " " __TIME__;
 #include "tos.h"
 #include "falcon/crossbar.h"
 #include "cart.h"
+#include "debug/debugui.h"
 
 #if ENABLE_DSP_EMU
 #include "dsp.h"
@@ -113,6 +114,9 @@ int LastInstrCycles = 0;	/* number of cycles for previous instr. (not rounded to
 int Pairing = 0;		/* set to 1 if the latest 2 intr paired */
 char PairingArray[ MAX_OPCODE_FAMILY ][ MAX_OPCODE_FAMILY ];
 
+uae_u32 REGPARAM3 OpCode_PrintD0(uae_u32 opcode);
+uae_u32 REGPARAM3 OpCode_Printf(uae_u32 opcode);
+uae_u32 REGPARAM3 OpCode_Debugger(uae_u32 opcode);
 
 /* to convert the enum from OpcodeFamily to a readable value for pairing's debug */
 const char *OpcodeName[] = { "ILLG",
@@ -423,6 +427,37 @@ void M68000_CheckCpuSettings(void)
 }
 
 
+uae_u32 REGPARAM3 OpCode_PrintD0(uae_u32 opcode)
+{
+	printf("reg d0=0x%08x, %u, %d\n", Regs[REG_D0], Regs[REG_D0], Regs[REG_D0]);
+	(*cpufunctbl[0X4E71])(0x4E71);
+  return 0;
+}
+
+uae_u32 REGPARAM3 OpCode_Printf(uae_u32 opcode)
+{
+	uae_u32 d0 = regs.pc + 2;
+	Uint8 val = STMemory_ReadByte(d0);
+	while (val != 0)
+	{
+		printf("%c", val);
+		++d0;
+		val = STMemory_ReadByte(d0);
+	}
+
+	// Nop through to the end of the string
+	while (regs.pc <= d0)
+		(*cpufunctbl[0X4E71])(0x4E71);
+	return 0;
+}
+
+uae_u32 REGPARAM3 OpCode_Debugger(uae_u32 opcode)
+{
+  (*cpufunctbl[0X4E71])(0x4E71);
+  DebugUI(REASON_CPU_BREAKPOINT);
+  return 0;
+}
+
 /**
  * Patch the cpu tables to intercept some opcodes used for Gemdos HD
  * emulation, extended VDI more or for NatFeats.
@@ -458,9 +493,11 @@ void M68000_PatchCpuTables(void)
 		/* No Native Features : set same handler as 0x4afc (illegal) */
 		cpufunctbl[NATFEAT_ID_OPCODE] = cpufunctbl[ 0x4afc ];	/* 0x7300 */
 		cpufunctbl[NATFEAT_CALL_OPCODE] = cpufunctbl[ 0x4afc ];	/* 0x7300 */
+		cpufunctbl[0x7302] = OpCode_PrintD0;
+		cpufunctbl[0x7303] = OpCode_Printf;
+		cpufunctbl[0x7304] = OpCode_Debugger;
 	}
 }
-
 
 /**
  * Save/Restore snapshot of CPU variables ('MemorySnapShot_Store' handles type)
