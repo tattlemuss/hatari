@@ -719,14 +719,19 @@ Best and worst cases for register operand:
 (Note the difference with the documented range.)
 
 
-DIVU:
+DIVU 68000:
 
 Overflow (always): 10 cycles.
 Worst case: 136 cycles.
 Best case: 76 cycles.
 
+DIVU 68010:
 
-DIVS:
+Overflow (always): 8 cycles.
+Wost case: 108 cycles.
+Best case: 78 cycles.
+
+DIVS 68000:
 
 Absolute overflow: 16-18 cycles.
 Signed overflow is not detected prematurely.
@@ -735,6 +740,13 @@ Worst case: 156 cycles.
 Best case without signed overflow: 122 cycles.
 Best case with signed overflow: 120 cycles
 
+DIVS 68010:
+
+Absolute overflow: 16 cycles.
+Signed overflow is not detected prematurely.
+
+Worst case: 122 cycles.
+Best case: 120 cycles.
 
 */
 
@@ -748,39 +760,64 @@ int getDivu68kCycles (uae_u32 dividend, uae_u16 divisor)
 		return 0;
 
 	if (currprefs.cpu_model == 68010) {
+
 		// Overflow
-		if ((dividend >> 16) >= divisor)
+		if ((dividend >> 16) >= divisor) {
 			return 4;
-		return 104;
-	}
+		}
 
-	// Overflow
-	if ((dividend >> 16) >= divisor)
-		return (mcycles = 5) * 2 - 4;
+		mcycles = 74;
 
-	mcycles = 38;
+		hdivisor = divisor << 16;
 
-	hdivisor = divisor << 16;
+		for (i = 0; i < 15; i++) {
+			uae_u32 temp;
+			temp = dividend;
 
-	for (i = 0; i < 15; i++) {
-		uae_u32 temp;
-		temp = dividend;
+			dividend <<= 1;
 
-		dividend <<= 1;
-
-		// If carry from shift
-		if ((uae_s32)temp < 0)
-			dividend -= hdivisor;
-		else {
-			mcycles += 2;
-			if (dividend >= hdivisor) {
+			// If carry from shift
+			if ((uae_s32)temp < 0) {
 				dividend -= hdivisor;
-				mcycles--;
+			} else {
+				mcycles += 2;
+				if (dividend >= hdivisor) {
+					dividend -= hdivisor;
+				}
 			}
 		}
+		return mcycles;
+
+	} else {
+
+		// Overflow
+		if ((dividend >> 16) >= divisor)
+			return (mcycles = 5) * 2 - 4;
+
+		mcycles = 38;
+
+		hdivisor = divisor << 16;
+
+		for (i = 0; i < 15; i++) {
+			uae_u32 temp;
+			temp = dividend;
+
+			dividend <<= 1;
+
+			// If carry from shift
+			if ((uae_s32)temp < 0)
+				dividend -= hdivisor;
+			else {
+				mcycles += 2;
+				if (dividend >= hdivisor) {
+					dividend -= hdivisor;
+					mcycles--;
+				}
+			}
+		}
+		// -4 = remove prefetch cycle
+		return mcycles * 2 - 4;
 	}
-	// -4 = remove prefetch cycle
-	return mcycles * 2 - 4;
 }
 
 int getDivs68kCycles (uae_s32 dividend, uae_s16 divisor)
@@ -878,7 +915,7 @@ void divbyzero_special (bool issigned, uae_s32 dst)
 /* DIVU overflow
  *
  * 68000: V=1, N=1, C=0, Z=0
- * 68010: V=1, N=divisor<0x8000, C=0, Z=divided upper word == 0xffff and divisor == 0xffff
+ * 68010: V=1, N=1, C=0, Z=0
  * 68020: V=1, C=0, Z=0, N=X
  * 68040: V=1, C=0, NZ not modified.
  * 68060: V=1, C=0, NZ not modified.
@@ -901,9 +938,8 @@ void setdivuflags(uae_u32 dividend, uae_u16 divisor)
 			SET_NFLG(1);
 	} else if (currprefs.cpu_model == 68010) {
 		SET_VFLG(1);
-		SET_NFLG(divisor < 0x8000);
-		// can anyone explain this?
-		SET_ZFLG((dividend >> 16) == 0xffff && divisor == 0xffff);
+		SET_NFLG(1);
+		SET_ZFLG(0);
 		SET_CFLG(0);
 	} else {
 		// 68000
@@ -1179,7 +1215,7 @@ static void divul_overflow(uae_u16 extra, uae_s64 a)
 	}
 }
 
-static void divsl_divbyzero(uae_u16 extra, uae_s64 a)
+static void divsl_divbyzero(uae_u16 extra, uae_s64 a, uaecptr oldpc)
 {
 	if (currprefs.cpu_model >= 68040) {
 		SET_CFLG(0);
@@ -1188,10 +1224,10 @@ static void divsl_divbyzero(uae_u16 extra, uae_s64 a)
 		SET_ZFLG(1);
 		SET_CFLG(0);
 	}
-	Exception_cpu(5);
+	Exception_cpu_oldpc(5, oldpc);
 }
 
-static void divul_divbyzero(uae_u16 extra, uae_s64 a)
+static void divul_divbyzero(uae_u16 extra, uae_s64 a, uaecptr oldpc)
 {
 	if (currprefs.cpu_model >= 68040) {
 		SET_CFLG(0);
@@ -1203,14 +1239,14 @@ static void divul_divbyzero(uae_u16 extra, uae_s64 a)
 		SET_VFLG(1);
 		SET_CFLG(0);
 	}
-	Exception_cpu(5);
+	Exception_cpu_oldpc(5, oldpc);
 }
 
-bool m68k_divl (uae_u32 opcode, uae_u32 src, uae_u16 extra)
+int m68k_divl(uae_u32 opcode, uae_u32 src, uae_u16 extra, uaecptr oldpc)
 {
 	if ((extra & 0x400) && currprefs.int_no_unimplemented && currprefs.cpu_model == 68060) {
 		op_unimpl (opcode);
-		return false;
+		return -1;
 	}
 
 	if (extra & 0x800) {
@@ -1224,8 +1260,8 @@ bool m68k_divl (uae_u32 opcode, uae_u32 src, uae_u16 extra)
 		}
 
 		if (src == 0) {
-			divsl_divbyzero(extra, a);
-			return false;
+			divsl_divbyzero(extra, a, oldpc);
+			return 0;
 		}
 
 		if ((uae_u64)a == 0x8000000000000000UL && src == ~0u) {
@@ -1258,8 +1294,8 @@ bool m68k_divl (uae_u32 opcode, uae_u32 src, uae_u16 extra)
 		}
 
 		if (src == 0) {
-			divul_divbyzero(extra, a);
-			return false;
+			divul_divbyzero(extra, a, oldpc);
+			return 0;
 		}
 
 		rem = a % (uae_u64)src;
@@ -1275,15 +1311,15 @@ bool m68k_divl (uae_u32 opcode, uae_u32 src, uae_u16 extra)
 			m68k_dreg (regs, (extra >> 12) & 7) = (uae_u32)quot;
 		}
 	}
-	return true;
+	return 1;
 }
 
 
-bool m68k_mull (uae_u32 opcode, uae_u32 src, uae_u16 extra)
+int m68k_mull (uae_u32 opcode, uae_u32 src, uae_u16 extra)
 {
 	if ((extra & 0x400) && currprefs.int_no_unimplemented && currprefs.cpu_model == 68060) {
 		op_unimpl (opcode);
-		return false;
+		return -1;
 	}
 	if (extra & 0x800) {
 		/* signed */
@@ -1346,7 +1382,7 @@ bool m68k_mull (uae_u32 opcode, uae_u32 src, uae_u16 extra)
 			SET_NFLG(b < 0);
 		}
 	}
-	return true;
+	return 1;
 }
 
 #endif
@@ -1533,34 +1569,34 @@ void Exception_build_stack_frame(uae_u32 oldpc, uae_u32 currpc, uae_u32 ssw, int
 		// used when instruction's last write causes bus fault
 		m68k_areg(regs, 7) -= 4;
 		if (format == 0xb) {
-			x_put_long(m68k_areg(regs, 7), mmu030_disp_store[0]);
+			x_put_long(m68k_areg(regs, 7), mmu030_disp_store[0]); // 28 0x1c
 		} else {
 			uae_u32 ps = (regs.prefetch020_valid[0] ? 1 : 0) | (regs.prefetch020_valid[1] ? 2 : 0) | (regs.prefetch020_valid[2] ? 4 : 0);
 			ps |= ((regs.pipeline_r8[0] & 7) << 8);
 			ps |= ((regs.pipeline_r8[1] & 7) << 11);
 			ps |= ((regs.pipeline_pos & 15) << 16);
 			ps |= ((regs.pipeline_stop & 15) << 20);
-			x_put_long(m68k_areg(regs, 7), ps);
+			x_put_long(m68k_areg(regs, 7), ps); // 28 0x1c
 		}
 		m68k_areg(regs, 7) -= 4;
 		// Data output buffer = value that was going to be written
-		x_put_long(m68k_areg(regs, 7), regs.wb3_data);
+		x_put_long(m68k_areg(regs, 7), regs.wb3_data); // 24 0x18
 		m68k_areg(regs, 7) -= 4;
 		if (format == 0xb) {
-			x_put_long(m68k_areg(regs, 7), (mmu030_opcode & 0xffff) | (regs.prefetch020[0] << 16));  // Internal register (opcode storage)
+			x_put_long(m68k_areg(regs, 7), (mmu030_opcode & 0xffff) | (regs.prefetch020[0] << 16));  // Internal register (opcode storage) 20 0x14
 		} else {
-			x_put_long(m68k_areg(regs, 7), regs.irc | (regs.prefetch020[0] << 16));  // Internal register (opcode storage)
+			x_put_long(m68k_areg(regs, 7), regs.irc | (regs.prefetch020[0] << 16));  // Internal register (opcode storage)  20 0x14
 		}
 		m68k_areg(regs, 7) -= 4;
-		x_put_long(m68k_areg(regs, 7), regs.mmu_fault_addr); // data cycle fault address
+		x_put_long(m68k_areg(regs, 7), regs.mmu_fault_addr); // data cycle fault address 16 0x10
 		m68k_areg(regs, 7) -= 2;
-		x_put_word(m68k_areg(regs, 7), regs.prefetch020[2]);  // Instr. pipe stage B
+		x_put_word(m68k_areg(regs, 7), regs.prefetch020[2]);  // Instr. pipe stage B 14 0x0e
 		m68k_areg(regs, 7) -= 2;
-		x_put_word(m68k_areg(regs, 7), regs.prefetch020[1]);  // Instr. pipe stage C
+		x_put_word(m68k_areg(regs, 7), regs.prefetch020[1]);  // Instr. pipe stage C 12 0x0c
 		m68k_areg(regs, 7) -= 2;
-		x_put_word(m68k_areg(regs, 7), ssw);
+		x_put_word(m68k_areg(regs, 7), ssw); // 10 0x0a
 		m68k_areg(regs, 7) -= 2;
-		x_put_word(m68k_areg(regs, 7), regs.wb2_address); // = mmu030_state[1]);
+		x_put_word(m68k_areg(regs, 7), regs.wb2_address); // = mmu030_state[1]); 8 0x08
 		break;
 	default:
 		write_log(_T("Unknown exception stack frame format: %X\n"), format);
@@ -1693,6 +1729,7 @@ void areg_68000_long_replace_low(int reg, uae_u16 v)
 }
 
 // Change F-line to privilege violation if missing co-pro
+// 68040 and 68060 always return F-line
 bool privileged_copro_instruction(uae_u16 opcode)
 {
 	if (currprefs.cpu_model >= 68020 && !regs.s) {
@@ -1702,14 +1739,16 @@ bool privileged_copro_instruction(uae_u16 opcode)
 		// cpSAVE and cpRESTORE: privilege violation if user mode.
 		if ((opcode & 0xf1c0) == 0xf100) {
 			// cpSAVE
+			// check if valid EA
 			if (mode == 2 || (mode >= 4 && mode <= 6) || (mode == 7 && (reg == 0 || reg == 1))) {
-				if ((currprefs.cpu_model >= 68040 && id > 0) || currprefs.cpu_model < 68040)
+				if (currprefs.cpu_model < 68040 || (currprefs.cpu_model >= 68040 && id == 1))
 					return true;
 			}
 		} else if ((opcode & 0xf1c0) == 0xf140) {
 			// cpRESTORE
+			// check if valid EA
 			if (mode == 2 || mode == 3 || (mode >= 5 && mode <= 6) || (mode == 7 && reg <= 3)) {
-				if ((currprefs.cpu_model >= 68040 && id > 0) || currprefs.cpu_model < 68040)
+				if (currprefs.cpu_model < 68040 || (currprefs.cpu_model >= 68040 && id == 1))
 					return true;
 			}
 		}

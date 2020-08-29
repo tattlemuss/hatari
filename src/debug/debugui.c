@@ -29,6 +29,7 @@ const char DebugUI_fileid[] = "Hatari debugui.c : " __DATE__ " " __TIME__;
 #include "log.h"
 #include "m68000.h"
 #include "memorySnapShot.h"
+#include "screenSnapShot.h"
 #include "options.h"
 #include "reset.h"
 #include "screen.h"
@@ -69,8 +70,7 @@ void DebugUI_MemorySnapShot_Capture(const char *path, bool bSave)
 {
 	char *filename;
 
-	filename = malloc(strlen(path) + strlen(".debug") + 1);
-	assert(filename);
+	filename = Str_Alloc(strlen(path) + strlen(".debug"));
 	strcpy(filename, path);
 	strcat(filename, ".debug");
 	
@@ -381,6 +381,18 @@ static int DebugUI_SetOptions(int argc, char *argv[])
 
 
 /**
+ * Command: Screenshot
+ */
+static int DebugUI_Screenshot(int argc, char *argv[])
+{
+	if (argc == 2)
+		ScreenSnapShot_SaveToFile(argv[1]);
+	else
+		return DebugUI_PrintCmdHelp(argv[0]);
+	return DEBUGGER_CMDDONE;
+}
+
+/**
  * Command: Set tracing
  */
 static int DebugUI_SetTracing(int argc, char *argv[])
@@ -396,7 +408,6 @@ static int DebugUI_SetTracing(int argc, char *argv[])
 
 	return DEBUGGER_CMDDONE;
 }
-
 
 /**
  * Command: Change Hatari work directory
@@ -879,7 +890,8 @@ static char *DebugUI_GetCommand(char *input)
 	if (!input)
 	{
 		input = malloc(256);
-		assert(input);
+		if (!input)
+			return NULL;
 	}
 	input[0] = '\0';
 	if (fgets(input, 256, stdin) == NULL)
@@ -1000,6 +1012,11 @@ static const dbgcommand_t uicommand[] =
 	  "reset", "",
 	  "reset emulation",
 	  "<soft|hard>\n",
+	  false },
+	{ DebugUI_Screenshot, NULL,
+	  "screenshot", "",
+	  "save screenshot to given file",
+	  "<filename>\n",
 	  false },
 	{ DebugUI_SetOptions, Opt_MatchOption,
 	  "setopt", "o",
@@ -1193,7 +1210,8 @@ bool DebugUI_ParseFile(const char *path, bool reinit)
 {
 	int recurse;
 	static int recursing;
-	char *olddir, *dir, *cmd, *input, *expanded, *slash;
+	char *olddir, *dir, *cmd, *expanded, *slash;
+	char input[256];
 	FILE *fp;
 
 	fprintf(stderr, "Reading debugger commands from '%s'...\n", path);
@@ -1231,17 +1249,8 @@ bool DebugUI_ParseFile(const char *path, bool reinit)
 	recurse = recursing;
 	recursing = true;
 
-	input = NULL;
-	for (;;)
+	while (fgets(input, sizeof(input), fp) != NULL)
 	{
-		if (!input)
-		{
-			input = malloc(256);
-			assert(input);
-		}
-		if (!fgets(input, 256, fp))
-			break;
-
 		/* ignore empty and comment lines */
 		cmd = Str_Trim(input);
 		if (!*cmd || *cmd == '#')
@@ -1259,7 +1268,6 @@ bool DebugUI_ParseFile(const char *path, bool reinit)
 	}
 	recursing = false;
 
-	free(input);
 	fclose(fp);
 
 	if (olddir)

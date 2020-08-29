@@ -24,8 +24,16 @@ Emulation:
 - support for DD/HD mode on MegaSTE at $FF860E
   (when FDC is set to HD mode, reading DD floppies will fail)
 - Emulate additional RTC/NVRAM registers
-- Update CPU core to latest WinUAE 4.2.0 beta
 - Fix: IDE disks with sector size > 512 bytes
+- CPU:
+  - Update CPU core to latest WinUAE 4.4.0 beta : full support for undocument
+    fields in 68000 bus/address error stack frames, as well as CCR flags for
+    most of the 680x0 instructions (using a cpu tester program on the real
+    hardware that checks all possible opcodes' combinations)
+- Video:
+  - Improved timing when setting Vsync signal
+    (same place where video counter is reloaded)
+  - Handle screen where vertical DE signal is completely disabled
 
 Emulator:
 - Memory snapshot version increase due to FDC changes
@@ -34,17 +42,17 @@ Emulator:
   (instead of counting sectors)
 - Add --lilo debug option for more convenient m68k Linux loading
   - Support config file values with '=' in them
+- Fix: run-time IDE byte swap change requires IDE re-init
 - GEMDOS HD emulation:
   - Support FASTLOAD program flag with GEMDOS HD
-  - GEMDOS HD emulation cartridge assembly functionality is
-    moved (almost completely) to emulator side. Fixes Atari
-    side error handling when program file isn't readable,
-    and TOS stack overflows in some rare cases
+  - GEMDOS HD emulation cartridge assembly functionality is moved almost
+    completely to emulator side. Fixes Atari side error handling when program
+    file is not readable, and TOS stack overflows in some rare cases
   - Detect DTA re-use to reduce DTA cache usage, grow cache on
     demand and give warning if its entries need to be re-cycled
     (= cache max size is reached)
   - Invalid DTA in Fsnext() return -ENMFIL, like TOS does
-  - Dsetpath/Dgetpath empty path handling fix
+  - Fix: Dsetpath/Dgetpath empty path handling
 - Support read-only HD image files, and show error dialogs
   for image file open/lock issues
 - Hatari graphics support:
@@ -54,14 +62,15 @@ Emulator:
   - SDL2: "--zoom" option accepts any values between 1.0 - 8.0
   - SDL2: "--zoom" option is changed to always enable low resolution
     doubling before SDL framebuffer is scaled up (or down) by the zoom
-    factor. This way Hatari output wiindow is approximately same sized
+    factor. This way Hatari output window is approximately same sized
     regardless of emulated Atari resolution, like on a real CRT monitor
-  - SDL2: scale quality is autoselected; nearest pixel for sharp
-    output with integer scaling factors, and linear scaling to
-    smooth out issues with non-integer scaling & window resizes.
+  - SDL2: scale quality is selected automatically; nearest pixel for sharp
+    output with integer scaling factors, and linear scaling to smooth out
+    issues with non-integer scaling and window resizes
   - SDL2: Now redundant "nRenderScaleQuality" config option is
     removed and "Linear scaling" option in GUI is replaced with
     the "GPU scaling" option (=bUseSdlRenderer config option)
+  - Added new "--screenshot-dir" option to select the folder for screenshots
 - Show mouse grab toggle shortcut key in startup statusbar message
 - Center host mouse to Hatari window on Atari resets and resolution
   changes only when window is focused and mouse pointer is within it
@@ -85,14 +94,17 @@ Emulator:
     (with symbol address aliases)
 - Debugger:
   - Fix: CPU disassembly trace output doesn't go to specified trace file
+  - New "screenshot" command for saving screen dump to a PNG/BMP file
   - "symbols resident" option replaced with "symbols autoload"
     option which can be used to completely disable automatic symbol
     loading and unloading for programs run through the GEMDOS HD
-  - Trace flags can be added and removed instead of needing
-    to always specify all the relevant ones:
+    (helps debugging resident programs started from GEMDOS HD)
+  - Trace flags can be added and removed instead of needing to
+    always specify all the relevant ones, both with "--trace"
+    command line option and debugger "trace" command:
     --trace os_base,aes, trace +xbios,bios, trace -bios,-aes
   - Improvements to UAE and external disassembler disassembly
-  - UAE disassembler is now default insted of external one
+  - UAE disassembler is now default instead of external one
     (latter doesn't decode all instructions correctly)
   - New "info" subcommands:
     "acia", "dmasnd", "ikbd", "mfp", "nvram", "rtc" and "scc"
@@ -107,9 +119,10 @@ Emulator:
 Building:
 - Source repository moved from Mercurial to Git
 - Fix: issue with multilib capable cross-compilers
-- Fix: workaround problems with Capslib 5.1 headers
+- Only Caps library v5.1 is supported (support for old v4.2 is dropped)
 - Obsolete Mudflap option replaced with AddressSanitizer support
-- Add GEMDOS tests and improve CPU/MMU variant coverage in bus error tests
+- Add tests for GEMDOS HD, fullscreen/overscan display and Hatari
+  command FIFO + improve CPU/MMU variant coverage in earlier tests
 
 Documentation:
 - Up to date documentation provided at: https://hatari.tuxfamily.org/doc/
@@ -119,9 +132,15 @@ Documentation:
   a separate debugger.html file
 - Minor improvements
 
+Fixed demos:
+- Pacemaker STE demo (end part), when it's run from GEMDOS HD
+- Multi scrolls part in Closure by Sync (regression since Hatari 2.2, vsync
+  in bottom border)
+- Fullscreen part in Hard As Ice STE demo by I.C.E. (screen with no vertical
+  DE signal)
+
 Fixed programs:
 - Akaisex program reading AKAI S1000 HD floppies converted to STX
-- Pacemaker STE demo (end part), when it's run from GEMDOS HD
 
 
  Version 2.2.1 (2019-02-08)
@@ -778,8 +797,8 @@ Emulation:
   - Rewrite the DMA functions for better accuracy
   - Add support for IPF/CTR files by using the capsimage library
   - Add open source support for Pasti STX files, including random/fuzzy bits
-    and variable length bits. Also allow to save writes to a .stx file
-    into an additional .wd1772 file (store 'write sector' and 'write track' data)
+    and variable length bits. Also allow to save writes to a .stx file into
+    an additional .wd1772 file (store 'write sector' and 'write track' data)
   - Don't force drives A and B at $4c2, keep the values detected by TOS
   - Many other timing / status register improvements
 - GEMDOS HD emulation:

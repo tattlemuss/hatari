@@ -14,6 +14,7 @@
 #ifndef UAE_MACCESS_H
 #define UAE_MACCESS_H
 
+#include <SDL_endian.h>
 
 /* Can the actual CPU access unaligned memory? */
 #ifndef CPU_CAN_ACCESS_UNALIGNED
@@ -29,9 +30,6 @@
 
 /* If the CPU can access unaligned memory, use these accelerated functions: */
 #if CPU_CAN_ACCESS_UNALIGNED
-
-#include <SDL_endian.h>
-
 
 static inline uae_u32 do_get_mem_long(void *a)
 {
@@ -106,6 +104,26 @@ static inline void do_put_mem_byte(uae_u8 *a, uae_u8 v)
 	*a = v;
 }
 
+
+STATIC_INLINE uae_u64 do_byteswap_64(uae_u64 v)
+{
+	return SDL_Swap64(v);
+}
+
+STATIC_INLINE uae_u32 do_byteswap_32(uae_u32 v)
+{
+	return SDL_Swap32(v);
+}
+
+STATIC_INLINE uae_u16 do_byteswap_16(uae_u16 v)
+{
+	return SDL_Swap16(v);
+}
+
+STATIC_INLINE uae_u32 do_get_mem_word_unswapped(uae_u16 *a)
+{
+	return *a;
+}
 
 #define call_mem_get_func(func, addr) ((*func)(addr))
 #define call_mem_put_func(func, addr, v) ((*func)(addr, v))

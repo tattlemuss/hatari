@@ -8,17 +8,19 @@ addons:
       - libpng-dev
       - libsdl2-dev
       - portaudio19-dev
+      - imagemagick
   homebrew:
     packages:
       - sdl2
       - libpng
       - tidy-html5
+      - graphicsmagick
     update: true
 
 before_script:
   - ./configure ${CONFIG}
 script:
-  - make -j$(nproc) && make test
+  - make -j$(nproc) && ctest -j$(nproc)
 
 matrix:
   include:
@@ -28,25 +30,25 @@ matrix:
       compiler: clang
 
     - env:
-        - CONFIG="--disable-winuae-cpu --enable-werror"
+        - CONFIG="--disable-winuae-cpu --enable-werror --enable-debug"
       arch: arm64
 
     - env:
-        - CONFIG="--enable-winuae-cpu --enable-werror"
+        - CONFIG="--enable-winuae-cpu --enable-werror --enable-debug"
       arch: ppc64le
 
     - env:
-        - CONFIG="--enable-winuae-cpu --enable-werror"
+        - CONFIG="--enable-winuae-cpu --enable-werror --enable-debug"
       arch: s390x
 
     - env:
-        - CONFIG="--enable-osx-bundle --disable-winuae-cpu"
+        - CONFIG="--enable-osx-bundle --disable-winuae-cpu --enable-debug"
       os: osx
-      osx_image: xcode9.3
+      osx_image: xcode11.4
       compiler: clang
 
     - env:
-        - CONFIG="--enable-osx-bundle --disable-winuae-cpu"
+        - CONFIG="--enable-osx-bundle --disable-winuae-cpu --enable-debug"
       os: osx
       osx_image: xcode11.2
       compiler: clang
