@@ -34,7 +34,7 @@ const char IoMemTabST_fileid[] = "Hatari ioMemTabST.c";
 #include "video.h"
 #include "blitter.h"
 #include "stMemory.h"
-
+#include "debugui.h"
 
 /*-----------------------------------------------------------------------*/
 /*
@@ -113,6 +113,8 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_ST[] =
 	{ 0xff8a3b, SIZE_BYTE, Blitter_LogOp_ReadByte, Blitter_LogOp_WriteByte },
 	{ 0xff8a3c, SIZE_BYTE, Blitter_Control_ReadByte, Blitter_Control_WriteByte },
 	{ 0xff8a3d, SIZE_BYTE, Blitter_Skew_ReadByte, Blitter_Skew_WriteByte },
+
+	{ 0xffc123, SIZE_BYTE, IoMem_BusErrorOddReadAccess, DebugUI_Trigger },
 
 	{ 0xfffa01, SIZE_BYTE, MFP_GPIP_ReadByte, MFP_GPIP_WriteByte },
 	{ 0xfffa03, SIZE_BYTE, MFP_ActiveEdge_ReadByte, MFP_ActiveEdge_WriteByte },

@@ -1401,3 +1401,8 @@ void DebugUI_RegisterRemoteDebug(DebugUI_ProcessRemoteCommands cmdCallback)
 {
 	remoteDebugcmdCallback = cmdCallback;
 }
+
+void DebugUI_Trigger()
+{
+	DebugUI(REASON_USER);
+}

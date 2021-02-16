@@ -30,6 +30,7 @@ const char IoMemTabFalc_fileid[] = "Hatari ioMemTabFalcon.c";
 #include "configuration.h"
 #include "statusbar.h"
 #include "stMemory.h"
+#include "debugui.h"
 #if ENABLE_DSP_EMU
 #include "falcon/dsp.h"
 #endif
@@ -414,6 +415,9 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_Falcon[] =
 
 	{ 0xffc020, SIZE_BYTE, IoMemTabFalc_Compatible_ReadByte, IoMemTabFalc_Compatible_WriteByte },
 	{ 0xffc021, SIZE_BYTE, IoMemTabFalc_Compatible_ReadByte, IoMemTabFalc_Compatible_WriteByte },
+
+	{ 0xffc123, SIZE_BYTE, IoMem_BusErrorOddReadAccess, DebugUI_Trigger },
+
 	{ 0xffd020, SIZE_BYTE, IoMemTabFalc_Compatible_ReadByte, IoMemTabFalc_Compatible_WriteByte },
 	{ 0xffd074, SIZE_WORD, IoMemTabFalc_Compatible_ReadWord, IoMemTabFalc_Compatible_WriteWord },
 	{ 0xffd420, SIZE_BYTE, IoMemTabFalc_Compatible_ReadByte, IoMemTabFalc_Compatible_WriteByte },
