@@ -19,6 +19,8 @@ SET(CMAKE_C_COMPILER ${MINGW_EXE_PREFIX}-gcc)
 SET(CMAKE_CXX_COMPILER ${MINGW_EXE_PREFIX}-g++)
 SET(CMAKE_RC_COMPILER ${MINGW_EXE_PREFIX}-windres)
 
+SET(ENV{PKG_CONFIG} ${MINGW_EXE_PREFIX}-pkg-config)
+
 # Base directory for the target environment
 # We use the output from '-print-sysroot'
 EXECUTE_PROCESS(
@@ -37,7 +39,7 @@ get_filename_component ( CMAKE_FIND_ROOT_PATH ${CMAKE_FIND_ROOT_PATH} ABSOLUTE )
 
 # FindSDL.cmake doesn't search correctly in CMAKE_FIND_ROOT_PATH
 # so we force SDLDIR here
-set ( ENV{SDLDIR} ${CMAKE_FIND_ROOT_PATH}/include/SDL )
+set(ENV{SDL2DIR} ${CMAKE_FIND_ROOT_PATH}/include/SDL2)
 
 # Adjust the default behaviour of the FIND_XXX() commands:
 # search headers and libraries in the target environment, search

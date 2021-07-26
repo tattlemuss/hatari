@@ -12,10 +12,10 @@
 #include <QCompleter>
 #include <QPushButton>
 
-#include "dispatcher.h"
-#include "targetmodel.h"
-#include "stringparsers.h"
-#include "symboltablemodel.h"
+#include "../transport/dispatcher.h"
+#include "../models/targetmodel.h"
+#include "../models/stringparsers.h"
+#include "../models/symboltablemodel.h"
 
 #include "addbreakpointdialog.h"
 #include "quicklayout.h"
@@ -126,7 +126,7 @@ void BreakpointsTableModel::breakpointsChangedSlot()
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-BreakpointsTableView::BreakpointsTableView(QWidget* parent, BreakpointsTableModel* pModel, TargetModel* pTargetModel) :
+BreakpointsTableView::BreakpointsTableView(QWidget* parent, BreakpointsTableModel* pModel) :
     QTableView(parent),
     m_pTableModel(pModel),
     //m_rightClickMenu(this),
@@ -194,11 +194,12 @@ BreakpointsWidget::BreakpointsWidget(QWidget *parent, TargetModel* pTargetModel,
     m_pDispatcher(pDispatcher)
 {
     this->setWindowTitle("Breakpoints");
+    setObjectName("BreakpointsWidget");
 
     // Make the data first
     pModel = new BreakpointsTableModel(this, pTargetModel, pDispatcher);
 
-    m_pTableView = new BreakpointsTableView(this, pModel, m_pTargetModel);
+    m_pTableView = new BreakpointsTableView(this, pModel);
     m_pTableView->setModel(pModel);
 
     m_pSymbolTableModel = new SymbolTableModel(this, m_pTargetModel->GetSymbolTable());
@@ -231,6 +232,12 @@ BreakpointsWidget::BreakpointsWidget(QWidget *parent, TargetModel* pTargetModel,
     connect(m_pDeleteButton, &QAbstractButton::clicked, this, &BreakpointsWidget::deleteBreakpointClicked);
 }
 
+void BreakpointsWidget::keyFocus()
+{
+    activateWindow();
+    m_pTableView->setFocus();
+}
+
 void BreakpointsWidget::addBreakpointClicked()
 {
     AddBreakpointDialog dialog(this, m_pTargetModel, m_pDispatcher);
@@ -245,3 +252,5 @@ void BreakpointsWidget::deleteBreakpointClicked()
         m_pDispatcher->DeleteBreakpoint(bp.m_id);
     }
 }
+
+

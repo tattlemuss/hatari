@@ -13,22 +13,24 @@
 #include <QPainter>
 #include <QStyle>
 #include <QFontDatabase>
+#include <QSettings>
 
-#include "dispatcher.h"
-#include "targetmodel.h"
-#include "symboltablemodel.h"
-#include "stringparsers.h"
-
+#include "../transport/dispatcher.h"
+#include "../models/targetmodel.h"
+#include "../models/symboltablemodel.h"
+#include "../models/stringparsers.h"
 
 NonAntiAliasImage::NonAntiAliasImage(QWidget *parent)
     : QWidget(parent)
 {
     setMouseTracking(true);
+    setFocusPolicy(Qt::FocusPolicy::StrongFocus);
 }
 
 void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
 {
     QPainter painter(this);
+
     const QFont monoFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
     if (m_pixmap.width() != 0)
     {
@@ -48,6 +50,14 @@ void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
         painter.setFont(monoFont);
         painter.drawText(10, 10, "Not connected");
     }
+    const QPalette& pal = this->palette();
+
+    if (hasFocus())
+    {
+        painter.setPen(QPen(pal.dark(), 6));
+        painter.drawRect(this->rect());
+    }
+
     QWidget::paintEvent(ev);
 }
 
@@ -73,7 +83,7 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     m_requestIdBitmap(0U),
     m_requestIdPalette(0U)
 {
-    QString name("Graphics Inspector");
+    QString name("GraphicsInspector");
     this->setObjectName(name);
     this->setWindowTitle(name);
     this->setFocusPolicy(Qt::FocusPolicy::StrongFocus);
@@ -117,6 +127,7 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     pMainGroupBox->setLayout(vlayout);
 
     setWidget(pMainGroupBox);
+    loadSettings();
 
     connect(m_pTargetModel,  &TargetModel::connectChangedSignal,          this, &GraphicsInspectorWidget::connectChangedSlot);
     connect(m_pTargetModel,  &TargetModel::startStopChangedSignalDelayed, this, &GraphicsInspectorWidget::startStopChangedSlot);
@@ -136,6 +147,37 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
 GraphicsInspectorWidget::~GraphicsInspectorWidget()
 {
 
+}
+
+void GraphicsInspectorWidget::keyFocus()
+{
+    activateWindow();
+    m_pImageWidget->setFocus();
+}
+
+void GraphicsInspectorWidget::loadSettings()
+{
+    QSettings settings;
+    settings.beginGroup("GraphicsInspector");
+
+    restoreGeometry(settings.value("geometry").toByteArray());
+    m_width = settings.value("width", QVariant(20)).toInt();
+    m_height = settings.value("height", QVariant(200)).toInt();
+    m_pWidthSpinBox->setValue(m_width);
+    m_pHeightSpinBox->setValue(m_height);
+    settings.endGroup();
+}
+
+void GraphicsInspectorWidget::saveSettings()
+{
+    QSettings settings;
+    settings.beginGroup("GraphicsInspector");
+
+    settings.setValue("geometry", saveGeometry());
+    settings.setValue("width", m_width);
+    settings.setValue("height", m_height);
+    settings.setValue("lockToVideo", m_bLockToVideo);
+    settings.endGroup();
 }
 
 void GraphicsInspectorWidget::keyPressEvent(QKeyEvent* ev)
@@ -348,6 +390,11 @@ bool GraphicsInspectorWidget::SetAddressFromVideo()
         uint8_t hi = pVideoRegs->ReadAddressByte(0xff8201);
         uint8_t mi = pVideoRegs->ReadAddressByte(0xff8203);
         uint8_t lo = pVideoRegs->ReadAddressByte(0xff820d);
+        if (m_pTargetModel->GetMachineType() == MACHINE_ST)
+            lo = 0;
+        if (m_pTargetModel->GetMachineType() == MACHINE_MEGA_ST)
+            lo = 0;
+
         m_address = (hi << 16) | (mi << 8) | lo;
         DisplayAddress();
         return true;

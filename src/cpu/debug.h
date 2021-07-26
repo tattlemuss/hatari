@@ -43,7 +43,7 @@ extern void activate_debugger_new_pc(uaecptr pc, int len);
 extern void deactivate_debugger (void);
 extern int notinrom (void);
 extern const TCHAR *debuginfo (int);
-extern void record_copper (uaecptr addr, uae_u16 word1, uae_u16 word2, int hpos, int vpos);
+extern void record_copper (uaecptr addr, uaecptr nextaddr, uae_u16 word1, uae_u16 word2, int hpos, int vpos);
 extern void record_copper_blitwait (uaecptr addr, int hpos, int vpos);
 extern void record_copper_reset (void);
 extern int mmu_init (int, uaecptr,uaecptr);
@@ -221,6 +221,7 @@ struct dma_rec
     uae_s16 type;
 	uae_u16 extra;
 	uae_s8 intlev;
+	uae_u16 cf_reg, cf_dat, cf_addr;
 };
 
 extern struct dma_rec *last_dma_rec;
@@ -236,6 +237,7 @@ extern struct dma_rec *last_dma_rec;
 #define DMA_EVENT_NOONEGETS 256
 #define DMA_EVENT_CPUBLITTERSTEAL 512
 #define DMA_EVENT_CPUBLITTERSTOLEN 1024
+#define DMA_EVENT_COPPERSKIP 2048
 #define DMA_EVENT_SPECIAL 32768
 
 #define DMARECORD_REFRESH 1

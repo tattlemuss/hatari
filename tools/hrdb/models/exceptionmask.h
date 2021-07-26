@@ -44,7 +44,7 @@ public:
 
     uint16_t m_mask;
 
-    static const char* GetName(uint16_t exceptionId);
+    static const char* GetName(uint32_t exceptionId);
 };
 
 #endif // EXCEPTIONMASK_H

@@ -2,6 +2,7 @@
 
 #include <string.h>
 #include <errno.h>
+#include <stdlib.h>
 
 /* define which character indicates which type of number on expression  */
 #define PREFIX_BIN '%'                            /* binary decimal     */

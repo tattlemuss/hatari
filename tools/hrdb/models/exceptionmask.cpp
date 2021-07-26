@@ -5,7 +5,7 @@ ExceptionMask::ExceptionMask()
     m_mask = 0;
 }
 
-const char *ExceptionMask::GetName(uint16_t exceptionId)
+const char *ExceptionMask::GetName(uint32_t exceptionId)
 {
     switch (exceptionId)
     {

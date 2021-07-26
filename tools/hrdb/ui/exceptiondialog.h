@@ -2,7 +2,7 @@
 #define EXCEPTIONDIALOG_H
 
 #include <QDialog>
-#include "exceptionmask.h"
+#include "../models/exceptionmask.h"
 
 class QCheckBox;
 class TargetModel;

@@ -1,12 +1,12 @@
-#include "dispatcher.h"
+#include "../transport/dispatcher.h"
 #include <QtWidgets>
 #include <QtNetwork>
 
 #include <iostream>
 
-#include "targetmodel.h"
-#include "stringsplitter.h"
-#include "stringparsers.h"
+#include "../models/targetmodel.h"
+#include "../models/stringsplitter.h"
+#include "../models/stringparsers.h"
 
 //#define DISPATCHER_DEBUG
 
@@ -41,6 +41,18 @@ Dispatcher::Dispatcher(QTcpSocket* tcpSocket, TargetModel* pTargetModel) :
 Dispatcher::~Dispatcher()
 {
     DeletePending();
+}
+
+uint64_t Dispatcher::InsertFlush()
+{
+    assert(m_portConnected && !m_waitingConnectionAck);
+    RemoteCommand* pNewCmd = new RemoteCommand();
+    pNewCmd->m_cmd = "flush";
+    pNewCmd->m_memorySlot = MemorySlot::kNone;
+    pNewCmd->m_uid = m_responseUid++;
+    m_sentCommands.push_front(pNewCmd);
+    // Don't send it down the wire!
+    return 0;
 }
 
 uint64_t Dispatcher::RequestMemory(MemorySlot slot, uint32_t address, uint32_t size)
@@ -82,7 +94,20 @@ void Dispatcher::ReceivePacket(const char* response)
 	// THIS HAPPENS ON THE EVENT LOOP
     std::string new_resp(response);
 
-	// Check for a notification
+    // Any flushes to handle?
+    while (1)
+    {
+        if (m_sentCommands.size() == 0)
+            break;
+        if (m_sentCommands.back()->m_cmd != "flush")
+            break;
+
+        delete m_sentCommands.back();
+        m_sentCommands.pop_back();
+        m_pTargetModel->Flush();
+    }
+
+    // Check for a notification
 	if (new_resp.size() > 0)
 	{
 		if (new_resp[0] == '!')
@@ -120,6 +145,19 @@ void Dispatcher::ReceivePacket(const char* response)
 		// At this point we can notify others that new data has arrived
 		this->ReceiveResponsePacket(*pPending);
 		delete pPending;
+
+        // Any flushes to handle?
+        while (1)
+        {
+            if (m_sentCommands.size() == 0)
+                break;
+            if (m_sentCommands.back()->m_cmd != "flush")
+                break;
+
+            delete m_sentCommands.back();
+            m_sentCommands.pop_back();
+            m_pTargetModel->Flush();
+        }
 	}
 	else
 	{
@@ -260,7 +298,7 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
 		Memory* pMem = new Memory(addr, size);
 
 		// Now parse the hex data
-		int readPos = splitResp.GetPos();
+        uint32_t readPos = splitResp.GetPos();
 		for (uint32_t off = 0; off < size; ++off)
 		{
             uint8_t nybbleHigh;
@@ -358,6 +396,10 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
 
         m_pTargetModel->NotifyMemoryChanged(addr, size);
     }
+    else if (type == "flush")
+    {
+                assert(0);
+    }
 }
 
 void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
@@ -378,8 +420,24 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
             return;
         if (!StringParsers::ParseHexString(pcStr.c_str(), pc))
             return;
-		m_pTargetModel->SetStatus(running, pc);
-	}
+
+        // This call goes off and lots of views insert requests here, so add a flush into the queue
+        m_pTargetModel->SetStatus(running != 0, pc);
+        this->InsertFlush();
+    }
+    if (type == "!config")
+    {
+        std::string machineTypeStr = s.Split(' ');
+        std::string cpuLevelStr = s.Split(' ');
+        uint32_t machineType;
+        uint32_t cpuLevel;
+        if (!StringParsers::ParseHexString(machineTypeStr.c_str(), machineType))
+            return;
+        if (!StringParsers::ParseHexString(cpuLevelStr.c_str(), cpuLevel))
+            return;
+        m_pTargetModel->SetConfig(machineType, cpuLevel);
+        this->InsertFlush();
+    }
     else if (type == "!connected")
     {
         // Allow new command responses to be processed.

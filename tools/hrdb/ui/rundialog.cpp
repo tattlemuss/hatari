@@ -5,8 +5,8 @@
 #include <QLabel>
 #include <QProcess>
 
-#include "targetmodel.h"
-#include "dispatcher.h"
+#include "../models/targetmodel.h"
+#include "../transport/dispatcher.h"
 #include "quicklayout.h"
 
 RunDialog::RunDialog(QWidget *parent, TargetModel* pTargetModel, Dispatcher* pDispatcher) :

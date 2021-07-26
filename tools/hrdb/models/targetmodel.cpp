@@ -44,6 +44,16 @@ Registers::Registers()
 		m_value[i] = 0;
 }
 
+
+void TargetChangedFlags::Clear()
+{
+    for (int i = 0; i < kChangedStateCount; ++i)
+        m_changed[i] = false;
+
+    for (int i = 0; i < kMemorySlotCount; ++i)
+        m_memChanged[i] = false;
+}
+
 TargetModel::TargetModel() :
 	QObject(),
     m_bConnected(false),
@@ -51,6 +61,8 @@ TargetModel::TargetModel() :
 {
     for (int i = 0; i < MemorySlot::kMemorySlotCount; ++i)
         m_pTestMemory[i] = nullptr;
+
+    m_changedFlags.Clear();
 
     m_pTimer = new QTimer(this);
     connect(m_pTimer, &QTimer::timeout, this, &TargetModel::delayedTimer);
@@ -81,10 +93,11 @@ void TargetModel::SetConnected(int connected)
     emit connectChangedSignal();
 }
 
-void TargetModel::SetStatus(int running, uint32_t pc)
+void TargetModel::SetStatus(bool running, uint32_t pc)
 {
-	m_bRunning = running;
+    m_bRunning = running;
 	m_pc = pc;
+    m_changedFlags.SetChanged(TargetChangedFlags::kPC);
     emit startStopChangedSignal();
 
     m_pTimer->stop();
@@ -94,12 +107,18 @@ void TargetModel::SetStatus(int running, uint32_t pc)
         m_pTimer->setSingleShot(true);
         m_pTimer->start(500);
     }
+}
 
+void TargetModel::SetConfig(uint32_t machineType, uint32_t cpuLevel)
+{
+    m_machineType = (MACHINETYPE) machineType;
+    m_cpuLevel = cpuLevel;
 }
 
 void TargetModel::SetRegisters(const Registers& regs, uint64_t commandId)
 {
 	m_regs = regs;
+    m_changedFlags.SetChanged(TargetChangedFlags::kRegs);
     emit registersChangedSignal(commandId);
 }
 
@@ -109,30 +128,41 @@ void TargetModel::SetMemory(MemorySlot slot, const Memory* pMem, uint64_t comman
         delete m_pTestMemory[slot];
 
     m_pTestMemory[slot] = pMem;
+    m_changedFlags.SetMemoryChanged(slot);
     emit memoryChangedSignal(slot, commandId);
 }
 
 void TargetModel::SetBreakpoints(const Breakpoints& bps, uint64_t commandId)
 {
     m_breakpoints = bps;
+    m_changedFlags.SetChanged(TargetChangedFlags::kBreakpoints);
     emit breakpointsChangedSignal(commandId);
 }
 
 void TargetModel::SetSymbolTable(const SymbolTable& syms, uint64_t commandId)
 {
     m_symbolTable = syms;
+    m_changedFlags.SetChanged(TargetChangedFlags::kSymbolTable);
     emit symbolTableChangedSignal(commandId);
 }
 
 void TargetModel::SetExceptionMask(const ExceptionMask &mask)
 {
     m_exceptionMask = mask;
+    m_changedFlags.SetChanged(TargetChangedFlags::kExceptionMask);
     emit exceptionMaskChanged();
 }
 
 void TargetModel::NotifyMemoryChanged(uint32_t address, uint32_t size)
 {
+    m_changedFlags.SetChanged(TargetChangedFlags::kOtherMemory);
     emit otherMemoryChanged(address, size);
+}
+
+void TargetModel::Flush()
+{
+    emit changedFlush(m_changedFlags);
+    m_changedFlags.Clear();
 }
 
 void TargetModel::delayedTimer()

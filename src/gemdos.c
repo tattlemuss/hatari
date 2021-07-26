@@ -889,7 +889,7 @@ static void restore_file_handle_info(int i, FILE_HANDLE *handle)
 	{
 		handle->bUsed = false;
 		Log_Printf(LOG_WARN, "GEMDOS '%s' handle %d cannot be restored, seek to saved offset %"PRId64" failed for: %s\n",
-			   handle->szMode, i, offset, handle->szActualName);
+			   handle->szMode, i, (int64_t)offset, handle->szActualName);
 		fclose(fp);
 		return;
 	}
@@ -4350,8 +4350,7 @@ int GemDOS_LoadAndReloc(const char *psPrgName, uint32_t baseaddr, bool bFullBpSe
 
 	if (nRelTabIdx >= nFileSize)
 	{
-		Log_Printf(LOG_ERROR, "Failed to parse relocation table of '%s'.\n", psPrgName);
-		return GEMDOS_EPLFMT;
+		Log_Printf(LOG_WARN, "Relocation table of '%s' is not terminated!\n", psPrgName);
 	}
 
 	return 0;

@@ -2,7 +2,7 @@
 #define REMOTECOMMAND_H
 
 #include <string>
-#include "memory.h"
+#include "../models/memory.h"
 
 class RemoteCommand
 {

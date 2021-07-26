@@ -17,53 +17,53 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-    disassembler.cpp \
-    dispatcher.cpp \
     hopper/decode.cpp \
     main.cpp \
-    mainwindow.cpp \
-    stringparsers.cpp \
-    targetmodel.cpp \
-    disasmwidget.cpp \
-    memory.cpp \
-    memoryviewwidget.cpp \
-    stringsplitter.cpp \
-    symboltable.cpp \
-    symboltablemodel.cpp \
-    exceptionmask.cpp \
-    exceptiondialog.cpp \
-    graphicsinspector.cpp \
-    breakpointswidget.cpp \
-    breakpoint.cpp \
-    addbreakpointdialog.cpp \
-    rundialog.cpp
+    models/breakpoint.cpp \
+    models/disassembler.cpp \
+    models/exceptionmask.cpp \
+    models/memory.cpp \
+    models/stringparsers.cpp \
+    models/stringsplitter.cpp \
+    models/symboltable.cpp \
+    models/symboltablemodel.cpp \
+    models/targetmodel.cpp \
+    transport/dispatcher.cpp \
+    ui/addbreakpointdialog.cpp \
+    ui/breakpointswidget.cpp \
+    ui/disasmwidget.cpp \
+    ui/exceptiondialog.cpp \
+    ui/graphicsinspector.cpp \
+    ui/mainwindow.cpp \
+    ui/memoryviewwidget.cpp \
+    ui/rundialog.cpp
 
 HEADERS += \
-    disassembler.h \
-    dispatcher.h \
     hopper/buffer.h \
     hopper/decode.h \
     hopper/instruction.h \
-    mainwindow.h \
-    stringparsers.h \
-    targetmodel.h \
-    disasmwidget.h \
-    memory.h \
-    remotecommand.h \
-    memoryviewwidget.h \
-    breakpoint.h \
-    stringsplitter.h \
-    symboltable.h \
-    registers.h \
-    symboltablemodel.h \
-    exceptionmask.h \
-    exceptiondialog.h \
-    graphicsinspector.h \
-    breakpointswidget.h \
-    addbreakpointdialog.h \
-    quicklayout.h \
-    rundialog.h
-    
+    models/breakpoint.h \
+    models/disassembler.h \
+    models/exceptionmask.h \
+    models/memory.h \
+    models/registers.h \
+    models/stringparsers.h \
+    models/stringsplitter.h \
+    models/symboltable.h \
+    models/symboltablemodel.h \
+    models/targetmodel.h \
+    transport/dispatcher.h \
+    transport/remotecommand.h \
+    ui/addbreakpointdialog.h \
+    ui/breakpointswidget.h \
+    ui/disasmwidget.h \
+    ui/exceptiondialog.h \
+    ui/graphicsinspector.h \
+    ui/mainwindow.h \
+    ui/memoryviewwidget.h \
+    ui/quicklayout.h \
+    ui/rundialog.h
+
 RESOURCES     = hrdb.qrc    
 
 # Default rules for deployment.

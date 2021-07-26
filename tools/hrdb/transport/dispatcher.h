@@ -17,6 +17,8 @@ public:
     Dispatcher(QTcpSocket* tcpSocket, TargetModel* pTargetModel);
     virtual ~Dispatcher();
 
+    uint64_t InsertFlush();
+
     // TODO replace with strings
     uint64_t SendCommandPacket(const char* command);
 

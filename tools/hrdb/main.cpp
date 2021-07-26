@@ -1,12 +1,14 @@
-#include "mainwindow.h"
+#include "ui/mainwindow.h"
 
 #include <QApplication>
-#include <QProcess>
+#include <QSettings>
 
 int main(int argc, char *argv[])
 {
-    QCoreApplication::setOrganizationName("Hatari team");
+    QCoreApplication::setOrganizationName("hrdb");
     QCoreApplication::setApplicationName("hrdb");
+    QSettings::setDefaultFormat(QSettings::Format::IniFormat);
+
     QApplication a(argc, argv);
 
     MainWindow w;

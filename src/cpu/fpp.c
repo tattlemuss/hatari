@@ -133,6 +133,7 @@ FPP_AB fpp_cosh;
 FPP_ABP fpp_neg;
 FPP_AB fpp_acos;
 FPP_AB fpp_cos;
+FPP_ABC fpp_sincos;
 FPP_AB fpp_getexp;
 FPP_AB fpp_getman;
 FPP_ABP fpp_div;
@@ -397,7 +398,7 @@ static bool fp_exception_pending(bool pre)
 		if (warned > 0) {
 			write_log (_T("FPU unimplemented datatype exception (%s) PC=%08x\n"), pre ? _T("pre") : _T("mid/post"), regs.instruction_pc);
 		}
-		if (fpu_mmu_fixup) {
+		if (currprefs.cpu_model == 68060 && fpu_mmu_fixup) {
 			m68k_areg(regs, mmufixup[0].reg) = mmufixup[0].value;
 			mmufixup[0].reg = -1;
 		}
@@ -416,7 +417,7 @@ static void fp_unimp_instruction_exception_pending(void)
 		if (warned > 0) {
 			write_log (_T("FPU UNIMPLEMENTED INSTRUCTION/FPU DISABLED EXCEPTION PC=%08x\n"), M68K_GETPC);
 		}
-		if (fpu_mmu_fixup) {
+		if (currprefs.cpu_model == 68060 && fpu_mmu_fixup) {
 			m68k_areg(regs, mmufixup[0].reg) = mmufixup[0].value;
 			mmufixup[0].reg = -1;
 		}
@@ -3119,9 +3120,7 @@ static bool fp_arithmetic(fpdata *src, fpdata *dst, int extra)
 		case 0x35: /* FSINCOS */
 		case 0x36: /* FSINCOS */
 		case 0x37: /* FSINCOS */
-			fpp_cos(dst, src);
-			regs.fp[extra & 7] = *dst;
-			fpp_sin(dst, src);
+			fpp_sincos(dst, src, &regs.fp[extra & 7]);
 			break;
 		case 0x38: /* FCMP */
 		case 0x39:
@@ -3822,7 +3821,7 @@ uae_u8 *save_fpu (int *len, uae_u8 *dstptr)
 	if (dstptr)
 		dstbak = dst = dstptr;
 	else
-		dstbak = dst = xmalloc (uae_u8, 4+4+8*10+4+4+4+4+4+2*10+3*(4+2));
+		dstbak = dst = xmalloc(uae_u8, 4 + 4 + 8 * 10 + 6 * 4 + 2 + 6 * 4 + 20 * 4);
 	save_u32 (currprefs.fpu_model);
 	save_u32 (0x80000000 | 0x20000000 | (regs.fp_ea_set ? 0x00000001 : 0x00000000));
 	for (i = 0; i < 8; i++) {

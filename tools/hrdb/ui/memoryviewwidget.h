@@ -3,7 +3,7 @@
 
 #include <QDockWidget>
 #include <QTableView>
-#include "memory.h"
+#include "../models/memory.h"
 
 class TargetModel;
 class Dispatcher;
@@ -143,6 +143,12 @@ class MemoryViewWidget : public QDockWidget
 public:
     MemoryViewWidget(QWidget *parent, TargetModel* pTargetModel, Dispatcher* m_pDispatcher, int windowIndex);
 
+    // Grab focus and point to the main widget
+    void keyFocus();
+
+    void loadSettings();
+    void saveSettings();
+
 public slots:
     void requestAddress(int windowIndex, bool isMemory, uint32_t address);
 
@@ -154,7 +160,7 @@ private:
     QLineEdit*           m_pLineEdit;
     QComboBox*           m_pComboBox;
     QCheckBox*           m_pLockCheckBox;
-    MemoryWidget*        pModel;
+    MemoryWidget*        m_pMemoryWidget;
 
     TargetModel*        m_pTargetModel;
     Dispatcher*         m_pDispatcher;

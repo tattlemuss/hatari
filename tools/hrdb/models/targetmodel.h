@@ -1,18 +1,10 @@
 #ifndef TARGET_MODEL_H
 #define TARGET_MODEL_H
 
-/*
-	Core central data model reflecting the state of the target.
-
-	May contain sub-models later, to persist the data relating to particular views.
-	(e.g. memory window, )
-
-*/
-
 #include <stdint.h>
 #include <QObject>
 
-#include "remotecommand.h"
+#include "transport/remotecommand.h"
 #include "breakpoint.h"
 #include "memory.h"
 #include "symboltable.h"
@@ -21,6 +13,41 @@
 
 class QTimer;
 
+enum MACHINETYPE
+{
+    MACHINE_ST = 0,
+    MACHINE_MEGA_ST = 1,
+    MACHINE_STE = 2,
+    MACHINE_MEGA_STE = 3,
+    MACHINE_TT = 4,
+    MACHINE_FALCON = 5
+};
+
+class TargetChangedFlags
+{
+public:
+    enum ChangedState
+    {
+        kPC,
+        kRegs,
+        kBreakpoints,
+        kSymbolTable,
+        kExceptionMask,
+        kOtherMemory,        // e.g. a control set memory elsewhere
+        kChangedStateCount
+    };
+
+    void Clear();
+    void SetChanged(ChangedState ch) { m_changed[ch] = true; }
+    void SetMemoryChanged(MemorySlot slot) { m_memChanged[slot] = true; }
+
+    bool    m_changed[kChangedStateCount];
+    bool    m_memChanged[kMemorySlotCount];
+};
+
+/*
+    Core central data model reflecting the state of the target.
+*/
 class TargetModel : public QObject
 {
 	Q_OBJECT
@@ -30,7 +57,8 @@ public:
 
     // These are called by the Dispatcher when notifications/events arrive
     void SetConnected(int running);
-    void SetStatus(int running, uint32_t pc);
+    void SetStatus(bool running, uint32_t pc);
+    void SetConfig(uint32_t machineType, uint32_t cpuLevel);
 
     // These are called by the Dispatcher when responses arrive
     void SetRegisters(const Registers& regs, uint64_t commandId);
@@ -40,7 +68,11 @@ public:
     void SetExceptionMask(const ExceptionMask& mask);
     void NotifyMemoryChanged(uint32_t address, uint32_t size);
 
+    void Flush();
+
 	// NOTE: all these return copies to avoid data contention
+    MACHINETYPE	GetMachineType() const { return m_machineType; }
+
     int IsConnected() const { return m_bConnected; }
     int IsRunning() const { return m_bRunning; }
 	uint32_t GetPC() const { return m_pc; }
@@ -63,6 +95,8 @@ signals:
     void startStopChangedSignal();
 
     void startStopChangedSignalDelayed(int running);
+
+    void changedFlush(const TargetChangedFlags& flags);
 
 	// When new CPU registers are changed
     void registersChangedSignal(uint64_t commandId);
@@ -88,6 +122,10 @@ private slots:
     void delayedTimer();
 
 private:
+    TargetChangedFlags  m_changedFlags;
+
+    MACHINETYPE	m_machineType;	// Hatari MACHINETYPE enum
+    uint32_t	m_cpuLevel;		// CPU 0=000, 1=010, 2=020, 3=030, 4=040, 5=060
 
     int         m_bConnected;   // 0 == disconnected, 1 == connected
 	int			m_bRunning;		// 0 == stopped, 1 == running

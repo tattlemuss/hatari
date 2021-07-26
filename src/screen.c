@@ -334,14 +334,25 @@ void Screen_SetTextureScale(int width, int height, int win_width, int win_height
 
 	scale_w = (float)win_width / width;
 	scale_h = (float)win_height / height;
-	scale = (scale_w + scale_h) / 2.0;
+	if (bInFullScreen)
+		/* SDL letterboxes fullscreen so it's enough for
+		 * closest dimension to window size being evenly
+		 * divisable.
+		 */
+		scale = fminf(scale_w, scale_h);
+	else
+		/* For windowed mode (= no letterboxing), both
+		 * dimensions (here, their avg) need to be evenly
+		 * divisable for nearest neighbor scaling to look good.
+		 */
+		scale = (scale_w + scale_h) / 2.0;
 
 	if (scale == floorf(scale))
 		quality = '0';	// nearest pixel
 	else
 		quality = '1';	// linear filtering
 
-	DEBUGPRINT(("%dx%d / %dx%d -> scale = %.1f / Render Scale Quality = %c\n",
+	DEBUGPRINT(("%dx%d / %dx%d -> scale = %g, Render Scale Quality = %c\n",
 		    win_width, win_height, width, height, scale, quality));
 
 	if (bForce || quality != prev_quality)
@@ -1342,7 +1353,6 @@ void Screen_SetGenConvSize(int width, int height, int bpp, bool bForceChange)
 		bpp = 32;
 
 	/* constrain size request to user's desktop size */
-	Resolution_GetDesktopSize(&maxw, &maxh);
 	Resolution_GetLimits(&maxw, &maxh, &bpp, keep);
 
 	nScreenZoomX = nScreenZoomY = 1;

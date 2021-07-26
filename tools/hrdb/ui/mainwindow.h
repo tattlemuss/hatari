@@ -8,8 +8,8 @@
 */
 
 #include <QMainWindow>
-#include "targetmodel.h"
-#include "disassembler.h"
+#include "../models/targetmodel.h"
+#include "../models/disassembler.h"
 
 class QPushButton;
 class QLabel;
@@ -21,7 +21,7 @@ class QComboBox;
 class Dispatcher;
 class TargetModel;
 
-class DisasmWidget;
+class DisasmViewWidget;
 class MemoryViewWidget;
 class GraphicsInspectorWidget;
 class BreakpointsWidget;
@@ -52,8 +52,7 @@ private slots:
     void nextClicked();
     void runToClicked();
     void addBreakpointPressed();
-
-    void updateWindowMenu();
+    void breakPressed();
 
     // Menu item callbacks
     void menuConnect();
@@ -62,6 +61,7 @@ private slots:
     void about();
     void aboutQt();
 private:
+    void updateWindowMenu();
     // File Menu
     void Run();
     void Connect();
@@ -75,6 +75,10 @@ private:
     QString FindSymbol(uint32_t addr);
     void PopulateRunningSquare();
     void updateButtonEnable();
+
+    // Settings
+    void loadSettings();
+    void saveSettings();
 
     // Our UI widgets
     QPushButton*	m_pStartStopButton;
@@ -90,8 +94,8 @@ private:
     RunDialog*          m_pRunDialog;
 
     // Docking windows
-    DisasmWidget*               m_pDisasmWidget0;
-    DisasmWidget*               m_pDisasmWidget1;
+    DisasmViewWidget*               m_pDisasmWidget0;
+    DisasmViewWidget*               m_pDisasmWidget1;
     MemoryViewWidget*           m_pMemoryViewWidget0;
     MemoryViewWidget*           m_pMemoryViewWidget1;
     GraphicsInspectorWidget*    m_pGraphicsInspector;
@@ -109,7 +113,7 @@ private:
     // Menus
     void createActions();
     void createMenus();
-    void toggleVis(QWidget *pWidget);
+    void enableVis(QWidget *pWidget);
     QMenu *fileMenu;
     QMenu *editMenu;
     QMenu *windowMenu;
@@ -131,7 +135,5 @@ private:
 
     QAction *aboutAct;
     QAction *aboutQtAct;
-    void readSettings();
-    void writeSettings();
 };
 #endif // MAINWINDOW_H

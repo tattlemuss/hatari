@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (C) 2012-2020 by Eero Tamminen <oak at helsinkinet fi>
+# Copyright (C) 2012-2021 by Eero Tamminen <oak at helsinkinet fi>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -89,13 +89,15 @@ class TOS:
             raise AssertionError("'%s' given as TOS image isn't a file" % img)
 
         size = os.stat(img).st_size
-        tossizes = (196608, 262144, 524288)
-        if size not in tossizes:
-            raise AssertionError("image '%s' size not one of TOS sizes %s" % (img, repr(tossizes)))
+        if size % 1024:
+            raise AssertionError("image '%s' has invalid size of %g KB" % (img, size/1024.))
+        size /= 1024
+        if size not in (192, 256, 512, 1024):
+            raise AssertionError("image '%s' size (%d KB) is not one of TOS sizes" % (img, size))
 
         name = os.path.basename(img)
         name = name[:name.rfind('.')]
-        return (img, size/1024, name)
+        return (img, size, name)
 
 
     def _add_version(self):
@@ -115,8 +117,8 @@ class TOS:
         name, size, version = self.name, self.size, self.version
 
         if self.etos:
-            # EmuTOS 512k, 256k and 192k versions have different machine support
-            if size == 512:
+            # EmuTOS 1024/512k, 256k and 192k versions have different machine support
+            if size in (512, 1024):
                 # startup screen on falcon 14MB is really slow
                 info = (5, 10, ("st", "megast", "ste", "megaste", "tt", "falcon"))
             elif size == 256:
@@ -149,9 +151,9 @@ class TOS:
             raise AssertionError("Unknown '%s' TOS version 0x%x" % (name, version))
 
         if self.etos:
-            print("%s is %dkB EmuTOS corresponding to TOS v%x (wait startup: %ds, rest: %ds)" % (name, size, version, info[0], info[1]))
+            print("%s is %dkB EmuTOS declaring itself TOS v%x (wait startup: %ds, rest: %ds)" % (name, size, version, info[0], info[1]))
         else:
-            print("%s is normal TOS v%x (wait memcheck: %ds, rest: %ds)" % (name, version, info[0], info[1])
+            print("%s is normal TOS v%x (wait memcheck: %ds, rest: %ds)" % (name, version, info[0], info[1]))
         # 0: whether / how long to wait to dismiss memory test
         # 1: how long to wait until concluding test failed
         # 2: list of machines supported by this TOS version
@@ -221,7 +223,7 @@ class Config:
     all_disks = ("floppy", "gemdos", "acsi", "ide", "scsi")
     all_graphics = ("mono", "rgb", "vga", "tv", "vdi1", "vdi2", "vdi4")
     all_machines = ("st", "megast", "ste", "megaste", "tt", "falcon")
-    all_memsizes = (0, 1, 2, 4, 6, 8, 10, 12, 14)
+    all_memsizes = (0, 1, 2, 4, 8, 10, 14)
 
     # defaults
     fast = False
@@ -242,12 +244,12 @@ class Config:
         self.handle_options(opts)
         self.images = self.check_images(paths)
         print("\nTest configurations:")
-        print("- machines = %s" % self.machines)
-        print("- graphics = %s" % self.graphics)
-        print("- disks = %s" % self.disks)
-        print("- RAM = %s" % self.memsizes)
-        print("- TTRAM = %s" % self.ttrams)
-        print("- bools = %s" % self.bools)
+        print("- machines = %s" % (self.machines,))
+        print("- graphics = %s" % (self.graphics,))
+        print("- disks = %s" % (self.disks,))
+        print("- RAM = %s" % (self.memsizes,))
+        print("- TTRAM = %s" % (self.ttrams,))
+        print("- bools = %s" % (self.bools,))
         print("- fixed = '%s'\n" % ' '.join(self.opts))
 
 
@@ -259,7 +261,7 @@ class Config:
                 images.append(TOS(img))
             except AssertionError as msg:
                 self.usage(msg)
-        if len(images) < 1:
+        if not images:
             self.usage("no TOS image files given")
         return images
 
@@ -336,7 +338,7 @@ For example:
 \t--memsizes 0,4,14 \\
 \t--ttrams 0,32 \\
 \t--graphics mono,rgb \\
-\t--bool --compatible,--driver-b \\
+\t--bool --compatible,--drive-b \\
 \t--opts "--mmu on"
 """ % (name, disks, graphics, machines, memsizes, name))
         if msg:
@@ -379,37 +381,28 @@ For example:
         return False
 
     def valid_memsize(self, machine, memsize):
-        "return whether given memory size is valid for given machine"
-        if machine in ("st", "megast", "ste", "megaste"):
-            sizes = (0, 1, 2, 4)
-        elif machine in ("tt", "falcon"):
-            # 0 (512kB) isn't valid memory size for Falcon/TT
-            sizes = self.all_memsizes[1:]
-        else:
-            raise AssertionError("unknown machine %s" % machine)
-        if memsize in sizes:
-            return True
-        return False
+        "return True if given memory size is valid for given machine"
+        # TT & MegaSTE can address only 10MB RAM due to VME, but
+        # currently Hatari allows all RAM amounts on all HW
+        if memsize > 10 and machine in ("megaste", "tt"):
+            # TODO: return False when Hatari supports VME
+            # (or disable VME when testing 14MB)
+            return True # False
+        return True
 
-    def valid_ttram(self, machine, tos, ttram, disk, winuae):
+    def valid_ttram(self, machine, tos, ttram, disk):
         "return whether given TT-RAM size is valid for given machine"
+        if ttram == 0:
+            return True
         if machine in ("st", "megast", "ste", "megaste"):
-            if ttram == 0:
-                return True
-        elif machine in ("tt", "falcon"):
-            if ttram == 0:
-                return True
-            if not winuae:
-                warning("TT-RAM / 32-bit addressing is supported only by Hatari WinUAE CPU core version")
-                return False
+            return False
+        if machine in ("tt", "falcon"):
             if ttram < 0 or ttram > 512:
                 return False
             return tos.supports_32bit_addressing(disk)
-        else:
-            raise AssertionError("unknown machine %s" % machine)
-        return False
+        raise AssertionError("unknown machine %s" % machine)
 
-    def validate_bools(self, winuae):
+    def validate_bools(self):
         "exit with error if given bool option is invalid"
         # Several bool options are left out of these lists, either because
         # they can be problematic for running of the tests themselves, or
@@ -417,22 +410,14 @@ For example:
         #
         # Below ones should be potentially relevant ones to test
         # (EmuTOS supports NatFeats so it can have impact too)
-        generic_opts = (
+        opts = (
             "--compatible", "--timer-d", "--fast-boot",
-            "--natfeats", "--fastfdc", "--drive-b"
-        )
-        winuae_opts = (
+            "--natfeats", "--fastfdc", "--drive-b",
             "--cpu-exact", "--mmu", "--addr24", "--fpu-softfloat"
         )
         for option in self.bools:
-            if option not in generic_opts:
-                if option not in winuae_opts:
-                    if winuae:
-                        error_exit("bool option '%s' not in relevant options sets:\n\t%s\n\t%s" % (option, generic_opts, winuae_opts))
-                    else:
-                        error_exit("bool option '%s' not in relevant options set:\n\t%s" % (option, generic_opts))
-                elif not winuae:
-                    error_exit("bool option '%s' is supported only by WinUAE CPU core" % option)
+            if option not in opts:
+                error_exit("bool option '%s' not in relevant options set:\n\t%s" % (option, opts))
 
     def valid_bool(self, machine, option):
         "return True if given bool option is relevant to test"
@@ -461,6 +446,7 @@ def verify_file_empty(filename, identity):
     if size != 0:
         os.rename(filename, "%s.%s" % (filename, identity))
         return "file '%s' isn't empty (%d bytes)" % (filename, size)
+    return None
 
 def exit_if_missing(names):
     "exit if given (test input) file is missing"
@@ -489,12 +475,12 @@ class Tester:
     # they need to use floppy and boot test program from AUTO/
     bootauto  = "bootauto.st.gz"
     bootdesk  = "bootdesk.st.gz"
-    floppyprg = "A:\MINIMAL.PRG"
+    floppyprg = "A:\\MINIMAL.PRG"
     # with EmuTOS, same image works for ACSI, SCSI and IDE testing,
     # whereas with real TOS, different images with different drivers
     # would be needed, potentially also for different machine types...
     hdimage   = "hd.img"
-    hdprg     = "C:\MINIMAL.PRG"
+    hdprg     = "C:\\MINIMAL.PRG"
     results   = None
 
     def __init__(self):
@@ -504,7 +490,8 @@ class Tester:
         self.create_files()
         signal.signal(signal.SIGALRM, self.alarm_handler)
         hatari = hconsole.Hatari(["--confirm-quit", "no"])
-        self.winuae = hatari.winuae
+        if not hatari.winuae:
+            error_exit("Hatari version available does not have WinAUE CPU core")
         hatari.kill_hatari()
 
     def alarm_handler(self, signum, dummy):
@@ -699,8 +686,7 @@ sMidiOutFileName = %s
             self.get_screenshot(instance, identity)
             instance.run("kill")
             return (False, False, False, False)
-        else:
-            init_ok = True
+        init_ok = True
 
         if memwait:
             print("Final start/memcheck wait: %ds" % memwait)
@@ -728,11 +714,10 @@ sMidiOutFileName = %s
         "compose test ID and Hatari command line args, then call .test()"
         identity = "%s-%s-%s-%s-%dM-%dM" % (tos.name, machine, monitor, disk, memory, ttram)
         testargs = ["--tos", tos.path, "--machine", machine, "--memsize", str(memory)]
-        if self.winuae:
-            if ttram:
-                testargs += ["--addr24", "off", "--ttram", str(ttram)]
-            else:
-                testargs += ["--addr24", "on"]
+        if ttram:
+            testargs += ["--addr24", "off", "--ttram", str(ttram)]
+        else:
+            testargs += ["--addr24", "on"]
 
         if monitor.startswith("vdi"):
             planes = monitor[-1]
@@ -809,7 +794,7 @@ sMidiOutFileName = %s
 
     def run(self, config):
         "run all TOS boot test combinations"
-        config.validate_bools(self.winuae)
+        config.validate_bools()
 
         self.results = {}
         for tos in config.images:
@@ -829,7 +814,7 @@ sMidiOutFileName = %s
                             if not config.valid_disktype(machine, tos, disk):
                                 continue
                             for ttram in config.ttrams:
-                                if not config.valid_ttram(machine, tos, ttram, disk, self.winuae):
+                                if not config.valid_ttram(machine, tos, ttram, disk):
                                     continue
                                 no_bools = True
                                 for opt in config.bools:
