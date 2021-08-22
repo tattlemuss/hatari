@@ -43,17 +43,17 @@ private slots:
 private:
     uint64_t SendCommandShared(MemorySlot slot, std::string command);
 
-	void ReceiveResponsePacket(const RemoteCommand& command);
-	void ReceiveNotification(const RemoteNotification& notification);
+    void ReceiveResponsePacket(const RemoteCommand& command);
+    void ReceiveNotification(const RemoteNotification& notification);
     void ReceivePacket(const char* response);
 
     void DeletePending();
 
-	std::deque<RemoteCommand*>		m_sentCommands;
-	QTcpSocket*						m_pTcpSocket;
-	TargetModel*					m_pTargetModel;
+    std::deque<RemoteCommand*>      m_sentCommands;
+    QTcpSocket*                     m_pTcpSocket;
+    TargetModel*                    m_pTargetModel;
 
-	std::string 					m_active_resp;
+    std::string                     m_active_resp;
     uint64_t                        m_responseUid;
 
     /* If true, drop incoming packets since they are assumed to be

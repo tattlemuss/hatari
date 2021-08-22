@@ -18,12 +18,15 @@
 #include "../models/targetmodel.h"
 #include "../models/stringparsers.h"
 #include "../models/symboltablemodel.h"
+#include "../models/session.h"
+#include "quicklayout.h"
 
-MemoryWidget::MemoryWidget(QWidget *parent, TargetModel *pTargetModel, Dispatcher* pDispatcher,
+MemoryWidget::MemoryWidget(QWidget *parent, Session* pSession,
                                            int windowIndex) :
     QWidget(parent),
-    m_pTargetModel(pTargetModel),
-    m_pDispatcher(pDispatcher),
+    m_pSession(pSession),
+    m_pTargetModel(pSession->m_pTargetModel),
+    m_pDispatcher(pSession->m_pDispatcher),
     m_isLocked(false),
     m_address(0),
     m_bytesPerRow(16),
@@ -31,12 +34,13 @@ MemoryWidget::MemoryWidget(QWidget *parent, TargetModel *pTargetModel, Dispatche
     m_rowCount(1),
     m_requestId(0),
     m_windowIndex(windowIndex),
+    m_previousMemory(0, 0),
     m_cursorRow(0),
     m_cursorCol(0)
 {
-    m_memSlot = (MemorySlot)(MemorySlot::kMemoryView0 + m_windowIndex);
+    m_memSlot = static_cast<MemorySlot>(MemorySlot::kMemoryView0 + m_windowIndex);
 
-    RecalcSizes();
+    UpdateFont();
     SetMode(Mode::kModeByte);
     setFocus();
     setFocusPolicy(Qt::StrongFocus);
@@ -44,6 +48,7 @@ MemoryWidget::MemoryWidget(QWidget *parent, TargetModel *pTargetModel, Dispatche
     connect(m_pTargetModel, &TargetModel::startStopChangedSignal,   this, &MemoryWidget::startStopChangedSlot);
     connect(m_pTargetModel, &TargetModel::connectChangedSignal,     this, &MemoryWidget::connectChangedSlot);
     connect(m_pTargetModel, &TargetModel::otherMemoryChanged,       this, &MemoryWidget::otherMemoryChangedSlot);
+    connect(m_pSession,     &Session::settingsChanged,              this, &MemoryWidget::settingsChangedSlot);
 }
 
 bool MemoryWidget::SetAddress(std::string expression)
@@ -66,8 +71,11 @@ void MemoryWidget::SetAddress(uint32_t address)
     RequestMemory();
 }
 
-void MemoryWidget::SetRowCount(uint32_t rowCount)
+void MemoryWidget::SetRowCount(int32_t rowCount)
 {
+    // Handle awkward cases by always having at least one row
+    if (rowCount < 1)
+        rowCount = 1;
     if (rowCount != m_rowCount)
     {
         m_rowCount = rowCount;
@@ -100,7 +108,7 @@ void MemoryWidget::SetMode(MemoryWidget::Mode mode)
     // Calc the screen postions.
     // I need a screen position for each *character* on the grid (i.e. nybble)
 
-    uint32_t groupSize = 0;
+    int groupSize = 0;
     if (m_mode == kModeByte)
         groupSize = 1;
     else if (m_mode == kModeWord)
@@ -109,13 +117,13 @@ void MemoryWidget::SetMode(MemoryWidget::Mode mode)
         groupSize = 4;
 
     m_columnPositions.clear();
-    for (uint32_t i = 0; i < m_bytesPerRow; ++i)
+    for (int i = 0; i < m_bytesPerRow; ++i)
     {
-        uint32_t group = i / groupSize;     // group of N bytes (N * chars)
-        uint32_t byteInGroup = i % groupSize;
+        int group = i / groupSize;     // group of N bytes (N * chars)
+        int byteInGroup = i % groupSize;
 
         // Calc the left-hand X position of this byte
-        uint32_t base_x = group * (groupSize * 2 + 1) + 2 * byteInGroup;
+        int base_x = group * (groupSize * 2 + 1) + 2 * byteInGroup;
 
         // top nybble
         m_columnPositions.push_back(base_x);
@@ -265,15 +273,15 @@ void MemoryWidget::memoryChangedSlot(int memorySlot, uint64_t commandId)
 
     // We should just save the memory block here and format on demand
     // Build up memory in the rows
-    uint32_t rowCount = m_rowCount;
+    int32_t rowCount = m_rowCount;
     uint32_t offset = 0;
-    for (uint32_t r = 0; r < rowCount; ++r)
+    for (int32_t r = 0; r < rowCount; ++r)
     {
         Row row;
         row.m_address = pMem->GetAddress() + offset;
         row.m_rawBytes.clear();
         row.m_rawBytes.resize(m_bytesPerRow);
-        for (uint32_t i = 0; i < m_bytesPerRow; ++i)
+        for (int32_t i = 0; i < m_bytesPerRow; ++i)
         {
             if (offset == pMem->GetSize())
             {
@@ -294,13 +302,15 @@ void MemoryWidget::memoryChangedSlot(int memorySlot, uint64_t commandId)
 
 void MemoryWidget::RecalcText()
 {
-    uint32_t rowCount = m_rows.size();
-    for (uint32_t r = 0; r < rowCount; ++r)
+    int32_t rowCount = m_rows.size();
+    for (int32_t r = 0; r < rowCount; ++r)
     {
         Row& row = m_rows[r];
         row.m_hexText.clear();
         row.m_asciiText.clear();
-        for (uint32_t i = 0; i < row.m_rawBytes.size(); ++i)
+        row.m_byteChanged.resize(row.m_rawBytes.size());
+
+        for (int32_t i = 0; i < row.m_rawBytes.size(); ++i)
         {
             uint8_t c = row.m_rawBytes[i];
             row.m_hexText += QString::asprintf("%02x", c);
@@ -309,6 +319,16 @@ void MemoryWidget::RecalcText()
                 row.m_asciiText += QString::asprintf("%c", c);
             else
                 row.m_asciiText += ".";
+
+            uint32_t addr = row.m_address + static_cast<uint32_t>(i);
+            bool changed = false;
+            if (m_previousMemory.HasAddress(addr))
+            {
+                uint8_t oldC = m_previousMemory.ReadAddressByte(addr);
+                if (oldC != c)
+                    changed = true;
+            }
+            row.m_byteChanged[i] = changed;
         }
     }
     repaint();
@@ -332,6 +352,16 @@ void MemoryWidget::startStopChangedSlot()
         }
         RequestMemory();
     }
+    else {
+        // Starting to run
+        // Copy the previous set of memory we have
+        const Memory* pMem = m_pTargetModel->GetMemory(m_memSlot);
+        if (pMem)
+            m_previousMemory = *pMem;
+        else {
+            m_previousMemory = Memory(0, 0);
+        }
+    }
 }
 
 void MemoryWidget::connectChangedSlot()
@@ -344,72 +374,86 @@ void MemoryWidget::connectChangedSlot()
 
 void MemoryWidget::otherMemoryChangedSlot(uint32_t address, uint32_t size)
 {
+    (void)address;
+    (void)size;
     // Do a re-request
     // TODO only re-request if it affected our view...
     RequestMemory();
+}
+
+void MemoryWidget::settingsChangedSlot()
+{
+    UpdateFont();
+    RecalcRowCount();
+    RequestMemory();
+    update();
 }
 
 void MemoryWidget::paintEvent(QPaintEvent* ev)
 {
     QWidget::paintEvent(ev);
 
-#if 1
     // CAREFUL! This could lead to an infinite loop of redraws if we are not.
     RecalcRowCount();
 
-    if (m_rows.size() == 0)
-        return;
-
     QPainter painter(this);
-    painter.setFont(monoFont);
+    painter.setFont(m_monoFont);
     QFontMetrics info(painter.fontMetrics());
     const QPalette& pal = this->palette();
 
     const QBrush& br = pal.background().color();
     painter.fillRect(this->rect(), br);
-    if (hasFocus())
-    {
-        painter.setPen(QPen(pal.dark(), 6));
-        painter.drawRect(this->rect());
-    }
+    painter.setPen(QPen(pal.dark(), hasFocus() ? 6 : 2));
+    painter.drawRect(this->rect());
 
-    int y_base = info.ascent();
+    if (m_rows.size() == 0)
+        return;
+
+    // Compensate for text descenders
+    int y_ascent = info.ascent();
     int char_width = info.horizontalAdvance("0");
 
     // Set up the rendering info
     m_charWidth = char_width;
 
     painter.setPen(pal.text().color());
-    for (size_t row = 0; row < m_rows.size(); ++row)
+    for (int row = 0; row < m_rows.size(); ++row)
     {
         const Row& r = m_rows[row];
 
         // Draw address string
         painter.setPen(pal.text().color());
-        int y = y_base + row * m_lineHeight;       // compensate for descenders TODO use ascent()
+        int text_y = GetPixelFromRow(row) + y_ascent;
         QString addr = QString::asprintf("%08x", r.m_address);
-        painter.drawText(GetAddrX(), y, addr);
+        painter.drawText(GetAddrX(), text_y, addr);
 
         // Now hex
         // We write out the values per-nybble
-        for (size_t col = 0; col < m_columnPositions.size(); ++col)
+        for (int col = 0; col < m_columnPositions.size(); ++col)
         {
-            //size_t byteOffset = i / 2;
-            //uint32_t shiftDown = (i % 2) * 4;
+            int byteOffset = col / 2;
+            bool changed = r.m_byteChanged[byteOffset];
+            painter.setPen(changed ? Qt::red : pal.text().color());
 
             int x = GetHexCharX(col);
             QChar st = r.m_hexText.at(col);
-            painter.drawText(x, y, st);
+            painter.drawText(x, text_y, st);
         }
 
-        int x_ascii = GetAsciiCharX();
-        painter.drawText(x_ascii, y, m_rows[row].m_asciiText);
+        for (int col = 0; col < r.m_asciiText.size(); ++col)
+        {
+            int x_ascii = GetAsciiCharX(col);
+            bool changed = r.m_byteChanged[col];
+            painter.setPen(changed ? Qt::red : pal.text().color());
+            QString t = r.m_asciiText.at(col);
+            painter.drawText(x_ascii, text_y, t);
+        }
     }
 
     // Draw highlight/cursor area in the hex
     if (m_cursorRow >= 0 && m_cursorRow < m_rows.size())
     {
-        int y_curs = m_cursorRow * m_lineHeight;       // compensate for descenders TODO use ascent()
+        int y_curs = GetPixelFromRow(m_cursorRow);
         int x_curs = GetHexCharX(m_cursorCol);
 
         painter.setBrush(pal.highlight());
@@ -417,9 +461,8 @@ void MemoryWidget::paintEvent(QPaintEvent* ev)
 
         QChar st = m_rows[m_cursorRow].m_hexText.at(m_cursorCol);
         painter.setPen(pal.highlightedText().color());
-        painter.drawText(x_curs, y_base + y_curs, st);
+        painter.drawText(x_curs, y_ascent + y_curs, st);
     }
-#endif
 }
 
 void MemoryWidget::keyPressEvent(QKeyEvent* event)
@@ -462,8 +505,8 @@ void MemoryWidget::mousePressEvent(QMouseEvent *event)
         int x = (int)event->localPos().x();
         int y = (int)event->localPos().y();
 
-        int row = y / m_lineHeight;
-        if (row < m_rows.size())
+        int row = GetRowFromPixel(y);
+        if (row > 0 && row < m_rows.size())
         {
             // Find the X char that might fit
             for (int col = 0; col < m_columnPositions.size(); ++col)
@@ -499,10 +542,12 @@ void MemoryWidget::RecalcRowCount()
 {
     // It seems that viewport is updated without this even being called,
     // which means that on startup, "h" == 0.
-    int h = this->size().height();
+    int h = this->size().height() - (Session::kWidgetBorderY * 2);
     int rowh = m_lineHeight;
+    int count = 0;
     if (rowh != 0)
-        this->SetRowCount(h / rowh);
+        count = h / rowh;
+    SetRowCount(count);
 
     if (m_cursorRow >= m_rowCount)
     {
@@ -510,17 +555,29 @@ void MemoryWidget::RecalcRowCount()
     }
 }
 
-void MemoryWidget::RecalcSizes()
+void MemoryWidget::UpdateFont()
 {
-    monoFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-    QFontMetrics info(monoFont);
+    m_monoFont = m_pSession->GetSettings().m_font;
+    QFontMetrics info(m_monoFont);
     m_lineHeight = info.lineSpacing();
 }
 
 // Position in pixels of address column
 int MemoryWidget::GetAddrX() const
 {
-    return 10;
+    return Session::kWidgetBorderX;
+}
+
+int MemoryWidget::GetPixelFromRow(int row) const
+{
+    return Session::kWidgetBorderY + row * m_lineHeight;
+}
+
+int MemoryWidget::GetRowFromPixel(int y) const
+{
+    if (!m_lineHeight)
+        return 0;
+    return (y - Session::kWidgetBorderY) / m_lineHeight;
 }
 
 int MemoryWidget::GetHexCharX(int column) const
@@ -529,10 +586,10 @@ int MemoryWidget::GetHexCharX(int column) const
     return GetAddrX() + (10 + m_columnPositions[column]) * m_charWidth;
 }
 
-int MemoryWidget::GetAsciiCharX() const
+int MemoryWidget::GetAsciiCharX(int column) const
 {
-    uint32_t lastCharX = m_columnPositions.back();
-    return GetAddrX() + (10 + lastCharX + 3) * m_charWidth;
+    int32_t lastCharX = m_columnPositions.back();
+    return GetAddrX() + (10 + lastCharX + 3 + column) * m_charWidth;
 }
 
 void MemoryWidget::GetCursorInfo(uint32_t &address, bool &bottomNybble)
@@ -544,19 +601,29 @@ void MemoryWidget::GetCursorInfo(uint32_t &address, bool &bottomNybble)
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-MemoryViewWidget::MemoryViewWidget(QWidget *parent, TargetModel* pTargetModel, Dispatcher* pDispatcher, int windowIndex) :
+MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) :
     QDockWidget(parent),
-    m_pTargetModel(pTargetModel),
-    m_pDispatcher(pDispatcher),
+    m_pSession(pSession),
+    m_pTargetModel(pSession->m_pTargetModel),
+    m_pDispatcher(pSession->m_pDispatcher),
     m_windowIndex(windowIndex)
 {
     this->setWindowTitle(QString::asprintf("Memory %d", windowIndex + 1));
     QString key = QString::asprintf("MemoryView%d", m_windowIndex);
     setObjectName(key);
 
-    // Make the data first
-    m_pMemoryWidget = new MemoryWidget(this, pTargetModel, pDispatcher, windowIndex);
+    m_pSymbolTableModel = new SymbolTableModel(this, m_pTargetModel->GetSymbolTable());
+    QCompleter* pCompl = new QCompleter(m_pSymbolTableModel, this);
+    pCompl->setCaseSensitivity(Qt::CaseSensitivity::CaseInsensitive);
+
+    // Construction. Do in order of tabbing
+    m_pMemoryWidget = new MemoryWidget(this, pSession, windowIndex);
     m_pMemoryWidget->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
+
+    m_pLineEdit = new QLineEdit(this);
+    m_pLineEdit->setCompleter(pCompl);
+
+    m_pLockCheckBox = new QCheckBox(tr("Lock"), this);
 
     m_pComboBox = new QComboBox(this);
     m_pComboBox->insertItem(MemoryWidget::kModeByte, "Byte");
@@ -564,25 +631,18 @@ MemoryViewWidget::MemoryViewWidget(QWidget *parent, TargetModel* pTargetModel, D
     m_pComboBox->insertItem(MemoryWidget::kModeLong, "Long");
     m_pComboBox->setCurrentIndex(m_pMemoryWidget->GetMode());
 
-    m_pLockCheckBox = new QCheckBox(tr("Lock"), this);
-
-    m_pLineEdit = new QLineEdit(this);
-    m_pSymbolTableModel = new SymbolTableModel(this, m_pTargetModel->GetSymbolTable());
-    QCompleter* pCompl = new QCompleter(m_pSymbolTableModel, this);
-    pCompl->setCaseSensitivity(Qt::CaseSensitivity::CaseInsensitive);
-
-    m_pLineEdit->setCompleter(pCompl);
-
     // Layouts
     QVBoxLayout* pMainLayout = new QVBoxLayout;
     QHBoxLayout* pTopLayout = new QHBoxLayout;
     auto pMainRegion = new QWidget(this);   // whole panel
     auto pTopRegion = new QWidget(this);      // top buttons/edits
 
+    SetMargins(pTopLayout);
     pTopLayout->addWidget(m_pLineEdit);
     pTopLayout->addWidget(m_pLockCheckBox);
     pTopLayout->addWidget(m_pComboBox);
 
+    SetMargins(pMainLayout);
     pMainLayout->addWidget(pTopRegion);
     pMainLayout->addWidget(m_pMemoryWidget);
 
@@ -593,19 +653,19 @@ MemoryViewWidget::MemoryViewWidget(QWidget *parent, TargetModel* pTargetModel, D
     loadSettings();
 
     // Listen for start/stop, so we can update our memory request
-    connect(m_pLineEdit, &QLineEdit::returnPressed,         this, &MemoryViewWidget::textEditChangedSlot);
-    connect(m_pLockCheckBox, &QCheckBox::stateChanged,      this, &MemoryViewWidget::lockChangedSlot);
+    connect(m_pLineEdit, &QLineEdit::returnPressed,         this, &MemoryWindow::textEditChangedSlot);
+    connect(m_pLockCheckBox, &QCheckBox::stateChanged,      this, &MemoryWindow::lockChangedSlot);
     connect(m_pComboBox, SIGNAL(currentIndexChanged(int)),  SLOT(modeComboBoxChanged(int)));
 }
 
-void MemoryViewWidget::keyFocus()
+void MemoryWindow::keyFocus()
 {
     activateWindow();
     m_pMemoryWidget->setFocus();
 }
 
 
-void MemoryViewWidget::loadSettings()
+void MemoryWindow::loadSettings()
 {
     QSettings settings;
     QString key = QString::asprintf("MemoryView%d", m_windowIndex);
@@ -618,7 +678,7 @@ void MemoryViewWidget::loadSettings()
     settings.endGroup();
 }
 
-void MemoryViewWidget::saveSettings()
+void MemoryWindow::saveSettings()
 {
     QSettings settings;
     QString key = QString::asprintf("MemoryView%d", m_windowIndex);
@@ -629,7 +689,7 @@ void MemoryViewWidget::saveSettings()
     settings.endGroup();
 }
 
-void MemoryViewWidget::requestAddress(int windowIndex, bool isMemory, uint32_t address)
+void MemoryWindow::requestAddress(int windowIndex, bool isMemory, uint32_t address)
 {
     if (!isMemory)
         return;
@@ -641,20 +701,21 @@ void MemoryViewWidget::requestAddress(int windowIndex, bool isMemory, uint32_t a
     m_pMemoryWidget->SetAddress(std::to_string(address));
     m_pLockCheckBox->setChecked(false);
     setVisible(true);
+    this->keyFocus();
 }
 
-void MemoryViewWidget::textEditChangedSlot()
+
+void MemoryWindow::textEditChangedSlot()
 {
     m_pMemoryWidget->SetAddress(m_pLineEdit->text().toStdString());
 }
 
-void MemoryViewWidget::lockChangedSlot()
+void MemoryWindow::lockChangedSlot()
 {
     m_pMemoryWidget->SetLock(m_pLockCheckBox->isChecked());
 }
 
-void MemoryViewWidget::modeComboBoxChanged(int index)
+void MemoryWindow::modeComboBoxChanged(int index)
 {
     m_pMemoryWidget->SetMode((MemoryWidget::Mode)index);
-    //m_pTableView->resizeColumnToContents(MemoryWidget::kColData);
 }

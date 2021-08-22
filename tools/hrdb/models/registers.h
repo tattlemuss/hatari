@@ -31,6 +31,8 @@ public:
         assert(index <= 7);
         return m_value[A0 + index];
     }
+    static const char* GetSRBitName(uint32_t bit);
+
     enum
     {
         D0 = 0,
@@ -81,9 +83,26 @@ public:
         XbiosOpcode,
         REG_COUNT
     };
+
+    enum SRBits
+    {
+        kTrace1 = 15,
+        kTrace0 = 14,
+        kSupervisor = 13,
+        kIPL2 = 10,
+        kIPL1 = 9,
+        kIPL0 = 8,
+        kX = 4,
+        kN = 3,
+        kZ = 2,
+        kV = 1,
+        kC = 0
+    };
+
     uint32_t	m_value[REG_COUNT];
     // Null-terminated 1:1 array of register names
     static const char* s_names[];
+
 };
 
 #endif // REGISTERS_H

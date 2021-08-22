@@ -64,9 +64,14 @@ public:
     void SetRegisters(const Registers& regs, uint64_t commandId);
     void SetMemory(MemorySlot slot, const Memory* pMem, uint64_t commandId);
     void SetBreakpoints(const Breakpoints& bps, uint64_t commandId);
-    void SetSymbolTable(const SymbolTable& syms, uint64_t commandId);
+
+    // Set Hatari's subtable of symbols
+    void SetSymbolTable(const SymbolSubTable& syms, uint64_t commandId);
     void SetExceptionMask(const ExceptionMask& mask);
     void NotifyMemoryChanged(uint32_t address, uint32_t size);
+
+    // User-added console command. Anything can happen!
+    void ConsoleCommand();
 
     void Flush();
 
@@ -79,7 +84,7 @@ public:
 	Registers GetRegs() const { return m_regs; }
     const Memory* GetMemory(MemorySlot slot) const
     {
-        return m_pTestMemory[slot];
+        return m_pMemory[slot];
     }
     const Breakpoints& GetBreakpoints() const { return m_breakpoints; }
     const SymbolTable& GetSymbolTable() const { return m_symbolTable; }
@@ -124,22 +129,27 @@ private slots:
 private:
     TargetChangedFlags  m_changedFlags;
 
-    MACHINETYPE	m_machineType;	// Hatari MACHINETYPE enum
-    uint32_t	m_cpuLevel;		// CPU 0=000, 1=010, 2=020, 3=030, 4=040, 5=060
+    MACHINETYPE     m_machineType;	// Hatari MACHINETYPE enum
+    uint32_t        m_cpuLevel;		// CPU 0=000, 1=010, 2=020, 3=030, 4=040, 5=060
 
-    int         m_bConnected;   // 0 == disconnected, 1 == connected
-	int			m_bRunning;		// 0 == stopped, 1 == running
-	uint32_t	m_pc;			// PC register (for next instruction)
+    int             m_bConnected;   // 0 == disconnected, 1 == connected
+    int             m_bRunning;		// 0 == stopped, 1 == running
+    uint32_t        m_pc;			// PC register (for next instruction)
 
-	Registers	m_regs;			// Current register values
-    const Memory*	m_pTestMemory[MemorySlot::kMemorySlotCount];
-    Breakpoints m_breakpoints;  // Current breakpoint list
-
-    SymbolTable m_symbolTable;
-
+    Registers       m_regs;			// Current register values
+    Breakpoints     m_breakpoints;  // Current breakpoint list
+    SymbolTable     m_symbolTable;
     ExceptionMask   m_exceptionMask;
 
-    QTimer*     m_pTimer;
+    // Actual current memory contents
+    const Memory*   m_pMemory[MemorySlot::kMemorySlotCount];
+
+    // Timer running to trigger events after CPU has stopped for a while
+    // (e.g. Graphics Inspector refresh)
+    QTimer*         m_pDelayedUpdateTimer;
 };
+
+// Helper functions to check broad machine types
+extern bool IsMachineST(MACHINETYPE type);
 
 #endif // TARGET_MODEL_H

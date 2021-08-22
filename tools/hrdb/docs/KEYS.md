@@ -17,4 +17,4 @@ Disassembly focus
 =================
 - Cursor movement - line navigation
 - Ctrl+B - Toggle breakpoint
-- F3     - Run to cursor
+- Ctrl+H - Run to "Here" (cursor position)

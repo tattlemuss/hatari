@@ -1188,12 +1188,6 @@ void DebugUI(debug_reason_t reason)
 		 * for when single-stepping or breakpointing has occurred.
 		 */
 
-		/* override paused message so that user knows to look at debugger
-		 * on how to continue in case he invoked the debugger by accident.
-		 */
-		Statusbar_AddMessage("Remote Debugging", 100);
-		Statusbar_Update(sdlscrn, true);
-
 		/* Pass control to remote debugging */
 		(void) remoteDebugcmdCallback();
 	}
@@ -1396,13 +1390,18 @@ void DebugUI_Exceptions(int nr, long pc)
 	DebugUI(REASON_CPU_EXCEPTION);
 }
 
+void DebugUI_Trigger()
+{
+	DebugUI(REASON_USER);
+}
+
 /* Register the callback to process remote command input */
 void DebugUI_RegisterRemoteDebug(DebugUI_ProcessRemoteCommands cmdCallback)
 {
 	remoteDebugcmdCallback = cmdCallback;
 }
 
-void DebugUI_Trigger()
+int DebugUI_ParseConsoleCommand(const char* command)
 {
-	DebugUI(REASON_USER);
+	return DebugUI_ParseCommand(command);
 }

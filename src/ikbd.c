@@ -1773,7 +1773,7 @@ static int IKBD_CheckPressedKey(void)
 void IKBD_InterruptHandler_AutoSend(void)
 {
 	/* Handle user events and other messages, (like quit message) */
-	Main_EventHandler();
+	Main_EventHandler(false);
 
 	/* Remove this interrupt from list and re-order.
 	 * (needs to be done after UI event handling so

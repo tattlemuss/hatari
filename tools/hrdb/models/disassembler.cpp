@@ -6,7 +6,7 @@
 #include "symboltable.h"
 #include "registers.h"
 
-const char* instruction_names[Opcode::COUNT] =
+static const char* instruction_names[Opcode::COUNT] =
 {
     "none",
     "abcd",
@@ -58,7 +58,6 @@ const char* instruction_names[Opcode::COUNT] =
     "dbmi",
     "dbne",
     "dbpl",
-    "dbra",
     "dbvc",
     "dbvs",
     "divs",
@@ -134,7 +133,7 @@ int Disassembler::decode_inst(buffer_reader& buf, instruction& inst)
     return decode(buf, inst);
 }
 
-int Disassembler::decode_buf(buffer_reader& buf, disassembly& disasm, uint32_t address, uint32_t maxLines)
+int Disassembler::decode_buf(buffer_reader& buf, disassembly& disasm, uint32_t address, int32_t maxLines)
 {
     while (buf.get_remain() >= 2)
     {
@@ -212,12 +211,6 @@ bool calc_relative_address(const operand& op, uint32_t inst_address, uint32_t& t
 // ----------------------------------------------------------------------------
 //	INSTRUCTION DISPLAY FORMATTING
 // ----------------------------------------------------------------------------
-static const char* g_reg_names[] =
-{
-    "d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7",
-    "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"
-};
-
 QString to_hex32(uint32_t val)
 {
     QString tmp;
@@ -318,20 +311,31 @@ void print(const operand& operand, uint32_t inst_address, QTextStream& ref)
             ref << to_hex32(operand.absolute_long.longaddr);
             return;
         case OpType::PC_DISP:
-            ref << operand.pc_disp.disp << "(pc)";
+        {
+            uint32_t target_address;
+            calc_relative_address(operand, inst_address, target_address);
+            ref << to_hex32(target_address);
+            ref << "(pc)";
             return;
+        }
         case OpType::PC_DISP_INDEX:
-            ref << operand.pc_disp_index.disp << "(pc,d" << operand.pc_disp_index.d_reg <<
+        {
+            uint32_t target_address;
+            calc_relative_address(operand, inst_address, target_address);
+            ref << to_hex32(target_address) << "(pc,d" << operand.pc_disp_index.d_reg <<
                    (operand.pc_disp_index.is_long ? ".l" : ".w") << ")";
             return;
+        }
         case OpType::MOVEM_REG:
             print_movem_mask(operand.movem_reg.reg_mask, ref);
             return;
         case OpType::RELATIVE_BRANCH:
+        {
             uint32_t target_address;
             calc_relative_address(operand, inst_address, target_address);
             ref << to_hex32(target_address);
             return;
+        }
         case OpType::IMMEDIATE:
             ref << "#" << to_hex32(operand.imm.val0);
             return;
@@ -376,6 +380,43 @@ void Disassembler::print(const instruction& inst, /*const symbols& symbols, */ u
 
     if (inst.op0.type != OpType::INVALID)
     {
+        ::print(inst.op0, /*symbols,*/ inst_address, ref);
+    }
+
+    if (inst.op1.type != OpType::INVALID)
+    {
+        ref << ",";
+        ::print(inst.op1, /*symbols,*/ inst_address, ref);
+    }
+}
+
+// ----------------------------------------------------------------------------
+void Disassembler::print_terse(const instruction& inst, /*const symbols& symbols, */ uint32_t inst_address, QTextStream& ref)
+{
+    if (inst.opcode == Opcode::NONE)
+    {
+        ref << "dc.w " << to_hex32(inst.header);
+        return;
+    }
+    QString opcode = instruction_names[inst.opcode];
+    switch (inst.suffix)
+    {
+        case Suffix::BYTE:
+            opcode += ".b"; break;
+        case Suffix::WORD:
+            opcode += ".w"; break;
+        case Suffix::LONG:
+            opcode += ".l"; break;
+        case Suffix::SHORT:
+            opcode += ".s"; break;
+        default:
+            break;
+    }
+    ref << opcode;
+
+    if (inst.op0.type != OpType::INVALID)
+    {
+        ref << " ";
         ::print(inst.op0, /*symbols,*/ inst_address, ref);
     }
 
@@ -489,8 +530,113 @@ bool DisAnalyse::isTrap(const instruction &inst)
     switch (inst.opcode)
     {
         case Opcode::TRAP:
+		case Opcode::TRAPV:
+			return true;
         default:
             break;
     }
     return false;
+}
+
+bool DisAnalyse::isBackDbf(const instruction &inst)
+{
+	switch (inst.opcode)
+	{
+		case Opcode::DBF:
+			if (inst.op1.type == OpType::RELATIVE_BRANCH)
+				return inst.op1.relative_branch.disp <= 0;
+			break;
+		default:
+			break;
+	}
+	return false;
+}
+
+static bool isDbValid(const instruction& inst, const Registers& regs)
+{
+	assert(inst.op0.type == OpType::D_DIRECT);
+	uint32_t val = regs.GetDReg(inst.op0.d_register.reg);
+
+	// When decremented return "OK" if the value doesn't become -1
+	return val != 0;
+}
+
+static bool checkCC(uint8_t cc, uint32_t sr)
+{
+	int N = (sr >> 3) & 1;
+	int Z = (sr >> 2) & 1;
+	int V = (sr >> 1) & 1;
+	int C = (sr >> 0) & 1;
+	switch (cc)
+	{
+		case 0: return true;			// T
+		case 1: return false;			// F
+		case 2: return !C && !Z;		// HI
+		case 3: return C || Z;			// LS
+		case 4: return !C;				// CC
+		case 5: return C;				// CS
+		case 6: return !Z;				// NE
+		case 7: return Z;				// EQ
+		case 8: return !V;				// VC
+		case 9: return V;				// VS
+		case 10: return !N;				// PL
+		case 11: return N;				// MI
+			// These 4 are tricky. Used the implementation of "cctrue()" from Hatari:
+		case 12: return (N^V) == 0;		// GE
+		case 13: return (N^V) != 0;		// LT
+		case 14: return !Z && (!(N^V));	// GT
+		case 15: return ((N^V)|Z);		// LE
+	}
+	return false;
+}
+
+bool DisAnalyse::isBranch(const instruction &inst, const Registers& regs, bool& takeBranch)
+{
+	uint32_t sr = regs.Get(Registers::SR);
+	//bool X = (sr >> 4) & 1;
+	switch (inst.opcode)
+	{
+		case Opcode::BRA:		 takeBranch = checkCC(0, sr);		return true;
+			// There is no "BF"
+		case Opcode::BHI:		 takeBranch = checkCC(2, sr);		return true;
+		case Opcode::BLS:		 takeBranch = checkCC(3, sr);		return true;
+		case Opcode::BCC:		 takeBranch = checkCC(4, sr);		return true;
+		case Opcode::BCS:		 takeBranch = checkCC(5, sr);		return true;
+		case Opcode::BNE:        takeBranch = checkCC(6, sr);		return true;
+		case Opcode::BEQ:        takeBranch = checkCC(7, sr);		return true;
+		case Opcode::BVC:		 takeBranch = checkCC(8, sr);		return true;
+		case Opcode::BVS:		 takeBranch = checkCC(9, sr);		return true;
+		case Opcode::BPL:		 takeBranch = checkCC(10, sr);		return true;
+		case Opcode::BMI:		 takeBranch = checkCC(11, sr);		return true;
+		case Opcode::BGE:		 takeBranch = checkCC(12, sr);		return true;
+		case Opcode::BLT:		 takeBranch = checkCC(13, sr);		return true;
+		case Opcode::BGT:		 takeBranch = checkCC(14, sr);		return true; // !ZFLG && (NFLG == VFLG)
+		case Opcode::BLE:		 takeBranch = checkCC(15, sr);		return true; // ZFLG || (NFLG != VFLG)
+
+		// DBcc
+		// Branch is taken when condition NOT valid and reg-- != -1
+
+		//	If Condition False
+		//	Then (Dn – 1 → Dn; If Dn ≠ – 1 Then PC + d n → PC)
+		case Opcode::DBF:		 takeBranch = isDbValid(inst, regs) && !checkCC(1, sr);		return true;
+		case Opcode::DBHI:		 takeBranch = isDbValid(inst, regs) && !checkCC(2, sr);		return true;
+		case Opcode::DBLS:		 takeBranch = isDbValid(inst, regs) && !checkCC(3, sr);		return true;
+		case Opcode::DBCC:		 takeBranch = isDbValid(inst, regs) && !checkCC(4, sr);		return true;
+		case Opcode::DBCS:		 takeBranch = isDbValid(inst, regs) && !checkCC(5, sr);		return true;
+		case Opcode::DBNE:       takeBranch = isDbValid(inst, regs) && !checkCC(6, sr);		return true;
+		case Opcode::DBEQ:       takeBranch = isDbValid(inst, regs) && !checkCC(7, sr);		return true;
+		case Opcode::DBVC:		 takeBranch = isDbValid(inst, regs) && !checkCC(8, sr);		return true;
+		case Opcode::DBVS:		 takeBranch = isDbValid(inst, regs) && !checkCC(9, sr);		return true;
+		case Opcode::DBPL:		 takeBranch = isDbValid(inst, regs) && !checkCC(10, sr);	return true;
+		case Opcode::DBMI:		 takeBranch = isDbValid(inst, regs) && !checkCC(11, sr);	return true;
+		case Opcode::DBGE:		 takeBranch = isDbValid(inst, regs) && !checkCC(12, sr);	return true;
+		case Opcode::DBLT:		 takeBranch = isDbValid(inst, regs) && !checkCC(13, sr);	return true;
+		case Opcode::DBGT:		 takeBranch = isDbValid(inst, regs) && !checkCC(14, sr);	return true;
+		case Opcode::DBLE:		 takeBranch = isDbValid(inst, regs) && !checkCC(15, sr);	return true;
+
+		default:
+			break;
+	}
+	takeBranch = false;
+	return false;
 }

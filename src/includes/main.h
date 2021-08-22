@@ -67,7 +67,7 @@ extern Uint32 Main_SetRunVBLs(Uint32 vbls);
 extern const char* Main_SetVBLSlowdown(int factor);
 extern void Main_WaitOnVbl(void);
 extern void Main_WarpMouse(int x, int y, bool restore);
-extern void Main_EventHandler(void);
+extern void Main_EventHandler(bool remoteDebugging);
 extern void Main_SetTitle(const char *title);
 
 #endif /* ifndef HATARI_MAIN_H */

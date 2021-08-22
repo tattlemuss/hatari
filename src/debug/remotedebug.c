@@ -31,6 +31,7 @@
 #include "m68000.h"
 #include "main.h"		/* For ARRAY_SIZE, event handler */
 #include "debugui.h"	/* For DebugUI_RegisterRemoteDebug */
+#include "debug_priv.h"	/* For debugOutput control */
 #include "debugcpu.h"	/* For stepping */
 #include "evaluate.h"
 #include "stMemory.h"
@@ -41,15 +42,25 @@
 #include "memory.h"
 #include "configuration.h"
 
-#define REMOTE_DEBUG_PORT          (56001)
-#define REMOTE_DEBUG_CMD_MAX_SIZE  (300)
+// For status bar updates
+#include "screen.h"
+#include "statusbar.h"
+
+// TCP port for remote debugger access
+#define RDB_PORT                   (56001)
+
+// Max character count in a command sent to Hatari
+#define RDB_CMD_MAX_SIZE           (300)
 
 // How many bytes we collect to send chunks for the "mem" command
 #define RDB_MEM_BLOCK_SIZE         (2048)
 
+// How many bytes in the internal network send buffer
+#define RDB_SEND_BUFFER_SIZE       (512)
+
 // Network timeout when in break loop, to allow event handler update.
-// Currently 0.2sec
-#define RDB_SELECT_TIMEOUT_USEC   (200000)
+// Currently 0.5sec
+#define RDB_SELECT_TIMEOUT_USEC   (500000)
 
 /* Remote debugging break command was sent from debugger */
 static bool bRemoteBreakRequest = false;
@@ -57,114 +68,181 @@ static bool bRemoteBreakRequest = false;
 /* Processing is stopped and the remote debug loop is active */
 static bool bRemoteBreakIsActive = false;
 
+// -----------------------------------------------------------------------------
+// Structure managing connection state
+typedef struct RemoteDebugState
+{
+	int SocketFD;						/* handle for the port/socket. -1 if not available */
+	int AcceptedFD;						/* handle for the accepted connection from client, or
+											-1 if not connected */
+
+	/* Input (receive/command) buffer data */
+	char cmd_buf[RDB_CMD_MAX_SIZE+1];	/* accumulated command string */
+	int cmd_pos;						/* offset in cmd_buf for new data */
+
+	FILE* original_stdout;				/* original file pointers for redirecting output */
+	FILE* original_stderr;
+	FILE* original_debugOutput;
+	FILE* debugOutput;					/* our file handle to output */
+
+	/* Output (send) buffer data */
+	char sendBuffer[RDB_SEND_BUFFER_SIZE];	/* buffer for replies */
+	int sendBufferPos;					/* next byte to write into buffer */
+} RemoteDebugState;
+
+// -----------------------------------------------------------------------------
+// Force send of data in sendBuffer
+static void flush_data(RemoteDebugState* state)
+{
+	// Flush existing data
+	send(state->AcceptedFD, state->sendBuffer, state->sendBufferPos, 0);
+	state->sendBufferPos = 0;
+}
+
+// -----------------------------------------------------------------------------
+// Add data to sendBuffer, flush if necessary
+static void add_data(RemoteDebugState* state, const char* data, size_t size)
+{
+	// Flush data if it won't fit
+	if (state->sendBufferPos + size > RDB_SEND_BUFFER_SIZE)
+		flush_data(state);
+
+	memcpy(state->sendBuffer + state->sendBufferPos, data, size);
+	state->sendBufferPos += size;
+}
+
+// -----------------------------------------------------------------------------
 // Transmission functions (wrapped for platform portability)
 // -----------------------------------------------------------------------------
-static void send_str(int fd, const char* pStr)
+static void send_str(RemoteDebugState* state, const char* pStr)
 {
-	send(fd, pStr, strlen(pStr), 0);
+	add_data(state, pStr, strlen(pStr));
 }
 
 // -----------------------------------------------------------------------------
-static void send_hex(int fd, uint32_t val)
+static void send_hex(RemoteDebugState* state, uint32_t val)
 {
 	char str[9];
-	sprintf(str, "%X", val);
-	send(fd, str, strlen(str), 0);
+	int size = sprintf(str, "%X", val);
+	add_data(state, str, size);
 }
 
 // -----------------------------------------------------------------------------
-static void send_char(int fd, char val)
+static void send_char(RemoteDebugState* state, char val)
 {
-	send(fd, &val, 1, 0);
+	add_data(state, &val, 1);
 }
 
 // -----------------------------------------------------------------------------
-static void send_bool(int fd, bool val)
+static void send_bool(RemoteDebugState* state, bool val)
 {
-	send_char(fd, val ? '1' : '0');
+	send_char(state, val ? '1' : '0');
 }
 
 // -----------------------------------------------------------------------------
-static void send_key_value(int fd, const char* pStr, uint32_t val)
+static void send_key_value(RemoteDebugState* state, const char* pStr, uint32_t val)
 {
-	send_str(fd, " ");
-	send_str(fd, pStr);
-	send_str(fd, ":");
-	send_hex(fd, val);
+	send_str(state, " ");
+	send_str(state, pStr);
+	send_str(state, ":");
+	send_hex(state, val);
 }
 
 // -----------------------------------------------------------------------------
-static void send_term(int fd)
+static void send_term(RemoteDebugState* state)
 {
-	char null = 0;
-	send(fd, &null, 1, 0);
+	send_char(state, 0);
 }
 
 //-----------------------------------------------------------------------------
 static bool read_hex_char(char c, uint8_t* result)
 {
-    if (c >= '0' && c <= '9')
-    {
-        *result = (uint8_t)(c - '0');
-        return true;
-    }
-    if (c >= 'a' && c <= 'f')
-    {
-        *result = (uint8_t)(10 + c - 'a');
-        return true;
-    }
-    if (c >= 'A' && c <= 'F')
-    {
-        *result = (uint8_t)(10 + c - 'A');
-        return true;
-    }
-    *result = 0;
-    return false;
+	if (c >= '0' && c <= '9')
+	{
+		*result = (uint8_t)(c - '0');
+		return true;
+	}
+	if (c >= 'a' && c <= 'f')
+	{
+		*result = (uint8_t)(10 + c - 'a');
+		return true;
+	}
+	if (c >= 'A' && c <= 'F')
+	{
+		*result = (uint8_t)(10 + c - 'A');
+		return true;
+	}
+	*result = 0;
+	return false;
 }
 
 // -----------------------------------------------------------------------------
 // Send the out-of-band status to flag start/stop
-static int RemoteDebug_NotifyState(int fd)
+static int RemoteDebug_NotifyState(RemoteDebugState* state)
 {
 	char tmp[100];
 	sprintf(tmp, "!status %x %x", bRemoteBreakIsActive ? 0 : 1, M68000_GetPC());
-	send_str(fd, tmp);
-	send_term(fd);
+	send_str(state, tmp);
+	send_term(state);
 	return 0;
 }
 
 // -----------------------------------------------------------------------------
-static int RemoteDebug_NotifyConfig(int fd)
+static int RemoteDebug_NotifyConfig(RemoteDebugState* state)
 {
 	const CNF_SYSTEM* system = &ConfigureParams.System;
 	char tmp[100];
 	sprintf(tmp, "!config %x %x", 
 		system->nMachineType, system->nCpuLevel);
 	
-	send_str(fd, tmp);
-	send_term(fd);
+	send_str(state, tmp);
+	send_term(state);
 	return 0;
 }
 
 // -----------------------------------------------------------------------------
+/* Restore any debugOutput settings to the original saved state. Close
+   any file we opened. */
+static void RemoteDebug_CloseDebugOutput(RemoteDebugState* state)
+{
+	/* Restore old stdio, if set */
+#ifndef __WINDOWS__
+	if (state->original_stderr != NULL)
+		stderr = state->original_stderr;
+	if (state->original_stdout != NULL)
+		stdout = state->original_stdout;
+	if (state->original_debugOutput != NULL)
+		stdout = state->original_debugOutput;
+	if (state->debugOutput)
+		fclose(state->debugOutput);
+#endif
+	state->original_stderr = NULL;
+	state->original_stdout = NULL;
+	state->original_debugOutput = NULL;
+	state->debugOutput = NULL;
+}
+
+// -----------------------------------------------------------------------------
+//    DEBUGGER COMMANDS
+// -----------------------------------------------------------------------------
 /* Return short status info in a useful format, mainly whether it's running */
-static int RemoteDebug_Status(int nArgc, char *psArgs[], int fd)
+static int RemoteDebug_Status(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	char tmp[100];
-	int len = sprintf(tmp, "OK %x %x", bRemoteBreakIsActive ? 0 : 1, M68000_GetPC());
-	send(fd, tmp, len, 0);
+	sprintf(tmp, "OK %x %x", bRemoteBreakIsActive ? 0 : 1, M68000_GetPC());
+	send_str(state, tmp);
 	return 0;
 }
 
 // -----------------------------------------------------------------------------
 /* Put in a break request which is serviced elsewhere in the main loop */
-static int RemoteDebug_Break(int nArgc, char *psArgs[], int fd)
+static int RemoteDebug_Break(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	// Only set a break request if we are running
 	if (!bRemoteBreakIsActive)
 	{
 		bRemoteBreakRequest = true;
-		send_str(fd, "OK");
+		send_str(state, "OK");
 	}
 	else
 	{
@@ -176,10 +254,10 @@ static int RemoteDebug_Break(int nArgc, char *psArgs[], int fd)
 
 // -----------------------------------------------------------------------------
 /* Step next instruction. This is currently a passthrough to the normal debugui code. */
-static int RemoteDebug_Step(int nArgc, char *psArgs[], int fd)
+static int RemoteDebug_Step(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	DebugCpu_SetSteps(1);
-	send_str(fd, "OK");
+	send_str(state, "OK");
 
 	// Restart
 	bRemoteBreakIsActive = false;
@@ -187,9 +265,9 @@ static int RemoteDebug_Step(int nArgc, char *psArgs[], int fd)
 }
 
 // -----------------------------------------------------------------------------
-static int RemoteDebug_Run(int nArgc, char *psArgs[], int fd)
+static int RemoteDebug_Run(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
-	send_str(fd, "OK");
+	send_str(state, "OK");
 	bRemoteBreakIsActive = false;
 	return 0;
 }
@@ -202,7 +280,7 @@ static int RemoteDebug_Run(int nArgc, char *psArgs[], int fd)
  * 
  * Output: "regs <reg:value>*N\n"
  */
-static int RemoteDebug_Regs(int nArgc, char *psArgs[], int fd)
+static int RemoteDebug_Regs(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	int regIdx;
 	Uint32 varIndex;
@@ -216,25 +294,25 @@ static int RemoteDebug_Regs(int nArgc, char *psArgs[], int fd)
 		"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7",
 		"A0", "A1", "A2", "A3", "A4", "A5", "A6", "A7" };
 
-	send_str(fd, "OK ");
+	send_str(state, "OK ");
 
 	// Normal regs
 	for (regIdx = 0; regIdx < ARRAY_SIZE(regIds); ++regIdx)
-		send_key_value(fd, regNames[regIdx], Regs[regIds[regIdx]]);
+		send_key_value(state, regNames[regIdx], Regs[regIds[regIdx]]);
 		
 	// Special regs
-	send_key_value(fd, "PC", M68000_GetPC());
-	send_key_value(fd, "USP", regs.usp);
-	send_key_value(fd, "ISP", regs.isp);
-	send_key_value(fd, "SR", M68000_GetSR());
-	send_key_value(fd, "EX", regs.exception);
+	send_key_value(state, "PC", M68000_GetPC());
+	send_key_value(state, "USP", regs.usp);
+	send_key_value(state, "ISP", regs.isp);
+	send_key_value(state, "SR", M68000_GetSR());
+	send_key_value(state, "EX", regs.exception);
 
 	// Variables
 	while (Vars_QueryVariable(varIndex, &var))
 	{
 		Uint32 value;
 		value = Vars_GetValue(var);
-		send_key_value(fd, var->name, value);
+		send_key_value(state, var->name, value);
 		++varIndex;
 	}
 
@@ -249,7 +327,7 @@ static int RemoteDebug_Regs(int nArgc, char *psArgs[], int fd)
  * Output: "mem <address-expr> <size-expr> <memory as base16 string>\n"
  */
 
-static int RemoteDebug_Mem(int nArgc, char *psArgs[], int fd)
+static int RemoteDebug_Mem(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	int arg;
 	Uint8 value;
@@ -278,11 +356,14 @@ static int RemoteDebug_Mem(int nArgc, char *psArgs[], int fd)
 		return 1;
 	}
 
-	send_str(fd, "OK ");
-	send_hex(fd, memdump_addr);
-	send_str(fd, " ");
-	send_hex(fd, memdump_count);
-	send_str(fd, " ");
+	send_str(state, "OK ");
+	send_hex(state, memdump_addr);
+	send_str(state, " ");
+	send_hex(state, memdump_count);
+	send_str(state, " ");
+
+	// Need to flush here before we switch to our existing buffer system
+	flush_data(state);
 
 	// Send data in blocks of "buffer_size" memory bytes
 	// (We don't need a terminator when sending)
@@ -304,7 +385,7 @@ static int RemoteDebug_Mem(int nArgc, char *psArgs[], int fd)
 			++pos;
 			++memdump_addr;
 		}
-		send(fd, buffer, block_size * 2, 0);
+		send(state->AcceptedFD, buffer, block_size * 2, 0);
 	}
 
 	free(buffer);
@@ -319,7 +400,7 @@ static int RemoteDebug_Mem(int nArgc, char *psArgs[], int fd)
  * Output: "OK"/"NG"
  */
 
-static int RemoteDebug_Memset(int nArgc, char *psArgs[], int fd)
+static int RemoteDebug_Memset(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	int arg;
 	Uint32 memdump_addr = 0;
@@ -367,17 +448,17 @@ static int RemoteDebug_Memset(int nArgc, char *psArgs[], int fd)
 		STMemory_WriteByte(memdump_addr, (valHi << 4) | valLo);
 		++memdump_addr;
 	}
-	send_str(fd, "OK ");
+	send_str(state, "OK ");
 	// Report changed range so tools can decide to update
-	send_hex(fd, memdump_end - memdump_count);
-	send_str(fd, " ");
-	send_hex(fd, memdump_count);
+	send_hex(state, memdump_end - memdump_count);
+	send_str(state, " ");
+	send_hex(state, memdump_count);
 	return 0;
 }
 
 // -----------------------------------------------------------------------------
 /* Set a breakpoint at an address. */
-static int RemoteDebug_bp(int nArgc, char *psArgs[], int fd)
+static int RemoteDebug_bp(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	int arg = 1;
 	if (nArgc >= arg + 1)
@@ -385,7 +466,7 @@ static int RemoteDebug_bp(int nArgc, char *psArgs[], int fd)
 		// Pass to standard simple function
 		if (BreakCond_Command(psArgs[arg], false))
 		{
-			send_str(fd, "OK");
+			send_str(state, "OK");
 			return 0;
 		}
 	}
@@ -394,14 +475,14 @@ static int RemoteDebug_bp(int nArgc, char *psArgs[], int fd)
 
 // -----------------------------------------------------------------------------
 /* List all breakpoints */
-static int RemoteDebug_bplist(int nArgc, char *psArgs[], int fd)
+static int RemoteDebug_bplist(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	int i, count;
 
 	count = BreakCond_CpuBreakPointCount();
-	send_str(fd, "OK ");
-	send_hex(fd, count);
-	send_str(fd, " ");
+	send_str(state, "OK ");
+	send_hex(state, count);
+	send_str(state, " ");
 
 	/* NOTE breakpoint query indices start at 1 */
 	for (i = 1; i <= count; ++i)
@@ -409,15 +490,15 @@ static int RemoteDebug_bplist(int nArgc, char *psArgs[], int fd)
 		bc_breakpoint_query_t query;
 		BreakCond_GetCpuBreakpointInfo(i, &query);
 
-		send_str(fd, query.expression);
+		send_str(state, query.expression);
 		/* Note this has the ` character to flag the expression end,
 		since the expression can contain spaces */
-		send_str(fd, "`");
-		send_hex(fd, query.ccount); send_str(fd, " ");
-		send_hex(fd, query.hits); send_str(fd, " ");
-		send_bool(fd, query.once); send_str(fd, " ");
-		send_bool(fd, query.quiet); send_str(fd, " ");
-		send_bool(fd, query.trace); send_str(fd, " ");
+		send_str(state, "`");
+		send_hex(state, query.ccount); send_str(state, " ");
+		send_hex(state, query.hits); send_str(state, " ");
+		send_bool(state, query.once); send_str(state, " ");
+		send_bool(state, query.quiet); send_str(state, " ");
+		send_bool(state, query.trace); send_str(state, " ");
 	}
 	return 0;
 }
@@ -426,7 +507,7 @@ static int RemoteDebug_bplist(int nArgc, char *psArgs[], int fd)
 /* Remove breakpoint number N.
    NOTE breakpoint IDs start at 1!
 */
-static int RemoteDebug_bpdel(int nArgc, char *psArgs[], int fd)
+static int RemoteDebug_bpdel(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	int arg = 1;
 	Uint32 bp_position;
@@ -436,7 +517,7 @@ static int RemoteDebug_bpdel(int nArgc, char *psArgs[], int fd)
 		{
 			if (BreakCond_RemoveCpuBreakpoint(bp_position))
 			{
-				send_str(fd, "OK");
+				send_str(state, "OK");
 				return 0;
 			}
 		}
@@ -446,25 +527,25 @@ static int RemoteDebug_bpdel(int nArgc, char *psArgs[], int fd)
 
 // -----------------------------------------------------------------------------
 /* "symlist" -- List all CPU symbols */
-static int RemoteDebug_symlist(int nArgc, char *psArgs[], int fd)
+static int RemoteDebug_symlist(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	int i, count;
 	count = Symbols_CpuSymbolCount();
-	send_str(fd, "OK ");
-	send_hex(fd, count);
-	send_str(fd, " ");
+	send_str(state, "OK ");
+	send_hex(state, count);
+	send_str(state, " ");
 	
 	for (i = 0; i < count; ++i)
 	{
 		rdb_symbol_t query;
 		if (!Symbols_GetCpuSymbol(i, &query))
 			break;
-		send_str(fd, query.name);
-		send_str(fd, "`");
-		send_hex(fd, query.address);
-		send_str(fd, " ");
-		send_char(fd, query.type);
-		send_str(fd, " ");
+		send_str(state, query.name);
+		send_str(state, "`");
+		send_hex(state, query.address);
+		send_str(state, " ");
+		send_char(state, query.type);
+		send_str(state, " ");
 	}
 	return 0;
 }
@@ -472,7 +553,7 @@ static int RemoteDebug_symlist(int nArgc, char *psArgs[], int fd)
 // -----------------------------------------------------------------------------
 /* "exmask" -- Read or set exception mask */
 /* returns "OK <mask val>"" */
-static int RemoteDebug_exmask(int nArgc, char *psArgs[], int fd)
+static int RemoteDebug_exmask(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	int arg = 1;
 	Uint32 mask;
@@ -490,16 +571,74 @@ static int RemoteDebug_exmask(int nArgc, char *psArgs[], int fd)
 
 	// Always respond with the mask value, so that setting comes back
 	// to the remote debugger
-	send_str(fd, "OK ");
-	send_hex(fd, ExceptionDebugMask);
+	send_str(state, "OK ");
+	send_hex(state, ExceptionDebugMask);
 	return 0;
 }
 
 // -----------------------------------------------------------------------------
+/* "console <text>" pass command to debugui console input */
+/* returns "OK" */
+static int RemoteDebug_console(int nArgc, char *psArgs[], RemoteDebugState* state)
+{
+	if (nArgc == 2)
+	{
+		int cmdRet = DebugUI_ParseConsoleCommand(psArgs[1]);
+
+		/* handle a command that restarts execution */
+		if (cmdRet == DEBUGGER_END)
+			bRemoteBreakIsActive = false;
+
+		fflush(debugOutput);
+		fflush(stderr);
+		// Insert an out-of-band notification, in case of restart
+		RemoteDebug_NotifyState(state);
+	}
+	send_str(state, "OK");
+	return 0;
+}
+
+// -----------------------------------------------------------------------------
+/* "setstd <filename> redirects stdout/stderr to given file */
+/* returns "OK"/"NG" */
+static int RemoteDebug_setstd(int nArgc, char *psArgs[], RemoteDebugState* state)
+{
+	if (nArgc == 2)
+	{
+		// Create the output file
+		const char* filename = psArgs[1];
+		FILE* outpipe = fopen(filename, "w");
+		if (outpipe)
+		{
+			// Switch back to "normal settings"
+			RemoteDebug_CloseDebugOutput(state);
+
+			// Record the original states
+			state->original_stderr = stderr;
+			state->original_stdout = stdout;
+			state->original_debugOutput = debugOutput;
+
+			// Switch over redirect
+#ifdef __WINDOWS__
+			freopen(filename, "w", stdout);
+			freopen(filename, "w", stderr);
+#else
+			stderr = outpipe;
+			stdout = outpipe;
+#endif
+			debugOutput = outpipe;
+			state->debugOutput = outpipe;
+			send_str(state, "OK");
+			return 0;
+		}
+	}
+	return 1;
+}
+// -----------------------------------------------------------------------------
 /* DebugUI command structure */
 typedef struct
 {
-	int (*pFunction)(int argc, char *argv[], int fd);
+	int (*pFunction)(int argc, char *argv[], RemoteDebugState* state);
 	const char *sName;
 	bool split_args;
 } rdbcommand_t;
@@ -518,6 +657,8 @@ static const rdbcommand_t remoteDebugCommandList[] = {
 	{ RemoteDebug_bpdel,	"bpdel"		, true		},
 	{ RemoteDebug_symlist,	"symlist"	, true		},
 	{ RemoteDebug_exmask,	"exmask"	, true		},
+	{ RemoteDebug_console,	"console"	, false		},
+	{ RemoteDebug_setstd,	"setstd"	, true		},
 
 	/* Terminator */
 	{ NULL, NULL }
@@ -528,7 +669,7 @@ static const rdbcommand_t remoteDebugCommandList[] = {
  * Command should return 0 if successful.
  * Returns -1 if command not parsed
  */
-static int RemoteDebug_Parse(const char *input_orig, int fd)
+static int RemoteDebug_Parse(const char *input_orig, RemoteDebugState* state)
 {
 	char *psArgs[64], *input, *input2;
 	const char *delim;
@@ -582,7 +723,7 @@ static int RemoteDebug_Parse(const char *input_orig, int fd)
 	else
 	{
 		/* ... and execute the function */
-		retval = pCommand->pFunction(nArgc, psArgs, fd);
+		retval = pCommand->pFunction(nArgc, psArgs, state);
 	}
 	free(input);
 	free(input2);
@@ -626,14 +767,6 @@ static void SetReuseAddr(int fd)
 #define RDB_CLOSE				close
 #endif
 
-typedef struct RemoteDebugState
-{
-	int SocketFD;								/* handle for the port/socket */
-	int AcceptedFD;								/* handle for the accepted connection from client, or -1 */
-	char cmd_buf[REMOTE_DEBUG_CMD_MAX_SIZE+1];	/* accumulated command string */
-	int cmd_pos;								/* offset in cmd_buf for new data */
-} RemoteDebugState;
-
 static RemoteDebugState g_rdbState;
 
 static void RemoteDebugState_Init(RemoteDebugState* state)
@@ -642,6 +775,52 @@ static void RemoteDebugState_Init(RemoteDebugState* state)
 	state->AcceptedFD = -1;
 	memset(state->cmd_buf, 0, sizeof(state->cmd_buf));
 	state->cmd_pos = 0;
+	state->original_stdout = NULL;
+	state->original_stderr = NULL;
+	state->original_debugOutput = NULL;
+	state->debugOutput = NULL;
+	state->sendBufferPos = 0;
+}
+
+static int RemoteDebugState_TryAccept(RemoteDebugState* state, bool blocking)
+{
+	fd_set set;
+	struct timeval timeout;
+
+	if (blocking)
+	{
+		// Connection active
+		// Check socket with timeout
+		FD_ZERO(&set);
+		FD_SET(state->SocketFD, &set);
+
+		// On Linux, need to reset the timeout on each loop
+		// see "select(2)"
+		timeout.tv_sec = 0;
+		timeout.tv_usec = RDB_SELECT_TIMEOUT_USEC;
+		int rv = select(state->SocketFD + 1, &set, NULL, NULL, &timeout);
+		if (rv <= 0)
+			return state->AcceptedFD;
+	}
+
+	state->AcceptedFD = accept(state->SocketFD, NULL, NULL);
+	if (state->AcceptedFD != -1)
+	{
+		printf("Remote Debug connection accepted\n");
+		// reset send buffer
+		state->sendBufferPos = 0;
+		// Send connected handshake, so client can
+		// drop any subsequent commands
+		send_str(state, "!connected");
+		send_term(state);
+		flush_data(state);
+
+		// New connection, so do an initial report.
+		RemoteDebug_NotifyConfig(state);
+		RemoteDebug_NotifyState(state);
+		flush_data(state);
+	}
+	return state->AcceptedFD;
 }
 
 /* Process any command data that has been read into the pending
@@ -650,6 +829,7 @@ static void RemoteDebugState_Init(RemoteDebugState* state)
 static void RemoteDebug_ProcessBuffer(RemoteDebugState* state)
 {
 	int cmd_ret;
+	int num_commands = 0;
 	while (1)
 	{
 		// Scan for a complete command
@@ -662,124 +842,198 @@ static void RemoteDebug_ProcessBuffer(RemoteDebugState* state)
 		const char* pCmd = state->cmd_buf;
 
 		// Process this command
-		cmd_ret = RemoteDebug_Parse(pCmd, state->AcceptedFD);
+		cmd_ret = RemoteDebug_Parse(pCmd, state);
 
 		if (cmd_ret != 0)
 		{
 			// return an error if something failed
-			send_str(state->AcceptedFD, "NG");
+			send_str(state, "NG");
 		}
-		send_term(state->AcceptedFD);
+		send_term(state);
 
 		// Copy extra bytes to the start
 		// -1 here is for the terminator
 		int extra_length = state->cmd_pos - length - 1;
 		memcpy(state->cmd_buf, endptr + 1, extra_length);
 		state->cmd_pos = extra_length;
+		++num_commands;
 	}
+
+	if (num_commands)
+		flush_data(state);
 }
 
-/*
-	Listen to the connection for remote-debug messages,
-	some of which will release us from the break loop
+/*	Handle activity from the accepted connection.
+	Disconnect if socket lost or other errors.
 */
-static bool RemoteDebug_BreakLoop(void)
+static void RemoteDebugState_UpdateAccepted(RemoteDebugState* state)
 {
 	int remaining;
-	RemoteDebugState* state;
 	fd_set set;
 	struct timeval timeout;
 #if HAVE_WINSOCK_SOCKETS
 	int winerr;
 #endif
 
-	// TODO set socket as blocking
+	// Connection active
+	// Check socket with timeout
+	FD_ZERO(&set);
+	FD_SET(state->AcceptedFD, &set);
+
+	// On Linux, need to reset the timeout on each loop
+	// see "select(2)"
+	timeout.tv_sec = 0;
+	timeout.tv_usec = RDB_SELECT_TIMEOUT_USEC;
+
+	int rv = select(state->AcceptedFD + 1, &set, NULL, NULL, &timeout);
+	if (rv < 0)
+	{
+		// select error, Lost connection?
+		return;
+	}
+	else if (rv == 0)
+	{
+		// timeout, socket does not have anything to read.
+		// Run event handler while we know nothing changes
+		Main_EventHandler(true);
+		return;
+	}
+
+	// Read input and accumulate a command (blocking)
+	remaining = RDB_CMD_MAX_SIZE - state->cmd_pos;
+	int bytes = recv(state->AcceptedFD, 
+		&state->cmd_buf[state->cmd_pos],
+		remaining,
+		0);
+	if (bytes > 0)
+	{
+		// New data. Is there a command in there (null-terminated string)
+		state->cmd_pos += bytes;
+		RemoteDebug_ProcessBuffer(state);
+	}
+	else if (bytes == 0)
+	{
+		// This represents an orderly EOF, even in Winsock
+		printf("Remote Debug connection closed\n");
+		RDB_CLOSE(state->AcceptedFD);
+		state->AcceptedFD = -1;
+
+		// Bail out of the loop here so we don't just spin
+		return;
+	}
+	else
+	{
+		// On Windows -1 simply means a general error and might be OK.
+		// So we check for known errors that should cause us to exit.
+#if HAVE_WINSOCK_SOCKETS
+		winerr = WSAGetLastError();
+		if (winerr == WSAECONNRESET)
+		{
+			printf("Remote Debug connection reset\n");
+			RDB_CLOSE(state->AcceptedFD);
+			state->AcceptedFD = -1;
+		}
+		printf("Unknown cmd %d\n", WSAGetLastError());
+#endif
+	}
+}
+
+/* Update with a suitable message, when we are in the break loop */
+static void SetStatusbarMessage(const RemoteDebugState* state)
+{
+	if (state->AcceptedFD != -1)
+		Statusbar_AddMessage("hrdb connected -- debugging", 100);
+	else
+		Statusbar_AddMessage("break -- waiting for hrdb", 100);
+	Statusbar_Update(sdlscrn, true);
+}
+
+/*
+	Handle the loop once Hatari enters break mode, and update
+	network connections and commands/responses. Also calls
+	main system event handler (at intervals) to keep the UI
+	responsive.
+
+	Exits when
+	- commands cause a restart
+	- main socket lost
+	- quit request from UI
+*/
+static bool RemoteDebug_BreakLoop(void)
+{
+	RemoteDebugState* state;
 	state = &g_rdbState;
 
+	// This is set to true to prevent re-entrancy in RemoteDebug_Update()
 	bRemoteBreakIsActive = true;
-	// Notify after state change happens
-	RemoteDebug_NotifyConfig(state->AcceptedFD);
-	RemoteDebug_NotifyState(state->AcceptedFD);
+
+	if (state->AcceptedFD != -1)
+	{
+		// Notify after state change happens
+		RemoteDebug_NotifyConfig(state);
+		RemoteDebug_NotifyState(state);
+		flush_data(state);
+	}
+
+	SetStatusbarMessage(state);
 
 	// Set the socket to blocking on the connection now, so we
 	// sleep until data is available.
 	SetNonBlocking(state->AcceptedFD, 0);
 
-	timeout.tv_sec = 0;
-	timeout.tv_usec = RDB_SELECT_TIMEOUT_USEC;
 	while (bRemoteBreakIsActive)
 	{
-		if (state->AcceptedFD == -1 || 
-			state->SocketFD == -1)
-		{
+		// Handle main exit states
+		if (state->SocketFD == -1)
 			break;
-		}
 
-		// Check socket with timeout
-		FD_ZERO(&set);
-		FD_SET(state->AcceptedFD, &set);
-
-		int rv = select(state->AcceptedFD + 1, &set, NULL, NULL, &timeout);
-		if (rv < 0)
-		{
-			// select error
+		if (bQuitProgram)
 			break;
-		}
-		else if (rv == 0)
-		{
-			// timeout, socket does not have anything to read.
-			// Update main event handler so that the UI window can update/redraw.
-			Main_EventHandler();
-			continue;
-		}
 
-		// Read input and accumulate a command (blocking)
-		remaining = REMOTE_DEBUG_CMD_MAX_SIZE - state->cmd_pos;
-		int bytes = recv(state->AcceptedFD, 
-			&state->cmd_buf[state->cmd_pos],
-			remaining,
-			0);
-		if (bytes > 0)
+		// If we don't have a connection yet, we need to get one
+		if (state->AcceptedFD == -1)
 		{
-			// New data. Is there a command in there (null-terminated string)
-			state->cmd_pos += bytes;
-			RemoteDebug_ProcessBuffer(state);
-		}
-		else if (bytes == 0)
-		{
-			// This represents an orderly EOF, even in Winsock
-			printf("Remote Debug connection closed\n");
-			DebugUI_RegisterRemoteDebug(NULL);
-			RDB_CLOSE(state->AcceptedFD);
-			state->AcceptedFD = -1;
-
-			// Bail out of the loop here so we don't just spin
-			break;
+			// Try to reconnect (with select())
+			RemoteDebugState_TryAccept(state, true);
+			if (state->AcceptedFD != -1)
+			{
+				// Set the socket to blocking on the connection now, so we
+				// sleep until data is available.
+				SetNonBlocking(state->AcceptedFD, 0);
+				SetStatusbarMessage(state);
+			}
+			else
+			{
+				// No connection so update events
+				Main_EventHandler(true);
+			}
 		}
 		else
 		{
-			// On Windows -1 simply means a general error and might be OK.
-			// So we check for known errors that should cause us to exit.
-#if HAVE_WINSOCK_SOCKETS
-			winerr = WSAGetLastError();
-			if (winerr == WSAECONNRESET)
+			// Already connected, check for messages or disconnection
+			RemoteDebugState_UpdateAccepted(state);
+			if (state->AcceptedFD == -1)
 			{
-				printf("Remote Debug connection reset\n");
-				state->AcceptedFD = -1;
-				break;
+				// disconnected
+				SetStatusbarMessage(state);
 			}
-			printf("Unknown cmd %d\n", WSAGetLastError());
-#endif
 		}
 	}
 	bRemoteBreakIsActive = false;
 	// Clear any break request that might have been set
 	bRemoteBreakRequest = false;
 
-	RemoteDebug_NotifyConfig(state->AcceptedFD);
-	RemoteDebug_NotifyState(state->AcceptedFD);
+	// Switch back to non-blocking for the update loop
+	if (state->AcceptedFD != -1)
+	{
+		RemoteDebug_NotifyConfig(state);
+		RemoteDebug_NotifyState(state);
+		flush_data(state);
 
-	SetNonBlocking(state->AcceptedFD, 1);
+		SetNonBlocking(state->AcceptedFD, 1);
+	}
+
+	// TODO: this return code no longer used
 	return true;
 }
 
@@ -788,6 +1042,8 @@ static bool RemoteDebug_BreakLoop(void)
 */
 static int RemoteDebugState_InitServer(RemoteDebugState* state)
 {
+	state->AcceptedFD = -1;
+
 	// Create listening socket on port
 	struct sockaddr_in sa;
 
@@ -805,7 +1061,7 @@ static int RemoteDebugState_InitServer(RemoteDebugState* state)
 
 	memset(&sa, 0, sizeof sa);
 	sa.sin_family = AF_INET;
-	sa.sin_port = htons(REMOTE_DEBUG_PORT);
+	sa.sin_port = htons(RDB_PORT);
 	sa.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
 	if (bind(state->SocketFD,(struct sockaddr *)&sa, sizeof sa) == -1) {
@@ -823,10 +1079,12 @@ static int RemoteDebugState_InitServer(RemoteDebugState* state)
 	}
 
 	// Socket is now in a listening state and could accept 
-	printf("Remote Debug Listening on port %d\n", REMOTE_DEBUG_PORT);
+	printf("Remote Debug Listening on port %d\n", RDB_PORT);
 	return 0;
 }
 
+// This is the per-frame update, to check for new connections
+// while Hatari is running at full speed
 static void RemoteDebugState_Update(RemoteDebugState* state)
 {
 	if (state->SocketFD == -1)
@@ -840,8 +1098,8 @@ static void RemoteDebugState_Update(RemoteDebugState* state)
 	{
 		// Connection is active
 		// Read input and accumulate a command
-		remaining = REMOTE_DEBUG_CMD_MAX_SIZE - state->cmd_pos;
-        
+		remaining = RDB_CMD_MAX_SIZE - state->cmd_pos;
+		
 #if HAVE_UNIX_DOMAIN_SOCKETS
 		int bytes = recv(state->AcceptedFD, 
 			&state->cmd_buf[state->cmd_pos],
@@ -865,7 +1123,6 @@ static void RemoteDebugState_Update(RemoteDebugState* state)
 		{
 			// This represents an orderly EOF
 			printf("Remote Debug connection closed\n");
-			DebugUI_RegisterRemoteDebug(NULL);
 			RDB_CLOSE(state->AcceptedFD);
 			state->AcceptedFD = -1;
 			return;
@@ -873,22 +1130,12 @@ static void RemoteDebugState_Update(RemoteDebugState* state)
 	}
 	else
 	{
-		// Active accepted socket
-		state->AcceptedFD = accept(state->SocketFD, NULL, NULL);
-		if (state->AcceptedFD != -1)
+		if (RemoteDebugState_TryAccept(state, false) != -1)
 		{
-			printf("Remote Debug connection accepted\n");
-			DebugUI_RegisterRemoteDebug(RemoteDebug_BreakLoop);
+			// Set this connection to non-blocking since we are
+			// in "running" state and it will poll every VBL
 			SetNonBlocking(state->AcceptedFD, 1);
-
-			// Send connected handshake, so client can
-			// drop any subsequent commands
-			send_str(state->AcceptedFD, "!connected");
-			send_term(state->AcceptedFD);
-
-			// Flag the running status straight away
-			RemoteDebug_NotifyConfig(state->AcceptedFD);
-			RemoteDebug_NotifyState(state->AcceptedFD);
+			return;
 		}
 	}
 }
@@ -896,44 +1143,50 @@ static void RemoteDebugState_Update(RemoteDebugState* state)
 void RemoteDebug_Init(void)
 {
 	printf("Starting remote debug\n");
+	RemoteDebugState_Init(&g_rdbState);
 	
 #if HAVE_WINSOCK_SOCKETS
+	WORD wVersionRequested;
+	WSADATA wsaData;
+	int err;
 
-    WORD wVersionRequested;
-    WSADATA wsaData;
-    int err;
-
-    wVersionRequested = MAKEWORD(1, 0);
-
-    err = WSAStartup(wVersionRequested, &wsaData);
-    if (err != 0) {
-        /* Tell the user that we could not find a usable */
-        /* Winsock DLL.                                  */
-        printf("WSAStartup failed with error: %d\n", err);
-		
-		// NO CHECK clean up state
-        return;
-    }
+	wVersionRequested = MAKEWORD(1, 0);
+	err = WSAStartup(wVersionRequested, &wsaData);
+	if (err != 0)
+	{
+		printf("WSAStartup failed with error: %d\n", err);
+		// No socket can be made, and initial state will
+		// still reflect this (SocketFD == -1)
+		return;
+	}
 #endif
 
-	RemoteDebugState_Init(&g_rdbState);
-	RemoteDebugState_InitServer(&g_rdbState);
+	if (RemoteDebugState_InitServer(&g_rdbState) == 0)
+	{
+		// Socket created, so use our break loop
+		DebugUI_RegisterRemoteDebug(RemoteDebug_BreakLoop);
+	}
 }
 
 void RemoteDebug_UnInit()
 {
 	printf("Stopping remote debug\n");
+	DebugUI_RegisterRemoteDebug(NULL);
+
+	RemoteDebug_CloseDebugOutput(&g_rdbState);
 	if (g_rdbState.AcceptedFD != -1)
 	{
 		RDB_CLOSE(g_rdbState.AcceptedFD);
-		g_rdbState.AcceptedFD = -1;
 	}
 
 	if (g_rdbState.SocketFD != -1)
 	{
 		RDB_CLOSE(g_rdbState.SocketFD);
-		g_rdbState.SocketFD = -1;
 	}
+
+	g_rdbState.AcceptedFD = -1;
+	g_rdbState.SocketFD = -1;
+	g_rdbState.cmd_pos = 0;
 }
 
 bool RemoteDebug_Update(void)

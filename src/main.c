@@ -507,7 +507,7 @@ static void Main_HandleMouseMotion(SDL_Event *pEvent)
  * Here we process the SDL events (keyboard, mouse, ...) and map it to
  * Atari IKBD events.
  */
-void Main_EventHandler(void)
+void Main_EventHandler(bool remoteDebugging)
 {
 	bool bContinueProcessing;
 	SDL_Event event;
@@ -536,6 +536,12 @@ void Main_EventHandler(void)
 		}
 		if (!events)
 		{
+			/* RDB change. If we are running the remote debugger break loop,
+			all we want to do is service the events then exit. So exit now that
+			we have exhausted the available events */
+			if (remoteDebugging)
+				break;
+
 			/* no events -> if emulation is active or
 			 * user is quitting -> return from function.
 			 */

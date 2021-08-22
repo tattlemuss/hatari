@@ -2,7 +2,8 @@
 #include <assert.h>
 #include <algorithm>
 
-#define ADD_SYM(symname, addr, size)  AddInternal(#symname, addr, size);
+#define ADD_SYM(symname, addr, size)\
+    table.AddSymbol(#symname, addr, size, "H");
 
 class SymbolNameCompare
 {
@@ -14,15 +15,18 @@ public:
     }
 };
 
-void SymbolTable::AddHardware()
+static void AddHardware(SymbolSubTable& table)
 {
     ADD_SYM(VID_MEMCONF		, 0xff8001, 1)	// memory controller
-    ADD_SYM(VID_DBASEH		, 0xff8201, 1)
-    ADD_SYM(VID_DBASEL		, 0xff8203, 1)	// display base low, high
+    ADD_SYM(VID_DBASEHI 	, 0xff8201, 1)
+    ADD_SYM(VID_DBASEMID	, 0xff8203, 1)	// display base low, high
     ADD_SYM(VID_VCOUNTHI	, 0xff8205, 1)	// display counter low, medium, high
     ADD_SYM(VID_VCOUNTMID	, 0xff8207, 1)
     ADD_SYM(VID_VCOUNTLOW	, 0xff8209, 1)
     ADD_SYM(VID_SYNCMODE	, 0xff820a, 1)	// video	sync mode
+    ADD_SYM(VID_DBASELO_STE	, 0xff820d, 1)	// STE only
+    ADD_SYM(VID_WIDTHOFF_STE, 0xff820f, 1)	// STE only
+
     ADD_SYM(VID_COLOR0		, 0xff8240, 2)	// color registers 0..15
     ADD_SYM(VID_COLOR1		, 0xff8242, 2)
     ADD_SYM(VID_COLOR2		, 0xff8244, 2)
@@ -39,7 +43,12 @@ void SymbolTable::AddHardware()
     ADD_SYM(VID_COLOR13		, 0xff825a, 2)
     ADD_SYM(VID_COLOR14		, 0xff825c, 2)
     ADD_SYM(VID_COLOR15		, 0xff825e, 2)
+    ADD_SYM(VID_HSCROLL_A	, 0xff8264, 1)	// STE only
+    ADD_SYM(VID_HSCROLL_B	, 0xff8265, 1)	// STE only
+
     ADD_SYM(VID_SHIFTMD		, 0xff8260, 1)	// shifter mode (resolution)
+    ADD_SYM(VID_SHIFTMD_TT  , 0xff8262, 1)	// shifter mode (TT resolution)
+
     ADD_SYM(DMA_DISKCTL		, 0xff8604, 1)	// disk controller data access
     ADD_SYM(DMA_FIFO		, 0xff8606, 1)	// DMA mode control
     ADD_SYM(DMA_DMAHIGH		, 0xff8609, 1)	// DMA base high, medium, low
@@ -77,6 +86,21 @@ void SymbolTable::AddHardware()
     ADD_SYM(ACIA_MIDICTL	, 0xfffc04, 1)		// MIDI ACIA control
     ADD_SYM(ACIA_MIDI       , 0xfffc06, 1)		// MIDI data
 
+    // DMA sounds
+    ADD_SYM(DMASND_BUFINTS_STE, 0xff8900, 1)
+    ADD_SYM(DMASND_CTRL_STE,    0xff8901, 1)
+
+    ADD_SYM(DMASND_STARTH_STE,  0xff8903, 1)
+    ADD_SYM(DMASND_STARTM_STE,  0xff8905, 1)
+    ADD_SYM(DMASND_STARTL_STE,  0xff8907, 1)
+
+    ADD_SYM(DMASND_CURRH_STE,   0xff8909, 1)
+    ADD_SYM(DMASND_CURRM_STE,   0xff890b, 1)
+    ADD_SYM(DMASND_CURRL_STE,   0xff890d, 1)
+
+    ADD_SYM(DMASND_ENDH_STE,    0xff890f, 1)
+    ADD_SYM(DMASND_ENDM_STE,    0xff8911, 1)
+    ADD_SYM(DMASND_ENDL_STE,    0xff8913, 1)
 
     // STE
     ADD_SYM(BLT_HALFTONE_0  , 0xff8a00, 2)
@@ -159,27 +183,81 @@ void SymbolTable::AddHardware()
     ADD_SYM(prv_lst         , 0x50a, 4)	// -> _lstout()
     ADD_SYM(prv_auxo        , 0x50e, 4)	// -> _auxostat()
     ADD_SYM(prv_aux         , 0x512, 4)	// -> _auxout()
-    ADD_SYM(user_mem        ,0x1000, 0)
+    ADD_SYM(user_mem        ,0x1000, 1)
 
-    ADD_SYM(tos        ,0xe00000, 256 * 1024)
+    ADD_SYM(tos_512         ,0xe00000, 512 * 1024)
+    ADD_SYM(tos_192         ,0xfc0000, 256 * 1024)
+
+    ADD_SYM(cart            ,0xfa0000, 0x30000)
+    // Low vectors
+    ADD_SYM(__vec_buserr,  0x8,  4)
+    ADD_SYM(__vec_addrerr, 0xc,  4)
+    ADD_SYM(__vec_illegal, 0x10, 4)
+    ADD_SYM(__vec_zerodiv, 0x14, 4)
+    ADD_SYM(__vec_chk,     0x18, 4)
+    ADD_SYM(__vec_trapcc,  0x1c, 4)
+    ADD_SYM(__vec_privinst,0x20, 4)
+    ADD_SYM(__vec_trace,   0x24, 4)
+    ADD_SYM(__vec_linea,   0x28, 4)
+    ADD_SYM(__vec_linef,   0x2c, 4)
+
+    ADD_SYM(__vec_hbl,     0x68, 4)
+    ADD_SYM(__vec_vbl,     0x70, 4)
+    ADD_SYM(__vec_mfp,     0x78, 4)
+
+    ADD_SYM(__vec_trap0,     0x80, 4)
+    ADD_SYM(__vec_trap1,     0x84, 4)
+    ADD_SYM(__vec_trap2,     0x88, 4)
+    ADD_SYM(__vec_trap3,     0x8c, 4)
+    ADD_SYM(__vec_trap4,     0x90, 4)
+    ADD_SYM(__vec_trap5,     0x94, 4)
+    ADD_SYM(__vec_trap6,     0x98, 4)
+    ADD_SYM(__vec_trap7,     0x9c, 4)
+    ADD_SYM(__vec_trap8,     0xa0, 4)
+    ADD_SYM(__vec_trap9,     0xa4, 4)
+    ADD_SYM(__vec_trap10,    0xa8, 4)
+    ADD_SYM(__vec_trap11,    0xac, 4)
+    ADD_SYM(__vec_trap12,    0xb0, 4)
+    ADD_SYM(__vec_trap13,    0xb4, 4)
+    ADD_SYM(__vec_trap14,    0xb8, 4)
+    // There is no trap 15 :)
+
+    ADD_SYM(__vec_mfp_cent,    0x100, 4)
+    ADD_SYM(__vec_mfp_dcd,     0x104, 4)
+    ADD_SYM(__vec_mfp_cts,     0x108, 4)
+    ADD_SYM(__vec_mfp_blit,    0x10c, 4)
+    ADD_SYM(__vec_mfp_timerd,  0x110, 4)
+    ADD_SYM(__vec_mfp_timerc,  0x114, 4)
+    ADD_SYM(__vec_mfp_acia,    0x118, 4)
+    ADD_SYM(__vec_mfp_fdc,     0x11c, 4)
+    ADD_SYM(__vec_mfp_timerb,  0x120, 4)
+    ADD_SYM(__vec_mfp_senderr, 0x124, 4)
+    ADD_SYM(__vec_mfp_sendemp, 0x128, 4)
+    ADD_SYM(__vec_mfp_recerr,  0x12c, 4)
+    ADD_SYM(__vec_mfp_recfull, 0x130, 4)
+    ADD_SYM(__vec_mfp_timera,  0x134, 4)
+    ADD_SYM(__vec_mfp_ringd,   0x138, 4)
+    ADD_SYM(__vec_mfp_mono,    0x13c, 4)
 }
 
-SymbolTable::SymbolTable() :
-    m_userSymbolCount(0)
+void SymbolSubTable::Clear()
 {
-
-    AddHardware();
-    AddComplete();
-    m_userSymbolCount = 0; // reset after Add()
+    m_symbols.clear();
+    m_addrKeys.clear();
+    m_addrLookup.clear();
 }
 
-void SymbolTable::AddInternal(const Symbol &sym)
+void SymbolSubTable::AddSymbol(std::string name, uint32_t address, uint32_t size, std::string type)
 {
+    Symbol sym;
+    sym.name = name;
+    sym.address = address;
+    sym.type = type;     // hardware
+    sym.size = size;
     m_symbols.push_back(sym);
-    ++m_userSymbolCount;
 }
 
-void SymbolTable::AddComplete()
+void SymbolSubTable::CreateCache()
 {
     // Sort the symbols in name order
     std::sort(m_symbols.begin(), m_symbols.end(), SymbolNameCompare());
@@ -202,7 +280,7 @@ void SymbolTable::AddComplete()
     }
 }
 
-bool SymbolTable::Find(uint32_t address, Symbol &result) const
+bool SymbolSubTable::Find(uint32_t address, Symbol &result) const
 {
     Map::const_iterator it = m_addrLookup.find(address);
     if (it == m_addrLookup.end())
@@ -212,7 +290,7 @@ bool SymbolTable::Find(uint32_t address, Symbol &result) const
     return true;
 }
 
-bool SymbolTable::FindLowerOrEqual(uint32_t address, Symbol &result) const
+bool SymbolSubTable::FindLowerOrEqual(uint32_t address, Symbol &result) const
 {
     // Degenerate cases
     if (m_addrKeys.size() == 0)
@@ -252,7 +330,7 @@ bool SymbolTable::FindLowerOrEqual(uint32_t address, Symbol &result) const
     return false;
 }
 
-bool SymbolTable::Find(std::string name, Symbol &result) const
+bool SymbolSubTable::Find(std::string name, Symbol &result) const
 {
     for (size_t i = 0; i < this->m_symbols.size(); ++i)
     {
@@ -265,23 +343,91 @@ bool SymbolTable::Find(std::string name, Symbol &result) const
     return false;
 }
 
-const Symbol& SymbolTable::Get(size_t index) const
+const Symbol SymbolSubTable::Get(size_t index) const
 {
     return m_symbols[index];
 }
 
-void SymbolTable::AddInternal(const char* name, uint32_t addr, uint32_t size)
+///////////////////////////////////////////////////////////////////////////////////////////////////
+SymbolTable::SymbolTable()
 {
-    Symbol sym;
-    sym.name = name;
-    sym.address = addr;
-    sym.type = "H";     // hardware
-    sym.size = size;
-    AddInternal(sym);
+    AddHardware(m_subTables[kHardware]);
+    m_subTables[kHardware].CreateCache();
 }
 
-Symbol::Symbol(std::string nameArg, uint32_t addressArg) :
-    name(nameArg), address(addressArg)
+void SymbolTable::Reset()
 {
+    m_subTables[kHatari].Clear();
+}
 
+void SymbolTable::SetHatariSubTable(const SymbolSubTable &subtable)
+{
+    m_subTables[kHatari] = subtable;
+    m_subTables[kHatari].CreateCache();
+}
+
+size_t SymbolTable::Count() const
+{
+    size_t total = 0;
+    for (int i = 0; i < kNumTables; ++i)
+    {
+        total += m_subTables[i].Count();
+    }
+    return total;
+}
+
+bool SymbolTable::Find(uint32_t address, Symbol &result) const
+{
+    for (int i = 0; i < kNumTables; ++i)
+    {
+        if (m_subTables[i].Find(address, result))
+            return true;
+    }
+    return false;
+}
+
+bool SymbolTable::FindLowerOrEqual(uint32_t address, Symbol &result) const
+{
+    // This is non-intuitive, but we need to find the *higher* symbol
+    // in all the subtables (the one that's closest to the given address)
+    uint32_t highest = 0;
+
+    for (int i = 0; i < kNumTables; ++i)
+    {
+        Symbol tempRes;
+        if (m_subTables[i].FindLowerOrEqual(address, tempRes))
+        {
+            if (tempRes.address > highest)
+            {
+                result = tempRes;
+                highest = tempRes.address;
+            }
+        }
+    }
+    return highest != 0;
+}
+
+bool SymbolTable::Find(std::string name, Symbol &result) const
+{
+    for (int i = 0; i < kNumTables; ++i)
+    {
+        if (m_subTables[i].Find(name, result))
+            return true;
+    }
+    return false;
+}
+
+const Symbol SymbolTable::Get(size_t index) const
+{
+    for (int i = 0; i < kNumTables; ++i)
+    {
+        size_t thisCount = m_subTables[i].Count();
+        if (index < thisCount)
+            return m_subTables[i].Get(index);
+
+        index -= thisCount;
+    }
+    assert(false);
+    static Symbol dummy;
+    return dummy;
 }

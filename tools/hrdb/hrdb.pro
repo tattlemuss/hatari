@@ -36,7 +36,11 @@ SOURCES += \
     ui/graphicsinspector.cpp \
     ui/mainwindow.cpp \
     ui/memoryviewwidget.cpp \
-    ui/rundialog.cpp
+    ui/rundialog.cpp \
+    ui/consolewindow.cpp \
+    models/session.cpp \
+    models/registers.cpp \
+    ui/prefsdialog.cpp
 
 HEADERS += \
     hopper/buffer.h \
@@ -47,6 +51,7 @@ HEADERS += \
     models/exceptionmask.h \
     models/memory.h \
     models/registers.h \
+    models/session.h \
     models/stringparsers.h \
     models/stringsplitter.h \
     models/symboltable.h \
@@ -62,7 +67,10 @@ HEADERS += \
     ui/mainwindow.h \
     ui/memoryviewwidget.h \
     ui/quicklayout.h \
-    ui/rundialog.h
+    ui/rundialog.h \
+    ui/consolewindow.h \
+    hardware/hardware_st.h \
+    ui/prefsdialog.h
 
 RESOURCES     = hrdb.qrc    
 

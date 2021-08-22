@@ -5,6 +5,7 @@
 #include <QTableView>
 #include "../models/memory.h"
 
+class Session;
 class TargetModel;
 class Dispatcher;
 class QComboBox;
@@ -29,7 +30,7 @@ public:
         kModeLong
     };
 
-    MemoryWidget(QWidget* parent, TargetModel* pTargetModel, Dispatcher* pDispatcher, int windowIndex);
+    MemoryWidget(QWidget* parent, Session* pSession, int windowIndex);
 
     uint32_t GetRowCount() const { return m_rowCount; }
     Mode GetMode() const { return m_mode; }
@@ -44,6 +45,7 @@ public slots:
     void startStopChangedSlot();
     void connectChangedSlot();
     void otherMemoryChangedSlot(uint32_t address, uint32_t size);
+    void settingsChangedSlot();
 
 protected:
     virtual void paintEvent(QPaintEvent*);
@@ -64,15 +66,22 @@ private:
     void resizeEvent(QResizeEvent *event);
     void RecalcRowCount();
 
-    void RecalcSizes();
+    void UpdateFont();
     int GetAddrX() const;
     // Get the x-coord of the hex-character at cursor column
     int GetHexCharX(int column) const;
-    int GetAsciiCharX() const;
+    int GetAsciiCharX(int column) const;
+
+    // Convert from row ID to a pixel Y (top pixel in the drawn row)
+    int GetPixelFromRow(int row) const;
+
+    // Convert from pixel Y to a row ID
+    int GetRowFromPixel(int y) const;
 
     void GetCursorInfo(uint32_t& address, bool& bottomNybble);
-    void SetRowCount(uint32_t rowCount);
+    void SetRowCount(int rowCount);
 
+    Session*        m_pSession;
     TargetModel*    m_pTargetModel;
     Dispatcher*     m_pDispatcher;
 
@@ -80,68 +89,46 @@ private:
     struct Row
     {
         uint32_t m_address;
-        std::vector<uint8_t> m_rawBytes;
+
+        QVector<uint8_t> m_rawBytes;
+        QVector<bool> m_byteChanged;
         QString m_hexText;
         QString m_asciiText;
     };
 
-    std::vector<Row> m_rows;
+    QVector<Row> m_rows;
     // Positions of each column (need to multiply by m_charWidth for pixel position)
-    std::vector<uint32_t> m_columnPositions;
+    QVector<int32_t> m_columnPositions;
 
     std::string m_addressExpression;
-    bool    m_isLocked;
-    uint32_t m_address;
+    bool        m_isLocked;
+    uint32_t    m_address;
 
-    uint32_t m_bytesPerRow;
-    Mode     m_mode;
+    int         m_bytesPerRow;
+    Mode        m_mode;
 
-    uint32_t m_rowCount;
-    uint64_t m_requestId;
-    int      m_windowIndex;        // e.g. "memory 0", "memory 1"
+    int         m_rowCount;
+    uint64_t    m_requestId;
+    int         m_windowIndex;        // e.g. "memory 0", "memory 1"
     MemorySlot  m_memSlot;
 
-    // Cursor
-    int     m_cursorRow;
-    int     m_cursorCol;
+    Memory      m_previousMemory;       // Copy before we restarted the CPU
 
+    // Cursor
+    int         m_cursorRow;
+    int         m_cursorCol;
 
     // rendering info
-    int     m_charWidth;            // font width in pixels
-    int     m_lineHeight;           // font height in pixels
-    QFont   monoFont;
+    int         m_charWidth;            // font width in pixels
+    int         m_lineHeight;           // font height in pixels
+    QFont       m_monoFont;
 };
 
-#if 0
-class MemoryTableView : public QTableView
+class MemoryWindow : public QDockWidget
 {
     Q_OBJECT
 public:
-    MemoryTableView(QWidget* parent, MemoryViewTableModel* pModel, TargetModel* pTargetModel);
-
-public slots:
-
-protected:
-    QModelIndex moveCursor(QAbstractItemView::CursorAction cursorAction, Qt::KeyboardModifiers modifiers);
-private:
-    // override -- this doesn't trigger at the start?
-    virtual void resizeEvent(QResizeEvent*);
-private slots:
-    void RecalcRowCount();
-
-private:
-    MemoryViewTableModel*     m_pTableModel;
-
-    // Remembers which row we right-clicked on
-    int                   m_rightClickRow;
-};
-#endif
-
-class MemoryViewWidget : public QDockWidget
-{
-    Q_OBJECT
-public:
-    MemoryViewWidget(QWidget *parent, TargetModel* pTargetModel, Dispatcher* m_pDispatcher, int windowIndex);
+    MemoryWindow(QWidget *parent, Session* pSession, int windowIndex);
 
     // Grab focus and point to the main widget
     void keyFocus();
@@ -157,11 +144,12 @@ public slots:
     void modeComboBoxChanged(int index);
 
 private:
-    QLineEdit*           m_pLineEdit;
-    QComboBox*           m_pComboBox;
-    QCheckBox*           m_pLockCheckBox;
-    MemoryWidget*        m_pMemoryWidget;
+    QLineEdit*          m_pLineEdit;
+    QComboBox*          m_pComboBox;
+    QCheckBox*          m_pLockCheckBox;
+    MemoryWidget*       m_pMemoryWidget;
 
+    Session*            m_pSession;
     TargetModel*        m_pTargetModel;
     Dispatcher*         m_pDispatcher;
     QAbstractItemModel* m_pSymbolTableModel;

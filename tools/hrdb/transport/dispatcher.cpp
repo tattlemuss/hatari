@@ -13,29 +13,29 @@
 //-----------------------------------------------------------------------------
 int RegNameToEnum(const char* name)
 {
-	const char** pCurrName = Registers::s_names;
-	int i = 0;
-	while (*pCurrName)
-	{
-		if (strcmp(name, *pCurrName) == 0)
-			return i;
-		++pCurrName;
-		++i;
-	}
-	return Registers::REG_COUNT;
+    const char** pCurrName = Registers::s_names;
+    int i = 0;
+    while (*pCurrName)
+    {
+        if (strcmp(name, *pCurrName) == 0)
+            return i;
+        ++pCurrName;
+        ++i;
+    }
+    return Registers::REG_COUNT;
 }
 
 //-----------------------------------------------------------------------------
 Dispatcher::Dispatcher(QTcpSocket* tcpSocket, TargetModel* pTargetModel) :
-	m_pTcpSocket(tcpSocket),
+    m_pTcpSocket(tcpSocket),
     m_pTargetModel(pTargetModel),
     m_responseUid(100),
     m_portConnected(false),
     m_waitingConnectionAck(false)
 {
-	connect(m_pTcpSocket, &QAbstractSocket::connected, this, &Dispatcher::connected);
+    connect(m_pTcpSocket, &QAbstractSocket::connected,    this, &Dispatcher::connected);
     connect(m_pTcpSocket, &QAbstractSocket::disconnected, this, &Dispatcher::disconnected);
-    connect(m_pTcpSocket, &QAbstractSocket::readyRead, this, &Dispatcher::readyRead);
+    connect(m_pTcpSocket, &QAbstractSocket::readyRead,    this, &Dispatcher::readyRead);
 }
 
 Dispatcher::~Dispatcher()
@@ -45,7 +45,7 @@ Dispatcher::~Dispatcher()
 
 uint64_t Dispatcher::InsertFlush()
 {
-    assert(m_portConnected && !m_waitingConnectionAck);
+    Q_ASSERT(m_portConnected && !m_waitingConnectionAck);
     RemoteCommand* pNewCmd = new RemoteCommand();
     pNewCmd->m_cmd = "flush";
     pNewCmd->m_memorySlot = MemorySlot::kNone;
@@ -91,7 +91,7 @@ uint64_t Dispatcher::SendCommandPacket(const char *command)
 
 void Dispatcher::ReceivePacket(const char* response)
 {
-	// THIS HAPPENS ON THE EVENT LOOP
+    // THIS HAPPENS ON THE EVENT LOOP
     std::string new_resp(response);
 
     // Any flushes to handle?
@@ -108,16 +108,16 @@ void Dispatcher::ReceivePacket(const char* response)
     }
 
     // Check for a notification
-	if (new_resp.size() > 0)
-	{
-		if (new_resp[0] == '!')
-		{
-			RemoteNotification notif;
-			notif.m_payload = new_resp;
-			this->ReceiveNotification(notif);
-			return;
-		}
-	}
+    if (new_resp.size() > 0)
+    {
+        if (new_resp[0] == '!')
+        {
+            RemoteNotification notif;
+            notif.m_payload = new_resp;
+            this->ReceiveNotification(notif);
+            return;
+        }
+    }
 
     // Handle replies to normal commands.
     // If we have just connected, new packets might be from the old connection,
@@ -129,22 +129,22 @@ void Dispatcher::ReceivePacket(const char* response)
     }
 
     // Find the last "sent" packet
-	size_t checkIndex = m_sentCommands.size();
-	if (checkIndex != 0)
-	{
-		// Pair to the last entry
-		RemoteCommand* pPending = m_sentCommands[checkIndex - 1];
-		pPending->m_response = new_resp;
+    size_t checkIndex = m_sentCommands.size();
+    if (checkIndex != 0)
+    {
+        // Pair to the last entry
+        RemoteCommand* pPending = m_sentCommands[checkIndex - 1];
+        pPending->m_response = new_resp;
 
-		m_sentCommands.pop_back();
+        m_sentCommands.pop_back();
 
-    	// Add these to a list and process them at a safe time?
-    	// Need to understand the Qt threading mechanism
-	    //std::cout << "Cmd: " << pPending->m_cmd << ", Response: " << pPending->m_response << "***" << std::endl;
+        // Add these to a list and process them at a safe time?
+        // Need to understand the Qt threading mechanism
+        //std::cout << "Cmd: " << pPending->m_cmd << ", Response: " << pPending->m_response << "***" << std::endl;
 
-		// At this point we can notify others that new data has arrived
-		this->ReceiveResponsePacket(*pPending);
-		delete pPending;
+        // At this point we can notify others that new data has arrived
+        this->ReceiveResponsePacket(*pPending);
+        delete pPending;
 
         // Any flushes to handle?
         while (1)
@@ -158,11 +158,11 @@ void Dispatcher::ReceivePacket(const char* response)
             m_sentCommands.pop_back();
             m_pTargetModel->Flush();
         }
-	}
-	else
-	{
-		std::cout << "No pending command??" << std::endl;
-	}
+    }
+    else
+    {
+        std::cout << "No pending command??" << std::endl;
+    }
 
 }
 
@@ -187,7 +187,7 @@ void Dispatcher::connected()
 
     m_portConnected = true;
 
-	// THIS HAPPENS ON THE EVENT LOOP
+    // THIS HAPPENS ON THE EVENT LOOP
     std::cout << "Host connected, awaiting ack" << std::endl;
 }
 
@@ -205,32 +205,38 @@ void Dispatcher::disconnected()
 
 void Dispatcher::readyRead()
 {
-	// THIS HAPPENS ON THE EVENT LOOP
-	qint64 byteCount = m_pTcpSocket->bytesAvailable();
-	char* data = new char[byteCount];
+    // THIS HAPPENS ON THE EVENT LOOP
+    qint64 byteCount = m_pTcpSocket->bytesAvailable();
+    char* data = new char[byteCount];
 
-	m_pTcpSocket->read(data, byteCount);
+    m_pTcpSocket->read(data, byteCount);
 
-	// Read completed commands from this and process in turn
-	for (int i = 0; i < byteCount; ++i)
-	{
-		if (data[i] == 0)
-		{
-			// End of response
-			this->ReceivePacket(m_active_resp.c_str());
-			m_active_resp = std::string();
-		}
-		else
-		{
-			m_active_resp += data[i];
-		}
-	}
+    // Read completed commands from this and process in turn
+    for (int i = 0; i < byteCount; ++i)
+    {
+        if (data[i] == 0)
+        {
+            // End of response
+            this->ReceivePacket(m_active_resp.c_str());
+            m_active_resp = std::string();
+        }
+        else
+        {
+            m_active_resp += data[i];
+        }
+    }
     delete[] data;
 }
 
 uint64_t Dispatcher::SendCommandShared(MemorySlot slot, std::string command)
 {
-    assert(m_portConnected && !m_waitingConnectionAck);
+    Q_ASSERT(m_portConnected && !m_waitingConnectionAck);
+    if (!m_portConnected || m_waitingConnectionAck)
+    {
+        std::cerr << "WARNING: ditching command \"" << command << "\" since not connected" << std::endl;
+        return 0ULL;
+    }
+
     RemoteCommand* pNewCmd = new RemoteCommand();
     pNewCmd->m_cmd = command;
     pNewCmd->m_memorySlot = slot;
@@ -246,47 +252,48 @@ uint64_t Dispatcher::SendCommandShared(MemorySlot slot, std::string command)
 void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
 {
 #ifdef DISPATCHER_DEBUG
-	std::cout << "REPONSE:" << cmd.m_cmd << "//" << cmd.m_response << std::endl;
+    std::cout << "REPONSE:" << cmd.m_cmd << "//" << cmd.m_response << std::endl;
 #endif
 
-	// Our handling depends on the original command type
-	// e.g. "break"
-	StringSplitter splitCmd(cmd.m_cmd);
-	std::string type = splitCmd.Split(' ');
+    // Our handling depends on the original command type
+    // e.g. "break"
+    StringSplitter splitCmd(cmd.m_cmd);
+    std::string type = splitCmd.Split(' ');
     StringSplitter splitResp(cmd.m_response);
     std::string cmd_status = splitResp.Split(' ');
     if (cmd_status != std::string("OK"))
     {
         std::cout << "Repsonse dropped: " << cmd.m_response << std::endl;
+        std::cout << "Original command: " << cmd.m_cmd << std::endl;
         return;
     }
 
-	if (type == "regs")
-	{
+    if (type == "regs")
+    {
         Registers regs;
-		while (true)
+        while (true)
         {
             std::string reg = splitResp.Split(':');
-			if (reg.size() == 0)
-				break;
-			std::string valueStr = splitResp.Split(' ');
+            if (reg.size() == 0)
+                break;
+            std::string valueStr = splitResp.Split(' ');
             uint32_t value;
             if (!StringParsers::ParseHexString(valueStr.c_str(), value))
                 return;
 
-			// Write this value into register structure
+            // Write this value into register structure
             // NOTE: this is tolerant to not matching the name
             // since we use "Vars"
-			int reg_id = RegNameToEnum(reg.c_str());
-			if (reg_id != Registers::REG_COUNT)
-				regs.m_value[reg_id] = value;
-		}
+            int reg_id = RegNameToEnum(reg.c_str());
+            if (reg_id != Registers::REG_COUNT)
+                regs.m_value[reg_id] = value;
+        }
         m_pTargetModel->SetRegisters(regs, cmd.m_uid);
-	}
-	else if (type == "mem")
-	{
-		std::string addrStr = splitResp.Split(' ');
-		std::string sizeStr = splitResp.Split(' ');
+    }
+    else if (type == "mem")
+    {
+        std::string addrStr = splitResp.Split(' ');
+        std::string sizeStr = splitResp.Split(' ');
         uint32_t addr;
         if (!StringParsers::ParseHexString(addrStr.c_str(), addr))
             return;
@@ -294,13 +301,13 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
         if (!StringParsers::ParseHexString(sizeStr.c_str(), size))
             return;
 
-		// Create a new memory block to pass to the data model
-		Memory* pMem = new Memory(addr, size);
+        // Create a new memory block to pass to the data model
+        Memory* pMem = new Memory(addr, size);
 
-		// Now parse the hex data
+        // Now parse the hex data
         uint32_t readPos = splitResp.GetPos();
-		for (uint32_t off = 0; off < size; ++off)
-		{
+        for (uint32_t off = 0; off < size; ++off)
+        {
             uint8_t nybbleHigh;
             uint8_t nybbleLow;
             if (!StringParsers::ParseHexChar(cmd.m_response[readPos++], nybbleHigh))
@@ -308,12 +315,12 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
             if (!StringParsers::ParseHexChar(cmd.m_response[readPos++], nybbleLow))
                 break;
 
-			uint8_t byte = (nybbleHigh << 4) | nybbleLow;
-			pMem->Set(off, byte);
-		}
+            uint8_t byte = (nybbleHigh << 4) | nybbleLow;
+            pMem->Set(off, byte);
+        }
 
         m_pTargetModel->SetMemory(cmd.m_memorySlot, pMem, cmd.m_uid);
-	}
+    }
     else if (type == "bplist")
     {
         // Breakpoints
@@ -356,19 +363,18 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
         if (!StringParsers::ParseHexString(countStr.c_str(), count))
             return;
 
-        SymbolTable syms;
+        SymbolSubTable syms;
         for (uint32_t i = 0; i < count; ++i)
         {
-            Symbol sym;
-            sym.name = splitResp.Split('`');
+            std::string name = splitResp.Split('`');
             std::string addrStr = splitResp.Split(' ');
-            if (!StringParsers::ParseHexString(addrStr.c_str(), sym.address))
+            uint32_t address;
+            if (!StringParsers::ParseHexString(addrStr.c_str(), address))
                 return;
-            sym.type = splitResp.Split(' ');
-            sym.size = 0;
-            syms.AddInternal(sym);
+            std::string type = splitResp.Split(' ');
+            uint32_t size = 0;
+            syms.AddSymbol(name, address, size, type);
         }
-        syms.AddComplete(); // cache the address map lookup
         m_pTargetModel->SetSymbolTable(syms, cmd.m_uid);
     }
     else if (type == "exmask")
@@ -398,22 +404,27 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
     }
     else if (type == "flush")
     {
-                assert(0);
+        Q_ASSERT(0);
+    }
+    else if (type == "console")
+    {
+        // Anything could have happened here!
+        m_pTargetModel->ConsoleCommand();
     }
 }
 
 void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
 {
 #ifdef DISPATCHER_DEBUG
-	std::cout << "NOTIFICATION:" << cmd.m_payload << std::endl;
+    std::cout << "NOTIFICATION:" << cmd.m_payload << std::endl;
 #endif
-	StringSplitter s(cmd.m_payload);
+    StringSplitter s(cmd.m_payload);
 
-	std::string type = s.Split(' ');
-	if (type == "!status")
-	{
-		std::string runningStr = s.Split(' ');
-		std::string pcStr = s.Split(' ');
+    std::string type = s.Split(' ');
+    if (type == "!status")
+    {
+        std::string runningStr = s.Split(' ');
+        std::string pcStr = s.Split(' ');
         uint32_t running;
         uint32_t pc;
         if (!StringParsers::ParseHexString(runningStr.c_str(), running))

@@ -10,7 +10,7 @@ class Dispatcher;
 
 class ExceptionDialog : public QDialog
 {
-   // Q_OBJECT
+    Q_OBJECT
 public:
     ExceptionDialog(QWidget* parent, TargetModel* pTargetModel, Dispatcher* pDispatcher);
     virtual ~ExceptionDialog();

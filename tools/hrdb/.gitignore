@@ -1,2 +1,6 @@
 moc*
 hrdb.pro.user*
+hrdb*
+qrc_*
+.qmake.stash
+compile_commands.json

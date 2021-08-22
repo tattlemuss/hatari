@@ -43,4 +43,7 @@ extern void DebugUI_Trigger(void);
 // Register the callback to process remote command input
 extern void DebugUI_RegisterRemoteDebug(DebugUI_ProcessRemoteCommands cmdCallback);
 
+/* Process command from remote debug. Returns DEBUGGER_* code */
+extern int DebugUI_ParseConsoleCommand(const char* command);
+
 #endif /* HATARI_DEBUGUI_H */

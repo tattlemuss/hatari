@@ -72,7 +72,7 @@ enum class ea_group
 };
 
 // Defines which instruction modes are allowed to have which EA modes
-bool mode_availability[][(int)ea_group::COUNT] =
+static bool mode_availability[][static_cast<int>(ea_group::COUNT)] =
 {
 	// DataAlt	Data	MemAlt	Mem		Ctrl	CMovem	CMovem2	Alt		All
 	{	true,	true,	false,	false,	false,	false,	false,	true,	true	}, // D_DIRECT			000 regno
@@ -517,6 +517,41 @@ int Inst_bchg_imm(buffer_reader& buffer, instruction& inst, uint32_t header)
 
 	set_imm_byte(inst.op0, (imm >> 0) & 0xff);
 	if (decode_ea(buffer, inst.op1, ea_group::DATA_ALT, mode, reg, Size::NONE))
+		return 1;
+
+	// instruction size is LONG when using DREG.
+	inst.suffix = inst.op1.type == OpType::D_DIRECT ? Suffix::LONG : Suffix::BYTE;
+	return 0;
+}
+
+// ----------------------------------------------------------------------------
+// bchg, bset, bclr, btst
+int Inst_btst(buffer_reader& buffer, instruction& inst, uint32_t header)
+{
+	uint8_t bitreg = (header >> 9) & 7;
+	uint8_t mode = (header >> 3) & 7;
+	uint8_t reg  = (header >> 0) & 7;
+
+	set_dreg(inst.op0, bitreg);
+	return decode_ea(buffer, inst.op1, ea_group::DATA, mode, reg, Size::BYTE);
+}
+
+// ----------------------------------------------------------------------------
+// bchg, bset, bclr, btst
+int Inst_btst_imm(buffer_reader& buffer, instruction& inst, uint32_t header)
+{
+	uint8_t mode = (header >> 3) & 7;
+	uint8_t reg  = (header >> 0) & 7;
+
+	// Read the immediate data
+	uint16_t imm;
+	if (buffer.read_word(imm))
+		return 1;
+	if (imm & 0xff00)			   // top bits must be 0
+		return 1;
+
+	set_imm_byte(inst.op0, (imm >> 0) & 0xff);
+	if (decode_ea(buffer, inst.op1, ea_group::DATA, mode, reg, Size::NONE))
 		return 1;
 
 	// instruction size is LONG when using DREG.
@@ -1107,7 +1142,7 @@ const matcher_entry g_matcher_table_0000[] =
 	MATCH_ENTRY1_IMPL(6,10,0b0000100001,			BCHG,		Inst_bchg_imm ),
 	MATCH_ENTRY1_IMPL(6,10,0b0000100010,			BCLR,		Inst_bchg_imm ),
 	MATCH_ENTRY1_IMPL(6,10,0b0000100011,			BSET,		Inst_bchg_imm ),
-	MATCH_ENTRY1_IMPL(6,10,0b0000100000,			BTST,		Inst_bchg_imm ),
+	MATCH_ENTRY1_IMPL(6,10,0b0000100000,			BTST,		Inst_btst_imm ),
 
 	MATCH_ENTRY1_IMPL(8,8,0b00000000,				ORI,		Inst_integer_imm_ea ),
 	MATCH_ENTRY1_IMPL(8,8,0b00000010,				ANDI,		Inst_integer_imm_ea ),
@@ -1119,7 +1154,7 @@ const matcher_entry g_matcher_table_0000[] =
 	MATCH_ENTRY2_IMPL(12,4,0b0000, 6,3,0b101,		BCHG,		Inst_bchg ),
 	MATCH_ENTRY2_IMPL(12,4,0b0000, 6,3,0b110,		BCLR,		Inst_bchg ),
 	MATCH_ENTRY2_IMPL(12,4,0b0000, 6,3,0b111,		BSET,		Inst_bchg ),
-	MATCH_ENTRY2_IMPL(12,4,0b0000, 6,3,0b100,		BTST,		Inst_bchg ),
+	MATCH_ENTRY2_IMPL(12,4,0b0000, 6,3,0b100,		BTST,		Inst_btst ),
 
 	MATCH_ENTRY1_IMPL(12,4,0b0000,					MOVE,		Inst_move ),
 	MATCH_END
@@ -1199,7 +1234,6 @@ const matcher_entry g_matcher_table_0101[] =
 {
 	//Table 3-19. Conditional TESTS
 	// These sneakily take the "001" in the bottom 3 BITS TO OVErride the EA parts of Scc
-	MATCH_ENTRY1_IMPL(3,13,0b0101000011001,			DBRA,		Inst_dbcc ),
 	MATCH_ENTRY1_IMPL(3,13,0b0101000111001,			DBF,		Inst_dbcc ),
 	MATCH_ENTRY1_IMPL(3,13,0b0101001011001,			DBHI,		Inst_dbcc ),
 	MATCH_ENTRY1_IMPL(3,13,0b0101001111001,			DBLS,		Inst_dbcc ),
@@ -1331,21 +1365,21 @@ const matcher_entry g_matcher_table_1110[] =
 	MATCH_ENTRY1_IMPL(6,10,0b1110000011,			ASR,		Inst_asl_asr_mem ),
 	MATCH_ENTRY1_IMPL(6,10,0b1110000111,			ASL,		Inst_asl_asr_mem ),
 
-    MATCH_ENTRY1_IMPL(6,10,0b1110011011,			ROR,		Inst_asl_asr_mem ),
-    MATCH_ENTRY1_IMPL(6,10,0b1110011111,			ROL,		Inst_asl_asr_mem ),
+	MATCH_ENTRY1_IMPL(6,10,0b1110011011,			ROR,		Inst_asl_asr_mem ),
+	MATCH_ENTRY1_IMPL(6,10,0b1110011111,			ROL,		Inst_asl_asr_mem ),
 
-    MATCH_ENTRY1_IMPL(6,10,0b1110001011,			LSR,		Inst_asl_asr_mem ),
-    MATCH_ENTRY1_IMPL(6,10,0b1110001111,			LSL,		Inst_asl_asr_mem ),
+	MATCH_ENTRY1_IMPL(6,10,0b1110001011,			LSR,		Inst_asl_asr_mem ),
+	MATCH_ENTRY1_IMPL(6,10,0b1110001111,			LSL,		Inst_asl_asr_mem ),
 
-    MATCH_ENTRY3_IMPL(12,4,0b1110, 3,2,0, 8,1,1,	ASL,		Inst_shift_mem ),
-    MATCH_ENTRY3_IMPL(12,4,0b1110, 3,2,0, 8,1,0,	ASR,		Inst_shift_mem ),
-    MATCH_ENTRY3_IMPL(12,4,0b1110, 3,2,1, 8,1,1,	LSL,		Inst_shift_mem ),
-    MATCH_ENTRY3_IMPL(12,4,0b1110, 3,2,1, 8,1,0,	LSR,		Inst_shift_mem ),
-    MATCH_ENTRY3_IMPL(12,4,0b1110, 3,2,3, 8,1,1,	ROL,		Inst_shift_mem ),
-    MATCH_ENTRY3_IMPL(12,4,0b1110, 3,2,3, 8,1,0,	ROR,		Inst_shift_mem ),
+	MATCH_ENTRY3_IMPL(12,4,0b1110, 3,2,0, 8,1,1,	ASL,		Inst_shift_mem ),
+	MATCH_ENTRY3_IMPL(12,4,0b1110, 3,2,0, 8,1,0,	ASR,		Inst_shift_mem ),
+	MATCH_ENTRY3_IMPL(12,4,0b1110, 3,2,1, 8,1,1,	LSL,		Inst_shift_mem ),
+	MATCH_ENTRY3_IMPL(12,4,0b1110, 3,2,1, 8,1,0,	LSR,		Inst_shift_mem ),
+	MATCH_ENTRY3_IMPL(12,4,0b1110, 3,2,3, 8,1,1,	ROL,		Inst_shift_mem ),
+	MATCH_ENTRY3_IMPL(12,4,0b1110, 3,2,3, 8,1,0,	ROR,		Inst_shift_mem ),
 
-    MATCH_ENTRY3_IMPL(12,4,0b1110, 3,2,2, 8,1,1,	ROXL,		Inst_shift_mem ),
-    MATCH_ENTRY3_IMPL(12,4,0b1110, 3,2,2, 8,1,0,	ROXR,		Inst_shift_mem ),
+	MATCH_ENTRY3_IMPL(12,4,0b1110, 3,2,2, 8,1,1,	ROXL,		Inst_shift_mem ),
+	MATCH_ENTRY3_IMPL(12,4,0b1110, 3,2,2, 8,1,0,	ROXR,		Inst_shift_mem ),
 	MATCH_END
 };
 

@@ -132,63 +132,13 @@ BreakpointsTableView::BreakpointsTableView(QWidget* parent, BreakpointsTableMode
     //m_rightClickMenu(this),
     m_rightClickRow(-1)
 {
-    // Actions for right-click menu
-    //m_pRunUntilAction = new QAction(tr("Run to here"), this);
-    //connect(m_pRunUntilAction, &QAction::triggered, this, &BreakpointsTableView::runToCursorRightClick);
-    //m_pBreakpointAction = new QAction(tr("Toggle Breakpoint"), this);
-    //m_rightClickMenu.addAction(m_pRunUntilAction);
-    //m_rightClickMenu.addAction(m_pBreakpointAction);
-    //new QShortcut(QKeySequence(tr("F3", "Run to cursor")),        this, SLOT(runToCursor()));
-    //new QShortcut(QKeySequence(tr("F9", "Toggle breakpoint")),    this, SLOT(toggleBreakpoint()));
-
-    //connect(m_pBreakpointAction, &QAction::triggered,                  this, &BreakpointsTableView::toggleBreakpointRightClick);
-    //connect(pTargetModel,        &TargetModel::startStopChangedSignal, this, &BreakpointsTableView::RecalcRowCount);
-
     // This table gets the focus from the parent docking widget
     setFocus();
 }
 
-/*
-void BreakpointsTableView::contextMenuEvent(QContextMenuEvent *event)
-{
-    QModelIndex index = this->indexAt(event->pos());
-    if (!index.isValid())
-        return;
-
-    m_rightClickRow = index.row();
-    m_rightClickMenu.exec(event->globalPos());
-
-}
-
-void BreakpointsTableView::runToCursorRightClick()
-{
-    m_pTableModel->RunToRow(m_rightClickRow);
-    m_rightClickRow = -1;
-}
-
-void BreakpointsTableView::toggleBreakpointRightClick()
-{
-    m_pTableModel->ToggleBreakpoint(m_rightClickRow);
-    m_rightClickRow = -1;
-}
-
-void BreakpointsTableView::runToCursor()
-{
-    // How do we get the selected row
-    QModelIndex i = this->currentIndex();
-    m_pTableModel->RunToRow(i.row());
-}
-
-void BreakpointsTableView::toggleBreakpoint()
-{
-    // How do we get the selected row
-    QModelIndex i = this->currentIndex();
-    m_pTableModel->ToggleBreakpoint(i.row());
-}
-*/
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-BreakpointsWidget::BreakpointsWidget(QWidget *parent, TargetModel* pTargetModel, Dispatcher* pDispatcher) :
+BreakpointsWindow::BreakpointsWindow(QWidget *parent, TargetModel* pTargetModel, Dispatcher* pDispatcher) :
     QDockWidget(parent),
     m_pTargetModel(pTargetModel),
     m_pDispatcher(pDispatcher)
@@ -216,11 +166,12 @@ BreakpointsWidget::BreakpointsWidget(QWidget *parent, TargetModel* pTargetModel,
 
     // Layouts
     QVBoxLayout* pMainLayout = new QVBoxLayout;
+    SetMargins(pMainLayout);
     auto pMainRegion = new QWidget(this);   // whole panel
 
-    QPushButton* pAddButton = new QPushButton(tr("Add..."), this);
+    m_pAddButton = new QPushButton(tr("Add..."), this);
     m_pDeleteButton = new QPushButton(tr("Delete"), this);
-    QWidget* topWidgets[] = {pAddButton, m_pDeleteButton, nullptr};
+    QWidget* topWidgets[] = {m_pAddButton, m_pDeleteButton, nullptr};
 
     pMainLayout->addWidget(CreateHorizLayout(this, topWidgets) );
     pMainLayout->addWidget(m_pTableView);
@@ -228,23 +179,34 @@ BreakpointsWidget::BreakpointsWidget(QWidget *parent, TargetModel* pTargetModel,
     pMainRegion->setLayout(pMainLayout);
     setWidget(pMainRegion);
 
-    connect(pAddButton,      &QAbstractButton::clicked, this, &BreakpointsWidget::addBreakpointClicked);
-    connect(m_pDeleteButton, &QAbstractButton::clicked, this, &BreakpointsWidget::deleteBreakpointClicked);
+    connect(m_pTargetModel,  &TargetModel::connectChangedSignal, this, &BreakpointsWindow::connectChangedSlot);
+    connect(m_pAddButton,    &QAbstractButton::clicked,          this, &BreakpointsWindow::addBreakpointClicked);
+    connect(m_pDeleteButton, &QAbstractButton::clicked,          this, &BreakpointsWindow::deleteBreakpointClicked);
+
+    // Refresh buttons
+    connectChangedSlot();
 }
 
-void BreakpointsWidget::keyFocus()
+void BreakpointsWindow::keyFocus()
 {
     activateWindow();
     m_pTableView->setFocus();
 }
 
-void BreakpointsWidget::addBreakpointClicked()
+void BreakpointsWindow::connectChangedSlot()
+{
+    bool enable = m_pTargetModel->IsConnected();
+    m_pAddButton->setEnabled(enable);
+    m_pDeleteButton->setEnabled(enable);
+}
+
+void BreakpointsWindow::addBreakpointClicked()
 {
     AddBreakpointDialog dialog(this, m_pTargetModel, m_pDispatcher);
     dialog.exec();
 }
 
-void BreakpointsWidget::deleteBreakpointClicked()
+void BreakpointsWindow::deleteBreakpointClicked()
 {
     Breakpoint bp;
     if (pModel->GetBreakpoint(m_pTableView->currentIndex().row(), bp))

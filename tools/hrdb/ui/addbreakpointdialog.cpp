@@ -59,5 +59,6 @@ void AddBreakpointDialog::showEvent(QShowEvent *event)
 void AddBreakpointDialog::okClicked()
 {
     // Create an expression string
-    m_pDispatcher->SetBreakpoint(m_pExpressionEdit->text().toStdString(), m_pOnceCheckBox->isChecked());
+    if (m_pTargetModel->IsConnected())
+        m_pDispatcher->SetBreakpoint(m_pExpressionEdit->text().toStdString(), m_pOnceCheckBox->isChecked());
 }

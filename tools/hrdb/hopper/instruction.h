@@ -48,7 +48,7 @@ enum Opcode
 	DBCC,
 	DBCS,
 	DBEQ,
-	DBF,
+	DBF,		// aka DBRA
 	DBGE,
 	DBGT,
 	DBHI,
@@ -58,7 +58,6 @@ enum Opcode
 	DBMI,
 	DBNE,
 	DBPL,
-	DBRA,
 	DBVC,
 	DBVS,
 	DIVS,

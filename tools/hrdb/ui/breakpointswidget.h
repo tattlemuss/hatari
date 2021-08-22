@@ -68,20 +68,22 @@ private:
     int                   m_rightClickRow;
 };
 
-class BreakpointsWidget : public QDockWidget
+class BreakpointsWindow : public QDockWidget
 {
     Q_OBJECT
 public:
-    BreakpointsWidget(QWidget *parent, TargetModel* pTargetModel, Dispatcher* m_pDispatcher);   
+    BreakpointsWindow(QWidget *parent, TargetModel* pTargetModel, Dispatcher* m_pDispatcher);   
     void keyFocus();
 public slots:
 
 private slots:
+
+    void connectChangedSlot();
     void addBreakpointClicked();
     void deleteBreakpointClicked();
-
 private:
     BreakpointsTableView*     m_pTableView;
+    QPushButton*              m_pAddButton;
     QPushButton*              m_pDeleteButton;
 
     BreakpointsTableModel* pModel;

@@ -5,9 +5,15 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 
+inline void SetMargins(QLayout* pLayout)
+{
+    pLayout->setContentsMargins(3, 3, 3, 3);
+}
+
 inline QWidget*    CreateHorizLayout(QWidget* parent, QWidget* pWidgets[])
 {
     QHBoxLayout* pLayout = new QHBoxLayout;
+    SetMargins(pLayout);
     while (*pWidgets != nullptr)
     {
         pLayout->addWidget(*pWidgets);
@@ -23,6 +29,7 @@ inline QWidget*    CreateHorizLayout(QWidget* parent, QWidget* pWidgets[])
 inline QWidget*    CreateVertLayout(QWidget* parent, QWidget* pWidgets[])
 {
     QVBoxLayout* pLayout = new QVBoxLayout;
+    SetMargins(pLayout);
     while (*pWidgets != nullptr)
     {
         pLayout->addWidget(*pWidgets);
@@ -34,5 +41,6 @@ inline QWidget*    CreateVertLayout(QWidget* parent, QWidget* pWidgets[])
     pBaseWidget->setLayout(pLayout);
     return pBaseWidget;
 }
+
 
 #endif // QUICKLAYOUT_H

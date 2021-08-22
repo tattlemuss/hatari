@@ -10,7 +10,7 @@ class Dispatcher;
 
 class AddBreakpointDialog : public QDialog
 {
-   // Q_OBJECT
+    Q_OBJECT
 public:
     AddBreakpointDialog(QWidget* parent, TargetModel* pTargetModel, Dispatcher* pDispatcher);
     virtual ~AddBreakpointDialog();
