@@ -1063,12 +1063,26 @@ void MainWindow::about()
 {
     QMessageBox box;
 
-    box.setText("<h1>hrdb - Hatari remote debugger GUI</h1>\n"
-                "<p>Released under a GPL licence.</p>"
-               "<p><a href=\"https://github.com/tattlemuss/hatari\">Github Repository</a></p>\n"
-               "<p>Version: " VERSION_STRING "</p>");
-    box.setTextFormat(Qt::RichText);
+    QString text = "<h1>hrdb - Hatari remote debugger GUI</h1>\n"
+                   "<p>Released under a GPL licence.</p>"
+                  "<p><a href=\"https://github.com/tattlemuss/hatari\">Github Repository</a></p>\n"
+                   "<p>Version: " VERSION_STRING "</p>";
 
+    QString gplText =
+"This program is free software; you can redistribute it and/or modify"
+"<br/>it under the terms of the GNU General Public License as published by"
+"<br/>the Free Software Foundation; either version 2 of the License, or"
+"<br/>(at your option) any later version."
+"<br/>"
+"<br/>This program is distributed in the hope that it will be useful,"
+"<br/>but WITHOUT ANY WARRANTY; without even the implied warranty of"
+"<br/>MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the"
+"<br/>GNU General Public License for more details.";
+
+    text += gplText;
+
+    box.setTextFormat(Qt::RichText);
+    box.setText(text);
     box.exec();
 }
 
