@@ -24,7 +24,7 @@
 #include "../models/symboltablemodel.h"
 #include "../models/session.h"
 #include "quicklayout.h"
-#include "searchpanel.h"
+#include "searchdialog.h"
 
 static QString CreateTooltip(uint32_t address, const SymbolTable& symTable, uint8_t byteVal, uint32_t wordVal, uint32_t longVal)
 {

@@ -3,7 +3,7 @@
 
 #include <QDockWidget>
 #include <QTableView>
-#include "searchpanel.h"
+#include "searchdialog.h"
 #include "showaddressactions.h"
 #include "../models/memory.h"
 #include "../models/session.h"
@@ -33,7 +33,7 @@ public:
     };
 
     MemoryWidget(QWidget* parent, Session* pSession, int windowIndex);
-    ~MemoryWidget();
+    virtual ~MemoryWidget();
 
     uint32_t GetRowCount() const { return m_rowCount; }
     Mode GetMode() const { return m_mode; }

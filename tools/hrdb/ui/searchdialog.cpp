@@ -1,4 +1,4 @@
-#include "searchpanel.h"
+#include "searchdialog.h"
 
 #include <QCheckBox>
 #include <QComboBox>

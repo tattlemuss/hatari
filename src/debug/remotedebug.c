@@ -942,7 +942,7 @@ static int RemoteDebug_memfind(int nArgc, char *psArgs[], RemoteDebugState* stat
 	const char* err_str = NULL;
 	int readPos = 0;
 	RemoteDebugBuffer searchBuffer;
-
+	size_t stringSize;
 	Uint8 valHi;
 	Uint8 valLo;
 	int arg;
@@ -967,7 +967,7 @@ static int RemoteDebug_memfind(int nArgc, char *psArgs[], RemoteDebugState* stat
 		return 1;
 	}
 
-	// Read search string into a buffer.
+	// Read (hex) search string into a buffer.
 	// The string is a set of <mask><value> byte pairs (so we can support case-insensitive)
 	RemoteDebugBuffer_Init(&searchBuffer, 30);
 	while (1)
@@ -988,10 +988,13 @@ static int RemoteDebug_memfind(int nArgc, char *psArgs[], RemoteDebugState* stat
 	send_str(state, "OK");
 
 	// Then do the search
-	size_t stringSize = searchBuffer.write_pos / 2;
+	stringSize = searchBuffer.write_pos / 2;
 	find_end = find_addr + find_count - stringSize;
 	while (find_addr < find_end)
 	{
+		// Primitive string compare.
+		// We could do something with a rolling buffer for speed,
+		// but it's really not worth it yet.
 		bool found = true;
 		for (size_t i = 0; i < stringSize; ++i)
 		{

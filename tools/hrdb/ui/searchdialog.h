@@ -1,5 +1,5 @@
-#ifndef SEARCHPANEL_H
-#define SEARCHPANEL_H
+#ifndef SEARCHDIALOG_H
+#define SEARCHDIALOG_H
 #include <QDialog>
 
 class QCheckBox;
@@ -65,4 +65,4 @@ private:
     SearchSettings&     m_returnedSettings;
 };
 
-#endif // SEARCHPANEL_H
+#endif // SEARCHDIALOG_H
