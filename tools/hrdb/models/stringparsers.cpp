@@ -67,7 +67,8 @@ bool StringParsers::ParseHexString(const char *pText, uint32_t& result)
     if (!ParseHexChar(*pText, val))
         return false;
 
-    for (int i = 0; i < 8; ++i)
+    // This needs to be 9 to include the terminator!
+    for (int i = 0; i < 9; ++i)
     {
         if (*pText == 0)
             return true;
@@ -363,12 +364,12 @@ bool StringParsers::ParseExpression(const char *pText, uint32_t &result, const S
             int numChars = 0;
             while (ParseHexChar(*pText, ch))
             {
-                if (numChars > 8)   // overflow
-                    return false;
                 t.val <<= 4;
                 t.val |= ch;
                 ++pText;
                 ++numChars;
+                if (numChars > 16)   // overflow
+                    return false;
             }
             tokens.push_back(t);
             continue;
