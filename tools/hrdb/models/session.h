@@ -71,6 +71,9 @@ public:
     void SetSettings(const Settings& newSettings);
     void SetLaunchSettings(const LaunchSettings& newSettings);
 
+    // Status bar/log
+    void SetMessage(const QString& msg);
+
     void loadSettings();
     void saveSettings();
 
@@ -88,6 +91,10 @@ signals:
     // Called by the main window when all data such as regs, breakpoints, symbols
     // are updated.
     void mainStateUpdated();
+
+    // Called by UI elements to flag a shared message
+    void messageSet(const QString& msg);
+
 private slots:
 
     // Called shortly after stop notification received

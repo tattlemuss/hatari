@@ -74,6 +74,9 @@ private slots:
     void about();
     void aboutQt();
 
+    // status
+    void messageSetSlot(const QString& msg);
+
 private:
     void requestMainState(uint32_t pc);
     void updateWindowMenu();

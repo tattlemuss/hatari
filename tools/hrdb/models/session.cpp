@@ -78,6 +78,11 @@ void Session::SetLaunchSettings(const LaunchSettings& newSettings)
     emit settingsChanged();
 }
 
+void Session::SetMessage(const QString &msg)
+{
+    emit messageSet(msg);
+}
+
 void Session::loadSettings()
 {
     QSettings settings;

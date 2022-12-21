@@ -980,10 +980,6 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
     m_pComboBox->insertItem(MemoryWidget::kModeLong, "Long");
     m_pComboBox->setCurrentIndex(m_pMemoryWidget->GetMode());
 
-    m_pSearchLabel = new QLabel("Search string: ", this);
-    m_pSearchLabel->setMargin(0);
-    m_pSearchLabel->setVisible(false);
-
     // Layouts
     QVBoxLayout* pMainLayout = new QVBoxLayout;
     QHBoxLayout* pTopLayout = new QHBoxLayout;
@@ -997,7 +993,6 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
 
     SetMargins(pMainLayout);
     pMainLayout->addWidget(pTopRegion);
-    pMainLayout->addWidget(m_pSearchLabel);
     pMainLayout->addWidget(m_pMemoryWidget);
 
     pTopRegion->setLayout(pTopLayout);
@@ -1104,8 +1099,7 @@ void MemoryWindow::findClickedSlot()
             m_searchRequestId = m_pDispatcher->SendMemFind(m_searchSettings.m_masksAndValues,
                                      m_searchSettings.m_startAddress,
                                      m_searchSettings.m_endAddress);
-            m_pSearchLabel->setText(QString("Searching: " + m_searchSettings.m_originalText));
-            m_pSearchLabel->setVisible(true);
+            m_pSession->SetMessage(QString("Searching: " + m_searchSettings.m_originalText));
         }
     }
 }
@@ -1145,16 +1139,14 @@ void MemoryWindow::searchResultsSlot(uint64_t responseId)
             // Allow the "next" operation to work
             m_searchSettings.m_startAddress = addr + 1;
             m_pMemoryWidget->setFocus();
-            m_pSearchLabel->setText(QString("String '%1' found at %2").
+            m_pSession->SetMessage(QString("String '%1' found at %2").
                                    arg(m_searchSettings.m_originalText).
                                    arg(Format::to_hex32(addr)));
-            m_pSearchLabel->setVisible(true);
         }
         else
         {
-            m_pSearchLabel->setText(QString("String '%1' not found").
+            m_pSession->SetMessage(QString("String '%1' not found").
                                    arg(m_searchSettings.m_originalText));
-            m_pSearchLabel->setVisible(true);
         }
         m_searchRequestId = 0;
     }

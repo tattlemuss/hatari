@@ -9,10 +9,12 @@
 #include <QPushButton>
 #include <QSettings>
 #include <QShortcut>
+#include <QStatusBar>
 #include <QToolBar>
 
 #include "../transport/dispatcher.h"
 #include "../models/targetmodel.h"
+#include "../models/session.h"
 #include "../hardware/regs_st.h"
 
 #include "disasmwidget.h"
@@ -153,12 +155,15 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
 
     // Wire up buttons to actions
     connect(m_pStartStopButton, &QAbstractButton::clicked, this, &MainWindow::startStopClicked);
-    connect(m_pStepIntoButton, &QAbstractButton::clicked, this, &MainWindow::singleStepClicked);
-    connect(m_pStepOverButton, &QAbstractButton::clicked, this, &MainWindow::nextClicked);
-    connect(m_pRunToButton, &QAbstractButton::clicked, this, &MainWindow::runToClicked);
+    connect(m_pStepIntoButton,  &QAbstractButton::clicked, this, &MainWindow::singleStepClicked);
+    connect(m_pStepOverButton,  &QAbstractButton::clicked, this, &MainWindow::nextClicked);
+    connect(m_pRunToButton,     &QAbstractButton::clicked, this, &MainWindow::runToClicked);
 
     // Wire up menu appearance
-    connect(m_pWindowMenu, &QMenu::aboutToShow, this, &MainWindow::updateWindowMenu);
+    connect(m_pWindowMenu, &QMenu::aboutToShow,            this, &MainWindow::updateWindowMenu);
+
+    // Status bar
+    connect(&m_session,    &Session::messageSet, this, &MainWindow::messageSetSlot);
 
     // Keyboard shortcuts
     new QShortcut(QKeySequence("Ctrl+R"),         this, SLOT(startStopClicked()));
@@ -175,7 +180,7 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     connectChangedSlot();
     startStopChangedSlot();
 
-//    m_pDisasmWidget0->keyFocus();
+    messageSetSlot("Welcome to hrdb!");
 }
 
 MainWindow::~MainWindow()
@@ -590,6 +595,11 @@ void MainWindow::about()
 
 void MainWindow::aboutQt()
 {
+}
+
+void MainWindow::messageSetSlot(const QString &msg)
+{
+    this->statusBar()->showMessage(msg, 5000);
 }
 
 void MainWindow::requestMainState(uint32_t pc)

@@ -1313,8 +1313,7 @@ void DisasmWindow::findClickedSlot()
             m_searchRequestId = m_pDispatcher->SendMemFind(m_searchSettings.m_masksAndValues,
                                      m_searchSettings.m_startAddress,
                                      m_searchSettings.m_endAddress);
-            //m_pSearchLabel->setText(QString("Searching: " + m_searchSettings.m_originalText));
-            //m_pSearchLabel->setVisible(true);
+            m_pSession->SetMessage(QString("Searching: " + m_searchSettings.m_originalText));
         }
     }
 }
@@ -1354,16 +1353,14 @@ void DisasmWindow::searchResultsSlot(uint64_t responseId)
             // Allow the "next" operation to work
             m_searchSettings.m_startAddress = addr + 1;
             m_pDisasmWidget->setFocus();
-            //m_pSearchLabel->setText(QString("String '%1' found at %2").
-            //                       arg(m_searchSettings.m_originalText).
-            //                       arg(Format::to_hex32(addr)));
-            //m_pSearchLabel->setVisible(true);
+            m_pSession->SetMessage(QString("String '%1' found at %2").
+                                   arg(m_searchSettings.m_originalText).
+                                   arg(Format::to_hex32(addr)));
         }
         else
         {
-            //m_pSearchLabel->setText(QString("String '%1' not found").
-            //                       arg(m_searchSettings.m_originalText));
-            //m_pSearchLabel->setVisible(true);
+            m_pSession->SetMessage(QString("String '%1' not found").
+                                   arg(m_searchSettings.m_originalText));
         }
         m_searchRequestId = 0;
     }

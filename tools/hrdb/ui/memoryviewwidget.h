@@ -206,7 +206,6 @@ private:
     QLineEdit*          m_pLineEdit;
     QComboBox*          m_pComboBox;
     QCheckBox*          m_pLockCheckBox;
-    QLabel*             m_pSearchLabel;
     MemoryWidget*       m_pMemoryWidget;
 
     Session*            m_pSession;
