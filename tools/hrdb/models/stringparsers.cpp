@@ -4,6 +4,25 @@
 
 #include "symboltable.h"
 #include "registers.h"
+
+//-----------------------------------------------------------------------------
+static bool IsAlphaLower(char c)
+{
+    return c >= 'a' && c <= 'z';
+}
+
+//-----------------------------------------------------------------------------
+static bool IsAlphaUpper(char c)
+{
+    return c >= 'A' && c <= 'Z';
+}
+
+//-----------------------------------------------------------------------------
+bool StringParsers::IsAlpha(char c)
+{
+    return IsAlphaLower(c) || IsAlphaUpper(c);
+}
+
 //-----------------------------------------------------------------------------
 bool StringParsers::ParseHexChar(char c, uint8_t& result)
 {
@@ -27,7 +46,7 @@ bool StringParsers::ParseHexChar(char c, uint8_t& result)
 }
 
 //-----------------------------------------------------------------------------
-static bool ParseDecChar(char c, uint8_t& result)
+bool StringParsers::ParseDecChar(char c, uint8_t& result)
 {
     if (c >= '0' && c <= '9')
     {
@@ -48,8 +67,11 @@ bool StringParsers::ParseHexString(const char *pText, uint32_t& result)
     if (!ParseHexChar(*pText, val))
         return false;
 
-    while (*pText != 0)
+    for (int i = 0; i < 8; ++i)
     {
+        if (*pText == 0)
+            return true;
+
         if (!ParseHexChar(*pText, val))
         {
             result = 0;
@@ -59,62 +81,36 @@ bool StringParsers::ParseHexString(const char *pText, uint32_t& result)
         result |= val;
         ++pText;
     }
-    return true;
+    // Too many characters
+    return false;
 }
 
-struct Token
-{
-    enum Type
-    {
-        CONSTANT,
-        ADD,
-        SUB,
-        MUL,
-        DIV,
-        LEFT_BRACE,
-        RIGHT_BRACE
-    };
-
-    uint64_t    val;        // for constants
-    Type        type;
-};
-
+//-----------------------------------------------------------------------------
 static bool IsWhitespace(char c)
 {
     return c == ' ' || c == '\t';
 }
 
+//-----------------------------------------------------------------------------
 static bool IsDecimalDigit(char c)
 {
     return c >= '0' && c <= '9';
 }
 
-static bool IsAlphaLower(char c)
-{
-    return c >= 'a' && c <= 'z';
-}
-
-static bool IsAlphaUpper(char c)
-{
-    return c >= 'A' && c <= 'Z';
-}
-
-static bool IsAlpha(char c)
-{
-    return IsAlphaLower(c) || IsAlphaUpper(c);
-}
-
+//-----------------------------------------------------------------------------
 static bool IsSymbolStart(char c)
 {
-    return IsAlpha(c) || c == '_';
+    return StringParsers::IsAlpha(c) || c == '_';
 }
 
+//-----------------------------------------------------------------------------
 static bool IsSymbolMain(char c)
 {
     // Support "." for e.g. "D0.W"
-    return IsAlpha(c) || IsDecimalDigit(c) || c == '_' || c == '.';
+    return StringParsers::IsAlpha(c) || IsDecimalDigit(c) || c == '_' || c == '.';
 }
 
+//-----------------------------------------------------------------------------
 static bool IsRegisterName(const char* name, int& regId)
 {
     for (int i = 0; i < Registers::REG_COUNT; ++i)
@@ -133,6 +129,7 @@ static bool IsRegisterName(const char* name, int& regId)
     return false;
 }
 
+//-----------------------------------------------------------------------------
 static bool IsRegisterNameDotW(const char* name, int& regId)
 {
     static const char* names[] = { "D0.W", "D1.W" ,"D2.W", "D3.W",
@@ -154,6 +151,25 @@ static bool IsRegisterNameDotW(const char* name, int& regId)
     return false;
 }
 
+//-----------------------------------------------------------------------------
+struct Token
+{
+    enum Type
+    {
+        CONSTANT,
+        ADD,
+        SUB,
+        MUL,
+        DIV,
+        LEFT_BRACE,
+        RIGHT_BRACE
+    };
+
+    uint64_t    val;        // for constants
+    Type        type;
+};
+
+//-----------------------------------------------------------------------------
 bool ApplyOp(uint64_t val1, uint64_t val2, Token::Type op, uint64_t& result)
 {
     if (op == Token::ADD)
@@ -178,6 +194,7 @@ bool ApplyOp(uint64_t val1, uint64_t val2, Token::Type op, uint64_t& result)
     return false;
 }
 
+//-----------------------------------------------------------------------------
 // Bigger the number, higher the precedence
 static int Precedence(Token::Type type)
 {
@@ -309,7 +326,8 @@ bool Evaluate(std::vector<Token>& tokens, uint64_t& result)
     return true;
 }
 
-void AddOperator(std::vector<Token>& tokens, Token::Type type)
+//-----------------------------------------------------------------------------
+static void AddOperator(std::vector<Token>& tokens, Token::Type type)
 {
     Token t;
     t.type = type;
@@ -342,11 +360,15 @@ bool StringParsers::ParseExpression(const char *pText, uint32_t &result, const S
             if (!ParseHexChar(*pText, ch))
                 return false;
 
+            int numChars = 0;
             while (ParseHexChar(*pText, ch))
             {
+                if (numChars > 8)   // overflow
+                    return false;
                 t.val <<= 4;
                 t.val |= ch;
                 ++pText;
+                ++numChars;
             }
             tokens.push_back(t);
             continue;
@@ -457,4 +479,33 @@ bool StringParsers::ParseExpression(const char *pText, uint32_t &result, const S
         }
     }
     return false;
+}
+
+bool StringParsers::ParseHexString(const char *pText, QVector<uint8_t>& result)
+{
+    result.clear();
+
+    // Pre-check to see if the first char is hex
+    uint8_t val;
+    if (!ParseHexChar(*pText, val))
+        return false;
+
+    while (*pText != 0)
+    {
+        uint8_t accum = 0;
+        uint8_t val = 0;
+        if (!ParseHexChar(*pText, val))
+            return false;
+
+        accum = val;
+
+        ++pText;
+        if (!ParseHexChar(*pText, val))
+            return false;
+        accum <<= 4;
+        accum |= val;
+        ++pText;
+        result.push_back(accum);
+    }
+    return true;
 }

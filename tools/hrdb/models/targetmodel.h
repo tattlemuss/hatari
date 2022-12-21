@@ -50,6 +50,15 @@ public:
     uint8_t m_regs[kNumRegs];
 };
 
+/* Simple container for search results
+ *
+*/
+class SearchResults
+{
+public:
+    QVector<uint32_t> addresses;
+};
+
 /*
     Core central data model reflecting the state of the target.
 */
@@ -63,7 +72,7 @@ public:
     // These are called by the Dispatcher when notifications/events arrive
     void SetConnected(int running);
     void SetStatus(bool running, uint32_t pc, bool ffwd);
-    void SetConfig(uint32_t machineType, uint32_t cpuLevel);
+    void SetConfig(uint32_t machineType, uint32_t cpuLevel, uint32_t stRamSize);
 
     // These are called by the Dispatcher when responses arrive
     void SetRegisters(const Registers& regs, uint64_t commandId);
@@ -75,6 +84,7 @@ public:
     void SetExceptionMask(const ExceptionMask& mask);
     void SetYm(const YmState& state);
     void NotifyMemoryChanged(uint32_t address, uint32_t size);
+    void SetSearchResults(uint64_t commmandId, const SearchResults& results);
 
     // Update profiling data
     void AddProfileDelta(const ProfileDelta& delta);
@@ -92,6 +102,9 @@ public:
 	// NOTE: all these return copies to avoid data contention
     MACHINETYPE	GetMachineType() const { return m_machineType; }
 
+    // Get RAM size in bytes
+    uint32_t GetSTRamSize() const { return m_stRamSize; }
+
     int IsConnected() const { return m_bConnected; }
     int IsRunning() const { return m_bRunning; }
     int IsFastForward() const { return m_ffwd; }
@@ -107,6 +120,7 @@ public:
     }
     const Breakpoints& GetBreakpoints() const { return m_breakpoints; }
     const SymbolTable& GetSymbolTable() const { return m_symbolTable; }
+    const SearchResults& GetSearchResults() const { return m_searchResults; }
     const ExceptionMask& GetExceptionMask() const { return m_exceptionMask; }
     YmState GetYm() const { return m_ymState; }
 
@@ -140,6 +154,7 @@ signals:
 
     void breakpointsChangedSignal(uint64_t commandId);
     void symbolTableChangedSignal(uint64_t commandId);
+    void searchResultsChangedSignal(uint64_t commandId);
     void exceptionMaskChanged();
     void ymChangedSignal();
 
@@ -159,6 +174,7 @@ private:
 
     MACHINETYPE     m_machineType;	// Hatari MACHINETYPE enum
     uint32_t        m_cpuLevel;		// CPU 0=000, 1=010, 2=020, 3=030, 4=040, 5=060
+    uint32_t        m_stRamSize;    // Size of available ST Ram
 
     int             m_bConnected;   // 0 == disconnected, 1 == connected
     int             m_bRunning;		// 0 == stopped, 1 == running
@@ -172,6 +188,8 @@ private:
     ExceptionMask   m_exceptionMask;
     YmState         m_ymState;
     ProfileData*    m_pProfileData;
+
+    SearchResults   m_searchResults;
 
     // Actual current memory contents
     const Memory*   m_pMemory[MemorySlot::kMemorySlotCount];

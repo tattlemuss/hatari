@@ -886,7 +886,7 @@ QModelIndex HardwareTreeModel::createIndex2(HardwareBase *pItem) const
 //-----------------------------------------------------------------------------
 HardwareTreeView::HardwareTreeView(QWidget *parent, Session* pSession) :
     QTreeView(parent),
-    m_showAddressActions(pSession)
+    m_pSession(pSession)
 {
     // Right-click menu
     m_pShowAddressMenu = new QMenu("", this);
@@ -906,7 +906,7 @@ void HardwareTreeView::contextMenuEvent(QContextMenuEvent *event)
     if (addr != ~0U)
     {
         m_pShowAddressMenu->setTitle(QString::asprintf("Address: $%x", addr));
-        m_showAddressActions.setAddress(addr);
+        m_showAddressActions.setAddress(m_pSession, addr);
         m_showAddressActions.addActionsToMenu(m_pShowAddressMenu);
 
         // Run it

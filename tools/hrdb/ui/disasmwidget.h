@@ -145,11 +145,6 @@ private:
     void setPCRightClick();
     void nopRightClick();
 
-    // Callbacks when the matching entry of m_pShowMemMenus is chosen
-    void showMemMenu0Shown();
-    void showMemMenu1Shown();
-    void showMemMenu2Shown();
-
     void settingsChangedSlot();
 
     // Layout functions
@@ -173,14 +168,12 @@ private:
     QAction*              m_pSetPcAction;
     QMenu*                m_pEditMenu;        // "edit this instruction" menu
     QAction*              m_pNopAction;
-    ShowAddressActions    m_showAddressActions;
 
     // "Show memory for $x" top-level menus:
     // Show Instruction
     // Show EA 0
     // Show EA 1
-    QMenu *               m_pShowMemMenus[3];
-    uint32_t              m_showMenuAddresses[3];
+    ShowAddressMenu       m_showAddressMenus[3];
 
     // Column layout
     bool                  m_bShowHex;

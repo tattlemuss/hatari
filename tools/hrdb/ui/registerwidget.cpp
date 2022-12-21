@@ -68,7 +68,6 @@ static QString MakeBracket(QString str)
 
 RegisterWidget::RegisterWidget(QWidget *parent, Session* pSession) :
     QWidget(parent),
-    m_showAddressActions(pSession),
     m_pSession(pSession),
     m_pDispatcher(pSession->m_pDispatcher),
     m_pTargetModel(pSession->m_pTargetModel),
@@ -175,7 +174,7 @@ void RegisterWidget::contextMenuEvent(QContextMenuEvent *event)
     if (pAddressMenu)
     {
         m_showAddressActions.addActionsToMenu(pAddressMenu);
-        m_showAddressActions.setAddress(m_addressUnderMouse);
+        m_showAddressActions.setAddress(m_pSession, m_addressUnderMouse);
         menu.addMenu(pAddressMenu);
 
         // Run it

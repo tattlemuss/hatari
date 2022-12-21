@@ -88,8 +88,6 @@ uint64_t Dispatcher::ReadSymbols()
 
 uint64_t Dispatcher::WriteMemory(uint32_t address, const QVector<uint8_t> &data)
 {
-    uint64_t ReadMemory(MemorySlot slot, uint32_t address, uint32_t size);
-
     QString command = QString::asprintf("memset %u %d ", address, data.size());
     for (int i = 0; i <  data.size(); ++i)
         command += QString::asprintf("%02x", data[i]);
@@ -187,6 +185,22 @@ uint64_t Dispatcher::SendConsoleCommand(const std::string& cmd)
     std::string packet = "console ";
     packet += cmd;
     return SendCommandPacket(packet.c_str());
+}
+
+uint64_t Dispatcher::SendMemFind(const QVector<uint8_t>& valuesAndMasks, uint32_t startAddress, uint32_t endAddress)
+{
+    std::string packet = "memfind ";
+    QString command = QString::asprintf("memfind %u %d ", startAddress, endAddress - startAddress);
+
+    for (int i = 0; i <  valuesAndMasks.size(); ++i)
+        command += QString::asprintf("%02x", valuesAndMasks[i]);
+
+    return SendCommandPacket(command.toStdString().c_str());
+}
+
+uint64_t Dispatcher::DebugSendRawPacket(const char *command)
+{
+    return SendCommandPacket(command);
 }
 
 void Dispatcher::ReceivePacket(const char* response)
@@ -559,6 +573,26 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
         SymbolSubTable syms;
         m_pTargetModel->SetSymbolTable(syms, cmd.m_uid);
     }
+    else if (type == "memfind")
+    {
+        SearchResults results;
+        while (true)
+        {
+            std::string addrStr = splitResp.Split(SEP_CHAR);
+            if (addrStr.size() == 0)
+                break;
+            uint32_t value;
+            if (!StringParsers::ParseHexString(addrStr.c_str(), value))
+                break;
+            results.addresses.push_back(value);
+        }
+        m_pTargetModel->SetSearchResults(cmd.m_uid, results);
+    }
+    else
+    {
+        // For debugging
+        //std::cout << "UNKNOWN REPONSE:" << cmd.m_cmd << "//" << cmd.m_response << std::endl;
+    }
 }
 
 void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
@@ -592,13 +626,17 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
     {
         std::string machineTypeStr = s.Split(SEP_CHAR);
         std::string cpuLevelStr = s.Split(SEP_CHAR);
+        std::string stRamSizeStr = s.Split(SEP_CHAR);
         uint32_t machineType;
         uint32_t cpuLevel;
+        uint32_t stRamSize;
         if (!StringParsers::ParseHexString(machineTypeStr.c_str(), machineType))
             return;
         if (!StringParsers::ParseHexString(cpuLevelStr.c_str(), cpuLevel))
             return;
-        m_pTargetModel->SetConfig(machineType, cpuLevel);
+        if (!StringParsers::ParseHexString(stRamSizeStr.c_str(), stRamSize))
+            return;
+        m_pTargetModel->SetConfig(machineType, cpuLevel, stRamSize);
         this->InsertFlush();
     }
     else if (type == "!connected")

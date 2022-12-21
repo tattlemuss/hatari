@@ -66,6 +66,8 @@ void TargetModel::SetConnected(int connected)
         Breakpoints dummyBreak;
         SetBreakpoints(dummyBreak, 0);
 
+        m_searchResults.addresses.clear();
+
         // Clear potentially running timers
         m_pDelayedUpdateTimer->stop();
         m_pRunningRefreshTimer->stop();
@@ -96,10 +98,11 @@ void TargetModel::SetStatus(bool running, uint32_t pc, bool ffwd)
     }
 }
 
-void TargetModel::SetConfig(uint32_t machineType, uint32_t cpuLevel)
+void TargetModel::SetConfig(uint32_t machineType, uint32_t cpuLevel, uint32_t stRamSize)
 {
     m_machineType = (MACHINETYPE) machineType;
     m_cpuLevel = cpuLevel;
+    m_stRamSize = stRamSize;
 }
 
 void TargetModel::SetRegisters(const Registers& regs, uint64_t commandId)
@@ -150,6 +153,12 @@ void TargetModel::NotifyMemoryChanged(uint32_t address, uint32_t size)
 {
     m_changedFlags.SetChanged(TargetChangedFlags::kOtherMemory);
     emit otherMemoryChangedSignal(address, size);
+}
+
+void TargetModel::SetSearchResults(uint64_t commmandId, const SearchResults& results)
+{
+    m_searchResults = results;
+    emit searchResultsChangedSignal(commmandId);
 }
 
 void TargetModel::AddProfileDelta(const ProfileDelta& delta)

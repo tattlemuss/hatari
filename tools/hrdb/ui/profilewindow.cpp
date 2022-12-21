@@ -263,8 +263,7 @@ ProfileTableView::ProfileTableView(QWidget* parent, ProfileTableModel* pModel, S
     QTableView(parent),
     m_pTableModel(pModel),
     m_pSession(pSession),
-    m_rightClickRow(-1),
-    m_showAddressActions(pSession)
+    m_rightClickRow(-1)
 {
     // This table gets the focus from the parent docking widget
     setFocus();
@@ -294,7 +293,7 @@ void ProfileTableView::contextMenuEvent(QContextMenuEvent *event)
         pAddressMenu->setTitle(QString::asprintf("Address $%08x", ent.address));
 
         m_showAddressActions.addActionsToMenu(pAddressMenu);
-        m_showAddressActions.setAddress(ent.address);
+        m_showAddressActions.setAddress(m_pSession, ent.address);
         menu.addMenu(pAddressMenu);
 
         // Run it

@@ -36,7 +36,6 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex):
     m_pSession(pSession),
     m_pTargetModel(pSession->m_pTargetModel),
     m_pDispatcher(pSession->m_pDispatcher),
-    m_showAddressActions(pSession),
     m_bShowHex(true),
     m_rightClickRow(-1),
     m_cursorRow(0),
@@ -65,13 +64,6 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex):
     m_pEditMenu = new QMenu("Edit", this);
     m_pEditMenu->addAction(m_pNopAction);
 
-    // Add context for addresses
-    for (int showMenu = 0; showMenu < 3; ++showMenu)
-    {
-        m_pShowMemMenus[showMenu] = new QMenu("", this);
-        m_showAddressActions.addActionsToMenu(m_pShowMemMenus[showMenu]);
-    }
-
     // Target connects
     connect(m_pTargetModel, &TargetModel::startStopChangedSignal,   this, &DisasmWidget::startStopChangedSlot);
     connect(m_pTargetModel, &TargetModel::memoryChangedSignal,      this, &DisasmWidget::memoryChangedSlot);
@@ -87,10 +79,6 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex):
     connect(m_pBreakpointAction,     &QAction::triggered, this, &DisasmWidget::toggleBreakpointRightClick);
     connect(m_pSetPcAction,          &QAction::triggered, this, &DisasmWidget::setPCRightClick);
     connect(m_pNopAction,            &QAction::triggered, this, &DisasmWidget::nopRightClick);
-
-    connect(m_pShowMemMenus[0],      &QMenu::aboutToShow, this, &DisasmWidget::showMemMenu0Shown);
-    connect(m_pShowMemMenus[1],      &QMenu::aboutToShow, this, &DisasmWidget::showMemMenu1Shown);
-    connect(m_pShowMemMenus[2],      &QMenu::aboutToShow, this, &DisasmWidget::showMemMenu2Shown);
 
     connect(m_pSession, &Session::settingsChanged, this, &DisasmWidget::settingsChangedSlot);
 
@@ -853,11 +841,12 @@ void DisasmWidget::CalcOpAddresses()
     m_opAddresses.clear();
     m_opAddresses.resize(m_disasm.lines.size());
     const Registers& regs = m_pTargetModel->GetRegs();
+    uint32_t pc = regs.Get(Registers::PC);
     for (int i = 0; i < m_disasm.lines.size(); ++i)
     {
         const instruction& inst = m_disasm.lines[i].inst;
         OpAddresses& addrs = m_opAddresses[i];
-        bool useRegs = (i == 0);
+        bool useRegs = inst.address == pc;
         addrs.valid[0] = Disassembler::calc_fixed_ea(inst.op0, useRegs, regs, m_disasm.lines[i].address, addrs.address[0]);
         addrs.valid[1] = Disassembler::calc_fixed_ea(inst.op1, useRegs, regs, m_disasm.lines[i].address, addrs.address[1]);
     }
@@ -990,9 +979,9 @@ void DisasmWidget::contextMenuEvent(QContextMenuEvent *event)
     bool vis = GetInstructionAddr(m_rightClickRow, instAddr);
     if (vis)
     {
-        m_pShowMemMenus[0]->setTitle(QString::asprintf("$%x (this instruction)", instAddr));
-        menu.addMenu(m_pShowMemMenus[0]);
-        m_showMenuAddresses[0] = instAddr;
+        m_showAddressMenus[0].setTitle(QString::asprintf("$%x (this instruction)", instAddr));
+        m_showAddressMenus[0].setAddress(m_pSession, instAddr);
+        menu.addMenu(m_showAddressMenus[0].m_pMenu);
     }
 
     for (int32_t op = 0; op < 2; ++op)
@@ -1001,9 +990,9 @@ void DisasmWidget::contextMenuEvent(QContextMenuEvent *event)
         uint32_t opAddr;
         if (GetEA(m_rightClickRow, op, opAddr))
         {
-            m_pShowMemMenus[menuIndex]->setTitle(QString::asprintf("$%x (Effective address %u)", opAddr, menuIndex));
-            menu.addMenu(m_pShowMemMenus[menuIndex]);
-            m_showMenuAddresses[menuIndex] = opAddr;
+            m_showAddressMenus[menuIndex].setTitle(QString::asprintf("$%x (Effective address %u)", opAddr, menuIndex));
+            m_showAddressMenus[menuIndex].setAddress(m_pSession, opAddr);
+            menu.addMenu(m_showAddressMenus[menuIndex].m_pMenu);
         }
     }
 
@@ -1033,21 +1022,6 @@ void DisasmWidget::nopRightClick()
 {
     NopRow(m_rightClickRow);
     m_rightClickRow = -1;
-}
-
-void DisasmWidget::showMemMenu0Shown()
-{
-    m_showAddressActions.setAddress(m_showMenuAddresses[0]);
-}
-
-void DisasmWidget::showMemMenu1Shown()
-{
-    m_showAddressActions.setAddress(m_showMenuAddresses[1]);
-}
-
-void DisasmWidget::showMemMenu2Shown()
-{
-    m_showAddressActions.setAddress(m_showMenuAddresses[2]);
 }
 
 void DisasmWidget::settingsChangedSlot()

@@ -3,6 +3,7 @@
 #include "hopper/buffer.h"
 #include "hopper/instruction.h"
 #include "hopper/decode.h"
+#include "stringformat.h"
 #include "symboltable.h"
 #include "registers.h"
 
@@ -190,45 +191,6 @@ bool calc_relative_address(const operand& op, uint32_t inst_address, uint32_t& t
     return false;
 }
 
-// ----------------------------------------------------------------------------
-//	INSTRUCTION DISPLAY FORMATTING
-// ----------------------------------------------------------------------------
-QString to_hex32(uint32_t val)
-{
-    QString tmp;
-    tmp= QString::asprintf("$%x", val);
-    return tmp;
-}
-
-QString to_abs_word(uint16_t val)
-{
-    QString tmp;
-    if (val & 0x8000)
-        tmp = QString::asprintf("$ffff%04x", val);
-    else {
-        tmp = QString::asprintf("$%x", val);
-    }
-    return tmp;
-}
-
-// Format a value as signed decimal or hexadecimal.
-// Handles the nasty "-$5" case
-QString to_signed(int32_t val, bool isHex)
-{
-    QString tmp;
-    if (isHex)
-    {
-        if (val >= 0)
-            return QString::asprintf("$%x", val);
-        else
-            return QString::asprintf("-$%x", -val);
-    }
-    else
-    {
-        return QString::asprintf("%d", val);
-    }
-}
-
 void print_movem_mask(uint16_t reg_mask, QTextStream& ref)
 {
     int num_ranges = 0;
@@ -296,25 +258,25 @@ void print(const operand& operand, uint32_t inst_address, QTextStream& ref, bool
             ref << "-(a" << operand.indirect_predec.reg << ")";
             return;
         case OpType::INDIRECT_DISP:
-            ref << to_signed(operand.indirect_disp.disp, bDisassHexNumerics) << "(a" << operand.indirect_disp.reg << ")";
+            ref << Format::to_signed(operand.indirect_disp.disp, bDisassHexNumerics) << "(a" << operand.indirect_disp.reg << ")";
             return;
         case OpType::INDIRECT_INDEX:
-            ref << to_signed(operand.indirect_index.disp, bDisassHexNumerics) << "(a" << operand.indirect_index.a_reg <<
+            ref << Format::to_signed(operand.indirect_index.disp, bDisassHexNumerics) << "(a" << operand.indirect_index.a_reg <<
                    ",d" << operand.indirect_index.d_reg <<
                    (operand.indirect_index.is_long ? ".l" : ".w") <<
                    ")";
             return;
         case OpType::ABSOLUTE_WORD:
-            ref << to_abs_word(operand.absolute_word.wordaddr) << ".w";
+            ref << Format::to_abs_word(operand.absolute_word.wordaddr) << ".w";
             return;
         case OpType::ABSOLUTE_LONG:
-            ref << to_hex32(operand.absolute_long.longaddr);
+            ref << Format::to_hex32(operand.absolute_long.longaddr);
             return;
         case OpType::PC_DISP:
         {
             uint32_t target_address;
             calc_relative_address(operand, inst_address, target_address);
-            ref << to_hex32(target_address);
+            ref << Format::to_hex32(target_address);
             ref << "(pc)";
             return;
         }
@@ -322,7 +284,7 @@ void print(const operand& operand, uint32_t inst_address, QTextStream& ref, bool
         {
             uint32_t target_address;
             calc_relative_address(operand, inst_address, target_address);
-            ref << to_hex32(target_address) << "(pc,d" << operand.pc_disp_index.d_reg <<
+            ref << Format::to_hex32(target_address) << "(pc,d" << operand.pc_disp_index.d_reg <<
                    (operand.pc_disp_index.is_long ? ".l" : ".w") << ")";
             return;
         }
@@ -333,11 +295,11 @@ void print(const operand& operand, uint32_t inst_address, QTextStream& ref, bool
         {
             uint32_t target_address;
             calc_relative_address(operand, inst_address, target_address);
-            ref << to_hex32(target_address);
+            ref << Format::to_hex32(target_address);
             return;
         }
         case OpType::IMMEDIATE:
-            ref << "#" << to_hex32(operand.imm.val0);
+            ref << "#" << Format::to_hex32(operand.imm.val0);
             return;
         case OpType::SR:
             ref << "sr";
@@ -358,7 +320,7 @@ void Disassembler::print(const instruction& inst, /*const symbols& symbols, */ u
 {
     if (inst.opcode == Opcode::NONE)
     {
-        ref << "dc.w    " << to_hex32(inst.header);
+        ref << "dc.w    " << Format::to_hex32(inst.header);
         return;
     }
     QString opcode = instruction_names[inst.opcode];
@@ -395,7 +357,7 @@ void Disassembler::print_terse(const instruction& inst, /*const symbols& symbols
 {
     if (inst.opcode == Opcode::NONE)
     {
-        ref << "dc.w " << to_hex32(inst.header);
+        ref << "dc.w " << Format::to_hex32(inst.header);
         return;
     }
     QString opcode = instruction_names[inst.opcode];

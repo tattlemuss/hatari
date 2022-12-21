@@ -51,6 +51,7 @@ SOURCES += \
     ui/profilewindow.cpp \
     ui/registerwidget.cpp \
     ui/rundialog.cpp \
+    ui/searchpanel.cpp \
     ui/showaddressactions.cpp \
     ui/symboltext.cpp \
 
@@ -69,6 +70,7 @@ HEADERS += \
     models/profiledata.h \
     models/registers.h \
     models/session.h \
+    models/stringformat.h \
     models/stringparsers.h \
     models/stringsplitter.h \
     models/symboltable.h \
@@ -92,6 +94,7 @@ HEADERS += \
     ui/quicklayout.h \
     ui/registerwidget.h \
     ui/rundialog.h \
+    ui/searchpanel.h \
     ui/showaddressactions.h \
     ui/symboltext.h
 

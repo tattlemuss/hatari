@@ -60,6 +60,7 @@ public:
 protected:
     virtual void contextMenuEvent(QContextMenuEvent *event) override;
 
+    Session*            m_pSession;
     // Menu actions
     QMenu*              m_pShowAddressMenu;
     ShowAddressActions  m_showAddressActions;

@@ -55,7 +55,10 @@
 #define RDB_PORT                   (56001)
 
 // Max character count in a command sent to Hatari
-#define RDB_CMD_MAX_SIZE           (300)
+#define RDB_INPUT_TMP_SIZE         (300)
+
+// Starting size of the growing buffer containing commands to process
+#define RDB_CMD_BUFFER_START_SIZE  (512)
 
 // How many bytes we collect to send chunks for the "mem" command
 #define RDB_MEM_BLOCK_SIZE         (2048)
@@ -76,11 +79,83 @@ static bool bRemoteBreakIsActive = false;
 /* ID of a protocol for the transfers, so we can detect hatari<->mismatch in future */
 /* 0x1003 -- add reset commands */
 /* 0x1004    add ffwd command, and ffwd status in NotifyStatus() */
-#define REMOTEDEBUG_PROTOCOL_ID	(0x1004)
+/* 0x1005    add memfind command, add stramsize to $config notification */
+#define REMOTEDEBUG_PROTOCOL_ID	(0x1005)
 
 /* Char ID to denote terminator of a token. This is under the ASCII "normal"
 	character value range so that 32-255 can be used */
 #define SEPARATOR_VAL	0x1
+
+// -----------------------------------------------------------------------------
+// Structure managing a resizeable buffer of uint8_t
+// This can be used to accumulate input commands, or sections of it
+// like search strings.
+typedef struct RemoteDebugBuffer
+{
+	char*		data;		// base of allocated data buffer
+	size_t		size;		// allocated size of data
+	size_t		write_pos;	// current position in buffer
+} RemoteDebugBuffer;
+
+// -----------------------------------------------------------------------------
+static void RemoteDebugBuffer_Init(RemoteDebugBuffer* buf, size_t size)
+{
+	buf->size = size;
+	buf->data = (char*)malloc(size);
+	buf->write_pos = 0;
+}
+
+// -----------------------------------------------------------------------------
+static void RemoteDebugBuffer_UnInit(RemoteDebugBuffer* buf)
+{
+	free(buf->data);
+	buf->data = NULL;
+	buf->size = 0;
+	buf->write_pos = 0;
+}
+
+// -----------------------------------------------------------------------------
+// Copy <size> chars of <data> into the end of the buffer. Resize the buffer if space is not enough.
+static void RemoteDebugBuffer_Add(RemoteDebugBuffer* buf, const char* data, size_t size)
+{
+	assert(buf->write_pos <= buf->size);
+
+	// Full buffer?
+	if (buf->write_pos + size > buf->size)
+	{
+		// Allocate a new buffer bigger than request
+		size_t new_size = buf->write_pos + size + 512;
+		char* new_data = (char*)malloc(new_size);
+
+		// Copy across (valid) contents and release the original
+		memcpy(new_data, buf->data, buf->write_pos);
+		free(buf->data);
+
+		// Swap pointers
+		buf->size = new_size;
+		buf->data = new_data;
+	}
+
+	// Copy data in at the write pointer
+	memcpy(buf->data + buf->write_pos, data, size);
+	buf->write_pos += size;
+}
+
+// -----------------------------------------------------------------------------
+// Remove <count> bytes from the start of the buffer, and copy the remaining data along
+static void RemoteDebugBuffer_RemoveStart(RemoteDebugBuffer* buf, size_t count)
+{
+	// Calc number of bytes between "count" and the write head
+	size_t copy_size = buf->write_pos - count;
+
+	// Copy from position "count" to 0
+	// NOTE: uses memmove() since the areas overlap.
+	memmove(buf->data, buf->data + count, copy_size);
+
+	// Move the write_pos to the left by "count" chars
+	// The allocation size is left unchanged.
+	buf->write_pos -= count;
+}
 
 // -----------------------------------------------------------------------------
 // Structure managing connection state
@@ -91,8 +166,9 @@ typedef struct RemoteDebugState
 											-1 if not connected */
 
 	/* Input (receive/command) buffer data */
-	char cmd_buf[RDB_CMD_MAX_SIZE+1];	/* accumulated command string */
-	int cmd_pos;						/* offset in cmd_buf for new data */
+	RemoteDebugBuffer input_buf;
+	/* Temp data for network recv */
+	char cmd_buf[RDB_INPUT_TMP_SIZE];
 
 	/* Redirection info when running Console window commands */
 	FILE* original_debugOutput;				/* This is easy to save and repoint */
@@ -219,7 +295,7 @@ static int RemoteDebug_NotifyState(RemoteDebugState* state)
 }
 
 // -----------------------------------------------------------------------------
-// Format: "!config <machinetype> <cpulevel>
+// Format: "!config <machinetype> <cpulevel> <stramend>
 static int RemoteDebug_NotifyConfig(RemoteDebugState* state)
 {
 	const CNF_SYSTEM* system = &ConfigureParams.System;
@@ -228,6 +304,9 @@ static int RemoteDebug_NotifyConfig(RemoteDebugState* state)
 	send_hex(state, system->nMachineType);
 	send_sep(state);
 	send_hex(state, system->nCpuLevel);
+	send_sep(state);
+	send_hex(state, STRamEnd);
+
 	send_term(state);
 	return 0;
 }
@@ -346,7 +425,7 @@ static void RemoteDebug_HardwareSync(void)
 // -----------------------------------------------------------------------------
 /* Return short status info in a useful format, mainly whether it's running */
 // Format: "OK <break active> <pc>"
-static int RemoteDebug_Status(int nArgc, char *psArgs[], RemoteDebugState* state)
+static int RemoteDebug_status(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	send_str(state, "OK");
 	send_sep(state);
@@ -359,7 +438,7 @@ static int RemoteDebug_Status(int nArgc, char *psArgs[], RemoteDebugState* state
 
 // -----------------------------------------------------------------------------
 /* Put in a break request which is serviced elsewhere in the main loop */
-static int RemoteDebug_Break(int nArgc, char *psArgs[], RemoteDebugState* state)
+static int RemoteDebug_break(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	// Only set a break request if we are running
 	if (!bRemoteBreakIsActive)
@@ -376,7 +455,7 @@ static int RemoteDebug_Break(int nArgc, char *psArgs[], RemoteDebugState* state)
 
 // -----------------------------------------------------------------------------
 /* Step next instruction. This is currently a passthrough to the normal debugui code. */
-static int RemoteDebug_Step(int nArgc, char *psArgs[], RemoteDebugState* state)
+static int RemoteDebug_step(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	DebugCpu_SetSteps(1);
 	send_str(state, "OK");
@@ -387,7 +466,7 @@ static int RemoteDebug_Step(int nArgc, char *psArgs[], RemoteDebugState* state)
 }
 
 // -----------------------------------------------------------------------------
-static int RemoteDebug_Run(int nArgc, char *psArgs[], RemoteDebugState* state)
+static int RemoteDebug_run(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	send_str(state, "OK");
 	bRemoteBreakIsActive = false;
@@ -402,7 +481,7 @@ static int RemoteDebug_Run(int nArgc, char *psArgs[], RemoteDebugState* state)
  * 
  * Output: "regs <reg:value>*N\n"
  */
-static int RemoteDebug_Regs(int nArgc, char *psArgs[], RemoteDebugState* state)
+static int RemoteDebug_regs(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	int regIdx;
 	Uint32 varIndex;
@@ -450,7 +529,7 @@ static int RemoteDebug_Regs(int nArgc, char *psArgs[], RemoteDebugState* state)
  * Output: "mem <address-expr> <size-expr> <memory as base16 string>\n"
  */
 
-static int RemoteDebug_Mem(int nArgc, char *psArgs[], RemoteDebugState* state)
+static int RemoteDebug_mem(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	int arg;
 	Uint32 memdump_addr = 0;
@@ -538,7 +617,7 @@ static int RemoteDebug_Mem(int nArgc, char *psArgs[], RemoteDebugState* state)
  * Output: "OK"/"NG"
  */
 
-static int RemoteDebug_Memset(int nArgc, char *psArgs[], RemoteDebugState* state)
+static int RemoteDebug_memset(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	int arg;
 	Uint32 memdump_addr = 0;
@@ -852,6 +931,94 @@ static int RemoteDebug_ffwd(int nArgc, char *psArgs[], RemoteDebugState* state)
 }
 
 // -----------------------------------------------------------------------------
+/* "memfind <start> <count> <stringdata>" Search memory for string */
+/* returns "OK <addr>" where addr is the next address found if successful */
+static int RemoteDebug_memfind(int nArgc, char *psArgs[], RemoteDebugState* state)
+{
+	Uint32 find_addr = 0;
+	Uint32 find_count = 0;
+	Uint32 find_end = 0;
+	int offset = 0;
+	const char* err_str = NULL;
+	int readPos = 0;
+	RemoteDebugBuffer searchBuffer;
+
+	Uint8 valHi;
+	Uint8 valLo;
+	int arg;
+
+	/* For remote debug, only "address" "count" is supported */
+	arg = 1;
+	if (nArgc >= arg + 2)
+	{
+		err_str = Eval_Expression(psArgs[arg], &find_addr, &offset, false);
+		if (err_str)
+			return 1;
+
+		++arg;
+		err_str = Eval_Expression(psArgs[arg], &find_count, &offset, false);
+		if (err_str)
+			return 1;
+		++arg;
+	}
+	else
+	{
+		// Not enough args
+		return 1;
+	}
+
+	// Read search string into a buffer.
+	// The string is a set of <mask><value> byte pairs (so we can support case-insensitive)
+	RemoteDebugBuffer_Init(&searchBuffer, 30);
+	while (1)
+	{
+		if (!read_hex_char(psArgs[arg][readPos], &valHi))
+			break;
+		++readPos;
+		if (!read_hex_char(psArgs[arg][readPos], &valLo))
+			break;
+		++readPos;
+		char stringVal = (valHi << 4) | valLo;
+		RemoteDebugBuffer_Add(&searchBuffer, &stringVal, sizeof(stringVal));
+	}
+	// Check that we have an even number of bytes in the search string
+	if (searchBuffer.write_pos & 1)
+		return 2;
+
+	send_str(state, "OK");
+
+	// Then do the search
+	size_t stringSize = searchBuffer.write_pos / 2;
+	find_end = find_addr + find_count - stringSize;
+	while (find_addr < find_end)
+	{
+		bool found = true;
+		for (size_t i = 0; i < stringSize; ++i)
+		{
+			Uint8 mem = STMemory_ReadByte(find_addr + i);
+			Uint8 mask = searchBuffer.data[i * 2];
+			Uint8 val = searchBuffer.data[i * 2 + 1];
+
+			if ((mem & mask) != val)
+			{
+				found = false;
+				break;
+			}
+		}
+
+		if (found)
+		{
+			send_sep(state);
+			send_hex(state, find_addr);
+			break;
+		}
+		++find_addr;
+	}
+	RemoteDebugBuffer_UnInit(&searchBuffer);
+	return 0;
+}
+
+// -----------------------------------------------------------------------------
 /* DebugUI command structure */
 typedef struct
 {
@@ -862,13 +1029,13 @@ typedef struct
 
 /* Array of all remote debug command descriptors */
 static const rdbcommand_t remoteDebugCommandList[] = {
-	{ RemoteDebug_Status,	"status"	, true		},
-	{ RemoteDebug_Break,	"break"		, true		},
-	{ RemoteDebug_Step,		"step"		, true		},
-	{ RemoteDebug_Run,		"run"		, true		},
-	{ RemoteDebug_Regs,		"regs"		, true		},
-	{ RemoteDebug_Mem,		"mem"		, true		},
-	{ RemoteDebug_Memset,	"memset"	, true		},
+	{ RemoteDebug_status,	"status"	, true		},
+	{ RemoteDebug_break,	"break"		, true		},
+	{ RemoteDebug_step,		"step"		, true		},
+	{ RemoteDebug_run,		"run"		, true		},
+	{ RemoteDebug_regs,		"regs"		, true		},
+	{ RemoteDebug_mem,		"mem"		, true		},
+	{ RemoteDebug_memset,	"memset"	, true		},
 	{ RemoteDebug_bp,		"bp"		, false		},
 	{ RemoteDebug_bplist,	"bplist"	, true		},
 	{ RemoteDebug_bpdel,	"bpdel"		, true		},
@@ -881,6 +1048,8 @@ static const rdbcommand_t remoteDebugCommandList[] = {
 	{ RemoteDebug_resetwarm,"resetwarm"	, true		},
 	{ RemoteDebug_resetcold,"resetcold"	, true		},
 	{ RemoteDebug_ffwd,		"ffwd"		, true		},
+	{ RemoteDebug_memfind,	"memfind"	, true		},
+
 	/* Terminator */
 	{ NULL, NULL }
 };
@@ -994,8 +1163,8 @@ static void RemoteDebugState_Init(RemoteDebugState* state)
 {
 	state->SocketFD = -1;
 	state->AcceptedFD = -1;
+	RemoteDebugBuffer_Init(&state->input_buf, RDB_CMD_BUFFER_START_SIZE);
 	memset(state->cmd_buf, 0, sizeof(state->cmd_buf));
-	state->cmd_pos = 0;
 #ifdef __WINDOWS__
 	memset(state->consoleOutputFilename, 0, sizeof(state->consoleOutputFilename));
 #else
@@ -1005,6 +1174,23 @@ static void RemoteDebugState_Init(RemoteDebugState* state)
 	state->consoleOutputFile = NULL;
 #endif
 	state->sendBufferPos = 0;
+}
+
+static void RemoteDebugState_UnInit(RemoteDebugState* state)
+{
+	if (state->AcceptedFD != -1)
+	{
+		RDB_CLOSE(state->AcceptedFD);
+	}
+
+	if (state->SocketFD != -1)
+	{
+		RDB_CLOSE(state->SocketFD);
+	}
+
+	state->AcceptedFD = -1;
+	state->SocketFD = -1;
+	RemoteDebugBuffer_UnInit(&state->input_buf);
 }
 
 static int RemoteDebugState_TryAccept(RemoteDebugState* state, bool blocking)
@@ -1059,17 +1245,15 @@ static void RemoteDebug_ProcessBuffer(RemoteDebugState* state)
 	int num_commands = 0;
 	while (1)
 	{
-		// Scan for a complete command
-		char* endptr = memchr(state->cmd_buf, 0, state->cmd_pos);
+		// Scan for a complete command by looking for the terminator
+		char* endptr = memchr(state->input_buf.data, 0, state->input_buf.write_pos);
 		if (!endptr)
 			break;
 
-		int length = endptr - state->cmd_buf;
-
-		const char* pCmd = state->cmd_buf;
+		size_t cmd_length = endptr- state->input_buf.data + 1;
 
 		// Process this command
-		cmd_ret = RemoteDebug_Parse(pCmd, state);
+		cmd_ret = RemoteDebug_Parse(state->input_buf.data, state);
 
 		if (cmd_ret != 0)
 		{
@@ -1079,10 +1263,7 @@ static void RemoteDebug_ProcessBuffer(RemoteDebugState* state)
 		send_term(state);
 
 		// Copy extra bytes to the start
-		// -1 here is for the terminator
-		int extra_length = state->cmd_pos - length - 1;
-		memcpy(state->cmd_buf, endptr + 1, extra_length);
-		state->cmd_pos = extra_length;
+		RemoteDebugBuffer_RemoveStart(&state->input_buf, cmd_length);
 		++num_commands;
 	}
 
@@ -1127,15 +1308,17 @@ static void RemoteDebugState_UpdateAccepted(RemoteDebugState* state)
 	}
 
 	// Read input and accumulate a command (blocking)
-	remaining = RDB_CMD_MAX_SIZE - state->cmd_pos;
+	remaining = sizeof(state->cmd_buf);
 	int bytes = recv(state->AcceptedFD, 
-		&state->cmd_buf[state->cmd_pos],
+		state->cmd_buf,
 		remaining,
 		0);
 	if (bytes > 0)
 	{
-		// New data. Is there a command in there (null-terminated string)
-		state->cmd_pos += bytes;
+		// New data.
+		// Add to the resizeable buffer
+		RemoteDebugBuffer_Add(&state->input_buf, state->cmd_buf, bytes);
+		// Check for completed commands
 		RemoteDebug_ProcessBuffer(state);
 	}
 	else if (bytes == 0)
@@ -1328,25 +1511,27 @@ static void RemoteDebugState_Update(RemoteDebugState* state)
 	{
 		// Connection is active
 		// Read input and accumulate a command
-		remaining = RDB_CMD_MAX_SIZE - state->cmd_pos;
+		remaining = sizeof(state->cmd_buf);
 		
 #if HAVE_UNIX_DOMAIN_SOCKETS
 		int bytes = recv(state->AcceptedFD, 
-			&state->cmd_buf[state->cmd_pos],
+			state->cmd_buf,
 			remaining,
 			MSG_DONTWAIT);
 #endif
 #if HAVE_WINSOCK_SOCKETS
 		int bytes = recv(state->AcceptedFD, 
-			&state->cmd_buf[state->cmd_pos],
+			state->cmd_buf,
 			remaining,
 			0);
 #endif
 
 		if (bytes > 0)
 		{
-			// New data. Is there a command in there (null-terminated string)
-			state->cmd_pos += bytes;
+			// New data.
+			// Add to the resizeable buffer
+			RemoteDebugBuffer_Add(&state->input_buf, state->cmd_buf, bytes);
+			// Check for completed commands
 			RemoteDebug_ProcessBuffer(state);
 		}
 		else if (bytes == 0)
@@ -1403,19 +1588,7 @@ void RemoteDebug_UnInit()
 	printf("Stopping remote debug\n");
 	DebugUI_RegisterRemoteDebug(NULL);
 
-	if (g_rdbState.AcceptedFD != -1)
-	{
-		RDB_CLOSE(g_rdbState.AcceptedFD);
-	}
-
-	if (g_rdbState.SocketFD != -1)
-	{
-		RDB_CLOSE(g_rdbState.SocketFD);
-	}
-
-	g_rdbState.AcceptedFD = -1;
-	g_rdbState.SocketFD = -1;
-	g_rdbState.cmd_pos = 0;
+	RemoteDebugState_UnInit(&g_rdbState);
 }
 
 bool RemoteDebug_Update(void)

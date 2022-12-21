@@ -48,6 +48,10 @@ public:
     uint64_t SetProfileEnable(bool enable);
     uint64_t SetFastForward(bool enable);
     uint64_t SendConsoleCommand(const std::string& cmd);
+    uint64_t SendMemFind(const QVector<uint8_t>& valuesAndMasks, uint32_t startAddress, uint32_t endAddress);
+
+    // Don't use this except for testing
+    uint64_t DebugSendRawPacket(const char* command);
 
 private slots:
 
@@ -58,7 +62,6 @@ private slots:
    void readyRead();
 
 private:
-    // TODO deprecate so this is some kind of sensible interface.
     uint64_t SendCommandPacket(const char* command);
     uint64_t SendCommandShared(MemorySlot slot, std::string command);
 
