@@ -9,6 +9,7 @@
 #include "../models/memory.h"
 #include "../models/session.h"
 #include "showaddressactions.h"
+#include "searchdialog.h"
 
 class TargetModel;
 class Dispatcher;
@@ -23,10 +24,9 @@ public:
     DisasmWidget(QWidget * parent, Session* m_pSession, int windowIndex);
     virtual ~DisasmWidget() override;
 
-    // "The model emits signals to indicate changes. For example, dataChanged() is emitted whenever items of data made available by the model are changed"
-    // So I expect we can emit that if we see the target has changed
-
     uint32_t GetAddress() const { return m_logicalAddr; }
+    bool GetAddressAtCursor(uint32_t& addr) const;
+
     int GetRowCount() const     { return m_rowCount; }
     bool GetFollowPC() const    { return m_bFollowPC; }
     bool GetShowHex() const     { return m_bShowHex; }
@@ -34,6 +34,7 @@ public:
     bool GetEA(int row, int operandIndex, uint32_t &addr);
 
     bool SetAddress(std::string addr);
+    bool SetSearchResultAddress(uint32_t addr);
     void MoveUp();
     void MoveDown();
 
@@ -237,6 +238,9 @@ protected slots:
     void showHexClickedSlot();
     void followPCClickedSlot();
 
+    void findClickedSlot();
+    void nextClickedSlot();
+    void searchResultsSlot(uint64_t responseId);
 private:
 
     void UpdateTextBox();
@@ -251,6 +255,9 @@ private:
     QAbstractItemModel* m_pSymbolTableModel;        // used for autocomplete
 
     int             m_windowIndex;
+
+    SearchSettings      m_searchSettings;
+    uint64_t            m_searchRequestId;
 };
 
 #endif // DISASMWINDOW_H

@@ -18,6 +18,7 @@
 #include "../transport/dispatcher.h"
 #include "../models/targetmodel.h"
 #include "../models/stringparsers.h"
+#include "../models/stringformat.h"
 #include "../models/symboltablemodel.h"
 #include "../models/memory.h"
 #include "../models/session.h"
@@ -92,6 +93,12 @@ DisasmWidget::~DisasmWidget()
 
 }
 
+bool DisasmWidget::GetAddressAtCursor(uint32_t& addr) const
+{
+    addr = 0;
+    return GetInstructionAddr(m_cursorRow, addr);
+}
+
 void DisasmWidget::SetAddress(uint32_t addr)
 {
     // Request memory for this region and save the address.
@@ -146,6 +153,13 @@ bool DisasmWidget::SetAddress(std::string addrStr)
     }
 
     SetAddress(addr);
+    return true;
+}
+
+bool DisasmWidget::SetSearchResultAddress(uint32_t addr)
+{
+    SetAddress(addr);
+    m_cursorRow = 0;
     return true;
 }
 
@@ -1100,7 +1114,8 @@ DisasmWindow::DisasmWindow(QWidget *parent, Session* pSession, int windowIndex) 
     m_pSession(pSession),
     m_pTargetModel(pSession->m_pTargetModel),
     m_pDispatcher(pSession->m_pDispatcher),
-    m_windowIndex(windowIndex)
+    m_windowIndex(windowIndex),
+    m_searchRequestId(0)
 {
     QString key = QString::asprintf("DisasmView%d", m_windowIndex);
     setObjectName(key);
@@ -1149,13 +1164,18 @@ DisasmWindow::DisasmWindow(QWidget *parent, Session* pSession, int windowIndex) 
     // Now that everything is set up we can load the setings
     loadSettings();
 
+    // The scope here is explained at https://forum.qt.io/topic/67981/qshortcut-multiple-widget-instances/2
+    new QShortcut(QKeySequence("Ctrl+F"),         this, SLOT(findClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(QKeySequence("F3"),             this, SLOT(nextClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
+
     // Listen for start/stop, so we can update our memory request
-    connect(m_pDisasmWidget,&DisasmWidget::addressChanged,        this, &DisasmWindow::UpdateTextBox);
-    connect(m_pAddressEdit, &QLineEdit::returnPressed,            this, &DisasmWindow::returnPressedSlot);
-    connect(m_pAddressEdit, &QLineEdit::textEdited,               this, &DisasmWindow::textChangedSlot);
-    connect(m_pFollowPC,    &QCheckBox::clicked,                  this, &DisasmWindow::followPCClickedSlot);
-    connect(m_pShowHex,     &QCheckBox::clicked,                  this, &DisasmWindow::showHexClickedSlot);
-    connect(m_pSession,     &Session::addressRequested,           this, &DisasmWindow::requestAddress);
+    connect(m_pDisasmWidget,&DisasmWidget::addressChanged,            this, &DisasmWindow::UpdateTextBox);
+    connect(m_pAddressEdit, &QLineEdit::returnPressed,                this, &DisasmWindow::returnPressedSlot);
+    connect(m_pAddressEdit, &QLineEdit::textEdited,                   this, &DisasmWindow::textChangedSlot);
+    connect(m_pFollowPC,    &QCheckBox::clicked,                      this, &DisasmWindow::followPCClickedSlot);
+    connect(m_pShowHex,     &QCheckBox::clicked,                      this, &DisasmWindow::showHexClickedSlot);
+    connect(m_pSession,     &Session::addressRequested,               this, &DisasmWindow::requestAddress);
+    connect(m_pTargetModel, &TargetModel::searchResultsChangedSignal, this, &DisasmWindow::searchResultsSlot);
 
     this->resizeEvent(nullptr);
 }
@@ -1268,3 +1288,84 @@ void DisasmWindow::UpdateTextBox()
     uint32_t addr = m_pDisasmWidget->GetAddress();
     m_pAddressEdit->setText(QString::asprintf("$%x", addr));
 }
+
+void DisasmWindow::findClickedSlot()
+{
+    if (!m_pTargetModel->IsConnected())
+        return;
+
+    uint32_t addr = 0;
+    if (!m_pDisasmWidget->GetAddressAtCursor(addr))
+        return;
+
+    {
+        // Fill in the "default"
+        m_searchSettings.m_startAddress = addr;
+        if (m_searchSettings.m_endAddress == 0)
+            m_searchSettings.m_endAddress = m_pTargetModel->GetSTRamSize();
+
+        SearchDialog search(this, m_pTargetModel, m_searchSettings);
+        search.setModal(true);
+        int code = search.exec();
+        if (code == QDialog::DialogCode::Accepted &&
+            m_pTargetModel->IsConnected())
+        {
+            m_searchRequestId = m_pDispatcher->SendMemFind(m_searchSettings.m_masksAndValues,
+                                     m_searchSettings.m_startAddress,
+                                     m_searchSettings.m_endAddress);
+            //m_pSearchLabel->setText(QString("Searching: " + m_searchSettings.m_originalText));
+            //m_pSearchLabel->setVisible(true);
+        }
+    }
+}
+
+void DisasmWindow::nextClickedSlot()
+{
+    if (!m_pTargetModel->IsConnected())
+        return;
+
+    uint32_t addr;
+    if (!m_pDisasmWidget->GetAddressAtCursor(addr))
+        return;
+
+    if (m_searchSettings.m_masksAndValues.size() != 0)
+    {
+        // Start address should already have been filled
+        {
+            m_searchRequestId = m_pDispatcher->SendMemFind(m_searchSettings.m_masksAndValues,
+                                     addr + 1,
+                                     m_searchSettings.m_endAddress);
+        }
+    }
+}
+
+void DisasmWindow::searchResultsSlot(uint64_t responseId)
+{
+    if (responseId == m_searchRequestId)
+    {
+        const SearchResults& results = m_pTargetModel->GetSearchResults();
+        if (results.addresses.size() > 0)
+        {
+            uint32_t addr = results.addresses[0];
+            m_pDisasmWidget->SetFollowPC(false);
+            m_pFollowPC->setChecked(false);
+            m_pDisasmWidget->SetSearchResultAddress(addr);
+
+            // Allow the "next" operation to work
+            m_searchSettings.m_startAddress = addr + 1;
+            m_pDisasmWidget->setFocus();
+            //m_pSearchLabel->setText(QString("String '%1' found at %2").
+            //                       arg(m_searchSettings.m_originalText).
+            //                       arg(Format::to_hex32(addr)));
+            //m_pSearchLabel->setVisible(true);
+        }
+        else
+        {
+            //m_pSearchLabel->setText(QString("String '%1' not found").
+            //                       arg(m_searchSettings.m_originalText));
+            //m_pSearchLabel->setVisible(true);
+        }
+        m_searchRequestId = 0;
+    }
+}
+
