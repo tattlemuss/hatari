@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <QObject>
+#include <QVector>
 
 #include "transport/remotecommand.h"
 #include "breakpoint.h"
@@ -75,30 +76,51 @@ public:
     void SetConfig(uint32_t machineType, uint32_t cpuLevel, uint32_t stRamSize);
 
     // These are called by the Dispatcher when responses arrive
+    // emits registersChangedSignal()
     void SetRegisters(const Registers& regs, uint64_t commandId);
+
+    // emits memoryChangedSignal()
     void SetMemory(MemorySlot slot, const Memory* pMem, uint64_t commandId);
+
+    // emits breakpointsChangedSignal()
     void SetBreakpoints(const Breakpoints& bps, uint64_t commandId);
 
     // Set Hatari's subtable of symbols
+    // emits symbolTableChangedSignal()
     void SetSymbolTable(const SymbolSubTable& syms, uint64_t commandId);
+
+    // emits exceptionMaskChanged()
     void SetExceptionMask(const ExceptionMask& mask);
+
+    // Sets YM registers/internals
+    // emits ymChangedSignal()
     void SetYm(const YmState& state);
+
+    // Called when a memset command is known to have changed a memory region.
+    // emits otherMemoryChangedSignal()
     void NotifyMemoryChanged(uint32_t address, uint32_t size);
+
+    // emits searchResultsChangedSignal()
     void SetSearchResults(uint64_t commmandId, const SearchResults& results);
 
-    // Update profiling data
+    // The following 2 commands are processed as a batch
+    // Update profiling data. Does not emit signal
     void AddProfileDelta(const ProfileDelta& delta);
+    // emits profileChangedSignal()
     void ProfileDeltaComplete(int enabled);
 
     // (Called from UI)
+    // emits profileChangedSignal()
     void ProfileReset();
 
     // User-added console command. Anything can happen!
     void ConsoleCommand();
 
     // User-inserted dummy command to signal e.g. end of a series of updates
+    // emits flushSignal()
     void Flush(uint64_t commmandId);
 
+    // =========================== DATA ACCESS =================================
 	// NOTE: all these return copies to avoid data contention
     MACHINETYPE	GetMachineType() const { return m_machineType; }
 
@@ -148,14 +170,22 @@ signals:
 	// When new CPU registers are changed
     void registersChangedSignal(uint64_t commandId);
 
-	// When a block of fetched memory is changed
-	// TODO: don't have every view listening to the same slot?
+    // When a block of fetched memory is changed/updated
     void memoryChangedSignal(int memorySlot, uint64_t commandId);
 
+    // When breakpoints data is updated
     void breakpointsChangedSignal(uint64_t commandId);
+
+    // When symbol table is updated
     void symbolTableChangedSignal(uint64_t commandId);
+
+    // When search results returned. Use GetSearchResults()
     void searchResultsChangedSignal(uint64_t commandId);
+
+    // When exception mask updated
     void exceptionMaskChanged();
+
+    // When new YM state updated
     void ymChangedSignal();
 
     // Something edited memory
