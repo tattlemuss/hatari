@@ -22,6 +22,7 @@
 #include "../models/symboltablemodel.h"
 #include "../models/memory.h"
 #include "../models/session.h"
+#include "colouring.h"
 #include "quicklayout.h"
 #include "symboltext.h"
 
@@ -1249,28 +1250,16 @@ void DisasmWindow::keyPageUpPressed()
 
 void DisasmWindow::returnPressedSlot()
 {
-    QColor col = m_pDisasmWidget->SetAddress(m_pAddressEdit->text().toStdString()) ?
-                      QGuiApplication::palette().base().color() : Qt::red;
-    QPalette pal = m_pAddressEdit->palette();
-    pal.setColor(QPalette::Base, col);
-    m_pAddressEdit->setAutoFillBackground(true);
-    m_pAddressEdit->setPalette(pal);
+    bool success = m_pDisasmWidget->SetAddress(m_pAddressEdit->text().toStdString());
+    Colouring::SetErrorState(m_pAddressEdit, success);
 }
 
 void DisasmWindow::textChangedSlot()
 {
     uint32_t addr;
-    QColor col = Qt::green;
-    if (!StringParsers::ParseExpression(m_pAddressEdit->text().toStdString().c_str(), addr,
-                                       m_pTargetModel->GetSymbolTable(), m_pTargetModel->GetRegs()))
-    {
-        col = Qt::red;
-    }
-
-    QPalette pal = m_pAddressEdit->palette();
-    pal.setColor(QPalette::Base, col);
-    m_pAddressEdit->setAutoFillBackground(true);
-    m_pAddressEdit->setPalette(pal);
+    bool success = StringParsers::ParseExpression(m_pAddressEdit->text().toStdString().c_str(), addr,
+                                       m_pTargetModel->GetSymbolTable(), m_pTargetModel->GetRegs());
+    Colouring::SetErrorState(m_pAddressEdit, success);
 }
 
 void DisasmWindow::showHexClickedSlot()

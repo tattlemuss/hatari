@@ -81,6 +81,7 @@ HEADERS += \
     transport/remotecommand.h \
     ui/addbreakpointdialog.h \
     ui/breakpointswidget.h \
+    ui/colouring.h \
     ui/consolewindow.h \
     ui/disasmwidget.h \
     ui/exceptiondialog.h \

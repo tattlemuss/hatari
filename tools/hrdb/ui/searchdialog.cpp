@@ -12,6 +12,7 @@
 #include "../models/stringparsers.h"
 #include "../models/symboltablemodel.h"
 #include "../models/targetmodel.h"
+#include "colouring.h"
 
 bool SearchSettings::CalcValues()
 {
@@ -172,40 +173,41 @@ void SearchDialog::modeChangedSlot(int index)
 bool SearchDialog::checkInputs()
 {
     bool valid = true;
+    bool startValid = true;
+    bool endValid = true;
+    bool textValid = true;
 
     m_localSettings.m_originalText = m_pLineEditString->text();
     if (!m_localSettings.CalcValues())
-        valid = false;
+        textValid = false;
 
     if (m_localSettings.m_masksAndValues.size() == 0)
-        valid = false;
+        textValid = false;
 
     uint32_t addr;
-    if (StringParsers::ParseExpression(m_pLineEditStart->text().toStdString().c_str(), addr,
-                                       m_pTargetModel->GetSymbolTable(), m_pTargetModel->GetRegs()))
-    {
+    startValid = StringParsers::ParseExpression(m_pLineEditStart->text().toStdString().c_str(), addr,
+                                       m_pTargetModel->GetSymbolTable(), m_pTargetModel->GetRegs());
+    if (startValid)
         m_localSettings.m_startAddress = addr;
-    }
-    else
-    {
-        valid = false;
-    }
 
-    if (StringParsers::ParseExpression(m_pLineEditEnd->text().toStdString().c_str(), addr,
-                                       m_pTargetModel->GetSymbolTable(), m_pTargetModel->GetRegs()))
-    {
+    endValid = StringParsers::ParseExpression(m_pLineEditEnd->text().toStdString().c_str(), addr,
+                                       m_pTargetModel->GetSymbolTable(), m_pTargetModel->GetRegs());
+
+    if (endValid)
         m_localSettings.m_endAddress = addr;
-    }
-    else
-    {
-        valid = false;
-    }
 
     if (m_localSettings.m_startAddress >= m_localSettings.m_endAddress)
-        valid = false;
+        valid = startValid = endValid = false;
+
+    valid &= textValid;
+    valid &= startValid;
+    valid &= endValid;
 
     // Apply to the UI
     m_pMatchCaseCheckbox->setEnabled(m_localSettings.m_mode == SearchSettings::kText);
     m_pOkButton->setEnabled(valid);
+    Colouring::SetErrorState(m_pLineEditString, textValid);
+    Colouring::SetErrorState(m_pLineEditStart, startValid);
+    Colouring::SetErrorState(m_pLineEditEnd, endValid);
     return valid;
 }
