@@ -376,7 +376,7 @@ bool StringParsers::ParseExpression(const char *pText, uint32_t &result, const S
         }
         else if (IsDecimalDigit(head))
         {
-            // Hex constant
+            // Decimal constant
             Token t;
             t.type = Token::CONSTANT;
             t.val = 0;
