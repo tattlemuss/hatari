@@ -378,6 +378,11 @@ char MemoryWidget::IsEditKey(const QKeyEvent* event)
     if (event->text().size() == 0)
         return 0;
 
+    if (event->modifiers() & Qt::ControlModifier)
+        return 0;
+    if (event->modifiers() & Qt::AltModifier)
+        return 0;
+
     QChar ch = event->text().at(0);
     signed char ascii = ch.toLatin1();
 
