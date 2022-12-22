@@ -2,6 +2,7 @@
 
 #include <QCheckBox>
 #include <QComboBox>
+#include <QCompleter>
 #include <QGroupBox>
 #include <QLabel>
 #include <QLineEdit>
@@ -9,6 +10,7 @@
 #include <QPushButton>
 #include "../models/stringformat.h"
 #include "../models/stringparsers.h"
+#include "../models/symboltablemodel.h"
 #include "../models/targetmodel.h"
 
 bool SearchSettings::CalcValues()
@@ -59,6 +61,10 @@ SearchDialog::SearchDialog(QWidget *parent, const TargetModel* pTargetModel, Sea
     // Take a copy of the input settings
     m_localSettings = returnedSettings;
 
+    SymbolTableModel* pSymbolTableModel = new SymbolTableModel(this, m_pTargetModel->GetSymbolTable());
+    QCompleter* pCompl = new QCompleter(pSymbolTableModel, this);
+    pCompl->setCaseSensitivity(Qt::CaseSensitivity::CaseInsensitive);
+
     // Widgets.
     m_pModeCombo = new QComboBox(this);
     m_pModeCombo->insertItem(SearchSettings::kText, "Text");
@@ -72,8 +78,10 @@ SearchDialog::SearchDialog(QWidget *parent, const TargetModel* pTargetModel, Sea
 
     m_pLineEditStart = new QLineEdit(this);
     m_pLineEditStart->setText(Format::to_hex32(m_localSettings.m_startAddress));
+    m_pLineEditStart->setCompleter(pCompl);
     m_pLineEditEnd = new QLineEdit(this);
     m_pLineEditEnd->setText(Format::to_hex32(m_localSettings.m_endAddress));
+    m_pLineEditEnd->setCompleter(pCompl);
 
     // Bottom OK/Cancel buttons
     m_pOkButton = new QPushButton("&OK", this);
