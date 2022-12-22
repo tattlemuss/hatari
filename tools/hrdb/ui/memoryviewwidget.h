@@ -39,6 +39,8 @@ public:
     Mode GetMode() const { return m_mode; }
     bool GetAddressAtCursor(uint32_t &address) const;
 
+    // Checks expression validity
+    bool CanSetExpression(std::string expression) const;
     // Set the text expression used as the address.
     // returns false if expression is invalid
     bool SetExpression(std::string expression);
@@ -195,7 +197,8 @@ public:
 public slots:
     void requestAddress(Session::WindowType type, int windowIndex, uint32_t address);
 
-    void textEditChangedSlot();
+    void returnPressedSlot();
+    void textEditedSlot();
     void lockChangedSlot();
     void modeComboBoxChanged(int index);
     void findClickedSlot();

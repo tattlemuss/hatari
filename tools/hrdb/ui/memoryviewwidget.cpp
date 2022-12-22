@@ -23,6 +23,7 @@
 #include "../models/stringparsers.h"
 #include "../models/symboltablemodel.h"
 #include "../models/session.h"
+#include "colouring.h"
 #include "quicklayout.h"
 #include "searchdialog.h"
 
@@ -107,6 +108,14 @@ bool MemoryWidget::GetAddressAtCursor(uint32_t& address) const
         return true;
     }
     return false;
+}
+
+bool MemoryWidget::CanSetExpression(std::string expression) const
+{
+    uint32_t addr;
+    return StringParsers::ParseExpression(expression.c_str(), addr,
+                                        m_pTargetModel->GetSymbolTable(),
+                                        m_pTargetModel->GetRegs());
 }
 
 bool MemoryWidget::SetExpression(std::string expression)
@@ -1004,9 +1013,12 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
     // The scope here is explained at https://forum.qt.io/topic/67981/qshortcut-multiple-widget-instances/2
     new QShortcut(QKeySequence("Ctrl+F"),         this, SLOT(findClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
     new QShortcut(QKeySequence("F3"),             this, SLOT(nextClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(QKeySequence("Ctrl+G"),         this, [=] () { m_pLineEdit->setFocus(); }, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(QKeySequence("Ctrl+L"),         this, [=] () { m_pLockCheckBox->toggle(); }, Qt::WidgetWithChildrenShortcut);
 
     // Listen for start/stop, so we can update our memory request
-    connect(m_pLineEdit,     &QLineEdit::returnPressed,        this, &MemoryWindow::textEditChangedSlot);
+    connect(m_pLineEdit,     &QLineEdit::returnPressed,        this, &MemoryWindow::returnPressedSlot);
+    connect(m_pLineEdit,     &QLineEdit::textChanged,          this, &MemoryWindow::textEditedSlot);
     connect(m_pLockCheckBox, &QCheckBox::stateChanged,         this, &MemoryWindow::lockChangedSlot);
     connect(m_pComboBox,     SIGNAL(currentIndexChanged(int)), SLOT(modeComboBoxChanged(int)));
     connect(m_pSession,      &Session::addressRequested,       this, &MemoryWindow::requestAddress);
@@ -1059,10 +1071,15 @@ void MemoryWindow::requestAddress(Session::WindowType type, int windowIndex, uin
     this->keyFocus();
 }
 
-
-void MemoryWindow::textEditChangedSlot()
+void MemoryWindow::returnPressedSlot()
 {
     m_pMemoryWidget->SetExpression(m_pLineEdit->text().toStdString());
+}
+
+void MemoryWindow::textEditedSlot()
+{
+    bool valid = m_pMemoryWidget->CanSetExpression(m_pLineEdit->text().toStdString());
+    Colouring::SetErrorState(m_pLineEdit, valid);
 }
 
 void MemoryWindow::lockChangedSlot()

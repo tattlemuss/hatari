@@ -201,6 +201,10 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     m_pLockAddressToVideoCheckBox->setChecked(true);
     m_pLockFormatToVideoCheckBox->setChecked(true);
 
+    // Keyboard shortcuts
+    new QShortcut(QKeySequence("Ctrl+G"),         this, [=] () { m_pBitmapAddressLineEdit->setFocus(); }, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(QKeySequence("Ctrl+L"),         this, [=] () { m_pLockAddressToVideoCheckBox->toggle(); }, Qt::WidgetWithChildrenShortcut);
+
     connect(m_pTargetModel,  &TargetModel::connectChangedSignal,          this, &GraphicsInspectorWidget::connectChangedSlot);
     connect(m_pTargetModel,  &TargetModel::startStopChangedSignal,        this, &GraphicsInspectorWidget::startStopChangedSlot);
     connect(m_pTargetModel,  &TargetModel::startStopChangedSignalDelayed, this, &GraphicsInspectorWidget::startStopDelayedChangedSlot);

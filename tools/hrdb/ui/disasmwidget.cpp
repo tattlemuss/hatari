@@ -952,6 +952,11 @@ void DisasmWidget::SetShowHex(bool show)
 void DisasmWidget::SetFollowPC(bool bFollow)
 {
     m_bFollowPC = bFollow;
+    if (bFollow)
+    {
+        uint32_t pc = m_pTargetModel->GetStartStopPC();
+        SetAddress(pc);
+    }
     update();
 }
 
@@ -1168,13 +1173,15 @@ DisasmWindow::DisasmWindow(QWidget *parent, Session* pSession, int windowIndex) 
     // The scope here is explained at https://forum.qt.io/topic/67981/qshortcut-multiple-widget-instances/2
     new QShortcut(QKeySequence("Ctrl+F"),         this, SLOT(findClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
     new QShortcut(QKeySequence("F3"),             this, SLOT(nextClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(QKeySequence("Ctrl+G"),         this, [=] () { m_pAddressEdit->setFocus(); }, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(QKeySequence("Ctrl+L"),         this, [=] () { m_pFollowPC->toggle(); }, Qt::WidgetWithChildrenShortcut);
 
     // Listen for start/stop, so we can update our memory request
     connect(m_pDisasmWidget,&DisasmWidget::addressChanged,            this, &DisasmWindow::UpdateTextBox);
     connect(m_pAddressEdit, &QLineEdit::returnPressed,                this, &DisasmWindow::returnPressedSlot);
     connect(m_pAddressEdit, &QLineEdit::textEdited,                   this, &DisasmWindow::textChangedSlot);
-    connect(m_pFollowPC,    &QCheckBox::clicked,                      this, &DisasmWindow::followPCClickedSlot);
-    connect(m_pShowHex,     &QCheckBox::clicked,                      this, &DisasmWindow::showHexClickedSlot);
+    connect(m_pFollowPC,    &QCheckBox::stateChanged,                 this, &DisasmWindow::followPCClickedSlot);
+    connect(m_pShowHex,     &QCheckBox::stateChanged,                 this, &DisasmWindow::showHexClickedSlot);
     connect(m_pSession,     &Session::addressRequested,               this, &DisasmWindow::requestAddress);
     connect(m_pTargetModel, &TargetModel::searchResultsChangedSignal, this, &DisasmWindow::searchResultsSlot);
 
