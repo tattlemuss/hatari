@@ -30,6 +30,7 @@ public:
     void keyFocus();
     void loadSettings();
     void saveSettings();
+
 private:
     void connectChangedSlot();
     void startStopChangedSlot();
@@ -46,6 +47,8 @@ private:
 private slots:
     void modeChangedSlot(int index);
     void paletteChangedSlot(int index);
+    void gotoClickedSlot();
+    void lockClickedSlot();
     void widthChangedSlot(int width);
     void heightChangedSlot(int height);
     void paddingChangedSlot(int height);

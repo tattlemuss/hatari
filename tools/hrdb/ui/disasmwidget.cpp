@@ -1173,8 +1173,8 @@ DisasmWindow::DisasmWindow(QWidget *parent, Session* pSession, int windowIndex) 
     // The scope here is explained at https://forum.qt.io/topic/67981/qshortcut-multiple-widget-instances/2
     new QShortcut(QKeySequence("Ctrl+F"),         this, SLOT(findClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
     new QShortcut(QKeySequence("F3"),             this, SLOT(nextClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
-    new QShortcut(QKeySequence("Ctrl+G"),         this, [=] () { m_pAddressEdit->setFocus(); }, Qt::WidgetWithChildrenShortcut);
-    new QShortcut(QKeySequence("Ctrl+L"),         this, [=] () { m_pFollowPC->toggle(); }, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(QKeySequence("Ctrl+G"),         this, SLOT(gotoClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(QKeySequence("Ctrl+L"),         this, SLOT(lockClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
 
     // Listen for start/stop, so we can update our memory request
     connect(m_pDisasmWidget,&DisasmWidget::addressChanged,            this, &DisasmWindow::UpdateTextBox);
@@ -1332,6 +1332,16 @@ void DisasmWindow::nextClickedSlot()
                                      m_searchSettings.m_endAddress);
         }
     }
+}
+
+void DisasmWindow::gotoClickedSlot()
+{
+    m_pAddressEdit->setFocus();
+}
+
+void DisasmWindow::lockClickedSlot()
+{
+    m_pFollowPC->toggle();
 }
 
 void DisasmWindow::searchResultsSlot(uint64_t responseId)

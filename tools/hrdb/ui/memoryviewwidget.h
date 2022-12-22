@@ -203,6 +203,8 @@ public slots:
     void modeComboBoxChanged(int index);
     void findClickedSlot();
     void nextClickedSlot();
+    void gotoClickedSlot();
+    void lockClickedSlot();
     void searchResultsSlot(uint64_t responseId);
 
 private:

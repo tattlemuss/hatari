@@ -202,8 +202,8 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     m_pLockFormatToVideoCheckBox->setChecked(true);
 
     // Keyboard shortcuts
-    new QShortcut(QKeySequence("Ctrl+G"),         this, [=] () { m_pBitmapAddressLineEdit->setFocus(); }, Qt::WidgetWithChildrenShortcut);
-    new QShortcut(QKeySequence("Ctrl+L"),         this, [=] () { m_pLockAddressToVideoCheckBox->toggle(); }, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(QKeySequence("Ctrl+G"),         this, SLOT(gotoClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(QKeySequence("Ctrl+L"),         this, SLOT(lockClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
 
     connect(m_pTargetModel,  &TargetModel::connectChangedSignal,          this, &GraphicsInspectorWidget::connectChangedSlot);
     connect(m_pTargetModel,  &TargetModel::startStopChangedSignal,        this, &GraphicsInspectorWidget::startStopChangedSlot);
@@ -474,6 +474,16 @@ void GraphicsInspectorWidget::paletteChangedSlot(int index)
     // This will recalc the image immediately if no requests have been
     // made
     UpdateMemoryRequests();
+}
+
+void GraphicsInspectorWidget::gotoClickedSlot()
+{
+    m_pBitmapAddressLineEdit->setFocus();
+}
+
+void GraphicsInspectorWidget::lockClickedSlot()
+{
+    m_pLockAddressToVideoCheckBox->toggle();
 }
 
 void GraphicsInspectorWidget::otherMemoryChangedSlot(uint32_t address, uint32_t size)

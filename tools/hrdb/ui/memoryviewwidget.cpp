@@ -1013,8 +1013,8 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
     // The scope here is explained at https://forum.qt.io/topic/67981/qshortcut-multiple-widget-instances/2
     new QShortcut(QKeySequence("Ctrl+F"),         this, SLOT(findClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
     new QShortcut(QKeySequence("F3"),             this, SLOT(nextClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
-    new QShortcut(QKeySequence("Ctrl+G"),         this, [=] () { m_pLineEdit->setFocus(); }, Qt::WidgetWithChildrenShortcut);
-    new QShortcut(QKeySequence("Ctrl+L"),         this, [=] () { m_pLockCheckBox->toggle(); }, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(QKeySequence("Ctrl+G"),         this, SLOT(gotoClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(QKeySequence("Ctrl+L"),         this, SLOT(lockClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
 
     // Listen for start/stop, so we can update our memory request
     connect(m_pLineEdit,     &QLineEdit::returnPressed,        this, &MemoryWindow::returnPressedSlot);
@@ -1139,6 +1139,16 @@ void MemoryWindow::nextClickedSlot()
                                      m_searchSettings.m_endAddress);
         }
     }
+}
+
+void MemoryWindow::gotoClickedSlot()
+{
+    m_pLineEdit->setFocus();
+}
+
+void MemoryWindow::lockClickedSlot()
+{
+    m_pLockCheckBox->toggle();
 }
 
 void MemoryWindow::searchResultsSlot(uint64_t responseId)

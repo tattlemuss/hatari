@@ -240,6 +240,8 @@ protected slots:
 
     void findClickedSlot();
     void nextClickedSlot();
+    void gotoClickedSlot();
+    void lockClickedSlot();
     void searchResultsSlot(uint64_t responseId);
 private:
 
