@@ -136,7 +136,7 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     connect(m_pWatcherCheckBox, &QCheckBox::stateChanged, this, &RunDialog::watcherActiveChanged);
     connect(pOkButton, &QPushButton::clicked, this, &RunDialog::okClicked);
     connect(pCancelButton, &QPushButton::clicked, this, &RunDialog::reject);
-    loadSettings();
+    LoadSettings();
     this->setLayout(pLayout);
 }
 
@@ -145,7 +145,7 @@ RunDialog::~RunDialog()
 
 }
 
-void RunDialog::loadSettings()
+void RunDialog::LoadSettings()
 {
     QSettings settings;
     settings.beginGroup("RunDialog");
@@ -166,7 +166,7 @@ void RunDialog::loadSettings()
     m_pBreakModeCombo->setCurrentIndex(m_launchSettings.m_breakMode);
 }
 
-void RunDialog::saveSettings()
+void RunDialog::SaveSettings()
 {
     QSettings settings;
     settings.beginGroup("RunDialog");
@@ -187,15 +187,15 @@ void RunDialog::showEvent(QShowEvent *event)
 
 void RunDialog::closeEvent(QCloseEvent *event)
 {
-    updateInternalSettingsFromUI();
-    saveSettings();
+    UpdateInternalSettingsFromUI();
+    SaveSettings();
     event->accept();
 }
 
 void RunDialog::okClicked()
 {
     // update m_launchSettings from UI elements, ready to launch
-    updateInternalSettingsFromUI();
+    UpdateInternalSettingsFromUI();
 
     QString prgText = m_pPrgTextEdit->text().trimmed();
     if (prgText.size() != 0)
@@ -209,7 +209,7 @@ void RunDialog::okClicked()
     }
 
     // Sync settings back, whether we succeed or not
-    saveSettings();
+    SaveSettings();
 
     // Execute
     bool success = LaunchHatari(m_launchSettings, m_pSession);
@@ -245,7 +245,7 @@ void RunDialog::exeClicked()
 #endif
             m_pExecutableTextEdit->setText(name);
         }
-        updateInternalSettingsFromUI();
+        UpdateInternalSettingsFromUI();
     }
 }
 
@@ -261,7 +261,7 @@ void RunDialog::prgClicked()
         m_pPrgTextEdit->setText(QDir::toNativeSeparators(filename));
 
     m_pWorkingDirectoryTextEdit->setPlaceholderText(m_pPrgTextEdit->text());        
-    updateInternalSettingsFromUI();
+    UpdateInternalSettingsFromUI();
 }
 
 void RunDialog::workingDirectoryClicked()
@@ -275,7 +275,7 @@ void RunDialog::workingDirectoryClicked()
         fileNames = dialog.selectedFiles();
         if (fileNames.length() > 0)
             m_pWorkingDirectoryTextEdit->setText(QDir::toNativeSeparators(fileNames[0]));
-        updateInternalSettingsFromUI();
+        UpdateInternalSettingsFromUI();
     }
 }
 
@@ -290,7 +290,7 @@ void RunDialog::watcherFilesClicked()
         fileNames = dialog.selectedFiles();
         if (fileNames.length() > 0)
             m_pWatcherFilesTextEdit->setText(QDir::toNativeSeparators(fileNames.join(",")));
-        updateInternalSettingsFromUI();
+        UpdateInternalSettingsFromUI();
     }
 }
 
@@ -306,7 +306,7 @@ void RunDialog::watcherActiveChanged()
         m_pWatcherFilesTextEdit->setDisabled(true);
 }
 
-void RunDialog::updateInternalSettingsFromUI()
+void RunDialog::UpdateInternalSettingsFromUI()
 {
     // Create the launcher settings as temporaries
     m_launchSettings.m_hatariFilename = m_pExecutableTextEdit->text();

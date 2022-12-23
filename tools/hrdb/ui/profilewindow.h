@@ -102,9 +102,6 @@ public slots:
 protected:
     virtual void contextMenuEvent(QContextMenuEvent *event) override;
     virtual void mouseDoubleClickEvent(QMouseEvent *event) override;
-private:
-
-private slots:
 
 private:
     ProfileTableModel*      m_pTableModel;
@@ -129,18 +126,16 @@ public:
     void saveSettings();
 
 private slots:
-    void connectChangedSlot();
-    void startStopChangedSlot();
-    void startStopDelayeSlot(int running);
-    void profileChangedSlot();
-    void settingsChangedSlot();
     void groupingChangedSlot(int index);
 
+private:
+    void connectChanged();
+    void startStopChanged();
+    void startStopDelayed(int running);
+    void profileChanged();
+    void settingsChanged();
     void startStopClicked();
     void resetClicked();
-
-private:
-    void updateText();
 
     Session*            m_pSession;
     TargetModel*        m_pTargetModel;

@@ -24,7 +24,7 @@ protected:
     virtual void showEvent(QShowEvent *event) override;
     virtual void closeEvent(QCloseEvent *event) override;
 
-private slots:
+private:
     void okClicked();
     void exeClicked();
     void prgClicked();
@@ -33,13 +33,12 @@ private slots:
     void watcherTextChanged();
     void watcherActiveChanged();
 
-private:
     // Settings
-    void loadSettings();
-    void saveSettings();
+    void LoadSettings();
+    void SaveSettings();
 
     // This updates the local copy of the settings from the UI boxes
-    void updateInternalSettingsFromUI();
+    void UpdateInternalSettingsFromUI();
 
     // UI elements
     QLineEdit*      m_pExecutableTextEdit;

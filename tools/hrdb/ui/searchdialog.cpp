@@ -123,14 +123,14 @@ SearchDialog::SearchDialog(QWidget *parent, const TargetModel* pTargetModel, Sea
     pLayout->addWidget(pButtonContainer);
     m_pLineEditString->setFocus();
 
-    checkInputs();
+    CheckInputs();
 
-    connect(m_pLineEditStart,     &QLineEdit::textChanged,        this, &SearchDialog::textEditChangedSlot);
-    connect(m_pLineEditEnd,       &QLineEdit::textChanged,        this, &SearchDialog::textEditChangedSlot);
-    connect(m_pLineEditString,    &QLineEdit::textChanged,        this, &SearchDialog::textEditChangedSlot);
+    connect(m_pLineEditStart,     &QLineEdit::textChanged,        this, &SearchDialog::textEditChanged);
+    connect(m_pLineEditEnd,       &QLineEdit::textChanged,        this, &SearchDialog::textEditChanged);
+    connect(m_pLineEditString,    &QLineEdit::textChanged,        this, &SearchDialog::textEditChanged);
 
     connect(m_pModeCombo, SIGNAL(activated(int)), SLOT(modeChangedSlot(int)));  // this is user-changed
-    connect(m_pMatchCaseCheckbox, &QCheckBox::toggled,            this, &SearchDialog::matchCaseChangedSlot);
+    connect(m_pMatchCaseCheckbox, &QCheckBox::toggled,            this, &SearchDialog::matchCaseChanged);
     connect(m_pOkButton, &QPushButton::clicked, this, &SearchDialog::okClicked);
     connect(m_pOkButton, &QPushButton::clicked, this, &SearchDialog::accept);
     connect(pCancelButton, &QPushButton::clicked, this, &SearchDialog::reject);
@@ -144,7 +144,7 @@ void SearchDialog::showEvent(QShowEvent *event)
 
 void SearchDialog::okClicked()
 {
-    if (!checkInputs())
+    if (!CheckInputs())
         return;
 
     // Generate the string in local settings
@@ -153,24 +153,24 @@ void SearchDialog::okClicked()
     m_returnedSettings = m_localSettings;
 }
 
-void SearchDialog::textEditChangedSlot()
+void SearchDialog::textEditChanged()
 {
-    checkInputs();
+    CheckInputs();
 }
 
-void SearchDialog::matchCaseChangedSlot()
+void SearchDialog::matchCaseChanged()
 {
     m_localSettings.m_matchCase = m_pMatchCaseCheckbox->isChecked();
-    checkInputs();
+    CheckInputs();
 }
 
 void SearchDialog::modeChangedSlot(int index)
 {
     m_localSettings.m_mode = (SearchSettings::Mode) index;
-    checkInputs();
+    CheckInputs();
 }
 
-bool SearchDialog::checkInputs()
+bool SearchDialog::CheckInputs()
 {
     bool valid = true;
     bool startValid = true;

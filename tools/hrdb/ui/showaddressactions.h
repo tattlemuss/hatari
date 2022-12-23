@@ -19,13 +19,12 @@ public:
     void addActionsToMenu(QMenu* pMenu) const;
     void setAddress(Session* pSession, uint32_t address);
 
-private slots:
-    // Callbacks when "show in Memory X" etc is selected
-    void disasmViewTrigger(int windowIndex);
-    void memoryViewTrigger(int windowIndex);
-    void graphicsInspectorTrigger();
-
 private:
+    // Functions (invoked via lambdas) when "show in Memory X" etc is selected
+    void TriggerDisasmView(int windowIndex);
+    void TriggerMemoryView(int windowIndex);
+    void TriggerGraphicsInspector();
+
     // What address will be set to the Window chosen
     uint32_t     m_activeAddress;
 

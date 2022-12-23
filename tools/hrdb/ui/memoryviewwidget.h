@@ -49,15 +49,6 @@ public:
     void SetLock(bool locked);
     void SetMode(Mode mode);
 
-public slots:
-    void memoryChangedSlot(int memorySlot, uint64_t commandId);
-    void startStopChangedSlot();
-    void connectChangedSlot();
-    void registersChangedSlot();
-    void otherMemoryChangedSlot(uint32_t address, uint32_t size);
-    void symbolTableChangedSlot();
-    void settingsChangedSlot();
-
 protected:
     virtual void paintEvent(QPaintEvent*) override;
     virtual void keyPressEvent(QKeyEvent*) override;
@@ -68,6 +59,14 @@ protected:
     virtual bool event(QEvent *event) override;
 
 private:
+    void memoryChanged(int memorySlot, uint64_t commandId);
+    void startStopChanged();
+    void connectChanged();
+    void registersChanged();
+    void otherMemoryChanged(uint32_t address, uint32_t size);
+    void symbolTableChanged();
+    void settingsChanged();
+
     void MoveUp();
     void MoveDown();
     void MoveLeft();

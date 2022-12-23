@@ -83,13 +83,13 @@ MemoryWidget::MemoryWidget(QWidget *parent, Session* pSession,
     setFocusPolicy(Qt::StrongFocus);
     setAutoFillBackground(true);
 
-    connect(m_pTargetModel, &TargetModel::memoryChangedSignal,      this, &MemoryWidget::memoryChangedSlot);
-    connect(m_pTargetModel, &TargetModel::startStopChangedSignal,   this, &MemoryWidget::startStopChangedSlot);
-    connect(m_pTargetModel, &TargetModel::registersChangedSignal,   this, &MemoryWidget::registersChangedSlot);
-    connect(m_pTargetModel, &TargetModel::connectChangedSignal,     this, &MemoryWidget::connectChangedSlot);
-    connect(m_pTargetModel, &TargetModel::otherMemoryChangedSignal, this, &MemoryWidget::otherMemoryChangedSlot);
-    connect(m_pTargetModel, &TargetModel::symbolTableChangedSignal, this, &MemoryWidget::symbolTableChangedSlot);
-    connect(m_pSession,     &Session::settingsChanged,              this, &MemoryWidget::settingsChangedSlot);
+    connect(m_pTargetModel, &TargetModel::memoryChangedSignal,      this, &MemoryWidget::memoryChanged);
+    connect(m_pTargetModel, &TargetModel::startStopChangedSignal,   this, &MemoryWidget::startStopChanged);
+    connect(m_pTargetModel, &TargetModel::registersChangedSignal,   this, &MemoryWidget::registersChanged);
+    connect(m_pTargetModel, &TargetModel::connectChangedSignal,     this, &MemoryWidget::connectChanged);
+    connect(m_pTargetModel, &TargetModel::otherMemoryChangedSignal, this, &MemoryWidget::otherMemoryChanged);
+    connect(m_pTargetModel, &TargetModel::symbolTableChangedSignal, this, &MemoryWidget::symbolTableChanged);
+    connect(m_pSession,     &Session::settingsChanged,              this, &MemoryWidget::settingsChanged);
 }
 
 MemoryWidget::~MemoryWidget()
@@ -415,7 +415,7 @@ char MemoryWidget::IsEditKey(const QKeyEvent* event)
     return 0;
 }
 
-void MemoryWidget::memoryChangedSlot(int memorySlot, uint64_t commandId)
+void MemoryWidget::memoryChanged(int memorySlot, uint64_t commandId)
 {
     if (memorySlot != m_memSlot)
         return;
@@ -533,7 +533,7 @@ void MemoryWidget::RecalcText()
     update();
 }
 
-void MemoryWidget::startStopChangedSlot()
+void MemoryWidget::startStopChanged()
 {
     // Request new memory for the view
     if (!m_pTargetModel->IsRunning())
@@ -553,7 +553,7 @@ void MemoryWidget::startStopChangedSlot()
     }
 }
 
-void MemoryWidget::connectChangedSlot()
+void MemoryWidget::connectChanged()
 {
     m_rows.clear();
     m_address = 0;
@@ -561,7 +561,7 @@ void MemoryWidget::connectChangedSlot()
     update();
 }
 
-void MemoryWidget::registersChangedSlot()
+void MemoryWidget::registersChanged()
 {
     // New registers can affect expression parsing
     RecalcLockedExpression();
@@ -570,7 +570,7 @@ void MemoryWidget::registersChangedSlot()
     RequestMemory(kNoMoveCursor);
 }
 
-void MemoryWidget::otherMemoryChangedSlot(uint32_t address, uint32_t size)
+void MemoryWidget::otherMemoryChanged(uint32_t address, uint32_t size)
 {
     (void)address;
     (void)size;
@@ -579,14 +579,14 @@ void MemoryWidget::otherMemoryChangedSlot(uint32_t address, uint32_t size)
     RequestMemory(kNoMoveCursor);
 }
 
-void MemoryWidget::symbolTableChangedSlot()
+void MemoryWidget::symbolTableChanged()
 {
     // New symbol table can affect expression parsing
     RecalcLockedExpression();
     RequestMemory(kNoMoveCursor);
 }
 
-void MemoryWidget::settingsChangedSlot()
+void MemoryWidget::settingsChanged()
 {
     UpdateFont();
     RecalcRowCount();

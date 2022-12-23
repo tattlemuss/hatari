@@ -20,8 +20,8 @@ NonAntiAliasImage::NonAntiAliasImage(QWidget *parent, Session* pSession)
     setFocusPolicy(Qt::FocusPolicy::StrongFocus);
     m_pSaveImageAction = new QAction(tr("Save Image..."), this);
 
-    connect(m_pSession,         &Session::settingsChanged, this, &NonAntiAliasImage::settingsChangedSlot);
-    connect(m_pSaveImageAction, &QAction::triggered,       this, &NonAntiAliasImage::saveImageSlot);
+    connect(m_pSession,         &Session::settingsChanged, this, &NonAntiAliasImage::settingsChanged);
+    connect(m_pSaveImageAction, &QAction::triggered,       this, &NonAntiAliasImage::saveImageClicked);
 }
 
 void NonAntiAliasImage::setPixmap(int width, int height)
@@ -126,13 +126,13 @@ void NonAntiAliasImage::contextMenuEvent(QContextMenuEvent *event)
     menu.exec(event->globalPos());
 }
 
-void NonAntiAliasImage::settingsChangedSlot()
+void NonAntiAliasImage::settingsChanged()
 {
     // Force redraw in case square pixels changed
     update();
 }
 
-void NonAntiAliasImage::saveImageSlot()
+void NonAntiAliasImage::saveImageClicked()
 {
     // Choose output file
     QString filter = "Bitmap files (*.bmp *.png);;All files (*.*);";

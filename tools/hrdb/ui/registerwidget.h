@@ -22,18 +22,16 @@ protected:
     virtual void contextMenuEvent(QContextMenuEvent *event) override;
     virtual bool event(QEvent *event) override;
 
-private slots:
-    void connectChangedSlot();
-    void startStopChangedSlot();
-    void registersChangedSlot(uint64_t commandId);
-    void memoryChangedSlot(int slot, uint64_t commandId);
-    void symbolTableChangedSlot(uint64_t commandId);
-    void startStopDelayedSlot(int running);
-
-    void mainStateUpdatedSlot();
-    void settingsChangedSlot();
-
 private:
+    void connectChanged();
+    void startStopChanged();
+    void registersChanged(uint64_t commandId);
+    void memoryChanged(int slot, uint64_t commandId);
+    void symbolTableChanged(uint64_t commandId);
+    void startStopDelayed(int running);
+    void mainStateUpdated();
+    void settingsChanged();
+
     void PopulateRegisters();
     void UpdateFont();
 

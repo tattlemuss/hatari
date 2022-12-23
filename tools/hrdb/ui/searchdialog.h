@@ -42,13 +42,14 @@ protected:
     void showEvent(QShowEvent *event);
 
 private slots:
-    void okClicked();
-    void textEditChangedSlot();
-    void matchCaseChangedSlot();
     void modeChangedSlot(int index);
 
 private:
-    bool                checkInputs();
+    void okClicked();
+    void textEditChanged();
+    void matchCaseChanged();
+
+    bool                CheckInputs();
 
     const TargetModel*  m_pTargetModel;
     QLineEdit*          m_pLineEditString;

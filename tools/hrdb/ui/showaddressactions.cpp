@@ -16,12 +16,12 @@ ShowAddressActions::ShowAddressActions() :
     m_pGraphicsInspectorAction = new QAction("Show in Graphics Inspector", this);
 
     for (int i = 0; i < kNumDisasmViews; ++i)
-        connect(m_pDisasmWindowActions[i], &QAction::triggered, this, [=] () { this->disasmViewTrigger(i); } );
+        connect(m_pDisasmWindowActions[i], &QAction::triggered, this, [=] () { this->TriggerDisasmView(i); } );
 
     for (int i = 0; i < kNumMemoryViews; ++i)
-        connect(m_pMemoryWindowActions[i], &QAction::triggered, this, [=] () { this->memoryViewTrigger(i); } );
+        connect(m_pMemoryWindowActions[i], &QAction::triggered, this, [=] () { this->TriggerMemoryView(i); } );
 
-    connect(m_pGraphicsInspectorAction, &QAction::triggered, this, [=] () { this->graphicsInspectorTrigger(); } );
+    connect(m_pGraphicsInspectorAction, &QAction::triggered, this, [=] () { this->TriggerGraphicsInspector(); } );
 }
 
 ShowAddressActions::~ShowAddressActions()
@@ -46,17 +46,17 @@ void ShowAddressActions::setAddress(Session* pSession, uint32_t address)
     m_pSession = pSession;
 }
 
-void ShowAddressActions::disasmViewTrigger(int windowIndex)
+void ShowAddressActions::TriggerDisasmView(int windowIndex)
 {
     emit m_pSession->addressRequested(Session::kDisasmWindow, windowIndex, m_activeAddress);
 }
 
-void ShowAddressActions::memoryViewTrigger(int windowIndex)
+void ShowAddressActions::TriggerMemoryView(int windowIndex)
 {
     emit m_pSession->addressRequested(Session::kMemoryWindow, windowIndex, m_activeAddress);
 }
 
-void ShowAddressActions::graphicsInspectorTrigger()
+void ShowAddressActions::TriggerGraphicsInspector()
 {
     emit m_pSession->addressRequested(Session::kGraphicsInspector, 0, m_activeAddress);
 }

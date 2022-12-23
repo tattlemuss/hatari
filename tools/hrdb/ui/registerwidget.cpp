@@ -76,15 +76,15 @@ RegisterWidget::RegisterWidget(QWidget *parent, Session* pSession) :
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
     // Listen for target changes
-    connect(m_pTargetModel, &TargetModel::startStopChangedSignal,        this, &RegisterWidget::startStopChangedSlot);
-    connect(m_pTargetModel, &TargetModel::registersChangedSignal,        this, &RegisterWidget::registersChangedSlot);
-    connect(m_pTargetModel, &TargetModel::connectChangedSignal,          this, &RegisterWidget::connectChangedSlot);
-    connect(m_pTargetModel, &TargetModel::memoryChangedSignal,           this, &RegisterWidget::memoryChangedSlot);
-    connect(m_pTargetModel, &TargetModel::symbolTableChangedSignal,      this, &RegisterWidget::symbolTableChangedSlot);
-    connect(m_pTargetModel, &TargetModel::startStopChangedSignalDelayed, this, &RegisterWidget::startStopDelayedSlot);
+    connect(m_pTargetModel, &TargetModel::startStopChangedSignal,        this, &RegisterWidget::startStopChanged);
+    connect(m_pTargetModel, &TargetModel::registersChangedSignal,        this, &RegisterWidget::registersChanged);
+    connect(m_pTargetModel, &TargetModel::connectChangedSignal,          this, &RegisterWidget::connectChanged);
+    connect(m_pTargetModel, &TargetModel::memoryChangedSignal,           this, &RegisterWidget::memoryChanged);
+    connect(m_pTargetModel, &TargetModel::symbolTableChangedSignal,      this, &RegisterWidget::symbolTableChanged);
+    connect(m_pTargetModel, &TargetModel::startStopChangedSignalDelayed, this, &RegisterWidget::startStopDelayed);
 
-    connect(m_pSession, &Session::settingsChanged,  this, &RegisterWidget::settingsChangedSlot);
-    connect(m_pSession, &Session::mainStateUpdated, this, &RegisterWidget::mainStateUpdatedSlot);
+    connect(m_pSession, &Session::settingsChanged,  this, &RegisterWidget::settingsChanged);
+    connect(m_pSession, &Session::mainStateUpdated, this, &RegisterWidget::mainStateUpdated);
     setFocusPolicy(Qt::FocusPolicy::StrongFocus);
     setMouseTracking(true);
     UpdateFont();
@@ -216,12 +216,12 @@ bool RegisterWidget::event(QEvent *event)
     return QWidget::event(event);
 }
 
-void RegisterWidget::connectChangedSlot()
+void RegisterWidget::connectChanged()
 {
     PopulateRegisters();
 }
 
-void RegisterWidget::startStopChangedSlot()
+void RegisterWidget::startStopChanged()
 {
     bool isRunning = m_pTargetModel->IsRunning();
 
@@ -244,7 +244,7 @@ void RegisterWidget::startStopChangedSlot()
     }
 }
 
-void RegisterWidget::startStopDelayedSlot(int running)
+void RegisterWidget::startStopDelayed(int running)
 {
     if (m_pTargetModel->IsConnected() && running &&
             !m_pSession->GetSettings().m_liveRefresh)
@@ -256,7 +256,7 @@ void RegisterWidget::startStopDelayedSlot(int running)
     }
 }
 
-void RegisterWidget::mainStateUpdatedSlot()
+void RegisterWidget::mainStateUpdated()
 {
     // Disassemble the first instruction
     m_disasm.lines.clear();
@@ -271,20 +271,20 @@ void RegisterWidget::mainStateUpdatedSlot()
     update();
 }
 
-void RegisterWidget::settingsChangedSlot()
+void RegisterWidget::settingsChanged()
 {
     UpdateFont();
     PopulateRegisters();
     update();
 }
 
-void RegisterWidget::registersChangedSlot(uint64_t /*commandId*/)
+void RegisterWidget::registersChanged(uint64_t /*commandId*/)
 {
     // Update text here
     //PopulateRegisters();
 }
 
-void RegisterWidget::memoryChangedSlot(int slot, uint64_t /*commandId*/)
+void RegisterWidget::memoryChanged(int slot, uint64_t /*commandId*/)
 {
     if (slot != MemorySlot::kMainPC)
         return;
@@ -293,7 +293,7 @@ void RegisterWidget::memoryChangedSlot(int slot, uint64_t /*commandId*/)
 //    PopulateRegisters();
 }
 
-void RegisterWidget::symbolTableChangedSlot(uint64_t /*commandId*/)
+void RegisterWidget::symbolTableChanged(uint64_t /*commandId*/)
 {
     PopulateRegisters();
 }

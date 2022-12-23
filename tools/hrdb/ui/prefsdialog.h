@@ -26,14 +26,13 @@ protected:
     virtual void showEvent(QShowEvent *event) override;
     virtual void closeEvent(QCloseEvent *event) override;
 
-private slots:
+private:
     void okClicked();
     void squarePixelsClicked();
     void disassHexNumbersClicked();
     void liveRefreshClicked();
     void fontSelectClicked();
 
-private:
     // Make the UI reflect the stored settings (copy)
     void UpdateUIElements();
 

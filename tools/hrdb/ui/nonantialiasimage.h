@@ -30,11 +30,10 @@ protected:
     virtual void mouseMoveEvent(QMouseEvent *event) override;
     virtual void contextMenuEvent(QContextMenuEvent *event) override;
 
-private slots:
-    void settingsChangedSlot();
-    void saveImageSlot();
-
 private:
+    void settingsChanged();
+    void saveImageClicked();
+
     void UpdateString();
 
     Session*        m_pSession;
