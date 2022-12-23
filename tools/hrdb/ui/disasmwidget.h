@@ -51,23 +51,22 @@ public:
     void SetRowCount(int count);
     void SetShowHex(bool show);
     void SetFollowPC(bool follow);
-public slots:
 signals:
     void addressChanged(uint64_t addr);
 
-private slots:
-    void startStopChangedSlot();
-    void connectChangedSlot();
-    void memoryChangedSlot(int memorySlot, uint64_t commandId);
-    void breakpointsChangedSlot(uint64_t commandId);
-    void symbolTableChangedSlot(uint64_t commandId);
-    void otherMemoryChangedSlot(uint32_t address, uint32_t size);
-    void profileChangedSlot();
+private:
+    void startStopChanged();
+    void connectChanged();
+    void memoryChanged(int memorySlot, uint64_t commandId);
+    void breakpointsChanged(uint64_t commandId);
+    void symbolTableChanged(uint64_t commandId);
+    void otherMemoryChanged(uint32_t address, uint32_t size);
+    void profileChanged();
 
+    // From keyPressEvent
     void runToCursor();
     void toggleBreakpoint();
 
-private:
     virtual void paintEvent(QPaintEvent* ev) override;
     virtual void keyPressEvent(QKeyEvent* event) override;
     virtual void mouseMoveEvent(QMouseEvent* event) override;

@@ -147,40 +147,40 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     createToolBar();
 
     // Listen for target changes
-    connect(m_pTargetModel, &TargetModel::startStopChangedSignal,    this, &MainWindow::startStopChangedSlot);
-    connect(m_pTargetModel, &TargetModel::connectChangedSignal,      this, &MainWindow::connectChangedSlot);
-    connect(m_pTargetModel, &TargetModel::memoryChangedSignal,       this, &MainWindow::memoryChangedSlot);
-    connect(m_pTargetModel, &TargetModel::runningRefreshTimerSignal, this, &MainWindow::runningRefreshTimerSlot);
-    connect(m_pTargetModel, &TargetModel::flushSignal,               this, &MainWindow::flushSlot);
+    connect(m_pTargetModel, &TargetModel::startStopChangedSignal,    this, &MainWindow::startStopChanged);
+    connect(m_pTargetModel, &TargetModel::connectChangedSignal,      this, &MainWindow::connectChanged);
+    connect(m_pTargetModel, &TargetModel::memoryChangedSignal,       this, &MainWindow::memoryChanged);
+    connect(m_pTargetModel, &TargetModel::runningRefreshTimerSignal, this, &MainWindow::runningRefreshTimer);
+    connect(m_pTargetModel, &TargetModel::flushSignal,               this, &MainWindow::flush);
 
     // Wire up buttons to actions
-    connect(m_pStartStopButton, &QAbstractButton::clicked, this, &MainWindow::startStopClicked);
-    connect(m_pStepIntoButton,  &QAbstractButton::clicked, this, &MainWindow::singleStepClicked);
-    connect(m_pStepOverButton,  &QAbstractButton::clicked, this, &MainWindow::nextClicked);
-    connect(m_pRunToButton,     &QAbstractButton::clicked, this, &MainWindow::runToClicked);
+    connect(m_pStartStopButton, &QAbstractButton::clicked, this, &MainWindow::startStopClickedSlot);
+    connect(m_pStepIntoButton,  &QAbstractButton::clicked, this, &MainWindow::singleStepClickedSlot);
+    connect(m_pStepOverButton,  &QAbstractButton::clicked, this, &MainWindow::nextClickedSlot);
+    connect(m_pRunToButton,     &QAbstractButton::clicked, this, &MainWindow::runToClickedSlot);
 
     // Wire up menu appearance
     connect(m_pWindowMenu, &QMenu::aboutToShow,            this, &MainWindow::updateWindowMenu);
 
     // Status bar
-    connect(&m_session,    &Session::messageSet, this, &MainWindow::messageSetSlot);
+    connect(&m_session,    &Session::messageSet, this, &MainWindow::messageSet);
 
     // Keyboard shortcuts
-    new QShortcut(QKeySequence("Ctrl+R"),         this, SLOT(startStopClicked()));
-    new QShortcut(QKeySequence("Esc"),            this, SLOT(breakPressed()));
-    new QShortcut(QKeySequence("S"),              this, SLOT(singleStepClicked()));
-    new QShortcut(QKeySequence("Ctrl+S"),         this, SLOT(skipPressed()));
-    new QShortcut(QKeySequence("N"),              this, SLOT(nextClicked()));
-    new QShortcut(QKeySequence("U"),              this, SLOT(runToClicked()));
+    new QShortcut(QKeySequence("Ctrl+R"),         this, SLOT(startStopClickedSlot()));
+    new QShortcut(QKeySequence("Esc"),            this, SLOT(breakPressedSlot()));
+    new QShortcut(QKeySequence("S"),              this, SLOT(singleStepClickedSlot()));
+    new QShortcut(QKeySequence("Ctrl+S"),         this, SLOT(skipPressedSlot()));
+    new QShortcut(QKeySequence("N"),              this, SLOT(nextClickedSlot()));
+    new QShortcut(QKeySequence("U"),              this, SLOT(runToClickedSlot()));
 
     // Try initial connect
     ConnectTriggered();
 
     // Update everything
-    connectChangedSlot();
-    startStopChangedSlot();
+    connectChanged();
+    startStopChanged();
 
-    messageSetSlot("Welcome to hrdb!");
+    messageSet("Welcome to hrdb!");
 }
 
 MainWindow::~MainWindow()
@@ -189,7 +189,7 @@ MainWindow::~MainWindow()
     delete m_pTargetModel;
 }
 
-void MainWindow::connectChangedSlot()
+void MainWindow::connectChanged()
 {
     PopulateRunningSquare();
     updateButtonEnable();
@@ -198,7 +198,7 @@ void MainWindow::connectChangedSlot()
     //    m_pDispatcher->SendCommandPacket("profile 1");
 }
 
-void MainWindow::startStopChangedSlot()
+void MainWindow::startStopChanged()
 {
     bool isRunning = m_pTargetModel->IsRunning();
 
@@ -216,7 +216,7 @@ void MainWindow::startStopChangedSlot()
     updateButtonEnable();
 }
 
-void MainWindow::memoryChangedSlot(int slot, uint64_t /*commandId*/)
+void MainWindow::memoryChanged(int slot, uint64_t /*commandId*/)
 {
     if (slot != MemorySlot::kMainPC)
         return;
@@ -235,7 +235,7 @@ void MainWindow::memoryChangedSlot(int slot, uint64_t /*commandId*/)
     Disassembler::decode_buf(disasmBuf, m_disasm, pMem->GetAddress(), 1);
 }
 
-void MainWindow::runningRefreshTimerSlot()
+void MainWindow::runningRefreshTimer()
 {
     if (!m_pTargetModel->IsConnected())
         return;
@@ -248,7 +248,7 @@ void MainWindow::runningRefreshTimerSlot()
     }
 }
 
-void MainWindow::flushSlot(const TargetChangedFlags& /*flags*/, uint64_t commandId)
+void MainWindow::flush(const TargetChangedFlags& /*flags*/, uint64_t commandId)
 {
     if (commandId == m_liveRegisterReadRequest)
     {
@@ -265,7 +265,7 @@ void MainWindow::flushSlot(const TargetChangedFlags& /*flags*/, uint64_t command
     }
 }
 
-void MainWindow::startStopClicked()
+void MainWindow::startStopClickedSlot()
 {
     if (!m_pTargetModel->IsConnected())
         return;
@@ -276,7 +276,7 @@ void MainWindow::startStopClicked()
         m_pDispatcher->Run();
 }
 
-void MainWindow::singleStepClicked()
+void MainWindow::singleStepClickedSlot()
 {
     if (!m_pTargetModel->IsConnected())
         return;
@@ -287,7 +287,7 @@ void MainWindow::singleStepClicked()
     m_pDispatcher->Step();
 }
 
-void MainWindow::nextClicked()
+void MainWindow::nextClickedSlot()
 {
     if (!m_pTargetModel->IsConnected())
         return;
@@ -322,7 +322,7 @@ void MainWindow::nextClicked()
     }
 }
 
-void MainWindow::skipPressed()
+void MainWindow::skipPressedSlot()
 {
     if (!m_pTargetModel->IsConnected())
         return;
@@ -345,7 +345,7 @@ void MainWindow::skipPressed()
     m_pDispatcher->SetRegister(Registers::PC, nextInst.GetEnd());
 }
 
-void MainWindow::runToClicked()
+void MainWindow::runToClickedSlot()
 {
     if (!m_pTargetModel->IsConnected())
         return;
@@ -372,7 +372,7 @@ void MainWindow::addBreakpointPressed()
     dialog.exec();
 }
 
-void MainWindow::breakPressed()
+void MainWindow::breakPressedSlot()
 {
     if (!m_pTargetModel->IsConnected())
         return;
@@ -597,7 +597,7 @@ void MainWindow::aboutQt()
 {
 }
 
-void MainWindow::messageSetSlot(const QString &msg)
+void MainWindow::messageSet(const QString &msg)
 {
     this->statusBar()->showMessage(msg, 5000);
 }

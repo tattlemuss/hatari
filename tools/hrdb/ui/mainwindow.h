@@ -51,21 +51,22 @@ protected:
     virtual void closeEvent(QCloseEvent *event) override;
 
 private slots:
-    void connectChangedSlot();
-    void startStopChangedSlot();
-    void memoryChangedSlot(int slot, uint64_t commandId);
-    void runningRefreshTimerSlot();
-    void flushSlot(const TargetChangedFlags& flags, uint64_t commandId);
+    void startStopClickedSlot();
+    void singleStepClickedSlot();
+    void nextClickedSlot();
+    void skipPressedSlot();
+    void runToClickedSlot();
+    void breakPressedSlot();
+
+private:
+    void connectChanged();
+    void startStopChanged();
+    void memoryChanged(int slot, uint64_t commandId);
+    void runningRefreshTimer();
+    void flush(const TargetChangedFlags& flags, uint64_t commandId);
 
     // Button callbacks
-    void startStopClicked();
-    void singleStepClicked();
-    void nextClicked();
-    void skipPressed();
-
-    void runToClicked();
     void addBreakpointPressed();
-    void breakPressed();
 
     // Menu item callbacks
     void menuConnect();
@@ -75,9 +76,7 @@ private slots:
     void aboutQt();
 
     // status
-    void messageSetSlot(const QString& msg);
-
-private:
+    void messageSet(const QString& msg);
     void requestMainState(uint32_t pc);
     void updateWindowMenu();
 

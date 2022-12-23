@@ -27,15 +27,13 @@ public:
     void loadSettings();
     void saveSettings();
 
-private slots:
-    void connectChangedSlot();
-    void settingsChangedSlot();
-    void textEditChangedSlot();
-    void fileChangedSlot(const QString& filename);
-
 private:
-    void deleteWatcher();
+    void connectChanged();
+    void settingsChanged();
+    void textEditChanged();
+    void fileChanged(const QString& filename);
 
+    void deleteWatcher();
     QLineEdit*          m_pLineEdit;
     QTextEdit*          m_pTextArea;
 

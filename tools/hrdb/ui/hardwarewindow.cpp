@@ -1172,20 +1172,20 @@ HardwareWindow::HardwareWindow(QWidget *parent, Session* pSession) :
 
     loadSettings();
 
-    connect(pCopyButton,     &QAbstractButton::clicked,            this, &HardwareWindow::copyToClipboardSlot);
+    connect(pCopyButton,     &QAbstractButton::clicked,            this, &HardwareWindow::copyToClipboard);
 
-    connect(m_pTargetModel,  &TargetModel::connectChangedSignal,   this, &HardwareWindow::connectChangedSlot);
-    connect(m_pTargetModel,  &TargetModel::startStopChangedSignal, this, &HardwareWindow::startStopChangedSlot);
-    connect(m_pTargetModel,  &TargetModel::memoryChangedSignal,    this, &HardwareWindow::memoryChangedSlot);
-    connect(m_pTargetModel,  &TargetModel::flushSignal,            this, &HardwareWindow::flushSlot);
+    connect(m_pTargetModel,  &TargetModel::connectChangedSignal,   this, &HardwareWindow::connectChanged);
+    connect(m_pTargetModel,  &TargetModel::startStopChangedSignal, this, &HardwareWindow::startStopChanged);
+    connect(m_pTargetModel,  &TargetModel::memoryChangedSignal,    this, &HardwareWindow::memoryChanged);
+    connect(m_pTargetModel,  &TargetModel::flushSignal,            this, &HardwareWindow::flush);
 
-    connect(m_pSession,      &Session::settingsChanged,            this, &HardwareWindow::settingsChangedSlot);
+    connect(m_pSession,      &Session::settingsChanged,            this, &HardwareWindow::settingsChanged);
 
     // Refresh enable state
-    connectChangedSlot();
+    connectChanged();
 
     // Refresh font
-    settingsChangedSlot();
+    settingsChanged();
 
     // Call this after settingsChangedSlot so that the font is known
     m_pView->resizeColumnToContents(0);
@@ -1241,7 +1241,7 @@ static void AddNode(QTextStream& ref, HardwareBase* pNode, int indent)
 }
 
 //-----------------------------------------------------------------------------
-void HardwareWindow::copyToClipboardSlot()
+void HardwareWindow::copyToClipboard()
 {
     QClipboard *clipboard = QGuiApplication::clipboard();
     QString newText;
@@ -1253,7 +1253,7 @@ void HardwareWindow::copyToClipboardSlot()
 }
 
 //-----------------------------------------------------------------------------
-void HardwareWindow::connectChangedSlot()
+void HardwareWindow::connectChanged()
 {
     if (!m_pTargetModel->IsConnected())
     {
@@ -1269,7 +1269,7 @@ void HardwareWindow::connectChangedSlot()
 }
 
 //-----------------------------------------------------------------------------
-void HardwareWindow::startStopChangedSlot()
+void HardwareWindow::startStopChanged()
 {
     if (!m_pTargetModel->IsRunning())
     {
@@ -1287,7 +1287,7 @@ void HardwareWindow::startStopChangedSlot()
 }
 
 //-----------------------------------------------------------------------------
-void HardwareWindow::flushSlot(const TargetChangedFlags& flags, uint64_t commandId)
+void HardwareWindow::flush(const TargetChangedFlags& flags, uint64_t commandId)
 {
     if (commandId == m_flushUid)
     {
@@ -1301,7 +1301,7 @@ void HardwareWindow::flushSlot(const TargetChangedFlags& flags, uint64_t command
 }
 
 //-----------------------------------------------------------------------------
-void HardwareWindow::memoryChangedSlot(int memorySlot, uint64_t /*commandId*/)
+void HardwareWindow::memoryChanged(int memorySlot, uint64_t /*commandId*/)
 {
     if (memorySlot == MemorySlot::kHardwareWindowMfp)
     {
@@ -1326,7 +1326,7 @@ void HardwareWindow::memoryChangedSlot(int memorySlot, uint64_t /*commandId*/)
 }
 
 //-----------------------------------------------------------------------------
-void HardwareWindow::settingsChangedSlot()
+void HardwareWindow::settingsChanged()
 {
     m_pModel->UpdateSettings(m_pSession->GetSettings());
 }

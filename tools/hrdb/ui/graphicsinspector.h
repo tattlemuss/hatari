@@ -32,19 +32,19 @@ public:
     void saveSettings();
 
 private:
-    void connectChangedSlot();
-    void startStopChangedSlot();
-    void startStopDelayedChangedSlot();
-    void memoryChangedSlot(int memorySlot, uint64_t commandId);
-    void otherMemoryChangedSlot(uint32_t address, uint32_t size);
-    void runningRefreshTimerSlot();
-
-    void bitmapAddressChangedSlot();
-    void paletteAddressChangedSlot();
-    void lockAddressToVideoChangedSlot();
-    void lockFormatToVideoChangedSlot();
+    void connectChanged();
+    void startStopChanged();
+    void startStopDelayedChanged();
+    void memoryChanged(int memorySlot, uint64_t commandId);
+    void otherMemoryChanged(uint32_t address, uint32_t size);
+    void runningRefreshTimer();
+    void bitmapAddressChanged();
+    void paletteAddressChanged();
+    void lockAddressToVideoChanged();
+    void lockFormatToVideoChanged();
 
 private slots:
+    // These are genuine slots
     void modeChangedSlot(int index);
     void paletteChangedSlot(int index);
     void gotoClickedSlot();
@@ -52,9 +52,11 @@ private slots:
     void widthChangedSlot(int width);
     void heightChangedSlot(int height);
     void paddingChangedSlot(int height);
-    void tooltipStringChangedSlot();
+
+private:
+    void tooltipStringChanged();
 protected:
-    virtual void keyPressEvent(QKeyEvent *ev);
+    virtual void keyPressEvent(QKeyEvent *ev) override;
 
 private:
     enum Mode

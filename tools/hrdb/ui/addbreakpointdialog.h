@@ -22,11 +22,10 @@ public:
 protected:
     void showEvent(QShowEvent *event);
 
-private slots:
+private:
     void okClicked();
     void useClicked();
 
-private:
     TargetModel*        m_pTargetModel;
     Dispatcher*         m_pDispatcher;
 

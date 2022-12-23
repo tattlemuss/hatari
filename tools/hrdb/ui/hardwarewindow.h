@@ -79,15 +79,14 @@ public:
     void loadSettings();
     void saveSettings();
 
-public slots:
-    void copyToClipboardSlot();
-    void connectChangedSlot();
-    void startStopChangedSlot();
-    void flushSlot(const TargetChangedFlags& flags, uint64_t commandId);
-    void memoryChangedSlot(int memorySlot, uint64_t commandId);
-    void settingsChangedSlot();
-
 private:
+    void copyToClipboard();
+    void connectChanged();
+    void startStopChanged();
+    void flush(const TargetChangedFlags& flags, uint64_t commandId);
+    void memoryChanged(int memorySlot, uint64_t commandId);
+    void settingsChanged();
+
     void addField(HardwareBase* pLayout, const QString& title, const Regs::FieldDef& def);
     void addRegBinary16(HardwareBase* pLayout, const QString& title, uint32_t addr);
     void addRegSigned16(HardwareBase* pLayout, const QString& title, uint32_t addr);

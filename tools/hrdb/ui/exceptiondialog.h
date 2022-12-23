@@ -18,10 +18,9 @@ public:
 protected:
     void showEvent(QShowEvent *event);
 
-private slots:
+private:
     void okClicked();
 
-private:
     QCheckBox* m_pCheckboxes[ExceptionMask::kExceptionCount];
 
     TargetModel* m_pTargetModel;

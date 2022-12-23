@@ -39,10 +39,8 @@ public:
 
     bool GetBreakpoint(uint32_t row, Breakpoint& breakpoint);
 
-public slots:
-    void breakpointsChangedSlot();
-
 private:
+    void breakpointsChanged();
 
     TargetModel*    m_pTargetModel;
     Dispatcher*     m_pDispatcher;

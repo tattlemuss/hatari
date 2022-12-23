@@ -26,7 +26,7 @@ BreakpointsTableModel::BreakpointsTableModel(QObject *parent, TargetModel *pTarg
     m_pTargetModel(pTargetModel),
     m_pDispatcher(pDispatcher)
 {
-    connect(m_pTargetModel, &TargetModel::breakpointsChangedSignal, this, &BreakpointsTableModel::breakpointsChangedSlot);
+    connect(m_pTargetModel, &TargetModel::breakpointsChangedSignal, this, &BreakpointsTableModel::breakpointsChanged);
 }
 
 int BreakpointsTableModel::rowCount(const QModelIndex &parent) const
@@ -116,7 +116,7 @@ bool BreakpointsTableModel::GetBreakpoint(uint32_t row, Breakpoint &breakpoint)
     return true;
 }
 
-void BreakpointsTableModel::breakpointsChangedSlot()
+void BreakpointsTableModel::breakpointsChanged()
 {
     // TODO: I still don't understand how to update it here
     //const Breakpoints& bps = m_pTargetModel->GetBreakpoints();

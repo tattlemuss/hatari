@@ -51,16 +51,16 @@ ConsoleWindow::ConsoleWindow(QWidget *parent, Session* pSession) :
 
     loadSettings();
 
-    connect(m_pTargetModel,  &TargetModel::connectChangedSignal, this, &ConsoleWindow::connectChangedSlot);
-    connect(m_pSession,      &Session::settingsChanged,          this, &ConsoleWindow::settingsChangedSlot);
+    connect(m_pTargetModel,  &TargetModel::connectChangedSignal, this, &ConsoleWindow::connectChanged);
+    connect(m_pSession,      &Session::settingsChanged,          this, &ConsoleWindow::settingsChanged);
     // Connect text entry
-    connect(m_pLineEdit,     &QLineEdit::returnPressed,          this, &ConsoleWindow::textEditChangedSlot);
+    connect(m_pLineEdit,     &QLineEdit::returnPressed,          this, &ConsoleWindow::textEditChanged);
 
     // Refresh enable state
-    connectChangedSlot();
+    connectChanged();
 
     // Refresh font
-    settingsChangedSlot();
+    settingsChanged();
 }
 
 ConsoleWindow::~ConsoleWindow()
@@ -92,7 +92,7 @@ void ConsoleWindow::saveSettings()
     settings.endGroup();
 }
 
-void ConsoleWindow::connectChangedSlot()
+void ConsoleWindow::connectChanged()
 {
     bool enable = m_pTargetModel->IsConnected();
     m_pLineEdit->setEnabled(enable);
@@ -111,7 +111,7 @@ void ConsoleWindow::connectChangedSlot()
             // Need to open a file watcher here
             m_pWatcher = new QFileSystemWatcher(this);
             m_pWatcher->addPath(m_pSession->m_pLoggingFile->fileName());
-            connect(m_pWatcher, &QFileSystemWatcher::fileChanged,   this, &ConsoleWindow::fileChangedSlot);
+            connect(m_pWatcher, &QFileSystemWatcher::fileChanged,   this, &ConsoleWindow::fileChanged);
 
             // Create a reader
             m_tempFile.setFileName(filename);
@@ -127,12 +127,12 @@ void ConsoleWindow::connectChangedSlot()
     }
 }
 
-void ConsoleWindow::settingsChangedSlot()
+void ConsoleWindow::settingsChanged()
 {
     m_pTextArea->setFont(m_pSession->GetSettings().m_font);
 }
 
-void ConsoleWindow::textEditChangedSlot()
+void ConsoleWindow::textEditChanged()
 {
     if (m_pTargetModel->IsConnected() && !m_pTargetModel->IsRunning())
     {
@@ -142,7 +142,7 @@ void ConsoleWindow::textEditChangedSlot()
     m_pLineEdit->clear();
 }
 
-void ConsoleWindow::fileChangedSlot(const QString& filename)
+void ConsoleWindow::fileChanged(const QString& filename)
 {
     Q_ASSERT(filename == m_tempFile.fileName());
 
@@ -161,7 +161,7 @@ void ConsoleWindow::deleteWatcher()
     if (m_pWatcher)
     {
         m_tempFile.close();
-        disconnect(m_pWatcher, &QFileSystemWatcher::fileChanged,   this, &ConsoleWindow::fileChangedSlot);
+        disconnect(m_pWatcher, &QFileSystemWatcher::fileChanged,   this, &ConsoleWindow::fileChanged);
         delete m_pWatcher;
         m_pWatcher = nullptr;
     }

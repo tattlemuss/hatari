@@ -205,18 +205,18 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     new QShortcut(QKeySequence("Ctrl+G"),         this, SLOT(gotoClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
     new QShortcut(QKeySequence("Ctrl+L"),         this, SLOT(lockClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
 
-    connect(m_pTargetModel,  &TargetModel::connectChangedSignal,          this, &GraphicsInspectorWidget::connectChangedSlot);
-    connect(m_pTargetModel,  &TargetModel::startStopChangedSignal,        this, &GraphicsInspectorWidget::startStopChangedSlot);
-    connect(m_pTargetModel,  &TargetModel::startStopChangedSignalDelayed, this, &GraphicsInspectorWidget::startStopDelayedChangedSlot);
-    connect(m_pTargetModel,  &TargetModel::memoryChangedSignal,           this, &GraphicsInspectorWidget::memoryChangedSlot);
-    connect(m_pTargetModel,  &TargetModel::otherMemoryChangedSignal,      this, &GraphicsInspectorWidget::otherMemoryChangedSlot);
-    connect(m_pTargetModel,  &TargetModel::runningRefreshTimerSignal,     this, &GraphicsInspectorWidget::runningRefreshTimerSlot);
+    connect(m_pTargetModel,  &TargetModel::connectChangedSignal,          this, &GraphicsInspectorWidget::connectChanged);
+    connect(m_pTargetModel,  &TargetModel::startStopChangedSignal,        this, &GraphicsInspectorWidget::startStopChanged);
+    connect(m_pTargetModel,  &TargetModel::startStopChangedSignalDelayed, this, &GraphicsInspectorWidget::startStopDelayedChanged);
+    connect(m_pTargetModel,  &TargetModel::memoryChangedSignal,           this, &GraphicsInspectorWidget::memoryChanged);
+    connect(m_pTargetModel,  &TargetModel::otherMemoryChangedSignal,      this, &GraphicsInspectorWidget::otherMemoryChanged);
+    connect(m_pTargetModel,  &TargetModel::runningRefreshTimerSignal,     this, &GraphicsInspectorWidget::runningRefreshTimer);
 
-    connect(m_pBitmapAddressLineEdit,       &QLineEdit::returnPressed,    this, &GraphicsInspectorWidget::bitmapAddressChangedSlot);
-    connect(m_pPaletteAddressLineEdit,      &QLineEdit::returnPressed,    this, &GraphicsInspectorWidget::paletteAddressChangedSlot);
-    connect(m_pLockAddressToVideoCheckBox,  &QCheckBox::stateChanged,     this, &GraphicsInspectorWidget::lockAddressToVideoChangedSlot);
-    connect(m_pLockFormatToVideoCheckBox,   &QCheckBox::stateChanged,     this, &GraphicsInspectorWidget::lockFormatToVideoChangedSlot);
-    connect(m_pLockAddressToVideoCheckBox,  &QCheckBox::stateChanged,     this, &GraphicsInspectorWidget::lockAddressToVideoChangedSlot);
+    connect(m_pBitmapAddressLineEdit,       &QLineEdit::returnPressed,    this, &GraphicsInspectorWidget::bitmapAddressChanged);
+    connect(m_pPaletteAddressLineEdit,      &QLineEdit::returnPressed,    this, &GraphicsInspectorWidget::paletteAddressChanged);
+    connect(m_pLockAddressToVideoCheckBox,  &QCheckBox::stateChanged,     this, &GraphicsInspectorWidget::lockAddressToVideoChanged);
+    connect(m_pLockFormatToVideoCheckBox,   &QCheckBox::stateChanged,     this, &GraphicsInspectorWidget::lockFormatToVideoChanged);
+    connect(m_pLockAddressToVideoCheckBox,  &QCheckBox::stateChanged,     this, &GraphicsInspectorWidget::lockAddressToVideoChanged);
 
     connect(m_pModeComboBox,    SIGNAL(activated(int)),                   SLOT(modeChangedSlot(int)));  // this is user-changed
     connect(m_pPaletteComboBox, SIGNAL(currentIndexChanged(int)),         SLOT(paletteChangedSlot(int)));
@@ -224,7 +224,7 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     connect(m_pHeightSpinBox,   SIGNAL(valueChanged(int)),                SLOT(heightChangedSlot(int)));
     connect(m_pPaddingSpinBox,  SIGNAL(valueChanged(int)),                SLOT(paddingChangedSlot(int)));
 
-    connect(m_pImageWidget,  &NonAntiAliasImage::StringChanged,           this, &GraphicsInspectorWidget::tooltipStringChangedSlot);
+    connect(m_pImageWidget,  &NonAntiAliasImage::StringChanged,           this, &GraphicsInspectorWidget::tooltipStringChanged);
 
     connect(m_pSession,      &Session::addressRequested,                  this, &GraphicsInspectorWidget::RequestBitmapAddress);
 
@@ -325,7 +325,7 @@ void GraphicsInspectorWidget::keyPressEvent(QKeyEvent* ev)
 
 }
 
-void GraphicsInspectorWidget::connectChangedSlot()
+void GraphicsInspectorWidget::connectChanged()
 {
     if (!m_pTargetModel->IsConnected())
     {
@@ -333,13 +333,13 @@ void GraphicsInspectorWidget::connectChangedSlot()
     }
 }
 
-void GraphicsInspectorWidget::startStopChangedSlot()
+void GraphicsInspectorWidget::startStopChanged()
 {
     // Nothing happens here except an initial redraw
     update();
 }
 
-void GraphicsInspectorWidget::startStopDelayedChangedSlot()
+void GraphicsInspectorWidget::startStopDelayedChanged()
 {
     // Request new memory for the view
     if (!m_pTargetModel->IsRunning())
@@ -356,7 +356,7 @@ void GraphicsInspectorWidget::startStopDelayedChangedSlot()
     }
 }
 
-void GraphicsInspectorWidget::memoryChangedSlot(int /*memorySlot*/, uint64_t commandId)
+void GraphicsInspectorWidget::memoryChanged(int /*memorySlot*/, uint64_t commandId)
 {
     if (commandId == m_requestRegs.requestId)
     {
@@ -388,7 +388,7 @@ void GraphicsInspectorWidget::memoryChangedSlot(int /*memorySlot*/, uint64_t com
     }
 }
 
-void GraphicsInspectorWidget::bitmapAddressChangedSlot()
+void GraphicsInspectorWidget::bitmapAddressChanged()
 {
     std::string expression = m_pBitmapAddressLineEdit->text().toStdString();
     uint32_t addr;
@@ -406,7 +406,7 @@ void GraphicsInspectorWidget::bitmapAddressChangedSlot()
     UpdateMemoryRequests();
 }
 
-void GraphicsInspectorWidget::paletteAddressChangedSlot()
+void GraphicsInspectorWidget::paletteAddressChanged()
 {
     std::string expression = m_pPaletteAddressLineEdit->text().toStdString();
     uint32_t addr;
@@ -422,7 +422,7 @@ void GraphicsInspectorWidget::paletteAddressChangedSlot()
     UpdateMemoryRequests();
 }
 
-void GraphicsInspectorWidget::lockAddressToVideoChangedSlot()
+void GraphicsInspectorWidget::lockAddressToVideoChanged()
 {
     bool m_bLockToVideo = m_pLockAddressToVideoCheckBox->isChecked();
     if (m_bLockToVideo)
@@ -435,7 +435,7 @@ void GraphicsInspectorWidget::lockAddressToVideoChangedSlot()
     UpdateUIElements();
 }
 
-void GraphicsInspectorWidget::lockFormatToVideoChangedSlot()
+void GraphicsInspectorWidget::lockFormatToVideoChanged()
 {
     bool m_bLockToVideo = m_pLockFormatToVideoCheckBox->isChecked();
     if (m_bLockToVideo)
@@ -486,7 +486,7 @@ void GraphicsInspectorWidget::lockClickedSlot()
     m_pLockAddressToVideoCheckBox->toggle();
 }
 
-void GraphicsInspectorWidget::otherMemoryChangedSlot(uint32_t address, uint32_t size)
+void GraphicsInspectorWidget::otherMemoryChanged(uint32_t address, uint32_t size)
 {
     // Do a re-request if our memory is touched
     uint32_t ourSize = GetEffectiveHeight() * GetEffectiveWidth() * BytesPerMode(m_mode);
@@ -497,7 +497,7 @@ void GraphicsInspectorWidget::otherMemoryChangedSlot(uint32_t address, uint32_t 
     }
 }
 
-void GraphicsInspectorWidget::runningRefreshTimerSlot()
+void GraphicsInspectorWidget::runningRefreshTimer()
 {
     if (m_pTargetModel->IsConnected() && m_pSession->GetSettings().m_liveRefresh)
     {
@@ -529,7 +529,7 @@ void GraphicsInspectorWidget::paddingChangedSlot(int value)
     UpdateMemoryRequests();
 }
 
-void GraphicsInspectorWidget::tooltipStringChangedSlot()
+void GraphicsInspectorWidget::tooltipStringChanged()
 {
     m_pInfoLabel->setText(m_pImageWidget->GetString());
 }

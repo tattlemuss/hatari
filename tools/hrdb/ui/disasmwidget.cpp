@@ -67,14 +67,14 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex):
     m_pEditMenu->addAction(m_pNopAction);
 
     // Target connects
-    connect(m_pTargetModel, &TargetModel::startStopChangedSignal,   this, &DisasmWidget::startStopChangedSlot);
-    connect(m_pTargetModel, &TargetModel::memoryChangedSignal,      this, &DisasmWidget::memoryChangedSlot);
-    connect(m_pTargetModel, &TargetModel::breakpointsChangedSignal, this, &DisasmWidget::breakpointsChangedSlot);
-    connect(m_pTargetModel, &TargetModel::symbolTableChangedSignal, this, &DisasmWidget::symbolTableChangedSlot);
-    connect(m_pTargetModel, &TargetModel::connectChangedSignal,     this, &DisasmWidget::connectChangedSlot);
+    connect(m_pTargetModel, &TargetModel::startStopChangedSignal,   this, &DisasmWidget::startStopChanged);
+    connect(m_pTargetModel, &TargetModel::memoryChangedSignal,      this, &DisasmWidget::memoryChanged);
+    connect(m_pTargetModel, &TargetModel::breakpointsChangedSignal, this, &DisasmWidget::breakpointsChanged);
+    connect(m_pTargetModel, &TargetModel::symbolTableChangedSignal, this, &DisasmWidget::symbolTableChanged);
+    connect(m_pTargetModel, &TargetModel::connectChangedSignal,     this, &DisasmWidget::connectChanged);
     connect(m_pTargetModel, &TargetModel::registersChangedSignal,   this, &DisasmWidget::CalcOpAddresses);
-    connect(m_pTargetModel, &TargetModel::otherMemoryChangedSignal, this, &DisasmWidget::otherMemoryChangedSlot);
-    connect(m_pTargetModel, &TargetModel::profileChangedSignal,     this, &DisasmWidget::profileChangedSlot);
+    connect(m_pTargetModel, &TargetModel::otherMemoryChangedSignal, this, &DisasmWidget::otherMemoryChanged);
+    connect(m_pTargetModel, &TargetModel::profileChangedSignal,     this, &DisasmWidget::profileChanged);
 
     // UI connects
     connect(m_pRunUntilAction,       &QAction::triggered, this, &DisasmWidget::runToCursorRightClick);
@@ -313,7 +313,7 @@ void DisasmWidget::RunToRow(int row)
     }
 }
 
-void DisasmWidget::startStopChangedSlot()
+void DisasmWidget::startStopChanged()
 {
     // Request new memory for the view
     if (!m_pTargetModel->IsRunning())
@@ -343,7 +343,7 @@ void DisasmWidget::startStopChangedSlot()
     }
 }
 
-void DisasmWidget::connectChangedSlot()
+void DisasmWidget::connectChanged()
 {
     if (!m_pTargetModel->IsConnected())
     {
@@ -355,7 +355,7 @@ void DisasmWidget::connectChangedSlot()
     }
 }
 
-void DisasmWidget::memoryChangedSlot(int memorySlot, uint64_t commandId)
+void DisasmWidget::memoryChanged(int memorySlot, uint64_t commandId)
 {
     if (memorySlot != m_memSlot)
         return;
@@ -383,7 +383,7 @@ void DisasmWidget::memoryChangedSlot(int memorySlot, uint64_t commandId)
     update();
 }
 
-void DisasmWidget::breakpointsChangedSlot(uint64_t /*commandId*/)
+void DisasmWidget::breakpointsChanged(uint64_t /*commandId*/)
 {
     // Cache data
     m_breakpoints = m_pTargetModel->GetBreakpoints();
@@ -391,7 +391,7 @@ void DisasmWidget::breakpointsChangedSlot(uint64_t /*commandId*/)
     update();
 }
 
-void DisasmWidget::symbolTableChangedSlot(uint64_t /*commandId*/)
+void DisasmWidget::symbolTableChanged(uint64_t /*commandId*/)
 {
     // Don't copy here, just force a re-read
 //    emit dataChanged(this->createIndex(0, 0), this->createIndex(m_rowCount - 1, kColCount));
@@ -399,7 +399,7 @@ void DisasmWidget::symbolTableChangedSlot(uint64_t /*commandId*/)
     update();
 }
 
-void DisasmWidget::otherMemoryChangedSlot(uint32_t address, uint32_t size)
+void DisasmWidget::otherMemoryChanged(uint32_t address, uint32_t size)
 {
     // Do a re-request if our memory is touched
     uint32_t ourAddr = m_logicalAddr;
@@ -408,7 +408,7 @@ void DisasmWidget::otherMemoryChangedSlot(uint32_t address, uint32_t size)
         RequestMemory();
 }
 
-void DisasmWidget::profileChangedSlot()
+void DisasmWidget::profileChanged()
 {
     RecalcColums();
     CalcDisasm();
