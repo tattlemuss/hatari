@@ -207,7 +207,7 @@ public slots:
     void searchResultsSlot(uint64_t responseId);
 
 private:
-    QLineEdit*          m_pLineEdit;
+    QLineEdit*          m_pAddressEdit;
     QComboBox*          m_pComboBox;
     QCheckBox*          m_pLockCheckBox;
     MemoryWidget*       m_pMemoryWidget;

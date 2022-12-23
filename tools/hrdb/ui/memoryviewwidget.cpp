@@ -983,8 +983,8 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
     m_pMemoryWidget = new MemoryWidget(this, pSession, windowIndex);
     m_pMemoryWidget->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
 
-    m_pLineEdit = new QLineEdit(this);
-    m_pLineEdit->setCompleter(pCompl);
+    m_pAddressEdit = new QLineEdit(this);
+    m_pAddressEdit->setCompleter(pCompl);
 
     m_pLockCheckBox = new QCheckBox(tr("Lock"), this);
 
@@ -1001,7 +1001,7 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
     auto pTopRegion = new QWidget(this);      // top buttons/edits
 
     SetMargins(pTopLayout);
-    pTopLayout->addWidget(m_pLineEdit);
+    pTopLayout->addWidget(m_pAddressEdit);
     pTopLayout->addWidget(m_pLockCheckBox);
     pTopLayout->addWidget(m_pComboBox);
 
@@ -1022,8 +1022,8 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
     new QShortcut(QKeySequence("Ctrl+L"),         this, SLOT(lockClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
 
     // Listen for start/stop, so we can update our memory request
-    connect(m_pLineEdit,     &QLineEdit::returnPressed,        this, &MemoryWindow::returnPressedSlot);
-    connect(m_pLineEdit,     &QLineEdit::textChanged,          this, &MemoryWindow::textEditedSlot);
+    connect(m_pAddressEdit,     &QLineEdit::returnPressed,        this, &MemoryWindow::returnPressedSlot);
+    connect(m_pAddressEdit,     &QLineEdit::textChanged,          this, &MemoryWindow::textEditedSlot);
     connect(m_pLockCheckBox, &QCheckBox::stateChanged,         this, &MemoryWindow::lockChangedSlot);
     connect(m_pComboBox,     SIGNAL(currentIndexChanged(int)), SLOT(modeComboBoxChanged(int)));
     connect(m_pSession,      &Session::addressRequested,       this, &MemoryWindow::requestAddress);
@@ -1078,16 +1078,16 @@ void MemoryWindow::requestAddress(Session::WindowType type, int windowIndex, uin
 
 void MemoryWindow::returnPressedSlot()
 {
-    bool valid = m_pMemoryWidget->SetExpression(m_pLineEdit->text().toStdString());
-    Colouring::SetErrorState(m_pLineEdit, valid);
+    bool valid = m_pMemoryWidget->SetExpression(m_pAddressEdit->text().toStdString());
+    Colouring::SetErrorState(m_pAddressEdit, valid);
     if (valid)
         m_pMemoryWidget->setFocus();
 }
 
 void MemoryWindow::textEditedSlot()
 {
-    bool valid = m_pMemoryWidget->CanSetExpression(m_pLineEdit->text().toStdString());
-    Colouring::SetErrorState(m_pLineEdit, valid);
+    bool valid = m_pMemoryWidget->CanSetExpression(m_pAddressEdit->text().toStdString());
+    Colouring::SetErrorState(m_pAddressEdit, valid);
 }
 
 void MemoryWindow::lockChangedSlot()
@@ -1151,7 +1151,7 @@ void MemoryWindow::nextClickedSlot()
 
 void MemoryWindow::gotoClickedSlot()
 {
-    m_pLineEdit->setFocus();
+    m_pAddressEdit->setFocus();
 }
 
 void MemoryWindow::lockClickedSlot()
