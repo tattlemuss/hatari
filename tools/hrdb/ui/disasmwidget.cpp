@@ -1259,6 +1259,11 @@ void DisasmWindow::returnPressedSlot()
 {
     bool success = m_pDisasmWidget->SetAddress(m_pAddressEdit->text().toStdString());
     Colouring::SetErrorState(m_pAddressEdit, success);
+    if (success)
+    {
+        m_pFollowPC->setChecked(false);
+        m_pDisasmWidget->setFocus();
+    }
 }
 
 void DisasmWindow::textChangedSlot()

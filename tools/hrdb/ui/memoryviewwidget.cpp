@@ -1078,7 +1078,10 @@ void MemoryWindow::requestAddress(Session::WindowType type, int windowIndex, uin
 
 void MemoryWindow::returnPressedSlot()
 {
-    m_pMemoryWidget->SetExpression(m_pLineEdit->text().toStdString());
+    bool valid = m_pMemoryWidget->SetExpression(m_pLineEdit->text().toStdString());
+    Colouring::SetErrorState(m_pLineEdit, valid);
+    if (valid)
+        m_pMemoryWidget->setFocus();
 }
 
 void MemoryWindow::textEditedSlot()
