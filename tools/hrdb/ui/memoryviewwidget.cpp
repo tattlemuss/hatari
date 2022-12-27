@@ -1021,13 +1021,12 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
     new QShortcut(QKeySequence("Ctrl+G"),         this, SLOT(gotoClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
     new QShortcut(QKeySequence("Ctrl+L"),         this, SLOT(lockClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
 
-    // Listen for start/stop, so we can update our memory request
-    connect(m_pAddressEdit,     &QLineEdit::returnPressed,        this, &MemoryWindow::returnPressedSlot);
-    connect(m_pAddressEdit,     &QLineEdit::textChanged,          this, &MemoryWindow::textEditedSlot);
+    connect(m_pAddressEdit,  &QLineEdit::returnPressed,        this, &MemoryWindow::returnPressedSlot);
+    connect(m_pAddressEdit,  &QLineEdit::textChanged,          this, &MemoryWindow::textEditedSlot);
     connect(m_pLockCheckBox, &QCheckBox::stateChanged,         this, &MemoryWindow::lockChangedSlot);
-    connect(m_pComboBox,     SIGNAL(currentIndexChanged(int)), SLOT(modeComboBoxChanged(int)));
     connect(m_pSession,      &Session::addressRequested,       this, &MemoryWindow::requestAddress);
     connect(m_pTargetModel,  &TargetModel::searchResultsChangedSignal, this, &MemoryWindow::searchResultsSlot);
+    connect(m_pComboBox,     SIGNAL(currentIndexChanged(int)), SLOT(modeComboBoxChanged(int)));
 }
 
 void MemoryWindow::keyFocus()
