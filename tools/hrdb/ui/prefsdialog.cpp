@@ -39,25 +39,26 @@ PrefsDialog::PrefsDialog(QWidget *parent, Session* pSession) :
     gridLayout->setColumnStretch(2, 20);
 
     // Add the options
-    m_pGraphicsSquarePixels = new QCheckBox(tr("Square Pixels"), this);
-    m_pDisassHexNumerics = new QCheckBox(tr("Use hex address register offsets"), this);
     m_pLiveRefresh = new QCheckBox(tr("Live Refresh"), this);
+    m_pGraphicsSquarePixels = new QCheckBox(tr("Graphics Inspector: Square Pixels"), this);
+    m_pDisassHexNumerics = new QCheckBox(tr("Disassmbly: Use hex address register offsets"), this);
     m_pProfileDisplayCombo = new QComboBox(this);
     m_pProfileDisplayCombo->insertItem(Session::Settings::kTotal, "Total");
     m_pProfileDisplayCombo->insertItem(Session::Settings::kMean, "Mean");
 
-    QLabel* pFont = new QLabel("Font:", this);
+    m_pFontLabel = new QLabel("Font:", this);
     QPushButton* pFontButton = new QPushButton("Select...", this);
-    QLabel* pProfileDisplay = new QLabel("Profile Display:", this);
+    QLabel* pProfileDisplay = new QLabel("Disassmbly: Profile Display:", this);
 
     gridGroupBox->setLayout(gridLayout);
-    gridLayout->addWidget(m_pGraphicsSquarePixels, 0, 0);
-    gridLayout->addWidget(m_pDisassHexNumerics, 1, 0);
-    gridLayout->addWidget(pProfileDisplay, 2, 0);
-    gridLayout->addWidget(m_pProfileDisplayCombo, 2, 1);
-    gridLayout->addWidget(m_pLiveRefresh, 3, 0);
-    gridLayout->addWidget(pFont, 4, 0);
-    gridLayout->addWidget(pFontButton, 4, 1);
+    int row = 0;
+    gridLayout->addWidget(m_pLiveRefresh, row++, 0, 1, 2);
+    gridLayout->addWidget(m_pGraphicsSquarePixels, row++, 0, 1, 2);
+    gridLayout->addWidget(m_pDisassHexNumerics, row++, 0, 1, 2);
+    gridLayout->addWidget(pProfileDisplay, row, 0);
+    gridLayout->addWidget(m_pProfileDisplayCombo, row++, 1);
+    gridLayout->addWidget(m_pFontLabel, row, 0);
+    gridLayout->addWidget(pFontButton, row++, 1);
 
     // Overall layout (options at top, buttons at bottom)
     QVBoxLayout* pLayout = new QVBoxLayout(this);
@@ -159,7 +160,10 @@ void PrefsDialog::fontSelectClicked()
                 options);
 
     if (ok)
+    {
         m_settingsCopy.m_font = font;
+        UpdateUIElements();
+    }
 }
 
 void PrefsDialog::UpdateUIElements()
@@ -168,4 +172,7 @@ void PrefsDialog::UpdateUIElements()
     m_pDisassHexNumerics->setChecked(m_settingsCopy.m_bDisassHexNumerics);
     m_pProfileDisplayCombo->setCurrentIndex(m_settingsCopy.m_profileDisplayMode);
     m_pLiveRefresh->setChecked(m_settingsCopy.m_liveRefresh);
+
+    QFontInfo info(m_settingsCopy.m_font);
+    m_pFontLabel->setText(QString("Font: " + m_settingsCopy.m_font.family()));
 }

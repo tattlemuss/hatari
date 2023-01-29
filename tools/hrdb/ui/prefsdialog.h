@@ -7,6 +7,7 @@
 
 class QCheckBox;
 class QComboBox;
+class QLabel;
 class TargetModel;
 class Dispatcher;
 class Session;
@@ -45,6 +46,7 @@ private:
     QCheckBox*      m_pDisassHexNumerics;
     QComboBox*      m_pProfileDisplayCombo;
     QCheckBox*      m_pLiveRefresh;
+    QLabel*         m_pFontLabel;
 
     // Shared session data pointer (storage for launched process, temp file etc)
     Session*        m_pSession;
