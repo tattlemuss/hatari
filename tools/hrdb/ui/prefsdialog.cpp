@@ -1,13 +1,14 @@
 #include "prefsdialog.h"
-#include <QLineEdit>
-#include <QPushButton>
-#include <QVBoxLayout>
-#include <QLabel>
-#include <QProcess>
-#include <QSettings>
-#include <QCloseEvent>
 #include <QCheckBox>
+#include <QCloseEvent>
+#include <QComboBox>
 #include <QFontDialog>
+#include <QLabel>
+#include <QLineEdit>
+#include <QProcess>
+#include <QPushButton>
+#include <QSettings>
+#include <QVBoxLayout>
 
 #include "../models/session.h"
 #include "quicklayout.h"
@@ -41,16 +42,22 @@ PrefsDialog::PrefsDialog(QWidget *parent, Session* pSession) :
     m_pGraphicsSquarePixels = new QCheckBox(tr("Square Pixels"), this);
     m_pDisassHexNumerics = new QCheckBox(tr("Use hex address register offsets"), this);
     m_pLiveRefresh = new QCheckBox(tr("Live Refresh"), this);
+    m_pProfileDisplayCombo = new QComboBox(this);
+    m_pProfileDisplayCombo->insertItem(Session::Settings::kTotal, "Total");
+    m_pProfileDisplayCombo->insertItem(Session::Settings::kMean, "Mean");
 
     QLabel* pFont = new QLabel("Font:", this);
     QPushButton* pFontButton = new QPushButton("Select...", this);
+    QLabel* pProfileDisplay = new QLabel("Profile Display:", this);
 
     gridGroupBox->setLayout(gridLayout);
     gridLayout->addWidget(m_pGraphicsSquarePixels, 0, 0);
     gridLayout->addWidget(m_pDisassHexNumerics, 1, 0);
-    gridLayout->addWidget(m_pLiveRefresh, 2, 0);
-    gridLayout->addWidget(pFont, 3, 0);
-    gridLayout->addWidget(pFontButton, 3, 1);
+    gridLayout->addWidget(pProfileDisplay, 2, 0);
+    gridLayout->addWidget(m_pProfileDisplayCombo, 2, 1);
+    gridLayout->addWidget(m_pLiveRefresh, 3, 0);
+    gridLayout->addWidget(pFont, 4, 0);
+    gridLayout->addWidget(pFontButton, 4, 1);
 
     // Overall layout (options at top, buttons at bottom)
     QVBoxLayout* pLayout = new QVBoxLayout(this);
@@ -62,9 +69,13 @@ PrefsDialog::PrefsDialog(QWidget *parent, Session* pSession) :
     connect(pCancelButton, &QPushButton::clicked, this, &PrefsDialog::reject);
 
     connect(m_pGraphicsSquarePixels, &QPushButton::clicked, this, &PrefsDialog::squarePixelsClicked);
-    connect(m_pDisassHexNumerics, &QPushButton::clicked, this, &PrefsDialog::disassHexNumbersClicked);
     connect(m_pLiveRefresh,          &QPushButton::clicked, this, &PrefsDialog::liveRefreshClicked);
-    connect(pFontButton, &QPushButton::clicked, this, &PrefsDialog::fontSelectClicked);
+    connect(m_pLiveRefresh,          &QPushButton::clicked, this, &PrefsDialog::liveRefreshClicked);
+    connect(pFontButton,             &QPushButton::clicked, this, &PrefsDialog::fontSelectClicked);
+
+    // Full signal/slot
+    connect(m_pProfileDisplayCombo, SIGNAL(currentIndexChanged(int)),         SLOT(profileDisplayChanged(int)));
+
     loadSettings();
     this->setLayout(pLayout);
 }
@@ -105,6 +116,11 @@ void PrefsDialog::closeEvent(QCloseEvent *event)
     // Closing *doesn't* save settings
 //    saveSettings();
     event->accept();
+}
+
+void PrefsDialog::profileDisplayChanged(int)
+{
+    m_settingsCopy.m_profileDisplayMode = m_pProfileDisplayCombo->currentIndex();
 }
 
 void PrefsDialog::okClicked()
@@ -150,5 +166,6 @@ void PrefsDialog::UpdateUIElements()
 {
     m_pGraphicsSquarePixels->setChecked(m_settingsCopy.m_bSquarePixels);
     m_pDisassHexNumerics->setChecked(m_settingsCopy.m_bDisassHexNumerics);
+    m_pProfileDisplayCombo->setCurrentIndex(m_settingsCopy.m_profileDisplayMode);
     m_pLiveRefresh->setChecked(m_settingsCopy.m_liveRefresh);
 }

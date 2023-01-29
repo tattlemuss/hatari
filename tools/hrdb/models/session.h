@@ -38,6 +38,14 @@ public:
         bool        m_bSquarePixels;
         // DISASSEMBLY
         bool        m_bDisassHexNumerics;
+        //
+        enum ProfileDisplayMode
+        {
+            kTotal,
+            kMean
+        };
+
+        int         m_profileDisplayMode;
 
         // LIVE UPDATE
         bool        m_liveRefresh;

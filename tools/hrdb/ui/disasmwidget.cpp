@@ -727,7 +727,12 @@ void DisasmWidget::CalcDisasm()
             uint32_t count, cycles;
             m_pTargetModel->GetProfileData(addr, count, cycles);
             if (count)
-                t.cycles = QString::asprintf("%d/%d", count, cycles);
+            {
+                 if (m_pSession->GetSettings().m_profileDisplayMode == Session::Settings::kTotal)
+                     t.cycles = QString::asprintf("%d/%d", count, cycles);
+                 else if (m_pSession->GetSettings().m_profileDisplayMode == Session::Settings::kMean)
+                     t.cycles = QString::asprintf("%d*%d", count, cycles/count);
+            }
         }
 
         // Disassembly

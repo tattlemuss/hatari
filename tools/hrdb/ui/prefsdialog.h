@@ -6,6 +6,7 @@
 #include "../models/session.h"
 
 class QCheckBox;
+class QComboBox;
 class TargetModel;
 class Dispatcher;
 class Session;
@@ -26,6 +27,9 @@ protected:
     virtual void showEvent(QShowEvent *event) override;
     virtual void closeEvent(QCloseEvent *event) override;
 
+private slots:
+    void profileDisplayChanged(int index);
+
 private:
     void okClicked();
     void squarePixelsClicked();
@@ -39,6 +43,7 @@ private:
     // UI elements
     QCheckBox*      m_pGraphicsSquarePixels;
     QCheckBox*      m_pDisassHexNumerics;
+    QComboBox*      m_pProfileDisplayCombo;
     QCheckBox*      m_pLiveRefresh;
 
     // Shared session data pointer (storage for launched process, temp file etc)

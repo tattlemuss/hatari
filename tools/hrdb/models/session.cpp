@@ -29,6 +29,7 @@ Session::Session() :
     // Default settings
     m_settings.m_bSquarePixels = false;
     m_settings.m_bDisassHexNumerics = false;
+    m_settings.m_profileDisplayMode = Settings::kTotal;
     m_settings.m_liveRefresh = false;
     m_settings.m_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
     loadSettings();
@@ -95,6 +96,7 @@ void Session::loadSettings()
     m_settings.m_bSquarePixels = settings.value("squarePixels", QVariant(false)).toBool();
     m_settings.m_bDisassHexNumerics = settings.value("disassHexNumerics", QVariant(false)).toBool();
     m_settings.m_liveRefresh = settings.value("liveRefresh", QVariant(false)).toBool();
+    m_settings.m_profileDisplayMode = settings.value("profileDisplayMode", QVariant(Settings::kTotal)).toInt();
     settings.endGroup();
 
     m_launchSettings.loadSettings(settings);
@@ -108,6 +110,7 @@ void Session::saveSettings()
     settings.setValue("squarePixels", m_settings.m_bSquarePixels);
     settings.setValue("disassHexNumerics", m_settings.m_bDisassHexNumerics);
     settings.setValue("liveRefresh", m_settings.m_liveRefresh);
+    settings.setValue("profileDisplayMode", m_settings.m_profileDisplayMode);
     settings.endGroup();
 
     m_launchSettings.saveSettings(settings);
