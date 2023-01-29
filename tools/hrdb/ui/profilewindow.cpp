@@ -424,7 +424,8 @@ void ProfileWindow::connectChanged()
 {
     bool enable = m_pTargetModel->IsConnected() && !m_pTargetModel->IsRunning();
     m_pStartStopButton->setEnabled(enable);
-    m_pClearButton->setEnabled(enable);
+
+    m_pClearButton->setEnabled(m_pTargetModel->IsConnected());
     if (!m_pTargetModel->IsConnected())
         m_pTargetModel->ProfileReset();
 }
