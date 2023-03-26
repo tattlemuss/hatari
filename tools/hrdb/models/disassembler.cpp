@@ -7,134 +7,12 @@
 #include "symboltable.h"
 #include "registers.h"
 
-static const char* instruction_names[Opcode::COUNT] =
+void Disassembler::decode_inst(buffer_reader& buf, instruction& inst, const decode_settings& settings)
 {
-    "none",
-    "abcd",
-    "add",
-    "adda",
-    "addi",
-    "addq",
-    "addx",
-    "and",
-    "andi",
-    "asl",
-    "asr",
-    "bcc",
-    "bchg",
-    "bclr",
-    "bcs",
-    "beq",
-    "bge",
-    "bgt",
-    "bhi",
-    "ble",
-    "bls",
-    "blt",
-    "bmi",
-    "bne",
-    "bpl",
-    "bra",
-    "bset",
-    "bsr",
-    "btst",
-    "bvc",
-    "bvs",
-    "chk",
-    "clr",
-    "cmp",
-    "cmpi",
-    "cmpa",
-    "cmpm",
-    "dbcc",
-    "dbcs",
-    "dbeq",
-    "dbf",
-    "dbge",
-    "dbgt",
-    "dbhi",
-    "dble",
-    "dbls",
-    "dblt",
-    "dbmi",
-    "dbne",
-    "dbpl",
-    "dbvc",
-    "dbvs",
-    "divs",
-    "divu",
-    "eor",
-    "eori",
-    "exg",
-    "ext",
-    "illegal",
-    "jmp",
-    "jsr",
-    "lea",
-    "link",
-    "lsl",
-    "lsr",
-    "move",
-    "movea",
-    "movem",
-    "movep",
-    "moveq",
-    "muls",
-    "mulu",
-    "nbcd",
-    "neg",
-    "negx",
-    "nop",
-    "not",
-    "or",
-    "ori",
-    "pea",
-    "reset",
-    "rol",
-    "ror",
-    "roxl",
-    "roxr",
-    "rte",
-    "rtr",
-    "rts",
-    "sbcd",
-    "scc",
-    "scs",
-    "seq",
-    "sf",
-    "sge",
-    "sgt",
-    "shi",
-    "sle",
-    "sls",
-    "slt",
-    "smi",
-    "sne",
-    "spl",
-    "st",
-    "stop",
-    "sub",
-    "suba",
-    "subi",
-    "subq",
-    "subx",
-    "svc",
-    "svs",
-    "swap",
-    "tas",
-    "trap",
-    "trapv",
-    "tst",
-    "unlk"
-};
-
-
-int Disassembler::decode_inst(buffer_reader& buf, instruction& inst)
-{
-    return decode(buf, inst);
+    decode(inst, buf, settings);
 }
 
-int Disassembler::decode_buf(buffer_reader& buf, disassembly& disasm, uint32_t address, int32_t maxLines)
+int Disassembler::decode_buf(buffer_reader& buf, disassembly& disasm, const decode_settings& settings, uint32_t address, int32_t maxLines)
 {
     while (buf.get_remain() >= 2)
     {
@@ -144,7 +22,7 @@ int Disassembler::decode_buf(buffer_reader& buf, disassembly& disasm, uint32_t a
         // decode uses a copy of the buffer state
         {
             buffer_reader buf_copy(buf);
-            decode(buf_copy, line.inst);
+            decode(line.inst, buf_copy, settings);
         }
 
         // Save copy of instruction memory
@@ -170,6 +48,32 @@ int Disassembler::decode_buf(buffer_reader& buf, disassembly& disasm, uint32_t a
 // ----------------------------------------------------------------------------
 //	INSTRUCTION ANALYSIS
 // ----------------------------------------------------------------------------
+
+uint32_t GetIndexRegister(const Registers& regs, IndexRegister indexReg)
+{
+    switch (indexReg)
+    {
+    case IndexRegister::INDEX_REG_A0: return regs.A0;
+    case IndexRegister::INDEX_REG_A1: return regs.A1;
+    case IndexRegister::INDEX_REG_A2: return regs.A2;
+    case IndexRegister::INDEX_REG_A3: return regs.A3;
+    case IndexRegister::INDEX_REG_A4: return regs.A4;
+    case IndexRegister::INDEX_REG_A5: return regs.A5;
+    case IndexRegister::INDEX_REG_A6: return regs.A6;
+    case IndexRegister::INDEX_REG_A7: return regs.A7;
+    case IndexRegister::INDEX_REG_D0: return regs.D0;
+    case IndexRegister::INDEX_REG_D1: return regs.D1;
+    case IndexRegister::INDEX_REG_D2: return regs.D2;
+    case IndexRegister::INDEX_REG_D3: return regs.D3;
+    case IndexRegister::INDEX_REG_D4: return regs.D4;
+    case IndexRegister::INDEX_REG_D5: return regs.D5;
+    case IndexRegister::INDEX_REG_D6: return regs.D6;
+    case IndexRegister::INDEX_REG_D7: return regs.D7;
+    default: break;
+    }
+    return 0;
+}
+
 // Check if an instruction jumps to another known address, and return that address
 bool calc_relative_address(const operand& op, uint32_t inst_address, uint32_t& target_address)
 {
@@ -238,6 +142,15 @@ void print_movem_mask(uint16_t reg_mask, QTextStream& ref)
 }
 
 // ----------------------------------------------------------------------------
+static void print_index_indirect(const index_indirect& ind, QTextStream& ref)
+{
+    if (ind.index_reg == INDEX_REG_NONE)
+        return;
+    ref << get_index_register_string(ind.index_reg) << "." <<
+        (ind.is_long ? "l" : "w") << get_scale_shift_string(ind.scale_shift);
+}
+
+// ----------------------------------------------------------------------------
 void print(const operand& operand, uint32_t inst_address, QTextStream& ref, bool bDisassHexNumerics = false)
 {
     switch (operand.type)
@@ -261,10 +174,9 @@ void print(const operand& operand, uint32_t inst_address, QTextStream& ref, bool
             ref << Format::to_signed(operand.indirect_disp.disp, bDisassHexNumerics) << "(a" << operand.indirect_disp.reg << ")";
             return;
         case OpType::INDIRECT_INDEX:
-            ref << Format::to_signed(operand.indirect_index.disp, bDisassHexNumerics) << "(a" << operand.indirect_index.a_reg <<
-                   ",d" << operand.indirect_index.d_reg <<
-                   (operand.indirect_index.is_long ? ".l" : ".w") <<
-                   ")";
+            ref << Format::to_signed(operand.indirect_index.disp, bDisassHexNumerics) << "(a" << operand.indirect_index.a_reg << ",";
+            print_index_indirect(operand.indirect_index.indirect_info, ref);
+            ref << ")";
             return;
         case OpType::ABSOLUTE_WORD:
             ref << Format::to_abs_word(operand.absolute_word.wordaddr) << ".w";
@@ -284,8 +196,9 @@ void print(const operand& operand, uint32_t inst_address, QTextStream& ref, bool
         {
             uint32_t target_address;
             calc_relative_address(operand, inst_address, target_address);
-            ref << Format::to_hex32(target_address) << "(pc,d" << operand.pc_disp_index.d_reg <<
-                   (operand.pc_disp_index.is_long ? ".l" : ".w") << ")";
+            ref << Format::to_hex32(target_address) << "(pc,";
+            print_index_indirect(operand.pc_disp_index.indirect_info, ref);
+            ref << ")";
             return;
         }
         case OpType::MOVEM_REG:
@@ -323,7 +236,7 @@ void Disassembler::print(const instruction& inst, /*const symbols& symbols, */ u
         ref << "dc.w    " << Format::to_hex32(inst.header);
         return;
     }
-    QString opcode = instruction_names[inst.opcode];
+    QString opcode = get_opcode_string(inst.opcode);
     switch (inst.suffix)
     {
         case Suffix::BYTE:
@@ -360,7 +273,7 @@ void Disassembler::print_terse(const instruction& inst, /*const symbols& symbols
         ref << "dc.w " << Format::to_hex32(inst.header);
         return;
     }
-    QString opcode = instruction_names[inst.opcode];
+    QString opcode = get_opcode_string(inst.opcode);
     switch (inst.suffix)
     {
         case Suffix::BYTE:
@@ -422,12 +335,14 @@ bool Disassembler::calc_fixed_ea(const operand &operand, bool useRegs, const Reg
         if (!useRegs)
             return false;
         uint32_t a_reg = regs.GetAReg(operand.indirect_index.a_reg);
-        uint32_t d_reg = regs.GetDReg(operand.indirect_index.d_reg);
+        uint32_t d_reg = GetIndexRegister(regs, operand.indirect_index.indirect_info.index_reg);
+
         int8_t disp = operand.indirect_index.disp;
-        if (operand.indirect_index.is_long)
-            ea = a_reg + d_reg + disp;
+        int scale = 1 << operand.indirect_index.indirect_info.scale_shift;
+        if (operand.indirect_index.indirect_info.is_long)
+            ea = a_reg + d_reg * scale + disp;
         else
-            ea = a_reg + (int16_t)(d_reg & 0xffff) + disp;
+            ea = a_reg + (int16_t)(d_reg & 0xffff) * scale + disp;
         return true;
     }
     case OpType::ABSOLUTE_WORD:
@@ -449,8 +364,8 @@ bool Disassembler::calc_fixed_ea(const operand &operand, bool useRegs, const Reg
             return true;            // Just display the base address for EA
 
         // Add the register value if we know it
-        uint32_t d_reg = regs.GetDReg(operand.pc_disp_index.d_reg);
-        if (operand.pc_disp_index.is_long)
+        uint32_t d_reg = GetIndexRegister(regs, operand.pc_disp_index.indirect_info.index_reg);
+        if (operand.pc_disp_index.indirect_info.is_long)
             ea += d_reg;
         else
             ea += (int16_t)(d_reg & 0xffff);

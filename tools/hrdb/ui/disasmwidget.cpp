@@ -195,13 +195,13 @@ void DisasmWidget::MoveUp()
             uint32_t size = m_memory.GetSize() - offset;
             buffer_reader disasmBuf(m_memory.GetData() + offset, size, m_memory.GetAddress() + offset);
             instruction inst;
-            if (Disassembler::decode_inst(disasmBuf, inst) == 0)
+            decode_settings ds;
+            ds.cpu_type = CPU_TYPE_68000;
+            Disassembler::decode_inst(disasmBuf, inst, ds);
+            if (inst.opcode != Opcode::NONE)
             {
-                if (inst.opcode != Opcode::NONE)
-                {
-                    SetAddress(targetAddr);
-                    return;
-                }
+                SetAddress(targetAddr);
+                return;
             }
         }
     }
@@ -670,7 +670,9 @@ void DisasmWidget::CalcDisasm()
     uint32_t size = m_memory.GetSize() - offset;
     buffer_reader disasmBuf(m_memory.GetData() + offset, size, m_memory.GetAddress() + offset);
     m_disasm.lines.clear();
-    Disassembler::decode_buf(disasmBuf, m_disasm, m_logicalAddr, m_rowCount);
+    decode_settings ds;
+    ds.cpu_type = CPU_TYPE_68000;
+    Disassembler::decode_buf(disasmBuf, m_disasm, ds, m_logicalAddr, m_rowCount);
     CalcOpAddresses();
 
     // Recalc Text (which depends on e.g. symbols

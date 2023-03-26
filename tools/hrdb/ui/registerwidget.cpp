@@ -265,7 +265,9 @@ void RegisterWidget::mainStateUpdated()
         return;
 
     buffer_reader disasmBuf(pMem->GetData(), pMem->GetSize(), pMem->GetAddress());
-    Disassembler::decode_buf(disasmBuf, m_disasm, pMem->GetAddress(), 2);
+    decode_settings ds;
+    ds.cpu_type = CPU_TYPE_68000;
+    Disassembler::decode_buf(disasmBuf, m_disasm, ds, pMem->GetAddress(), 2);
 
     PopulateRegisters();
     update();

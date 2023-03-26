@@ -20,6 +20,7 @@ SOURCES += \
     hardware/hardware_st.cpp \
     hardware/regs_st.cpp \
     hopper/decode.cpp \
+    hopper/instruction.cpp \
     hrdbapplication.cpp \
     main.cpp \
     models/breakpoint.cpp \
