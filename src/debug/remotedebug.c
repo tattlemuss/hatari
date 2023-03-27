@@ -518,6 +518,15 @@ static int RemoteDebug_regs(int nArgc, char *psArgs[], RemoteDebugState* state)
 		++varIndex;
 	}
 
+	if (ConfigureParams.System.nCpuLevel >= 2)
+	{
+		send_key_value(state, "CAAR", regs.caar);
+		send_key_value(state, "CACR", regs.cacr);
+		send_key_value(state, "DFC", regs.dfc);
+		send_key_value(state, "MSP", regs.msp);
+		send_key_value(state, "SFC", regs.sfc);
+		send_key_value(state, "VBR", regs.vbr);
+	}
 	return 0;
 }
 

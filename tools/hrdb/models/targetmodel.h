@@ -124,6 +124,7 @@ public:
     // =========================== DATA ACCESS =================================
 	// NOTE: all these return copies to avoid data contention
     MACHINETYPE	GetMachineType() const { return m_machineType; }
+    int GetCpuLevel() const { return m_cpuLevel; }
 
     // Get RAM size in bytes
     uint32_t GetSTRamSize() const { return m_stRamSize; }

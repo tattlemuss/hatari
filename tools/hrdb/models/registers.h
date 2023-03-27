@@ -55,7 +55,17 @@ public:
         SR,
         USP,
         ISP,
-        EX,			// Exception number
+
+        // 68020+
+        CAAR,
+        CACR,
+        DFC,
+        MSP,
+        SFC,
+        VBR,
+
+        // Exception number
+        EX,
 
         // Variables
         AesOpcode,

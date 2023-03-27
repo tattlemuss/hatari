@@ -8,6 +8,13 @@ const char* Registers::s_names[] =
     "A0", "A1", "A2", "A3", "A4", "A5", "A6", "A7",
     "PC", "SR",
     "USP", "ISP",
+    // Exception number
+    "CAAR",
+    "CACR",
+    "DFC",
+    "MSP",
+    "SFC",
+    "VBR",
     "EX",
     // Vars
     "AesOpcode",

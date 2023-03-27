@@ -446,6 +446,18 @@ void RegisterWidget::PopulateRegisters()
     AddReg32(14, row, Registers::ISP, m_prevRegs, m_currRegs); AddSymbol(28, row, m_currRegs.m_value[Registers::ISP]);
     row++;
     row++;
+    if (m_pTargetModel->GetCpuLevel() >= 2)
+    {
+        // 68010
+        AddReg32(1, row, Registers::DFC, m_prevRegs, m_currRegs);
+        AddReg32(16, row, Registers::SFC, m_prevRegs, m_currRegs);
+        row++;
+        // 68020
+        AddReg32(0, row, Registers::CAAR, m_prevRegs, m_currRegs);
+        AddReg32(15, row, Registers::CACR, m_prevRegs, m_currRegs);
+        row++;
+        row++;
+    }
 
     // Sundry info
     AddToken(0, row, QString::asprintf("VBL: %10u Frame Cycles: %6u", GET_REG(m_currRegs, VBL), GET_REG(m_currRegs, FrameCycles)), TokenType::kNone);
