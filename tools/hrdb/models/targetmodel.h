@@ -12,6 +12,7 @@
 #include "registers.h"
 #include "exceptionmask.h"
 #include "../hardware/hardware_st.h"
+#include "../hopper/decode.h"
 
 class QTimer;
 class ProfileData;
@@ -150,6 +151,9 @@ public:
     void GetProfileData(uint32_t addr, uint32_t& count, uint32_t& cycles) const;
     const ProfileData& GetRawProfileData() const;
 
+    // CPU info for disassembly
+    const decode_settings& GetDisasmSettings() const;
+
 public slots:
 
 signals:
@@ -205,6 +209,7 @@ private:
     MACHINETYPE     m_machineType;	// Hatari MACHINETYPE enum
     uint32_t        m_cpuLevel;		// CPU 0=000, 1=010, 2=020, 3=030, 4=040, 5=060
     uint32_t        m_stRamSize;    // Size of available ST Ram
+    decode_settings m_decodeSettings;
 
     int             m_bConnected;   // 0 == disconnected, 1 == connected
     int             m_bRunning;		// 0 == stopped, 1 == running

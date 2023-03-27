@@ -40,6 +40,8 @@ TargetModel::TargetModel() :
     m_pDelayedUpdateTimer = new QTimer(this);
     m_pRunningRefreshTimer = new QTimer(this);
 
+    m_decodeSettings.cpu_type = CPU_TYPE_68000;
+
     connect(m_pDelayedUpdateTimer,  &QTimer::timeout, this, &TargetModel::delayedTimer);
     connect(m_pRunningRefreshTimer, &QTimer::timeout, this, &TargetModel::runningRefreshTimerSignal);
 }
@@ -103,6 +105,19 @@ void TargetModel::SetConfig(uint32_t machineType, uint32_t cpuLevel, uint32_t st
     m_machineType = (MACHINETYPE) machineType;
     m_cpuLevel = cpuLevel;
     m_stRamSize = stRamSize;
+
+    static int cpu_types[] =
+    {
+        CPU_TYPE_68000,
+        CPU_TYPE_68010,
+        CPU_TYPE_68020,
+        CPU_TYPE_68030,
+        CPU_TYPE_68030,  // 040 Not supported fully yet
+        CPU_TYPE_68030,  // 050 Not supported fully yet
+        CPU_TYPE_68030,  // 060 Not supported fully yet
+    };
+    if (cpuLevel < sizeof(cpu_types) / sizeof(cpu_types[0]))
+        m_decodeSettings.cpu_type = cpu_types[cpuLevel];
 }
 
 void TargetModel::SetRegisters(const Registers& regs, uint64_t commandId)
@@ -202,6 +217,11 @@ void TargetModel::GetProfileData(uint32_t addr, uint32_t& count, uint32_t& cycle
 const ProfileData& TargetModel::GetRawProfileData() const
 {
     return *m_pProfileData;
+}
+
+const decode_settings& TargetModel::GetDisasmSettings() const
+{
+    return m_decodeSettings;
 }
 
 void TargetModel::delayedTimer()
