@@ -61,6 +61,13 @@ static QString CreateSRTooltip(uint32_t srRegValue, uint32_t registerBit)
                              valSet ? "TRUE" : "False");
 }
 
+static QString CreateCACRTooltip(uint32_t cacrRegValue, uint32_t registerBit)
+{
+    uint32_t valSet = (cacrRegValue >> registerBit) & 1;
+    return QString::asprintf("%s = %s", Registers::GetCACRBitName(registerBit),
+                             valSet ? "TRUE" : "False");
+}
+
 static QString MakeBracket(QString str)
 {
     return QString("(") + str + ")";
@@ -445,6 +452,10 @@ void RegisterWidget::PopulateRegisters()
     row++;
     AddReg32(14, row, Registers::ISP, m_prevRegs, m_currRegs); AddSymbol(28, row, m_currRegs.m_value[Registers::ISP]);
     row++;
+    if (m_pTargetModel->GetCpuLevel() >= 2)
+    {
+        AddReg32(14, row, Registers::MSP, m_prevRegs, m_currRegs); AddSymbol(28, row, m_currRegs.m_value[Registers::MSP]);
+    }
     row++;
     if (m_pTargetModel->GetCpuLevel() >= 2)
     {
@@ -454,7 +465,21 @@ void RegisterWidget::PopulateRegisters()
         row++;
         // 68020
         AddReg32(0, row, Registers::CAAR, m_prevRegs, m_currRegs);
-        AddReg32(15, row, Registers::CACR, m_prevRegs, m_currRegs);
+        AddReg16(15, row, Registers::CACR, m_prevRegs, m_currRegs);
+
+        //row++;
+        const int x = 28;
+        AddCACRBit(x+0, row, m_prevRegs, m_currRegs, Registers::CACRBits::WA, "WA");
+
+        AddCACRBit(x+7, row, m_prevRegs, m_currRegs, Registers::CACRBits::DBE, "DBE");
+        AddCACRBit(x+13, row, m_prevRegs, m_currRegs, Registers::CACRBits::CD, "CD");
+        AddCACRBit(x+18, row, m_prevRegs, m_currRegs, Registers::CACRBits::FD, "FD");
+        AddCACRBit(x+23, row, m_prevRegs, m_currRegs, Registers::CACRBits::ED, "ED");
+
+        AddCACRBit(x+30, row, m_prevRegs, m_currRegs, Registers::CACRBits::IBE, "IBE");
+        AddCACRBit(x+36, row, m_prevRegs, m_currRegs, Registers::CACRBits::CI, "CI");
+        AddCACRBit(x+41, row, m_prevRegs, m_currRegs, Registers::CACRBits::FI, "FI");
+        AddCACRBit(x+46, row, m_prevRegs, m_currRegs, Registers::CACRBits::EI, "EI");
         row++;
         row++;
     }
@@ -528,6 +553,16 @@ int RegisterWidget::AddSRBit(int x, int y, const Registers& prevRegs, const Regi
     return AddToken(x, y, QString(text), TokenType::kStatusRegisterBit, bit, highlight);
 }
 
+int RegisterWidget::AddCACRBit(int x, int y, const Registers& prevRegs, const Registers& regs, uint32_t bit, const char* pName)
+{
+    uint32_t valNew = (regs.m_value[Registers::CACR] >> bit) & 1;
+    uint32_t valOld = (prevRegs.m_value[Registers::CACR] >> bit) & 1;
+
+    TokenColour highlight = (valNew != valOld) ? kChanged : kNormal;
+    QString text = QString::asprintf("%s=%x", pName, valNew);
+    return AddToken(x, y, QString(text), TokenType::kCACRBit, bit, highlight);
+}
+
 int RegisterWidget::AddSymbol(int x, int y, uint32_t address)
 {
     QString symText = FindSymbol(address & 0xffffff);
@@ -551,6 +586,8 @@ QString RegisterWidget::GetTooltipText(const RegisterWidget::Token& token)
         return QString::asprintf("Original address: $%08x", token.subIndex);
     case TokenType::kStatusRegisterBit:
          return CreateSRTooltip(m_currRegs.Get(Registers::SR), token.subIndex);
+    case TokenType::kCACRBit:
+         return CreateCACRTooltip(m_currRegs.Get(Registers::CACR), token.subIndex);
     default:
         break;
     }
