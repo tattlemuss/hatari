@@ -424,7 +424,7 @@ void RegisterWidget::PopulateRegisters()
     }
 
     row += 2;
-    AddReg16(0, row, Registers::SR, m_prevRegs, m_currRegs);
+    AddReg16(1, row, Registers::SR, m_prevRegs, m_currRegs);
     AddSRBit(10, row, m_prevRegs, m_currRegs, Registers::SRBits::kTrace1, "T");
     AddSRBit(14, row, m_prevRegs, m_currRegs, Registers::SRBits::kSupervisor, "S");
 
@@ -445,32 +445,36 @@ void RegisterWidget::PopulateRegisters()
     row++;
     for (uint32_t reg = 0; reg < 8; ++reg)
     {
-        AddReg32(0, row, Registers::D0 + reg, m_prevRegs, m_currRegs); AddReg32(15, row, Registers::A0 + reg, m_prevRegs, m_currRegs); AddSymbol(28, row, m_currRegs.m_value[Registers::A0 + reg]);
+        AddReg32(2, row, Registers::D0 + reg, m_prevRegs, m_currRegs);
+
+        AddReg32(17, row, Registers::A0 + reg, m_prevRegs, m_currRegs); AddSymbol(30, row, m_currRegs.m_value[Registers::A0 + reg]);
         row++;
     }
-    AddReg32(14, row, Registers::USP, m_prevRegs, m_currRegs); AddSymbol(28, row, m_currRegs.m_value[Registers::USP]);
+    AddReg32(16, row, Registers::ISP, m_prevRegs, m_currRegs); AddSymbol(30, row, m_currRegs.m_value[Registers::ISP]);
     row++;
-    AddReg32(14, row, Registers::ISP, m_prevRegs, m_currRegs); AddSymbol(28, row, m_currRegs.m_value[Registers::ISP]);
-    row++;
-    if (m_pTargetModel->GetCpuLevel() >= 2)
+    AddReg32(16, row, Registers::USP, m_prevRegs, m_currRegs); AddSymbol(30, row, m_currRegs.m_value[Registers::USP]);
+    if (m_pTargetModel->GetCpuLevel() >= TargetModel::CpuLevel::kCpuLevel68020)
     {
-        AddReg32(14, row, Registers::MSP, m_prevRegs, m_currRegs); AddSymbol(28, row, m_currRegs.m_value[Registers::MSP]);
+        row++;
+        AddReg32(16, row, Registers::MSP, m_prevRegs, m_currRegs); AddSymbol(30, row, m_currRegs.m_value[Registers::MSP]);
     }
     row++;
-    if (m_pTargetModel->GetCpuLevel() >= 2)
+    row++;
+
+    // More sundry non-stack registers
+
+    if (m_pTargetModel->GetCpuLevel() >= TargetModel::CpuLevel::kCpuLevel68010)
     {
-        // 68010
-        AddReg32(1, row, Registers::DFC, m_prevRegs, m_currRegs);
-        AddReg32(16, row, Registers::SFC, m_prevRegs, m_currRegs);
+        AddReg32(1, row, Registers::DFC, m_prevRegs, m_currRegs); AddReg32(16, row, Registers::SFC, m_prevRegs, m_currRegs);
         row++;
+    }
+    if (m_pTargetModel->GetCpuLevel() >= TargetModel::CpuLevel::kCpuLevel68020)
+    {
         // 68020
         AddReg32(0, row, Registers::CAAR, m_prevRegs, m_currRegs);
         AddReg16(15, row, Registers::CACR, m_prevRegs, m_currRegs);
-
-        //row++;
         const int x = 28;
         AddCACRBit(x+0, row, m_prevRegs, m_currRegs, Registers::CACRBits::WA, "WA");
-
         AddCACRBit(x+7, row, m_prevRegs, m_currRegs, Registers::CACRBits::DBE, "DBE");
         AddCACRBit(x+13, row, m_prevRegs, m_currRegs, Registers::CACRBits::CD, "CD");
         AddCACRBit(x+18, row, m_prevRegs, m_currRegs, Registers::CACRBits::FD, "FD");

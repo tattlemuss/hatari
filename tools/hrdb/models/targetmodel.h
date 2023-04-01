@@ -68,8 +68,16 @@ class TargetModel : public QObject
 {
 	Q_OBJECT
 public:
-	TargetModel();
-	virtual ~TargetModel();
+    enum CpuLevel
+    {
+        kCpuLevel68000 = 0,
+        kCpuLevel68010 = 1,
+        kCpuLevel68020 = 2,
+        kCpuLevel68030 = 3
+    };
+
+    TargetModel();
+    virtual ~TargetModel();
 
     // These are called by the Dispatcher when notifications/events arrive
     void SetConnected(int running);
