@@ -98,6 +98,7 @@ static bool calc_relative_address(const operand& op, uint32_t inst_address, uint
     {
         if (op.indirect_index_68020.base_register == INDEX_REG_PC)
         {
+            // Special case since PC not always equal to instruction address at this time
             target_address = inst_address + op.indirect_index_68020.base_displacement;
             return true;
         }
@@ -548,6 +549,31 @@ bool Disassembler::calc_fixed_ea(const operand &operand, bool useRegs, const Reg
         return true;
     case OpType::CCR:
         return false;
+    case OpType::NO_MEMORY_INDIRECT:
+    case OpType::MEMORY_INDIRECT:
+    case OpType::INDIRECT_POSTINDEXED:
+    case OpType::INDIRECT_PREINDEXED:
+    {
+        // Do the best without supplying reg data
+        bool res = calc_relative_address(operand, inst_address, ea);
+        if (useRegs)
+        {
+            if (operand.type == OpType::NO_MEMORY_INDIRECT)
+            {
+                // This is the only one we can calc with a secondary memory fetch
+                uint32_t base_reg_val = GetIndexRegisterVal(regs, operand.indirect_index_68020.base_register);
+                uint32_t index_reg_val = GetIndexRegisterVal(regs, operand.indirect_index_68020.index.index_reg);
+                int32_t disp = operand.indirect_index_68020.base_displacement;
+                int scale = 1 << operand.indirect_index_68020.index.scale_shift;
+                if (operand.indirect_index_68020.index.is_long)
+                    ea = base_reg_val + index_reg_val * scale + disp;
+                else
+                    ea = base_reg_val + (int16_t)(index_reg_val & 0xffff) * scale + disp;
+                return true;
+            }
+        }
+        return res;
+    }
     default:
         return false;
     }
