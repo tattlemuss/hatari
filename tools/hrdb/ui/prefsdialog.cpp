@@ -41,7 +41,7 @@ PrefsDialog::PrefsDialog(QWidget *parent, Session* pSession) :
     // Add the options
     m_pLiveRefresh = new QCheckBox(tr("Live Refresh"), this);
     m_pGraphicsSquarePixels = new QCheckBox(tr("Graphics Inspector: Square Pixels"), this);
-    m_pDisassHexNumerics = new QCheckBox(tr("Disassmbly: Use hex address register offsets"), this);
+    m_pDisassHexNumerics = new QCheckBox(tr("Disassembly: Use hex address register offsets"), this);
     m_pProfileDisplayCombo = new QComboBox(this);
     m_pProfileDisplayCombo->insertItem(Session::Settings::kTotal, "Total");
     m_pProfileDisplayCombo->insertItem(Session::Settings::kMean, "Mean");
@@ -70,7 +70,7 @@ PrefsDialog::PrefsDialog(QWidget *parent, Session* pSession) :
     connect(pCancelButton, &QPushButton::clicked, this, &PrefsDialog::reject);
 
     connect(m_pGraphicsSquarePixels, &QPushButton::clicked, this, &PrefsDialog::squarePixelsClicked);
-    connect(m_pLiveRefresh,          &QPushButton::clicked, this, &PrefsDialog::liveRefreshClicked);
+    connect(m_pDisassHexNumerics,    &QPushButton::clicked, this, &PrefsDialog::disassHexNumbersClicked);
     connect(m_pLiveRefresh,          &QPushButton::clicked, this, &PrefsDialog::liveRefreshClicked);
     connect(pFontButton,             &QPushButton::clicked, this, &PrefsDialog::fontSelectClicked);
 
