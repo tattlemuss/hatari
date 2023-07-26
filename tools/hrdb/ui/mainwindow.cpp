@@ -744,6 +744,7 @@ void MainWindow::createToolBar()
     pToolbar->addAction(m_pLaunchAct);
     pToolbar->addSeparator();
     pToolbar->addAction(m_pWarmResetAct);
+    pToolbar->addSeparator();
     pToolbar->addAction(m_pFastForwardAct);
 
     this->addToolBar(Qt::ToolBarArea::TopToolBarArea, pToolbar);
