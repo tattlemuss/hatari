@@ -112,7 +112,9 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     m_pModeComboBox->addItem(tr("3 Plane"), Mode::k3Bitplane);
     m_pModeComboBox->addItem(tr("2 Plane"), Mode::k2Bitplane);
     m_pModeComboBox->addItem(tr("1 Plane"), Mode::k1Bitplane);
-    m_pWidthSpinBox->setRange(1, 40);
+
+    // Width is now 80 to support the "1280" special ST mode for @troed
+    m_pWidthSpinBox->setRange(1, 80);
     m_pWidthSpinBox->setValue(m_width);
     m_pHeightSpinBox->setRange(16, 256);
     m_pHeightSpinBox->setValue(m_height);
