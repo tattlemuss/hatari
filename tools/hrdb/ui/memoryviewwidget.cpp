@@ -26,6 +26,7 @@
 #include "colouring.h"
 #include "quicklayout.h"
 #include "searchdialog.h"
+#include "symboltext.h"
 
 static QString CreateTooltip(uint32_t address, const SymbolTable& symTable, uint8_t byteVal, uint32_t wordVal, uint32_t longVal)
 {
@@ -78,10 +79,11 @@ MemoryWidget::MemoryWidget(QWidget *parent, Session* pSession,
     m_memSlot = static_cast<MemorySlot>(MemorySlot::kMemoryView0 + m_windowIndex);
 
     UpdateFont();
-    SetMode(Mode::kModeByte);
+    SetSizeMode(SizeMode::kModeByte);
     setFocus();
     setFocusPolicy(Qt::StrongFocus);
     setAutoFillBackground(true);
+    RecalcCursorInfo();
 
     connect(m_pTargetModel, &TargetModel::memoryChangedSignal,      this, &MemoryWidget::memoryChanged);
     connect(m_pTargetModel, &TargetModel::startStopChangedSignal,   this, &MemoryWidget::startStopChanged);
@@ -94,20 +96,6 @@ MemoryWidget::MemoryWidget(QWidget *parent, Session* pSession,
 
 MemoryWidget::~MemoryWidget()
 {
-}
-
-bool MemoryWidget::GetAddressAtCursor(uint32_t& address) const
-{
-    // Search leftwards for the first valid character
-    for (int col = m_cursorCol; col >= 0; --col)
-    {
-        const ColInfo& info = m_columnMap[col];
-        if (info.type == ColInfo::kSpace)
-            continue;
-        address = m_rows[m_cursorRow].m_address + static_cast<uint32_t>(info.byteOffset);
-        return true;
-    }
-    return false;
 }
 
 bool MemoryWidget::CanSetExpression(std::string expression) const
@@ -176,7 +164,7 @@ void MemoryWidget::SetLock(bool locked)
     }
 }
 
-void MemoryWidget::SetMode(MemoryWidget::Mode mode)
+void MemoryWidget::SetSizeMode(MemoryWidget::SizeMode mode)
 {
     m_mode = mode;
 
@@ -224,24 +212,27 @@ void MemoryWidget::SetMode(MemoryWidget::Mode mode)
         m_cursorCol = m_columnMap.size() - 1;
 
     RecalcText();
+    RecalcCursorInfo();
 }
 
-void MemoryWidget::MoveUp()
+void MemoryWidget::CursorUp()
 {
     if (m_cursorRow > 0)
     {
         --m_cursorRow;
         update();
+        RecalcCursorInfo();
         return;
     }
     MoveRelative(-m_bytesPerRow);
 }
 
-void MemoryWidget::MoveDown()
+void MemoryWidget::CursorDown()
 {
     if (m_cursorRow < m_rowCount - 1)
     {
         ++m_cursorRow;
+        RecalcCursorInfo();
         update();
         return;
     }
@@ -254,6 +245,7 @@ void MemoryWidget::MoveLeft()
         return;
 
     m_cursorCol--;
+    RecalcCursorInfo();
     update();
 }
 
@@ -262,6 +254,7 @@ void MemoryWidget::MoveRight()
     m_cursorCol++;
     if (m_cursorCol + 1 >= m_columnMap.size())
         m_cursorCol = m_columnMap.size() - 1;
+    RecalcCursorInfo();
     update();
 }
 
@@ -270,6 +263,7 @@ void MemoryWidget::PageUp()
     if (m_cursorRow > 0)
     {
         m_cursorRow = 0;
+        RecalcCursorInfo();
         update();
         return;
     }
@@ -281,6 +275,7 @@ void MemoryWidget::PageDown()
     if (m_cursorRow < m_rowCount - 1)
     {
         m_cursorRow = m_rowCount - 1;
+        RecalcCursorInfo();
         update();
         return;
     }
@@ -436,6 +431,7 @@ void MemoryWidget::memoryChanged(int memorySlot, uint64_t commandId)
     {
         m_cursorRow = 0;
         m_cursorCol = 0;
+        RecalcCursorInfo();
     }
 
     // We should just save the memory block here and format on demand
@@ -464,6 +460,7 @@ void MemoryWidget::memoryChanged(int memorySlot, uint64_t commandId)
         m_rows.push_back(row);
     }
     RecalcText();
+    RecalcCursorInfo();
     m_requestId = 0;
     m_requestCursorMode = kNoMoveCursor;
 }
@@ -558,6 +555,7 @@ void MemoryWidget::connectChanged()
     m_rows.clear();
     m_address = 0;
     m_rowCount = 10;
+    RecalcCursorInfo();
     update();
 }
 
@@ -566,8 +564,9 @@ void MemoryWidget::registersChanged()
     // New registers can affect expression parsing
     RecalcLockedExpression();
 
-    // Always re-request here, since this is expected after every start/stop
-    RequestMemory(kNoMoveCursor);
+    // Registers changing is our signal for re-request (rather than start/stop),
+    // but do it after the expression has changed
+    RequestMemory(CursorMode::kNoMoveCursor);
 }
 
 void MemoryWidget::otherMemoryChanged(uint32_t address, uint32_t size)
@@ -576,6 +575,12 @@ void MemoryWidget::otherMemoryChanged(uint32_t address, uint32_t size)
     (void)size;
     // Do a re-request
     // TODO only re-request if it affected our view...
+    if (address + size <= m_address)
+        return;
+
+    uint32_t ourSize = static_cast<uint32_t>(m_rowCount * m_bytesPerRow);
+    if (m_address + ourSize <= address)
+        return;
     RequestMemory(kNoMoveCursor);
 }
 
@@ -689,8 +694,8 @@ void MemoryWidget::keyPressEvent(QKeyEvent* event)
         {
         case Qt::Key_Left:       MoveLeft();          return;
         case Qt::Key_Right:      MoveRight();         return;
-        case Qt::Key_Up:         MoveUp();            return;
-        case Qt::Key_Down:       MoveDown();          return;
+        case Qt::Key_Up:         CursorUp();            return;
+        case Qt::Key_Down:       CursorDown();          return;
         case Qt::Key_PageUp:     PageUp();            return;
         case Qt::Key_PageDown:   PageDown();          return;
         default: break;
@@ -722,6 +727,7 @@ void MemoryWidget::mousePressEvent(QMouseEvent *event)
         {
             m_cursorCol = col;
             m_cursorRow = row;
+            RecalcCursorInfo();
             update();
         }
     }
@@ -768,7 +774,7 @@ void MemoryWidget::contextMenuEvent(QContextMenuEvent *event)
     // (view address, or word/long mode)
     uint32_t byteOffset = m_columnMap[col].byteOffset;
     byteOffset &= ~1U;
-    if (m_mode == Mode::kModeLong)
+    if (m_mode == SizeMode::kModeLong)
         byteOffset &= ~3U;
 
     uint32_t addr = m_rows[row].m_address + byteOffset;
@@ -856,7 +862,6 @@ void MemoryWidget::RecalcLockedExpression()
             SetAddress(addr, kNoMoveCursor);
         }
     }
-
 }
 
 void MemoryWidget::RecalcRowCount()
@@ -873,7 +878,33 @@ void MemoryWidget::RecalcRowCount()
     if (m_cursorRow >= m_rowCount)
     {
         m_cursorRow = m_rowCount - 1;
+        RecalcCursorInfo();
     }
+}
+
+void MemoryWidget::RecalcCursorInfo()
+{
+    const Memory* mem = m_pTargetModel->GetMemory(m_memSlot);
+    if (!mem)
+        return;
+
+    // Guard against call before memory fetched
+    m_cursorInfo.m_address = 0;
+    m_cursorInfo.m_isValid = false;
+    if (m_cursorRow < m_rows.size())
+    {
+        // Search leftwards for the first valid character
+        for (int col = m_cursorCol; col >= 0; --col)
+        {
+            const ColInfo& info = m_columnMap[col];
+            if (info.type == ColInfo::kSpace)
+                break;
+            m_cursorInfo.m_address = m_rows[m_cursorRow].m_address + static_cast<uint32_t>(info.byteOffset);
+            m_cursorInfo.m_isValid = true;
+            break;
+        }
+    }
+    emit cursorChangedSignal();
 }
 
 QString MemoryWidget::CalcMouseoverText(int mouseX, int mouseY)
@@ -904,7 +935,7 @@ QString MemoryWidget::CalcMouseoverText(int mouseX, int mouseY)
     // (view address, or word/long mode)
     uint32_t byteOffset = m_columnMap[col].byteOffset;
     byteOffset &= ~1U;
-    if (m_mode == Mode::kModeLong)
+    if (m_mode == SizeMode::kModeLong)
         byteOffset &= ~3U;
 
     uint32_t addrLong = m_rows[row].m_address + byteOffset;
@@ -987,6 +1018,7 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
     m_pAddressEdit->setCompleter(pCompl);
 
     m_pLockCheckBox = new QCheckBox(tr("Lock"), this);
+    m_pCursorInfoLabel = new QLabel(this);
 
     m_pComboBox = new QComboBox(this);
     m_pComboBox->insertItem(MemoryWidget::kModeByte, "Byte");
@@ -1008,6 +1040,7 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
     SetMargins(pMainLayout);
     pMainLayout->addWidget(pTopRegion);
     pMainLayout->addWidget(m_pMemoryWidget);
+    pMainLayout->addWidget(m_pCursorInfoLabel);
 
     pTopRegion->setLayout(pTopLayout);
     pMainRegion->setLayout(pMainLayout);
@@ -1025,6 +1058,7 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
     connect(m_pAddressEdit,  &QLineEdit::textChanged,          this, &MemoryWindow::textEditedSlot);
     connect(m_pLockCheckBox, &QCheckBox::stateChanged,         this, &MemoryWindow::lockChangedSlot);
     connect(m_pSession,      &Session::addressRequested,       this, &MemoryWindow::requestAddress);
+    connect(m_pMemoryWidget, &MemoryWidget::cursorChangedSignal,     this, &MemoryWindow::cursorChangedSlot);
     connect(m_pTargetModel,  &TargetModel::searchResultsChangedSignal, this, &MemoryWindow::searchResultsSlot);
     connect(m_pComboBox,     SIGNAL(currentIndexChanged(int)), SLOT(modeComboBoxChanged(int)));
 }
@@ -1035,7 +1069,6 @@ void MemoryWindow::keyFocus()
     m_pMemoryWidget->setFocus();
 }
 
-
 void MemoryWindow::loadSettings()
 {
     QSettings settings;
@@ -1044,7 +1077,7 @@ void MemoryWindow::loadSettings()
 
     restoreGeometry(settings.value("geometry").toByteArray());
     int mode = settings.value("mode", QVariant(0)).toInt();
-    m_pMemoryWidget->SetMode(static_cast<MemoryWidget::Mode>(mode));
+    m_pMemoryWidget->SetSizeMode(static_cast<MemoryWidget::SizeMode>(mode));
     m_pComboBox->setCurrentIndex(m_pMemoryWidget->GetMode());
     settings.endGroup();
 }
@@ -1075,6 +1108,24 @@ void MemoryWindow::requestAddress(Session::WindowType type, int windowIndex, uin
     this->keyFocus();
 }
 
+void MemoryWindow::cursorChangedSlot()
+{
+    const MemoryWidget::CursorInfo& info = m_pMemoryWidget->GetCursorInfo();
+
+    if (info.m_isValid)
+    {
+        QString final;
+        QTextStream ref(&final);
+        ref << QString("Cursor: ") << Format::to_hex32(info.m_address);
+        QString symText = DescribeSymbol(m_pTargetModel->GetSymbolTable(), info.m_address);
+        if (!symText.isEmpty())
+            ref << " (" + symText + ")";
+        m_pCursorInfoLabel->setText(final);
+    }
+    else
+        m_pCursorInfoLabel->setText("");
+}
+
 void MemoryWindow::returnPressedSlot()
 {
     bool valid = m_pMemoryWidget->SetExpression(m_pAddressEdit->text().toStdString());
@@ -1096,7 +1147,7 @@ void MemoryWindow::lockChangedSlot()
 
 void MemoryWindow::modeComboBoxChanged(int index)
 {
-    m_pMemoryWidget->SetMode((MemoryWidget::Mode)index);
+    m_pMemoryWidget->SetSizeMode((MemoryWidget::SizeMode)index);
 }
 
 void MemoryWindow::findClickedSlot()
@@ -1104,27 +1155,25 @@ void MemoryWindow::findClickedSlot()
     if (!m_pTargetModel->IsConnected())
         return;
 
-    uint32_t addr;
-    if (!m_pMemoryWidget->GetAddressAtCursor(addr))
+    const MemoryWidget::CursorInfo& info = m_pMemoryWidget->GetCursorInfo();
+    if (!info.m_isValid)
         return;
 
-    {
-        // Fill in the "default"
-        m_searchSettings.m_startAddress = addr;
-        if (m_searchSettings.m_endAddress == 0)
-            m_searchSettings.m_endAddress = m_pTargetModel->GetSTRamSize();
+    // Fill in the "default"
+    m_searchSettings.m_startAddress = info.m_address;
+    if (m_searchSettings.m_endAddress == 0)
+        m_searchSettings.m_endAddress = m_pTargetModel->GetSTRamSize();
 
-        SearchDialog search(this, m_pTargetModel, m_searchSettings);
-        search.setModal(true);
-        int code = search.exec();
-        if (code == QDialog::DialogCode::Accepted &&
-            m_pTargetModel->IsConnected())
-        {
-            m_searchRequestId = m_pDispatcher->SendMemFind(m_searchSettings.m_masksAndValues,
-                                     m_searchSettings.m_startAddress,
-                                     m_searchSettings.m_endAddress);
-            m_pSession->SetMessage(QString("Searching: " + m_searchSettings.m_originalText));
-        }
+    SearchDialog search(this, m_pTargetModel, m_searchSettings);
+    search.setModal(true);
+    int code = search.exec();
+    if (code == QDialog::DialogCode::Accepted &&
+        m_pTargetModel->IsConnected())
+    {
+        m_searchRequestId = m_pDispatcher->SendMemFind(m_searchSettings.m_masksAndValues,
+                                 m_searchSettings.m_startAddress,
+                                 m_searchSettings.m_endAddress);
+        m_pSession->SetMessage(QString("Searching: " + m_searchSettings.m_originalText));
     }
 }
 
@@ -1133,8 +1182,8 @@ void MemoryWindow::nextClickedSlot()
     if (!m_pTargetModel->IsConnected())
         return;
 
-    uint32_t addr;
-    if (!m_pMemoryWidget->GetAddressAtCursor(addr))
+    const MemoryWidget::CursorInfo& info = m_pMemoryWidget->GetCursorInfo();
+    if (!info.m_isValid)
         return;
 
     if (m_searchSettings.m_masksAndValues.size() != 0)
@@ -1142,7 +1191,7 @@ void MemoryWindow::nextClickedSlot()
         // Start address should already have been filled
         {
             m_searchRequestId = m_pDispatcher->SendMemFind(m_searchSettings.m_masksAndValues,
-                                     addr + 1,
+                                     info.m_address + 1,
                                      m_searchSettings.m_endAddress);
         }
     }

@@ -25,19 +25,25 @@ public:
         kColCount
     };
 
-    enum Mode
+    enum SizeMode
     {
         kModeByte,
         kModeWord,
         kModeLong
     };
 
+    struct CursorInfo
+    {
+        uint32_t m_address;
+        bool     m_isValid;
+    };
+
     MemoryWidget(QWidget* parent, Session* pSession, int windowIndex);
     virtual ~MemoryWidget();
 
     uint32_t GetRowCount() const { return m_rowCount; }
-    Mode GetMode() const { return m_mode; }
-    bool GetAddressAtCursor(uint32_t &address) const;
+    SizeMode GetMode() const { return m_mode; }
+    const CursorInfo& GetCursorInfo() const { return m_cursorInfo; }
 
     // Checks expression validity
     bool CanSetExpression(std::string expression) const;
@@ -47,8 +53,10 @@ public:
     void SetSearchResultAddress(uint32_t addr);
 
     void SetLock(bool locked);
-    void SetMode(Mode mode);
-
+    void SetSizeMode(SizeMode mode);
+signals:
+    // Flagged when cursor position or memory under cursor changes
+    void cursorChangedSignal();
 protected:
     virtual void paintEvent(QPaintEvent*) override;
     virtual void keyPressEvent(QKeyEvent*) override;
@@ -67,8 +75,8 @@ private:
     void symbolTableChanged();
     void settingsChanged();
 
-    void MoveUp();
-    void MoveDown();
+    void CursorUp();
+    void CursorDown();
     void MoveLeft();
     void MoveRight();
     void PageUp();
@@ -97,6 +105,9 @@ private:
     void RecalcLockedExpression();
     void RecalcText();
     void RecalcRowCount();
+
+    // Update cursor data and emit cursorChangedSignal
+    void RecalcCursorInfo();
 
     QString CalcMouseoverText(int mouseX, int mouseY);
 
@@ -134,6 +145,8 @@ private:
     };
 
     QVector<Row> m_rows;
+
+    // This describes the layout of characters in each column of the grid
     struct ColInfo
     {
         enum Type
@@ -143,16 +156,15 @@ private:
             kBottomNybble,
             kASCII
         } type;
-        uint32_t byteOffset;     // offset into memory
+        uint32_t byteOffset;     // offset into memory when type != kSpace
     };
-
     QVector<ColInfo> m_columnMap;
 
     std::string m_addressExpression;
     bool        m_isLocked;
 
     int         m_bytesPerRow;
-    Mode        m_mode;
+    SizeMode        m_mode;
 
     int         m_rowCount;
 
@@ -168,6 +180,8 @@ private:
     // Cursor
     int         m_cursorRow;
     int         m_cursorCol;
+
+    CursorInfo  m_cursorInfo;
 
     // rendering info
     int         m_charWidth;            // font width in pixels
@@ -197,6 +211,7 @@ public slots:
     void requestAddress(Session::WindowType type, int windowIndex, uint32_t address);
 
     void returnPressedSlot();
+    void cursorChangedSlot();
     void textEditedSlot();
     void lockChangedSlot();
     void modeComboBoxChanged(int index);
@@ -210,6 +225,7 @@ private:
     QLineEdit*          m_pAddressEdit;
     QComboBox*          m_pComboBox;
     QCheckBox*          m_pLockCheckBox;
+    QLabel*             m_pCursorInfoLabel;
     MemoryWidget*       m_pMemoryWidget;
 
     Session*            m_pSession;
