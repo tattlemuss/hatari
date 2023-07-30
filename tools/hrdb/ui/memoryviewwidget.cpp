@@ -64,8 +64,9 @@ MemoryWidget::MemoryWidget(QWidget *parent, Session* pSession,
     m_pTargetModel(pSession->m_pTargetModel),
     m_pDispatcher(pSession->m_pDispatcher),
     m_isLocked(false),
+    m_widthMode(k16),
+    m_sizeMode(kModeByte),
     m_bytesPerRow(16),
-    m_mode(kModeByte),
     m_rowCount(1),
     m_address(0),
     m_requestId(0),
@@ -166,53 +167,30 @@ void MemoryWidget::SetLock(bool locked)
 
 void MemoryWidget::SetSizeMode(MemoryWidget::SizeMode mode)
 {
-    m_mode = mode;
-
-    // Calc the screen postions.
-    // I need a screen position for each *character* on the grid (i.e. nybble)
-    int groupSize = 0;
-    if (m_mode == kModeByte)
-        groupSize = 1;
-    else if (m_mode == kModeWord)
-        groupSize = 2;
-    else if (m_mode == kModeLong)
-        groupSize = 4;
-
-    m_columnMap.clear();
-    int byte = 0;
-    while (byte + groupSize <= m_bytesPerRow)
-    {
-        ColInfo info;
-        for (int subByte = 0; subByte < groupSize; ++subByte)
-        {
-            info.byteOffset = byte;
-            info.type = ColInfo::kTopNybble;
-            m_columnMap.push_back(info);
-            info.type = ColInfo::kBottomNybble;
-            m_columnMap.push_back(info);
-            ++byte;
-        }
-
-        // Insert a space
-        info.type = ColInfo::kSpace;
-        m_columnMap.push_back(info);
-    }
-
-    // Add ASCII
-    for (int byte2 = 0; byte2 < m_bytesPerRow; ++byte2)
-    {
-        ColInfo info;
-        info.type = ColInfo::kASCII;
-        info.byteOffset = byte2;
-        m_columnMap.push_back(info);
-    }
-
-    // Stop crash when resizing and cursor is at end
-    if (m_cursorCol >= m_columnMap.size())
-        m_cursorCol = m_columnMap.size() - 1;
-
+    // This doesn't change the amount of memory needed, so no need to re-request
+    m_sizeMode = mode;
+    RecalcColumnLayout();
     RecalcText();
     RecalcCursorInfo();
+}
+
+void MemoryWidget::SetWidthMode(WidthMode widthMode)
+{
+    // Store for UI
+    m_widthMode = widthMode;
+    switch (widthMode)
+    {
+    case WidthMode::k4:      m_bytesPerRow = 4; break;
+    case WidthMode::k8:      m_bytesPerRow = 8; break;
+    case WidthMode::k16:     m_bytesPerRow = 16; break;
+    case WidthMode::k32:     m_bytesPerRow = 32; break;
+    case WidthMode::k64:     m_bytesPerRow = 64; break;
+    default:                 break;
+    }
+
+    RecalcColumnLayout();
+    // Re-request memory
+    RequestMemory(kNoMoveCursor);
 }
 
 void MemoryWidget::CursorUp()
@@ -465,6 +443,52 @@ void MemoryWidget::memoryChanged(int memorySlot, uint64_t commandId)
     m_requestCursorMode = kNoMoveCursor;
 }
 
+void MemoryWidget::RecalcColumnLayout()
+{
+    // Calc the screen postions.
+    // I need a screen position for each *character* on the grid (i.e. nybble)
+    int groupSize = 0;
+    if (m_sizeMode == kModeByte)
+        groupSize = 1;
+    else if (m_sizeMode == kModeWord)
+        groupSize = 2;
+    else if (m_sizeMode == kModeLong)
+        groupSize = 4;
+
+    m_columnMap.clear();
+    int byte = 0;
+    while (byte + groupSize <= m_bytesPerRow)
+    {
+        ColInfo info;
+        for (int subByte = 0; subByte < groupSize; ++subByte)
+        {
+            info.byteOffset = byte;
+            info.type = ColInfo::kTopNybble;
+            m_columnMap.push_back(info);
+            info.type = ColInfo::kBottomNybble;
+            m_columnMap.push_back(info);
+            ++byte;
+        }
+
+        // Insert a space
+        info.type = ColInfo::kSpace;
+        m_columnMap.push_back(info);
+    }
+
+    // Add ASCII
+    for (int byte2 = 0; byte2 < m_bytesPerRow; ++byte2)
+    {
+        ColInfo info;
+        info.type = ColInfo::kASCII;
+        info.byteOffset = byte2;
+        m_columnMap.push_back(info);
+    }
+
+    // Stop crash when resizing and cursor is at end
+    if (m_cursorCol >= m_columnMap.size())
+        m_cursorCol = m_columnMap.size() - 1;
+}
+
 void MemoryWidget::RecalcText()
 {
     const SymbolTable& symTable = m_pTargetModel->GetSymbolTable();
@@ -508,7 +532,8 @@ void MemoryWidget::RecalcText()
             bool changed = false;
             if (m_previousMemory.HasAddress(addr))
             {
-                uint8_t oldC = m_previousMemory.ReadAddressByte(addr);
+                uint8_t oldC;
+                m_previousMemory.ReadAddressByte(addr, oldC);
                 if (oldC != byteVal)
                     changed = true;
             }
@@ -774,7 +799,7 @@ void MemoryWidget::contextMenuEvent(QContextMenuEvent *event)
     // (view address, or word/long mode)
     uint32_t byteOffset = m_columnMap[col].byteOffset;
     byteOffset &= ~1U;
-    if (m_mode == SizeMode::kModeLong)
+    if (m_sizeMode == SizeMode::kModeLong)
         byteOffset &= ~3U;
 
     uint32_t addr = m_rows[row].m_address + byteOffset;
@@ -787,12 +812,10 @@ void MemoryWidget::contextMenuEvent(QContextMenuEvent *event)
     const Memory* mem = m_pTargetModel->GetMemory(m_memSlot);
     if (mem)
     {
-        if (mem->HasAddressMulti(addr, 4))
+        uint32_t longContents;
+        if (mem->ReadAddressMulti(addr, 4, longContents))
         {
-            // Read a longword
-            uint32_t longContents = mem->ReadAddressMulti(addr, 4);
             longContents &= 0xffffff;
-
             m_showAddressMenus[1].setAddress(m_pSession, longContents);
             m_showAddressMenus[1].setTitle(QString::asprintf("Pointer Address: $%x", longContents));
             menu.addMenu(m_showAddressMenus[1].m_pMenu);
@@ -922,12 +945,15 @@ QString MemoryWidget::CalcMouseoverText(int mouseX, int mouseY)
         return QString();
 
     uint32_t addr = m_rows[row].m_address + m_columnMap[col].byteOffset;
-    uint8_t byteVal = mem->ReadAddressByte(addr);
+    uint8_t byteVal;
+    mem->ReadAddressByte(addr, byteVal);
 
     if (!mem->HasAddressMulti(addr & 0xfffffe, 2))
         return QString();
 
-    uint32_t wordVal = mem->ReadAddressMulti(addr & 0xfffffe, 2);
+    uint32_t wordVal;
+    if (!mem->ReadAddressMulti(addr & 0xfffffe, 2, wordVal))
+        return QString();
 
     // Work out what's under the mouse
 
@@ -935,14 +961,16 @@ QString MemoryWidget::CalcMouseoverText(int mouseX, int mouseY)
     // (view address, or word/long mode)
     uint32_t byteOffset = m_columnMap[col].byteOffset;
     byteOffset &= ~1U;
-    if (m_mode == SizeMode::kModeLong)
+    if (m_sizeMode == SizeMode::kModeLong)
         byteOffset &= ~3U;
 
     uint32_t addrLong = m_rows[row].m_address + byteOffset;
     if (!mem->HasAddressMulti(addrLong, 4))
         return QString();
 
-    uint32_t longVal = mem->ReadAddressMulti(addrLong, 4);
+    uint32_t longVal;
+    if (!mem->ReadAddressMulti(addrLong, 4, longVal))
+        return QString();
     return CreateTooltip(addr, m_pTargetModel->GetSymbolTable(), byteVal, wordVal, longVal);
 }
 
@@ -1020,11 +1048,19 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
     m_pLockCheckBox = new QCheckBox(tr("Lock"), this);
     m_pCursorInfoLabel = new QLabel(this);
 
-    m_pComboBox = new QComboBox(this);
-    m_pComboBox->insertItem(MemoryWidget::kModeByte, "Byte");
-    m_pComboBox->insertItem(MemoryWidget::kModeWord, "Word");
-    m_pComboBox->insertItem(MemoryWidget::kModeLong, "Long");
-    m_pComboBox->setCurrentIndex(m_pMemoryWidget->GetMode());
+    m_pSizeModeComboBox = new QComboBox(this);
+    m_pSizeModeComboBox->insertItem(MemoryWidget::kModeByte, "Byte");
+    m_pSizeModeComboBox->insertItem(MemoryWidget::kModeWord, "Word");
+    m_pSizeModeComboBox->insertItem(MemoryWidget::kModeLong, "Long");
+    m_pSizeModeComboBox->setCurrentIndex(m_pMemoryWidget->GetMode());
+
+    m_pWidthComboBox = new QComboBox(this);
+    m_pWidthComboBox->insertItem(MemoryWidget::k4, "4 bytes");
+    m_pWidthComboBox->insertItem(MemoryWidget::k8, "8 bytes");
+    m_pWidthComboBox->insertItem(MemoryWidget::k16, "16 bytes");
+    m_pWidthComboBox->insertItem(MemoryWidget::k32, "32 bytes");
+    m_pWidthComboBox->insertItem(MemoryWidget::k64, "64 bytes");
+    m_pWidthComboBox->setCurrentIndex(m_pMemoryWidget->GetWidthMode());
 
     // Layouts
     QVBoxLayout* pMainLayout = new QVBoxLayout;
@@ -1035,7 +1071,8 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
     SetMargins(pTopLayout);
     pTopLayout->addWidget(m_pAddressEdit);
     pTopLayout->addWidget(m_pLockCheckBox);
-    pTopLayout->addWidget(m_pComboBox);
+    pTopLayout->addWidget(m_pSizeModeComboBox);
+    pTopLayout->addWidget(m_pWidthComboBox);
 
     SetMargins(pMainLayout);
     pMainLayout->addWidget(pTopRegion);
@@ -1060,7 +1097,9 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
     connect(m_pSession,      &Session::addressRequested,       this, &MemoryWindow::requestAddress);
     connect(m_pMemoryWidget, &MemoryWidget::cursorChangedSignal,     this, &MemoryWindow::cursorChangedSlot);
     connect(m_pTargetModel,  &TargetModel::searchResultsChangedSignal, this, &MemoryWindow::searchResultsSlot);
-    connect(m_pComboBox,     SIGNAL(currentIndexChanged(int)), SLOT(modeComboBoxChanged(int)));
+
+    connect(m_pSizeModeComboBox,     SIGNAL(currentIndexChanged(int)), SLOT(sizeModeComboBoxChangedSlot(int)));
+    connect(m_pWidthComboBox,        SIGNAL(currentIndexChanged(int)), SLOT(widthComboBoxChangedSlot(int)));
 }
 
 void MemoryWindow::keyFocus()
@@ -1078,7 +1117,7 @@ void MemoryWindow::loadSettings()
     restoreGeometry(settings.value("geometry").toByteArray());
     int mode = settings.value("mode", QVariant(0)).toInt();
     m_pMemoryWidget->SetSizeMode(static_cast<MemoryWidget::SizeMode>(mode));
-    m_pComboBox->setCurrentIndex(m_pMemoryWidget->GetMode());
+    m_pSizeModeComboBox->setCurrentIndex(m_pMemoryWidget->GetMode());
     settings.endGroup();
 }
 
@@ -1145,9 +1184,14 @@ void MemoryWindow::lockChangedSlot()
     m_pMemoryWidget->SetLock(m_pLockCheckBox->isChecked());
 }
 
-void MemoryWindow::modeComboBoxChanged(int index)
+void MemoryWindow::sizeModeComboBoxChangedSlot(int index)
 {
     m_pMemoryWidget->SetSizeMode((MemoryWidget::SizeMode)index);
+}
+
+void MemoryWindow::widthComboBoxChangedSlot(int index)
+{
+    m_pMemoryWidget->SetWidthMode((MemoryWidget::WidthMode)index);
 }
 
 void MemoryWindow::findClickedSlot()

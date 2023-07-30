@@ -70,16 +70,22 @@ public:
         return offset < m_size;
     }
 
-    uint8_t ReadAddressByte(uint32_t address) const
+    bool ReadAddressByte(uint32_t address, uint8_t& value) const
     {
+        value = 0U;
         uint32_t offset = address - m_addr;
-        assert(offset < m_size);
-        return Get(offset);
+        if (offset >= m_size)
+            return false;
+
+        value = m_pData[offset];
+        return true;
     }
 
+    // Check if bytes are available
     bool HasAddressMulti(uint32_t address, uint32_t numBytes) const;
+
     // Read multiple bytes and put into 32-bit word. So can read byte/word/long
-    uint32_t ReadAddressMulti(uint32_t address, uint32_t numBytes = 1) const;
+    bool ReadAddressMulti(uint32_t address, uint32_t numBytes, uint32_t& value) const;
 
     uint32_t GetSize() const
     {

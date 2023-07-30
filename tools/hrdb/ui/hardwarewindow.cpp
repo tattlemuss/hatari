@@ -37,6 +37,7 @@ static bool HasAddressMulti(const TargetModel* pModel, uint32_t address, uint32_
 }
 
 //-----------------------------------------------------------------------------
+// Search multiple memory slots for the given target memory address
 uint32_t ReadAddressMulti(const TargetModel* pModel, uint32_t address, uint32_t numBytes)
 {
     for (int i = MemorySlot::kHardwareWindowStart; i <= MemorySlot::kHardwareWindowEnd; ++i)
@@ -44,9 +45,10 @@ uint32_t ReadAddressMulti(const TargetModel* pModel, uint32_t address, uint32_t 
         const Memory* pMem = pModel->GetMemory(static_cast<MemorySlot>(i));
         if (!pMem)
             continue;
-        if (!pMem->HasAddressMulti(address, numBytes))
+        uint32_t val;
+        if (!pMem->ReadAddressMulti(address, numBytes, val))
             continue;
-        return pMem->ReadAddressMulti(address, numBytes);
+        return val;
     }
     return 0;
 }
@@ -108,7 +110,8 @@ bool GetFieldVal(const Memory& mem, const Regs::FieldDef& def, uint32_t& result)
     if (!mem.HasAddressMulti(def.regAddr, def.size))
         return false;
 
-    uint32_t regVal = mem.ReadAddressMulti(def.regAddr, def.size);
+    uint32_t regVal;
+    mem.ReadAddressMulti(def.regAddr, def.size, regVal);
     uint32_t extracted = (regVal >> def.shift) & def.mask;
     result = extracted;
     return true;
@@ -523,9 +526,7 @@ bool HardwareFieldAddr::Update(const TargetModel* pTarget)
     case Type::BasePage:
         if (!memBase)
             break;
-        valid = memBase->HasAddressMulti(m_address, 4);
-        if (valid)
-            address = memBase->ReadAddressMulti(m_address, 4);
+        valid = memBase->ReadAddressMulti(m_address, 4, address);
         break;
     case Type::Mfp:
         {
@@ -533,9 +534,7 @@ bool HardwareFieldAddr::Update(const TargetModel* pTarget)
                 break;
             {
                 uint32_t base = memMfp->GetAddress();
-                valid = memMfp->HasAddressMulti(base + m_address * 4, 4);
-                if (valid)
-                    address = memMfp->ReadAddressMulti(base + m_address * 4, 4);
+                valid = memMfp->ReadAddressMulti(base + m_address * 4, 4, address);
             }
         }
         break;
@@ -671,7 +670,8 @@ bool HardwareBitmapBlitterHalftone::Update(const TargetModel *pTarget)
     uint8_t* pData = m_pImage->AllocBitmap(16 * 16);
     for (uint y = 0; y < 16; ++y)
     {
-        uint32_t data = mem.ReadAddressMulti(address + 2U * y, 2);
+        uint32_t data = 0;
+        mem.ReadAddressMulti(address + 2U * y, 2, data);
         for (int pix = 15; pix >= 0; --pix)
         {
             uint8_t val  = (data & 0x8000) ? 1 : 0;
@@ -693,7 +693,8 @@ bool HardwareFieldColourST::Update(const TargetModel *pTarget)
     const Memory* memVid  = pTarget->GetMemory(MemorySlot::kHardwareWindowVideo);
     if (!memVid)
         return false;
-    uint32_t val = memVid->ReadAddressMulti(m_memAddress, 2);
+    uint32_t val;
+    memVid->ReadAddressMulti(m_memAddress, 2, val);
 
     QString str = QString::asprintf("$%04x", val);
     m_changed = m_text != str;

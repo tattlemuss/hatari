@@ -28,18 +28,24 @@ bool Memory::HasAddressMulti(uint32_t address, uint32_t numBytes) const
     return offset + numBytes <= m_size;
 }
 
-uint32_t Memory::ReadAddressMulti(uint32_t address, uint32_t numBytes) const
+bool Memory::ReadAddressMulti(uint32_t address, uint32_t numBytes, uint32_t& value) const
 {
-    uint32_t offset = address - m_addr;
-    assert(offset + numBytes <= m_size);
+    value = 0U;
 
+    // Check that all the bytes are available in this block
+    uint32_t offset = address - m_addr;
+    if (offset + numBytes > m_size)
+        return false;
+
+    assert(offset + numBytes <= m_size);
     uint32_t longContents = 0;
     for (uint32_t i = 0; i < numBytes; ++i)
     {
         longContents <<= 8;
         longContents += m_pData[offset + i];
     }
-    return longContents;
+    value = longContents;
+    return true;
 }
 
 Memory& Memory::operator=(const Memory &other)

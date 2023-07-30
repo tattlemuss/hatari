@@ -32,6 +32,15 @@ public:
         kModeLong
     };
 
+    enum WidthMode
+    {
+        k4,
+        k8,
+        k16,
+        k32,
+        k64
+    };
+
     struct CursorInfo
     {
         uint32_t m_address;
@@ -42,7 +51,8 @@ public:
     virtual ~MemoryWidget();
 
     uint32_t GetRowCount() const { return m_rowCount; }
-    SizeMode GetMode() const { return m_mode; }
+    SizeMode GetMode() const { return m_sizeMode; }
+    WidthMode GetWidthMode() const { return m_widthMode; }
     const CursorInfo& GetCursorInfo() const { return m_cursorInfo; }
 
     // Checks expression validity
@@ -54,6 +64,8 @@ public:
 
     void SetLock(bool locked);
     void SetSizeMode(SizeMode mode);
+    void SetWidthMode(WidthMode widthMode);
+
 signals:
     // Flagged when cursor position or memory under cursor changes
     void cursorChangedSignal();
@@ -103,6 +115,9 @@ private:
 
     // Is we are locked to an expression recalc m_address
     void RecalcLockedExpression();
+
+    // Rearrange the layout to match width/format decisions
+    void RecalcColumnLayout();
     void RecalcText();
     void RecalcRowCount();
 
@@ -125,7 +140,6 @@ private:
 
     // Find a valid entry under the pixel
     bool FindInfo(int x, int y, int& row, int& col);
-
 
     void SetRowCount(int rowCount);
 
@@ -163,8 +177,9 @@ private:
     std::string m_addressExpression;
     bool        m_isLocked;
 
+    WidthMode   m_widthMode;
+    SizeMode    m_sizeMode;
     int         m_bytesPerRow;
-    SizeMode        m_mode;
 
     int         m_rowCount;
 
@@ -173,7 +188,7 @@ private:
     uint64_t    m_requestId;
     CursorMode  m_requestCursorMode;
 
-    int         m_windowIndex;        // e.g. "memory 0", "memory 1"
+    int         m_windowIndex;          // e.g. "memory 0", "memory 1"
     MemorySlot  m_memSlot;
     Memory      m_previousMemory;       // Copy before we restarted the CPU
 
@@ -214,7 +229,8 @@ public slots:
     void cursorChangedSlot();
     void textEditedSlot();
     void lockChangedSlot();
-    void modeComboBoxChanged(int index);
+    void sizeModeComboBoxChangedSlot(int index);
+    void widthComboBoxChangedSlot(int index);
     void findClickedSlot();
     void nextClickedSlot();
     void gotoClickedSlot();
@@ -223,7 +239,8 @@ public slots:
 
 private:
     QLineEdit*          m_pAddressEdit;
-    QComboBox*          m_pComboBox;
+    QComboBox*          m_pSizeModeComboBox;
+    QComboBox*          m_pWidthComboBox;
     QCheckBox*          m_pLockCheckBox;
     QLabel*             m_pCursorInfoLabel;
     MemoryWidget*       m_pMemoryWidget;

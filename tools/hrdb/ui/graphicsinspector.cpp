@@ -843,7 +843,11 @@ GraphicsInspectorWidget::Mode GraphicsInspectorWidget::GetEffectiveMode() const
     const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
     if (!pMem)
         return Mode::k4Bitplane;
-    Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(pMem->ReadAddressByte(Regs::VID_SHIFTER_RES));
+
+    uint8_t val = 0;
+    if (!pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, val))
+        return Mode::k1Bitplane;
+    Regs::RESOLUTION modeReg = (Regs::RESOLUTION)val;
     if (modeReg == Regs::RESOLUTION::LOW)
         return Mode::k4Bitplane;
     else if (modeReg == Regs::RESOLUTION::MEDIUM)
@@ -863,14 +867,18 @@ int GraphicsInspectorWidget::GetEffectiveWidth() const
 
     // Handle ST scroll
     int width = 0;
+    uint8_t tmpReg = 0;
     if (!IsMachineST(m_pTargetModel->GetMachineType()))
     {
-        uint8_t modeReg = Regs::GetField_VID_HORIZ_SCROLL_STE_PIXELS(pMem->ReadAddressByte(Regs::VID_HORIZ_SCROLL_STE));
+        uint8_t modeReg;
+        pMem->ReadAddressByte(Regs::VID_HORIZ_SCROLL_STE, tmpReg);
+        modeReg = Regs::GetField_VID_HORIZ_SCROLL_STE_PIXELS(tmpReg);
         if (modeReg != 0)
             width = 1;  // extra read for scroll
     }
 
-    Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(pMem->ReadAddressByte(Regs::VID_SHIFTER_RES));
+    pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, tmpReg);
+    Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(tmpReg);
     if (modeReg == Regs::RESOLUTION::LOW)
         return width + 20;
     else if (modeReg == Regs::RESOLUTION::MEDIUM)
@@ -886,7 +894,9 @@ int GraphicsInspectorWidget::GetEffectiveHeight() const
     const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
     if (!pMem)
         return Mode::k4Bitplane;
-    Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(pMem->ReadAddressByte(Regs::VID_SHIFTER_RES));
+    uint8_t tmpReg;
+    pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, tmpReg);
+    Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(tmpReg);
     if (modeReg == Regs::RESOLUTION::LOW)
         return 200;
     else if (modeReg == Regs::RESOLUTION::MEDIUM)
