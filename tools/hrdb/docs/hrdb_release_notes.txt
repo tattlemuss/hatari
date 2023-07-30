@@ -5,21 +5,24 @@ v0.008 (???)
 
 - Graphics Inspector
   - Allow width up to 80 chunks to support 1280 mode. This enables previewing of 
-    the 1280x200 video mode created by running the Shifter in mono with the GLUE in colour.
-    (request from Troed/SYNC)
+    the 1280x200 video mode created by running the Shifter in mono with the GLUE 
+    in colour. (request from Troed/SYNC)
 
 - Memory Window
   - Support variable row sizes of 4, 8, 16, 32 or 64 bytes.
   - Window shows the address of the active editing cursor.
     (request from zChris)
-  - Fix tooltip crash bug when viewing the first byte in the window if
-    window address is set to an odd value.
+  - Fix tooltip crash bug when viewing the first byte in the window if window 
+    address is set to an odd value.
 
 - Disassembly Window
   - Supported decoding of 68020 and 68030 instructions.
 
 - Register Window
   - Added display of 68020 and 68030 register values when appropriate.
+
+- General
+  - Add application window icon
 
 v0.007 (August 2022)
 
