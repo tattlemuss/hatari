@@ -1115,8 +1115,8 @@ void MemoryWindow::loadSettings()
     settings.beginGroup(key);
 
     restoreGeometry(settings.value("geometry").toByteArray());
-    int mode = settings.value("mode", QVariant(0)).toInt();
-    int widthMode = settings.value("widthMode", QVariant(0)).toInt();
+    int mode = settings.value("mode", QVariant(MemoryWidget::kModeByte)).toInt();
+    int widthMode = settings.value("widthMode", QVariant(MemoryWidget::k16)).toInt();
     m_pMemoryWidget->SetSizeMode(static_cast<MemoryWidget::SizeMode>(mode));
     m_pMemoryWidget->SetWidthMode(static_cast<MemoryWidget::WidthMode>(widthMode));
 
