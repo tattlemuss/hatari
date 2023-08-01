@@ -38,7 +38,8 @@ public:
         k8,
         k16,
         k32,
-        k64
+        k64,
+        kAuto = 100,  // Not currently supported, but here for future expansion
     };
 
     struct CursorInfo
@@ -51,7 +52,7 @@ public:
     virtual ~MemoryWidget();
 
     uint32_t GetRowCount() const { return m_rowCount; }
-    SizeMode GetMode() const { return m_sizeMode; }
+    SizeMode GetSizeMode() const { return m_sizeMode; }
     WidthMode GetWidthMode() const { return m_widthMode; }
     const CursorInfo& GetCursorInfo() const { return m_cursorInfo; }
 

@@ -1052,7 +1052,7 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
     m_pSizeModeComboBox->insertItem(MemoryWidget::kModeByte, "Byte");
     m_pSizeModeComboBox->insertItem(MemoryWidget::kModeWord, "Word");
     m_pSizeModeComboBox->insertItem(MemoryWidget::kModeLong, "Long");
-    m_pSizeModeComboBox->setCurrentIndex(m_pMemoryWidget->GetMode());
+    m_pSizeModeComboBox->setCurrentIndex(m_pMemoryWidget->GetSizeMode());
 
     m_pWidthComboBox = new QComboBox(this);
     m_pWidthComboBox->insertItem(MemoryWidget::k4, "4 bytes");
@@ -1116,8 +1116,13 @@ void MemoryWindow::loadSettings()
 
     restoreGeometry(settings.value("geometry").toByteArray());
     int mode = settings.value("mode", QVariant(0)).toInt();
+    int widthMode = settings.value("widthMode", QVariant(0)).toInt();
     m_pMemoryWidget->SetSizeMode(static_cast<MemoryWidget::SizeMode>(mode));
-    m_pSizeModeComboBox->setCurrentIndex(m_pMemoryWidget->GetMode());
+    m_pMemoryWidget->SetWidthMode(static_cast<MemoryWidget::WidthMode>(widthMode));
+
+    // Sync UI
+    m_pSizeModeComboBox->setCurrentIndex(m_pMemoryWidget->GetSizeMode());
+    m_pWidthComboBox->setCurrentIndex(m_pMemoryWidget->GetWidthMode());
     settings.endGroup();
 }
 
@@ -1128,7 +1133,8 @@ void MemoryWindow::saveSettings()
     settings.beginGroup(key);
 
     settings.setValue("geometry", saveGeometry());
-    settings.setValue("mode", static_cast<int>(m_pMemoryWidget->GetMode()));
+    settings.setValue("mode", static_cast<int>(m_pMemoryWidget->GetSizeMode()));
+    settings.setValue("widthMode", static_cast<int>(m_pMemoryWidget->GetWidthMode()));
     settings.endGroup();
 }
 
