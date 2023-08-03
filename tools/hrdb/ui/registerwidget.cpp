@@ -87,7 +87,10 @@ RegisterWidget::RegisterWidget(QWidget *parent, Session* pSession) :
     connect(m_pSession, &Session::mainStateUpdated, this, &RegisterWidget::mainStateUpdated);
     setFocusPolicy(Qt::FocusPolicy::StrongFocus);
     setMouseTracking(true);
+
     UpdateFont();
+    // Handle non-connection at start
+    PopulateRegisters();
 }
 
 RegisterWidget::~RegisterWidget()
