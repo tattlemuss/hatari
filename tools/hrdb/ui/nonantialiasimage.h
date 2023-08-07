@@ -28,9 +28,12 @@ signals:
 protected:
     virtual void paintEvent(QPaintEvent*) override;
     virtual void mouseMoveEvent(QMouseEvent *event) override;
+    virtual void keyPressEvent(QKeyEvent *event) override;
     virtual void contextMenuEvent(QContextMenuEvent *event) override;
 
 private:
+    void KeyboardContextMenu();
+    void ContextMenu(QPoint pos);
     void settingsChanged();
     void saveImageClicked();
 

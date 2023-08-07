@@ -115,15 +115,26 @@ void NonAntiAliasImage::mouseMoveEvent(QMouseEvent *event)
     QWidget::mouseMoveEvent(event);
 }
 
+void NonAntiAliasImage::keyPressEvent(QKeyEvent *event)
+{
+    if (m_pSession->m_pTargetModel->IsConnected())
+    {
+        // Handle keyboard shortcuts with scope here, since QShortcut is global
+        if (event->modifiers() == Qt::ControlModifier)
+        {
+            switch (event->key())
+            {
+                case Qt::Key_Space:     KeyboardContextMenu();    return;
+                default: break;
+            }
+        }
+    }
+    QWidget::keyPressEvent(event);
+}
+
 void NonAntiAliasImage::contextMenuEvent(QContextMenuEvent *event)
 {
-    // Right click menus are instantiated on demand, so we can
-    // dynamically add to them
-    QMenu menu(this);
-
-    // Add the default actions
-    menu.addAction(m_pSaveImageAction);
-    menu.exec(event->globalPos());
+    ContextMenu(event->globalPos());
 }
 
 void NonAntiAliasImage::settingsChanged()
@@ -144,6 +155,22 @@ void NonAntiAliasImage::saveImageClicked()
 
     if (filename.size() != 0)
         m_img.save(filename);
+}
+
+void NonAntiAliasImage::KeyboardContextMenu()
+{
+    ContextMenu(mapToGlobal(QPoint(this->width() / 2, this->height() / 2)));
+}
+
+void NonAntiAliasImage::ContextMenu(QPoint pos)
+{
+    // Right click menus are instantiated on demand, so we can
+    // dynamically add to them
+    QMenu menu(this);
+
+    // Add the default actions
+    menu.addAction(m_pSaveImageAction);
+    menu.exec(pos);
 }
 
 void NonAntiAliasImage::UpdateString()
