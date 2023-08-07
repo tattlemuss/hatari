@@ -1215,6 +1215,7 @@ void DisasmWindow::requestAddress(Session::WindowType type, int windowIndex, uin
     m_pDisasmWidget->SetFollowPC(false);
     m_pFollowPC->setChecked(false);
     setVisible(true);
+    raise();
     this->keyFocus();
 }
 

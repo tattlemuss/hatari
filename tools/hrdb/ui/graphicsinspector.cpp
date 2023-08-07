@@ -550,6 +550,7 @@ void GraphicsInspectorWidget::RequestBitmapAddress(Session::WindowType type, int
 
     m_requestBitmap.Dirty();
     UpdateMemoryRequests();
+    raise();
 }
 
 void GraphicsInspectorWidget::UpdateMemoryRequests()

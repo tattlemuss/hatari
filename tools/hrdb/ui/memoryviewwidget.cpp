@@ -1235,6 +1235,7 @@ void MemoryWindow::requestAddress(Session::WindowType type, int windowIndex, uin
     m_pLockCheckBox->setChecked(false);
     setVisible(true);
     this->keyFocus();
+    raise();
 }
 
 void MemoryWindow::cursorChangedSlot()
