@@ -48,7 +48,7 @@ static void AddHardware(SymbolSubTable& table)
     ADD_SYM(VID_SHIFTMD		, 0xff8260, 1, "Video Shifter Mode (ST)")
     ADD_SYM(VID_SHIFTMD_TT  , 0xff8262, 1, "Video Shifter Mode (TT)")
     ADD_SYM(DMA_DISKCTL		, 0xff8604, 1, "Disk Controller Data Access")	// disk controller data access
-    ADD_SYM(DMA_FIFO		, 0xff8606, 1, "DMA Mode Control")
+    ADD_SYM(DMA_MODE		, 0xff8606, 1, "DMA Mode/Status Register")
     ADD_SYM(DMA_DMAHIGH		, 0xff8609, 1, "DMA Base High")
     ADD_SYM(DMA_DMAMID		, 0xff860b, 1, "DMA Base Mid")
     ADD_SYM(DMA_DMALOW		, 0xff860d, 1, "DMA Base Low")
@@ -179,10 +179,10 @@ static void AddHardware(SymbolSubTable& table)
     ADD_SYM(prv_aux         , 0x512, 4, "-> _auxout()")
     ADD_SYM(user_mem        ,0x1000, 1, "User Memory")
 
-    ADD_SYM(tos_512         ,0xe00000, 512 * 1024, "TOS ROM (512K version)")
-    ADD_SYM(tos_192         ,0xfc0000, 256 * 1024, "TOS ROM (256K version")
+    ADD_SYM(tos_512         ,0xe00000, 512 * 1024, "TOS ROM (512K)")
+    ADD_SYM(tos_192         ,0xfc0000, 256 * 1024, "TOS ROM (256K)")
 
-    ADD_SYM(cart            ,0xfa0000, 0x30000, "Cartridge Memory")
+    ADD_SYM(cart            ,0xfa0000, 0x30000, "Cartridge ROM")
     // Low vectors
     ADD_SYM(__vec_buserr,  0x8,  4, "Bus Error Vector")
     ADD_SYM(__vec_addrerr, 0xc,  4, "Address Error Vector")

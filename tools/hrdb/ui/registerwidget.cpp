@@ -525,7 +525,10 @@ int RegisterWidget::AddSymbol(int x, int y, uint32_t address)
     if (!symText.size())
         return x;
 
-    return AddToken(x, y, MakeBracket(symText), TokenType::kSymbol, address);
+    QString comment = DescribeSymbolComment(m_pTargetModel->GetSymbolTable(), address);
+    if (!comment.isEmpty())
+        symText += " ;" + comment;
+    return AddToken(x, y, symText, TokenType::kSymbol, address);
 }
 
 QString RegisterWidget::GetTooltipText(const RegisterWidget::Token& token)
