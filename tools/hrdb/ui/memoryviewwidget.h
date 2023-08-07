@@ -150,8 +150,14 @@ private:
     // Convert from pixel Y to a row ID
     int GetRowFromPixel(int y) const;
 
+    // Create context menu at the cursor pos
+    void KeyboardContextMenu();
+
+    // Create a context menu based on a grid position
+    void ContextMenu(int row, int col, QPoint globalPos);
+
     // Find a valid entry under the pixel
-    bool CalRowColFromMouse(int x, int y, int& row, int& col);
+    bool CalcRowColFromMouse(int x, int y, int& row, int& col);
 
     void SetRowCount(int rowCount);
 

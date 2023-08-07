@@ -740,17 +740,29 @@ void MemoryWidget::keyPressEvent(QKeyEvent* event)
 {
     if (m_pTargetModel->IsConnected())
     {
-        switch (event->key())
+        if (event->modifiers() == Qt::NoModifier)
         {
-        case Qt::Key_Left:       MoveLeft();          return;
-        case Qt::Key_Right:      MoveRight();         return;
-        case Qt::Key_Up:         CursorUp();          return;
-        case Qt::Key_Down:       CursorDown();        return;
-        case Qt::Key_PageUp:     PageUp();            return;
-        case Qt::Key_PageDown:   PageDown();          return;
-        default: break;
+            switch (event->key())
+            {
+            case Qt::Key_Left:       MoveLeft();          return;
+            case Qt::Key_Right:      MoveRight();         return;
+            case Qt::Key_Up:         CursorUp();          return;
+            case Qt::Key_Down:       CursorDown();        return;
+            case Qt::Key_PageUp:     PageUp();            return;
+            case Qt::Key_PageDown:   PageDown();          return;
+            default: break;
+            }
+        }
+        else if (event->modifiers() == Qt::ControlModifier)
+        {
+            switch (event->key())
+            {
+            case Qt::Key_Space:      KeyboardContextMenu(); return;
+            default: break;
+            }
         }
 
+        // All keys, with or without shift
         char key = IsEditKey(event);
         if (key)
         {
@@ -773,7 +785,7 @@ void MemoryWidget::mousePressEvent(QMouseEvent *event)
         int y = static_cast<int>(event->localPos().y());
         int row;
         int col;
-        if (CalRowColFromMouse(x, y, row, col))
+        if (CalcRowColFromMouse(x, y, row, col))
         {
             m_cursorCol = col;
             m_cursorRow = row;
@@ -814,40 +826,13 @@ void MemoryWidget::contextMenuEvent(QContextMenuEvent *event)
     int y = static_cast<int>(event->pos().y());
     int row;
     int col;
-    if (!CalRowColFromMouse(x, y, row, col))
+    if (!CalcRowColFromMouse(x, y, row, col))
         return;
 
     if (m_columnMap[col].type == ColumnType::kSpace)
         return;
 
-    // Align the memory location to 2 or 4 bytes, based on context
-    // (view address, or word/long mode)
-    uint32_t addr = CalcAddress(row, col);
-    if (m_sizeMode == SizeMode::kModeLong)
-        addr &= ~3U;
-    else
-        addr &= ~1U;
-
-    QMenu menu(this);
-    m_showAddressMenus[0].setAddress(m_pSession, addr);
-    m_showAddressMenus[0].setTitle(QString::asprintf("Data Address: $%x", addr));
-    menu.addMenu(m_showAddressMenus[0].m_pMenu);
-
-    const Memory* mem = m_pTargetModel->GetMemory(m_memSlot);
-    if (mem)
-    {
-        uint32_t longContents;
-        if (mem->ReadAddressMulti(addr, 4, longContents))
-        {
-            longContents &= 0xffffff;
-            m_showAddressMenus[1].setAddress(m_pSession, longContents);
-            m_showAddressMenus[1].setTitle(QString::asprintf("Pointer Address: $%x", longContents));
-            menu.addMenu(m_showAddressMenus[1].m_pMenu);
-        }
-    }
-
-    // Run it
-    menu.exec(event->globalPos());
+    ContextMenu(row, col, event->globalPos());
 }
 
 void MemoryWidget::resizeEvent(QResizeEvent* event)
@@ -994,7 +979,7 @@ QString MemoryWidget::CalcMouseoverText(int mouseX, int mouseY)
 {
     int row;
     int col;
-    if (!CalRowColFromMouse(mouseX, mouseY, row, col))
+    if (!CalcRowColFromMouse(mouseX, mouseY, row, col))
         return QString();
 
     if (m_columnMap[col].type == ColumnType::kSpace)
@@ -1055,12 +1040,50 @@ int MemoryWidget::GetRowFromPixel(int y) const
     return (y - Session::kWidgetBorderY) / m_lineHeight;
 }
 
+void MemoryWidget::KeyboardContextMenu()
+{
+    ContextMenu(m_cursorRow, m_cursorCol,
+                mapToGlobal(QPoint(GetPixelFromCol(m_cursorCol), GetPixelFromRow(m_cursorRow))));
+}
+
+void MemoryWidget::ContextMenu(int row, int col, QPoint globalPos)
+{
+    // Align the memory location to 2 or 4 bytes, based on context
+    // (view address, or word/long mode)
+    uint32_t addr = CalcAddress(row, col);
+    if (m_sizeMode == SizeMode::kModeLong)
+        addr &= ~3U;
+    else
+        addr &= ~1U;
+
+    QMenu menu(this);
+    m_showAddressMenus[0].setAddress(m_pSession, addr);
+    m_showAddressMenus[0].setTitle(QString::asprintf("Data Address: $%x", addr));
+    menu.addMenu(m_showAddressMenus[0].m_pMenu);
+
+    const Memory* mem = m_pTargetModel->GetMemory(m_memSlot);
+    if (mem)
+    {
+        uint32_t longContents;
+        if (mem->ReadAddressMulti(addr, 4, longContents))
+        {
+            longContents &= 0xffffff;
+            m_showAddressMenus[1].setAddress(m_pSession, longContents);
+            m_showAddressMenus[1].setTitle(QString::asprintf("Pointer Address: $%x", longContents));
+            menu.addMenu(m_showAddressMenus[1].m_pMenu);
+        }
+    }
+
+    // Run it
+    menu.exec(globalPos);
+}
+
 int MemoryWidget::GetPixelFromCol(int column) const
 {
     return GetAddrX() + (10 + column) * m_charWidth;
 }
 
-bool MemoryWidget::CalRowColFromMouse(int x, int y, int& row, int& col)
+bool MemoryWidget::CalcRowColFromMouse(int x, int y, int& row, int& col)
 {
     row = GetRowFromPixel(y);
     if (row >= 0 && row < m_rows.size())
