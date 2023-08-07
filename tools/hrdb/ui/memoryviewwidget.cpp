@@ -49,7 +49,13 @@ static QString CreateTooltip(uint32_t address, const SymbolTable& symTable, uint
     if (symTable.FindLowerOrEqual(address, sym))
     {
         QString symText = DescribeSymbol(symTable, address);
-        ref << "Symbol: (" << symText << ")\n";
+        ref << "Symbol: " << symText;
+
+        QString comment = DescribeSymbolComment(symTable, address);
+        if (!comment.isEmpty())
+            ref << " (" << comment << ")";
+
+        ref << "\n";
     }
 
     ref << QString::asprintf("\nLong: $%x -> %u", longVal, longVal);

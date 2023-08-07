@@ -506,7 +506,7 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
                 return;
             std::string type = splitResp.Split(SEP_CHAR);
             uint32_t size = 0;
-            syms.AddSymbol(name, address, size, type);
+            syms.AddSymbol(name, address, size, type, std::string());
         }
         m_pTargetModel->SetSymbolTable(syms, cmd.m_uid);
     }

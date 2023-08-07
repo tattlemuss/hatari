@@ -13,6 +13,7 @@ struct Symbol
     uint32_t address;
     uint32_t size;
     std::string type;
+    std::string comment;
 };
 
 class SymbolSubTable
@@ -20,7 +21,7 @@ class SymbolSubTable
 public:
     void Clear();
 
-    void AddSymbol(std::string name, uint32_t address, uint32_t size, std::string type);
+    void AddSymbol(std::string name, uint32_t address, uint32_t size, std::string type, const std::string& comment);
 
     // Set up internal cache structures
     void CreateCache();
