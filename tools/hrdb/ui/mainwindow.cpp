@@ -701,6 +701,7 @@ void MainWindow::createActions()
     m_pBreakpointsWindowAct->setCheckable(true);
 
     m_pConsoleWindowAct = new QAction(tr("&Console"), this);
+    m_pConsoleWindowAct->setShortcut(QKeySequence("Alt+C"));
     m_pConsoleWindowAct->setStatusTip(tr("Show the Console window"));
     m_pConsoleWindowAct->setCheckable(true);
 
@@ -710,6 +711,7 @@ void MainWindow::createActions()
     m_pHardwareWindowAct->setCheckable(true);
 
     m_pProfileWindowAct = new QAction(tr("&Profile"), this);
+    m_pProfileWindowAct->setShortcut(QKeySequence("Alt+P"));
     m_pProfileWindowAct->setStatusTip(tr("Show the Profile window"));
     m_pProfileWindowAct->setCheckable(true);
 
