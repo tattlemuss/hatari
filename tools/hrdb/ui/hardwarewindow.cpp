@@ -30,7 +30,7 @@ static bool HasAddressMulti(const TargetModel* pModel, uint32_t address, uint32_
         const Memory* pMem = pModel->GetMemory(static_cast<MemorySlot>(i));
         if (!pMem)
             continue;
-        if (pMem->HasAddressMulti(address, numBytes))
+        if (pMem->HasAddressRange(address, numBytes))
             return true;
     }
     return false;
@@ -107,7 +107,7 @@ bool GetRegBinary16(const TargetModel* pModel, uint32_t addr, QString& result)
 //-----------------------------------------------------------------------------
 bool GetFieldVal(const Memory& mem, const Regs::FieldDef& def, uint32_t& result)
 {
-    if (!mem.HasAddressMulti(def.regAddr, def.size))
+    if (!mem.HasAddressRange(def.regAddr, def.size))
         return false;
 
     uint32_t regVal;
@@ -664,7 +664,7 @@ bool HardwareBitmapBlitterHalftone::Update(const TargetModel *pTarget)
     const Memory& mem = *pTarget->GetMemory(MemorySlot::kHardwareWindowBlitter);
     uint32_t address = Regs::BLT_HALFTONE_0;
 
-    if (!mem.HasAddressMulti(address, 16 * 2U))
+    if (!mem.HasAddressRange(address, 16 * 2U))
         return false;
 
     uint8_t* pData = m_pImage->AllocBitmap(16 * 16);

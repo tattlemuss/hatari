@@ -525,10 +525,10 @@ void MemoryWidget::RecalcText()
             uint32_t charAddress = rowAddress + info.byteOffset;
             bool hasAddress = m_currentMemory.ReadAddressByte(charAddress, byteVal);
             bool changed = false;
-            if (hasAddress && m_previousMemory.HasAddress(charAddress))
+
+            uint8_t oldC;
+            if (hasAddress && m_previousMemory.ReadAddressByte(charAddress, oldC))
             {
-                uint8_t oldC;
-                m_previousMemory.ReadAddressByte(charAddress, oldC);
                 if (oldC != byteVal)
                     changed = true;
             }
@@ -1002,9 +1002,6 @@ QString MemoryWidget::CalcMouseoverText(int mouseX, int mouseY)
     uint8_t byteVal;
     mem->ReadAddressByte(addr, byteVal);
 
-    if (!mem->HasAddressMulti(addr & 0xfffffe, 2))
-        return QString();
-
     uint32_t wordVal;
     if (!mem->ReadAddressMulti(addr & 0xfffffe, 2, wordVal))
         return QString();
@@ -1019,9 +1016,6 @@ QString MemoryWidget::CalcMouseoverText(int mouseX, int mouseY)
         addrLong &= ~3U;        // $fc
     else
         addrLong &= ~1U;        // $fe
-
-    if (!mem->HasAddressMulti(addrLong, 4))
-        return QString();
 
     uint32_t longVal;
     if (!mem->ReadAddressMulti(addrLong, 4, longVal))

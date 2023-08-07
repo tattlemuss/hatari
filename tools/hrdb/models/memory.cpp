@@ -22,21 +22,15 @@ void Memory::Clear()
     m_size = 0;
 }
 
-bool Memory::HasAddressMulti(uint32_t address, uint32_t numBytes) const
-{
-    uint32_t offset = address - m_addr;
-    return offset + numBytes <= m_size;
-}
-
 bool Memory::ReadAddressMulti(uint32_t address, uint32_t numBytes, uint32_t& value) const
 {
     value = 0U;
-
-    // Check that all the bytes are available in this block
-    uint32_t offset = address - m_addr;
-    if (offset + numBytes > m_size)
+    if (!HasAddressRange(address, numBytes))
         return false;
 
+    // Check that all the bytes are available in this block.
+    // Shift "offset" into the realms of this memory block
+    uint32_t offset = address - m_addr;
     assert(offset + numBytes <= m_size);
     uint32_t longContents = 0;
     for (uint32_t i = 0; i < numBytes; ++i)
