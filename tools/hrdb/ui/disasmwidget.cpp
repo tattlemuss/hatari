@@ -574,29 +574,31 @@ void DisasmWidget::paintEvent(QPaintEvent* ev)
 
 void DisasmWidget::keyPressEvent(QKeyEvent* event)
 {
-    // Handle keyboard shortcuts with scope here, since QShortcut is global
-    if (event->modifiers() == Qt::ControlModifier)
+    if (m_pTargetModel->IsConnected())
     {
-        switch (event->key())
+        // Handle keyboard shortcuts with scope here, since QShortcut is global
+        if (event->modifiers() == Qt::ControlModifier)
         {
-            case Qt::Key_H:         runToCursor();            return;
-            case Qt::Key_B:         toggleBreakpoint();       return;
-            case Qt::Key_Space:     KeyboardContextMenu();    return;
+            switch (event->key())
+            {
+                case Qt::Key_H:         runToCursor();            return;
+                case Qt::Key_B:         toggleBreakpoint();       return;
+                case Qt::Key_Space:     KeyboardContextMenu();    return;
+                default: break;
+            }
+        }
+        else if (event->modifiers() == Qt::NoModifier)
+        {
+            switch (event->key())
+            {
+            case Qt::Key_Up:         MoveUp();              return;
+            case Qt::Key_Down:       MoveDown();            return;
+            case Qt::Key_PageUp:     PageUp();              return;
+            case Qt::Key_PageDown:   PageDown();            return;
             default: break;
+            }
         }
     }
-    else if (event->modifiers() == Qt::NoModifier)
-    {
-        switch (event->key())
-        {
-        case Qt::Key_Up:         MoveUp();              return;
-        case Qt::Key_Down:       MoveDown();            return;
-        case Qt::Key_PageUp:     PageUp();              return;
-        case Qt::Key_PageDown:   PageDown();            return;
-        default: break;
-        }
-    }
-
     QWidget::keyPressEvent(event);
 }
 
