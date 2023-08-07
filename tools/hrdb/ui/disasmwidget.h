@@ -158,6 +158,9 @@ private:
     // Convert from pixel Y to a row ID
     int GetRowFromPixel(int y) const;
 
+    void KeyboardContextMenu();
+    void ContextMenu(int row, QPoint globalPos);
+
     Session*              m_pSession;
     TargetModel*          m_pTargetModel;   // for inter-window comms
     Dispatcher*           m_pDispatcher;
