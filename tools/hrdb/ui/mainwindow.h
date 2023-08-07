@@ -145,7 +145,7 @@ private:
     void createMenus();
 
     // Shared function to show a sub-window, called by Action callbacks
-    void enableVis(QWidget *pWidget);
+    void enableVis(QDockWidget *pWidget);
 
     QMenu* m_pFileMenu;
     QMenu* m_pEditMenu;

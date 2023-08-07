@@ -789,11 +789,14 @@ void MainWindow::createMenus()
     m_pHelpMenu->addAction(m_pAboutQtAct);
 }
 
-void MainWindow::enableVis(QWidget* pWidget)
+void MainWindow::enableVis(QDockWidget* pWidget)
 {
     // This used to be a toggle
     pWidget->setVisible(true);
-    pWidget->setHidden(false);
+    //pWidget->activateWindow();
+    // I took 2 years to find this!
+    // https://stackoverflow.com/questions/1290882/focusing-on-a-tabified-qdockwidget-in-pyqt
+    pWidget->raise();
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
