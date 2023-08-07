@@ -585,15 +585,16 @@ void DisasmWidget::keyPressEvent(QKeyEvent* event)
             default: break;
         }
     }
-
-    // Movement currently doesn't care about modifiers
-    switch (event->key())
+    else if (event->modifiers() == Qt::NoModifier)
     {
-    case Qt::Key_Up:         MoveUp();              return;
-    case Qt::Key_Down:       MoveDown();            return;
-    case Qt::Key_PageUp:     PageUp();              return;
-    case Qt::Key_PageDown:   PageDown();            return;
-    default: break;
+        switch (event->key())
+        {
+        case Qt::Key_Up:         MoveUp();              return;
+        case Qt::Key_Down:       MoveDown();            return;
+        case Qt::Key_PageUp:     PageUp();              return;
+        case Qt::Key_PageDown:   PageDown();            return;
+        default: break;
+        }
     }
 
     QWidget::keyPressEvent(event);
