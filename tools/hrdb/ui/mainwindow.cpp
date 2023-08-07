@@ -78,13 +78,18 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
             m_pDisasmWidgets[i]->setWindowTitle(QString::asprintf("Disassembly %d", i + 1));
     }
 
+    static const char* windowTitles[4] =
+    {
+        "Memory 1 (Alt+M)",
+        "Memory 2 (Alt+2)",
+        "Memory 3 (Alt+3)",
+        "Memory 4 (Alt+4)"
+    };
+
     for (int i = 0; i < kNumMemoryViews; ++i)
     {
         m_pMemoryViewWidgets[i] = new MemoryWindow(this, &m_session, i);
-        if (i == 0)
-            m_pMemoryViewWidgets[i]->setWindowTitle("Memory 1 (Alt+M)");
-        else
-            m_pMemoryViewWidgets[i]->setWindowTitle(QString::asprintf("Memory %d", i + 1));
+        m_pMemoryViewWidgets[i]->setWindowTitle(windowTitles[i]);
     }
 
     m_pGraphicsInspector = new GraphicsInspectorWidget(this, &m_session);
@@ -680,14 +685,19 @@ void MainWindow::createActions()
             m_pDisasmWindowActs[i]->setShortcut(QKeySequence("Alt+D"));
     }
 
+    static const char* windowShortcuts[4] =
+    {
+        "Alt+M",
+        "Alt+2",
+        "Alt+3",
+        "Alt+4"
+    };
     for (int i = 0; i < kNumMemoryViews; ++i)
     {
         m_pMemoryWindowActs[i] = new QAction(m_pMemoryViewWidgets[i]->windowTitle(), this);
         m_pMemoryWindowActs[i]->setStatusTip(tr("Show the memory window"));
         m_pMemoryWindowActs[i]->setCheckable(true);
-
-        if (i == 0)
-            m_pMemoryWindowActs[i]->setShortcut(QKeySequence("Alt+M"));
+        m_pMemoryWindowActs[i]->setShortcut(QKeySequence(windowShortcuts[i]));
     }
 
     m_pGraphicsInspectorAct = new QAction(tr("&Graphics Inspector"), this);
