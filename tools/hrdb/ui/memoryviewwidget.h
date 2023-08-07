@@ -2,7 +2,7 @@
 #define MEMORYVIEWWIDGET_H
 
 #include <QDockWidget>
-#include <QTableView>
+#include <QAbstractItemModel>
 #include "searchdialog.h"
 #include "showaddressactions.h"
 #include "../models/memory.h"
@@ -80,6 +80,14 @@ protected:
     virtual bool event(QEvent *event) override;
 
 private:
+    struct ViewState
+    {
+        uint32_t address;
+        int rowCount;
+        int bytesPerRow;
+        SizeMode sizeMode;
+    };
+
     void memoryChanged(int memorySlot, uint64_t commandId);
     void startStopChanged();
     void connectChanged();
@@ -122,6 +130,9 @@ private:
     void RecalcText();
     void RecalcRowCount();
 
+    // Calculate number of bytes to fit current window width
+    void RecalcRowWidth();
+
     // Update cursor data and emit cursorChangedSignal
     void RecalcCursorInfo();
 
@@ -140,62 +151,67 @@ private:
     int GetRowFromPixel(int y) const;
 
     // Find a valid entry under the pixel
-    bool FindInfo(int x, int y, int& row, int& col);
+    bool CalRowColFromMouse(int x, int y, int& row, int& col);
 
     void SetRowCount(int rowCount);
+
+    uint32_t CalcAddress(int row, int col) const;
 
     Session*        m_pSession;
     TargetModel*    m_pTargetModel;
     Dispatcher*     m_pDispatcher;
 
-    // These are taken at the same time. Is there a race condition...?
-    struct Row
+    enum ColumnType
     {
-        uint32_t m_address;
+        kSpace,
+        kTopNybble,
+        kBottomNybble,
+        kASCII,
+        kInvalid            // for when memory is not available (yet)
+    } type;
 
-        QVector<uint8_t> m_rawBytes;
+    // These are taken at the same time. Is there a race condition...?
+    struct RowData
+    {
+        QVector<ColumnType> m_types;
         QVector<bool> m_byteChanged;
         QVector<int> m_symbolId;
         QString m_text;
     };
-
-    QVector<Row> m_rows;
-
-    // This describes the layout of characters in each column of the grid
-    struct ColInfo
-    {
-        enum Type
-        {
-            kSpace,
-            kTopNybble,
-            kBottomNybble,
-            kASCII
-        } type;
-        uint32_t byteOffset;     // offset into memory when type != kSpace
-    };
-    QVector<ColInfo> m_columnMap;
+    // This is the visible UI information
+    QVector<RowData> m_rows;
 
     std::string m_addressExpression;
     bool        m_isLocked;
 
+    // This block effectively stores the whole current UI state.
+    // If anything changes
+    uint32_t    m_address;
     WidthMode   m_widthMode;
     SizeMode    m_sizeMode;
     int         m_bytesPerRow;
-
     int         m_rowCount;
+    int         m_cursorRow;
+    int         m_cursorCol;
+
+    // This describes the layout of characters in each column of the grid.
+    // It updates based on width mode and bytes-per-row.
+    struct ColInfo
+    {
+        ColumnType type;         // what sort of entry this is
+        uint32_t byteOffset;     // offset into memory when type != kSpace
+    };
+    QVector<ColInfo> m_columnMap;
 
     // Memory requests
-    uint32_t    m_address;
     uint64_t    m_requestId;
     CursorMode  m_requestCursorMode;
 
     int         m_windowIndex;          // e.g. "memory 0", "memory 1"
     MemorySlot  m_memSlot;
-    Memory      m_previousMemory;       // Copy before we restarted the CPU
 
-    // Cursor
-    int         m_cursorRow;
-    int         m_cursorCol;
+    Memory      m_currentMemory;        // Latest copy available
+    Memory      m_previousMemory;       // Copy before we restarted the CPU
 
     CursorInfo  m_cursorInfo;
 
