@@ -9,11 +9,14 @@ v0.008 (???)
     in colour. (request from Troed/SYNC)
 
 - Memory Window
-  - Support variable row sizes of 4, 8, 16, 32 or 64 bytes.
+  - Added search feature on Ctrl+F. Search supports hex or text, with case
+    sensitivity.
+  - Support variable row sizes of 4, 8, 16, 32 or 64 bytes, or auto-sizing.
   - Window shows the address of the active editing cursor.
     (request from zChris)
   - Fix tooltip crash bug when viewing the first byte in the window if window 
     address is set to an odd value.
+  - Large internal rewrite for stability.
 
 - Disassembly Window
   - Supported decoding of 68020 and 68030 instructions.
@@ -22,7 +25,13 @@ v0.008 (???)
   - Added display of 68020 and 68030 register values when appropriate.
 
 - General
-  - Add application window icon
+  - Add application window icon.
+  - Docked and tabbed windows now appear correctly when using Alt+ shortcuts to
+    switch to them.
+  - Add shortcuts for nearly all windows: Alt+P for Profile Window, Alt+C for
+    Console Window, Alt+2/3/4 for Memory Windows 2/3/4.
+  - Symbol system now supports comments; comments are added for the internal
+    hardware registers, vectors and TOS variables.
 
 v0.007 (August 2022)
 
