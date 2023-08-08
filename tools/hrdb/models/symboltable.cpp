@@ -114,6 +114,29 @@ static void AddHardware(SymbolSubTable& table)
     ADD_SYM(BLT_MISC_1      , 0xff8a3c, 1, "Blitter Misc 1 (STE)")
     ADD_SYM(BLT_MISC_2      , 0xff8a3d, 1, "Blitter Misc 2 (STE)")
 
+    ADD_SYM(JOY_BUTTONS     , 0xff9200, 2, "Joytstick Buttons (STE)")
+    ADD_SYM(JOY_INPUTS      , 0xff9202, 2, "Joytstick Input / Read Mask (STE)")
+    ADD_SYM(PADDLE_X_0_POS  , 0xff9210, 2, "X Paddle 0 Position (STE)")
+    ADD_SYM(PADDLE_Y_0_POS  , 0xff9212, 2, "Y Paddle 0 Position (STE)")
+    ADD_SYM(PADDLE_X_1_POS  , 0xff9214, 2, "X Paddle 1 Position (STE)")
+    ADD_SYM(PADDLE_Y_1_POS  , 0xff9216, 2, "Y Paddle 1 Position (STE)")
+    ADD_SYM(LIGHTPEN_X_POS  , 0xff9220, 2, "Lightpen X-Position (STE)")
+    ADD_SYM(LIGHTPEN_Y_POS  , 0xff9222, 2, "Lightpen Y-Position (STE)")
+
+    // VIDEL palette
+    ADD_SYM(VIDEL_PALETTE   , 0xFF9800, 4*256, "VIDEL Palette Registers (Falcon)")
+
+    // DSP
+    ADD_SYM(DSP_INT_CTRL    , 0xFFA200, 1, "DSP Interrupt Ctrl Register (Falcon)")
+    ADD_SYM(DSP_CMD_VEC     , 0xFFA201, 1, "DSP Command Vector Register (Falcon)")
+    ADD_SYM(DSP_INT_STATUS  , 0xFFA202, 1, "DSP Interrupt Status Register (Falcon)")
+    ADD_SYM(DSP_INT_VEC     , 0xFFA203, 1, "DSP Interrupt Vector Register (Falcon)")
+
+    ADD_SYM(DSP_DATA_ALL    , 0xFFA204, 4, "DSP Data Longword (Falcon)")
+    ADD_SYM(DSP_DATA_HI     , 0xFFA205, 1, "DSP Data High (Falcon)")
+    ADD_SYM(DSP_DATA_MID    , 0xFFA206, 1, "DSP Data Mid (Falcon)")
+    ADD_SYM(DSP_DATA_LO     , 0xFFA207, 1, "DSP Data Low (Falcon)")
+
     // TOS variables
     ADD_SYM(etv_timer       , 0x400, 4, "vector for timer interrupt chain")
     ADD_SYM(etv_critic      , 0x404, 4, "vector for critical error chain")
