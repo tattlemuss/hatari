@@ -577,7 +577,7 @@ void MemoryWidget::RecalcText()
             row.m_symbolId[col] = -1;
             if (info.type != ColumnType::kSpace)
             {
-                if (symTable.FindLowerOrEqual(charAddress, sym))
+                if (symTable.FindLowerOrEqual(charAddress & 0xffffff, sym))
                     row.m_symbolId[col] = (int)sym.index;
             }
             row.m_text[col] = outChar;
@@ -1246,8 +1246,8 @@ void MemoryWindow::cursorChangedSlot()
     {
         QString final;
         QTextStream ref(&final);
-        ref << QString("Cursor: ") << Format::to_hex32(info.m_address);
-        QString symText = DescribeSymbol(m_pTargetModel->GetSymbolTable(), info.m_address);
+        ref << QString("Cursor: ") << Format::to_hex32(info.m_address & 0xffffff);
+        QString symText = DescribeSymbol(m_pTargetModel->GetSymbolTable(), info.m_address & 0xffffff);
         if (!symText.isEmpty())
             ref << " (" + symText + ")";
 
