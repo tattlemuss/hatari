@@ -1250,6 +1250,11 @@ void MemoryWindow::cursorChangedSlot()
         QString symText = DescribeSymbol(m_pTargetModel->GetSymbolTable(), info.m_address);
         if (!symText.isEmpty())
             ref << " (" + symText + ")";
+
+        QString commentText = DescribeSymbolComment(m_pTargetModel->GetSymbolTable(), info.m_address);
+        if (!commentText.isEmpty())
+            ref << " " + commentText;
+
         m_pCursorInfoLabel->setText(final);
     }
     else
