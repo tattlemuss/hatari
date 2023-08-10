@@ -7,7 +7,8 @@ Normal focus
 - S            - Step (execute next instruction)
 - Ctrl+S       - Skip (move to next instruction without executing current)
 - N            - Next (step through bsr/jsr)
-- U            - Run Until (HBL etc)
+- U            - Run Until (RTS/RTE/VBL/HBL)
+- Ctrl+Shift+U - Cycle "Run Until.." choice
 - Alt+Shift+B  - Add breakpoint (dialog)
 - Alt+D - Focus Disassembly View
 - Alt+M - Focus Memory View 1
