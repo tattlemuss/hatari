@@ -56,9 +56,18 @@ private slots:
     void nextClickedSlot();
     void skipPressedSlot();
     void runToClickedSlot();
+    void cycleRunToSlot();
     void breakPressedSlot();
 
 private:
+    enum RunToMode
+    {
+        kRunToRts,
+        kRunToRte,
+        kRunToVbl,
+        kRunToHbl,
+        kRunToMax,
+    };
     void connectChanged();
     void startStopChanged();
     void memoryChanged(int slot, uint64_t commandId);

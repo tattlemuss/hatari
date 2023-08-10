@@ -64,10 +64,10 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     m_pRunToButton->setToolTip("U: Run until specified condition");
 
     m_pRunToCombo = new QComboBox(this);
-    m_pRunToCombo->insertItem(0, "RTS");
-    m_pRunToCombo->insertItem(1, "RTE");
-    m_pRunToCombo->insertItem(2, "Next VBL");
-    m_pRunToCombo->insertItem(3, "Next HBL");
+    m_pRunToCombo->insertItem(kRunToRts, "RTS");
+    m_pRunToCombo->insertItem(kRunToRte, "RTE");
+    m_pRunToCombo->insertItem(kRunToVbl, "Next VBL");
+    m_pRunToCombo->insertItem(kRunToHbl, "Next HBL");
 
     for (int i = 0; i < kNumDisasmViews; ++i)
     {
@@ -177,6 +177,7 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     new QShortcut(QKeySequence("Ctrl+S"),         this, SLOT(skipPressedSlot()));
     new QShortcut(QKeySequence("N"),              this, SLOT(nextClickedSlot()));
     new QShortcut(QKeySequence("U"),              this, SLOT(runToClickedSlot()));
+    new QShortcut(QKeySequence("Ctrl+Shift+U"),   this, SLOT(cycleRunToSlot()));
 
     // Try initial connect
     ConnectTriggered();
@@ -357,18 +358,25 @@ void MainWindow::runToClickedSlot()
     if (m_pTargetModel->IsRunning())
         return;
 
-    if (m_pRunToCombo->currentIndex() == 0)
-        m_pDispatcher->SetBreakpoint("(pc).w = $4e75", true);      // RTS
-    else if (m_pRunToCombo->currentIndex() == 1)
-        m_pDispatcher->SetBreakpoint("(pc).w = $4e73", true);      // RTE
-    else if (m_pRunToCombo->currentIndex() == 2)
+    if (m_pRunToCombo->currentIndex() == kRunToRts)
+        m_pDispatcher->SetBreakpoint("(pc).w = $4e75", true);   // RTS
+    else if (m_pRunToCombo->currentIndex() == kRunToRte)
+        m_pDispatcher->SetBreakpoint("(pc).w = $4e73", true);   // RTE
+    else if (m_pRunToCombo->currentIndex() == kRunToVbl)
         m_pDispatcher->SetBreakpoint("VBL ! VBL", true);        // VBL
-        //m_pDispatcher->SetBreakpoint("pc = ($70).l", true);        // VBL interrupt code
-    else if (m_pRunToCombo->currentIndex() == 3)
+    else if (m_pRunToCombo->currentIndex() == kRunToHbl)
         m_pDispatcher->SetBreakpoint("HBL ! HBL", true);        // VBL
     else
         return;
     m_pDispatcher->Run();
+}
+
+void MainWindow::cycleRunToSlot()
+{
+    int current = m_pRunToCombo->currentIndex();
+    current++;
+    current %= kRunToMax;
+    m_pRunToCombo->setCurrentIndex(current);
 }
 
 void MainWindow::addBreakpointPressed()
