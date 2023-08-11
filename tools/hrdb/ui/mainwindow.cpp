@@ -359,13 +359,13 @@ void MainWindow::runToClickedSlot()
         return;
 
     if (m_pRunToCombo->currentIndex() == kRunToRts)
-        m_pDispatcher->SetBreakpoint("(pc).w = $4e75", true);   // RTS
+        m_pDispatcher->SetBreakpoint("(pc).w = $4e75", Dispatcher::kBpFlagOnce);   // RTS
     else if (m_pRunToCombo->currentIndex() == kRunToRte)
-        m_pDispatcher->SetBreakpoint("(pc).w = $4e73", true);   // RTE
+        m_pDispatcher->SetBreakpoint("(pc).w = $4e73", Dispatcher::kBpFlagOnce);   // RTE
     else if (m_pRunToCombo->currentIndex() == kRunToVbl)
-        m_pDispatcher->SetBreakpoint("VBL ! VBL", true);        // VBL
+        m_pDispatcher->SetBreakpoint("VBL ! VBL", Dispatcher::kBpFlagOnce);        // VBL
     else if (m_pRunToCombo->currentIndex() == kRunToHbl)
-        m_pDispatcher->SetBreakpoint("HBL ! HBL", true);        // VBL
+        m_pDispatcher->SetBreakpoint("HBL ! HBL", Dispatcher::kBpFlagOnce);        // VBL
     else
         return;
     m_pDispatcher->Run();

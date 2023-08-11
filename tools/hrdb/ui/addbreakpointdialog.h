@@ -36,6 +36,7 @@ private:
     QButtonGroup*       m_pMemorySizeButtonGroup;
 
     QCheckBox*          m_pOnceCheckBox;
+    QCheckBox*          m_pTraceCheckBox;
     SymbolTableModel*   m_pSymbolTableModel;
 };
 

@@ -54,7 +54,7 @@ AddBreakpointDialog::AddBreakpointDialog(QWidget *parent, TargetModel* pTargetMo
     // -------------------------------
     // Options
     m_pOnceCheckBox = new QCheckBox("Once", this);
-    QCheckBox* m_pTraceCheckBox = new QCheckBox("Trace Only", this);
+    m_pTraceCheckBox = new QCheckBox("Trace Only", this);
 
     // -------------------------------
     QPushButton* pOkButton = new QPushButton("&OK", this);
@@ -106,9 +106,17 @@ void AddBreakpointDialog::showEvent(QShowEvent *event)
 
 void AddBreakpointDialog::okClicked()
 {
-    // Create an expression string
     if (m_pTargetModel->IsConnected())
-        m_pDispatcher->SetBreakpoint(m_pExpressionEdit->text().toStdString(), m_pOnceCheckBox->isChecked());
+    {
+        // Create an expression string
+        uint64_t flags = Dispatcher::kBpFlagNone;
+        if (m_pOnceCheckBox->isChecked())
+            flags |= Dispatcher::kBpFlagOnce;
+        if (m_pTraceCheckBox->isChecked())
+            flags |= Dispatcher::kBpFlagTrace;
+
+        m_pDispatcher->SetBreakpoint(m_pExpressionEdit->text().toStdString(), flags);
+    }
 }
 
 void AddBreakpointDialog::useClicked()

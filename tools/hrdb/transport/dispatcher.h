@@ -39,7 +39,15 @@ public:
     uint64_t Step();
     uint64_t RunToPC(uint32_t pc);
 
-    uint64_t SetBreakpoint(std::string expression, bool once);
+    enum BreakpointFlags
+    {
+        kBpFlagNone = 0,
+
+        kBpFlagOnce = 1 << 0,
+        kBpFlagTrace = 1 << 1
+    };
+
+    uint64_t SetBreakpoint(std::string expression, uint64_t optionFlags);
     uint64_t DeleteBreakpoint(uint32_t breakpointId);
 
     uint64_t SetRegister(int reg, uint32_t val);

@@ -127,11 +127,15 @@ uint64_t Dispatcher::RunToPC(uint32_t next_pc)
     return SendCommandPacket("run");
 }
 
-uint64_t Dispatcher::SetBreakpoint(std::string expression, bool once)
+uint64_t Dispatcher::SetBreakpoint(std::string expression, uint64_t optionFlags)
 {
     std::string command = std::string("bp " + expression);
-    if (once)
+
+    // Add extra options
+    if (optionFlags & kBpFlagOnce)
         command += ": once";
+    if (optionFlags & kBpFlagTrace)
+        command += ": trace";
     SendCommandShared(MemorySlot::kNone, command);
     return SendCommandShared(MemorySlot::kNone, "bplist"); // update state
 }
@@ -496,6 +500,7 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
         if (!StringParsers::ParseHexString(countStr.c_str(), count))
             return;
 
+        const std::string absType("A");
         SymbolSubTable syms;
         for (uint32_t i = 0; i < count; ++i)
         {
@@ -505,6 +510,8 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
             if (!StringParsers::ParseHexString(addrStr.c_str(), address))
                 return;
             std::string type = splitResp.Split(SEP_CHAR);
+            if (type == absType)
+                continue;
             uint32_t size = 0;
             syms.AddSymbol(name, address, size, type, std::string());
         }
