@@ -10,7 +10,6 @@
 #include "showaddressactions.h"
 
 class QTreeView;
-class QGridLayout;
 class QHBoxLayout;
 class QLabel;
 
