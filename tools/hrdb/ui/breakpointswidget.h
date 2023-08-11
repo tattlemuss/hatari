@@ -19,9 +19,7 @@ class BreakpointsTableModel : public QAbstractTableModel
 public:
     enum Column
     {
-        kColId,
         kColExpression,
-        kColConditionCount,
         kColHitCount,
         kColOnce,
         kColQuiet,
@@ -91,7 +89,6 @@ private:
     Session*            m_pSession;
     TargetModel*        m_pTargetModel;
     Dispatcher*         m_pDispatcher;
-    QAbstractItemModel* m_pSymbolTableModel;
 };
 
 #endif // BREAKPOINTSWIDGET_H

@@ -54,12 +54,8 @@ QVariant BreakpointsTableModel::data(const QModelIndex &index, int role) const
 
     if (role == Qt::DisplayRole)
     {
-        if (index.column() == kColId)
-            return QString::number(row + 1);
-        else if (index.column() == kColExpression)
+        if (index.column() == kColExpression)
             return QString(bp.m_expression.c_str());
-        else if (index.column() == kColConditionCount)
-            return QString::number(bp.m_conditionCount);
         else if (index.column() == kColHitCount)
             return QString::number(bp.m_hitCount);
         else if (index.column() == kColOnce)
@@ -87,9 +83,7 @@ QVariant BreakpointsTableModel::headerData(int section, Qt::Orientation orientat
         {
             switch (section)
             {
-            case kColId:             return QString(tr("ID"));
             case kColExpression:     return QString(tr("Expression"));
-            case kColConditionCount: return QString(tr("Condition Count"));
             case kColHitCount:       return QString(tr("Hit Count"));
             case kColOnce:           return QString(tr("Once?"));
             case kColQuiet:          return QString(tr("Quiet"));
@@ -151,21 +145,13 @@ BreakpointsWindow::BreakpointsWindow(QWidget *parent, Session* pSession) :
 
     // Make the data first
     pModel = new BreakpointsTableModel(this, m_pTargetModel, m_pDispatcher);
-
     m_pTableView = new BreakpointsTableView(this, pModel);
     m_pTableView->setModel(pModel);
 
-    m_pSymbolTableModel = new SymbolTableModel(this, m_pTargetModel->GetSymbolTable());
-    QCompleter* pCompl = new QCompleter(m_pSymbolTableModel, this);
-    pCompl->setCaseSensitivity(Qt::CaseSensitivity::CaseInsensitive);
-
-    const QFont monoFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-    m_pTableView->setFont(monoFont);
-    QFontMetrics fm(monoFont);
-
     // Down the side
-    m_pTableView->verticalHeader()->hide();
-    m_pTableView->verticalHeader()->setDefaultSectionSize(fm.height());
+    m_pTableView->verticalHeader()->show();
+//    m_pTableView->verticalHeader()->setDefaultSectionSize(fm.height());
+    m_pTableView->setShowGrid(true);
     m_pTableView->setSelectionBehavior(QAbstractItemView::SelectionBehavior::SelectRows);
     m_pTableView->setSelectionMode(QAbstractItemView::SelectionMode::SingleSelection);
 
@@ -175,10 +161,17 @@ BreakpointsWindow::BreakpointsWindow(QWidget *parent, Session* pSession) :
     auto pMainRegion = new QWidget(this);   // whole panel
 
     m_pAddButton = new QPushButton(tr("Add..."), this);
-    m_pDeleteButton = new QPushButton(tr("Delete"), this);
-    QWidget* topWidgets[] = {m_pAddButton, m_pDeleteButton, nullptr};
+    m_pDeleteButton = new QPushButton(tr("Delete"), this);    
 
-    pMainLayout->addWidget(CreateHorizLayout(this, topWidgets) );
+    QHBoxLayout* pTopLayout = new QHBoxLayout;
+    auto pTopRegion = new QWidget(this);      // top buttons/edits
+    SetMargins(pTopLayout);
+    pTopLayout->addWidget(m_pAddButton);
+    pTopLayout->addWidget(m_pDeleteButton);
+    pTopLayout->addStretch();
+    pTopRegion->setLayout(pTopLayout);
+
+    pMainLayout->addWidget(pTopRegion);
     pMainLayout->addWidget(m_pTableView);
 
     pMainRegion->setLayout(pMainLayout);
@@ -224,9 +217,7 @@ void BreakpointsWindow::deleteBreakpointClicked()
 
 void BreakpointsWindow::settingsChangedSlot()
 {
-    QFontMetrics fm(m_pSession->GetSettings().m_font);
-
-    // Down the side
+//    QFontMetrics fm(m_pSession->GetSettings().m_font);
+//    int h = fm.height();
     m_pTableView->setFont(m_pSession->GetSettings().m_font);
-    m_pTableView->verticalHeader()->setDefaultSectionSize(fm.height());
 }
