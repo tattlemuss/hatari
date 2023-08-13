@@ -9,9 +9,9 @@ namespace HardwareST
     bool GetVideoBase(const Memory& mem, MACHINETYPE machineType, uint32_t& address)
     {
         uint32_t hi, mi, lo;
-        if (!mem.ReadAddressMulti(Regs::VID_CURR_HIGH, 1, hi))
+        if (!mem.ReadAddressMulti(Regs::VID_BASE_HIGH, 1, hi))
             return false;
-        if (!mem.ReadAddressMulti(Regs::VID_CURR_MID, 1, mi))
+        if (!mem.ReadAddressMulti(Regs::VID_BASE_MID, 1, mi))
             return false;
         lo = 0;
         if (!IsMachineST(machineType))
