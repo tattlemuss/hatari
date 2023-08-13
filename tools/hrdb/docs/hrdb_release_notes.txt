@@ -3,26 +3,35 @@ hrdb Release Notes
 
 v0.008 (???)
 
+- Memory Window
+  - Added search feature on Ctrl+F. Search supports hex or text, with case
+    sensitivity.
+  - Added selection of row widths of 4, 8, 16, 32 or 64 bytes, or auto-sizing.
+  - Window shows the address of the active editing cursor.
+    (request from zChris)
+  - Fix tooltip crash bug when viewing the first byte in the window if window
+    address is set to an odd value.
+  - Added Ctrl+Space shortcut for context menu.
+  - Large internal rewrite for stability.
+
 - Graphics Inspector
   - Allow width up to 80 chunks to support 1280 mode. This enables previewing of 
     the 1280x200 video mode created by running the Shifter in mono with the GLUE 
     in colour. (request from Troed/SYNC)
-
-- Memory Window
-  - Added search feature on Ctrl+F. Search supports hex or text, with case
-    sensitivity.
-  - Support variable row sizes of 4, 8, 16, 32 or 64 bytes, or auto-sizing.
-  - Window shows the address of the active editing cursor.
-    (request from zChris)
-  - Fix tooltip crash bug when viewing the first byte in the window if window 
-    address is set to an odd value.
-  - Large internal rewrite for stability.
+  - Added Ctrl+Space shortcut for context menu.
+  - Show memory address(es) of pixel under mouse pointer (suggestion by ggn/KÜA)
 
 - Disassembly Window
-  - Supported decoding of 68020 and 68030 instructions.
+  - Supported decoding of 68020 and 68030 instructions (except for floating-
+    point co-processor instructions).
+  - Added Ctrl+Space shortcut for context menu.
 
 - Register Window
   - Added display of 68020 and 68030 register values when appropriate.
+
+- Breakpoints Window
+  - Fixed "Trace" flag when creating breakpoints.
+  - Removed unnecessary columns from display.
 
 - General
   - Add application window icon.
