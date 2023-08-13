@@ -21,13 +21,22 @@ public:
 
     QVector<QRgb>   m_colours;
 
-    const QString& GetString() { return m_infoString; }
+    struct MouseInfo
+    {
+        bool isValid;
+        int x;
+        int y;
+        int pixelValue;
+    };
+
+    const MouseInfo& GetMouseInfo() { return m_pixelInfo; }
 signals:
-    void StringChanged();
+    void MouseInfoChanged();
 
 protected:
     virtual void paintEvent(QPaintEvent*) override;
     virtual void mouseMoveEvent(QMouseEvent *event) override;
+    virtual void leaveEvent(QEvent *event) override;
     virtual void keyPressEvent(QKeyEvent *event) override;
     virtual void contextMenuEvent(QContextMenuEvent *event) override;
 
@@ -50,7 +59,7 @@ private:
     uint8_t*        m_pBitmap;
     int             m_bitmapSize;
 
-    QString         m_infoString;
+    MouseInfo       m_pixelInfo;
     bool            m_bRunningMask;
 
     // Context menu

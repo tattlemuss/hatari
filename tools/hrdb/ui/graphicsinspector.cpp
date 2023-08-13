@@ -18,6 +18,7 @@
 #include "../transport/dispatcher.h"
 #include "../models/targetmodel.h"
 #include "../models/symboltablemodel.h"
+#include "../models/stringformat.h"
 #include "../models/stringparsers.h"
 #include "../models/session.h"
 #include "../hardware/regs_st.h"
@@ -185,6 +186,7 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     hlayout3->addWidget(new QLabel(tr("Palette:"), this));
     hlayout3->addWidget(m_pPaletteComboBox);
     hlayout3->addWidget(m_pPaletteAddressLineEdit);
+    hlayout3->addStretch();
     hlayout3->addWidget(m_pInfoLabel);
     QWidget* pContainer3 = new QWidget(this);
     pContainer3->setLayout(hlayout3);
@@ -226,7 +228,7 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     connect(m_pHeightSpinBox,   SIGNAL(valueChanged(int)),                SLOT(heightChangedSlot(int)));
     connect(m_pPaddingSpinBox,  SIGNAL(valueChanged(int)),                SLOT(paddingChangedSlot(int)));
 
-    connect(m_pImageWidget,  &NonAntiAliasImage::StringChanged,           this, &GraphicsInspectorWidget::tooltipStringChanged);
+    connect(m_pImageWidget,  &NonAntiAliasImage::MouseInfoChanged,           this, &GraphicsInspectorWidget::tooltipStringChanged);
 
     connect(m_pSession,      &Session::addressRequested,                  this, &GraphicsInspectorWidget::RequestBitmapAddress);
 
@@ -533,7 +535,44 @@ void GraphicsInspectorWidget::paddingChangedSlot(int value)
 
 void GraphicsInspectorWidget::tooltipStringChanged()
 {
-    m_pInfoLabel->setText(m_pImageWidget->GetString());
+    const NonAntiAliasImage::MouseInfo& info = m_pImageWidget->GetMouseInfo();
+    if (info.isValid)
+    {
+        // We can calculate the memory address here
+        uint32_t addr = 0;
+        uint32_t size = 0;
+        EffectiveData data;
+        GetEffectiveData(data);
+        switch(m_mode)
+        {
+        case Mode::k1Bitplane:
+        case Mode::k2Bitplane:
+        case Mode::k3Bitplane:
+        case Mode::k4Bitplane:
+            addr = m_bitmapAddress + info.y * data.bytesPerLine + (info.x / 16) * BytesPerMode(m_mode);
+            size = BytesPerMode(m_mode);
+            break;
+        default:
+            break;
+        }
+
+        QString str;
+        QTextStream ref(&str);
+        ref << "[" << info.x << ", " << info.y << "]";
+        if (info.pixelValue >= 0)
+            ref << " Pixel Value: " << info.pixelValue;
+        if (addr != 0)
+        {
+            ref << " Address: " << Format::to_hex32(addr);
+            if (size)   // show range of bytes
+                ref << "-" << Format::to_hex32(addr + size -1 );
+        }
+        m_pInfoLabel->setText(str);
+    }
+    else
+    {
+        m_pInfoLabel->clear();
+    }
 }
 
 void GraphicsInspectorWidget::RequestBitmapAddress(Session::WindowType type, int windowIndex, uint32_t address)

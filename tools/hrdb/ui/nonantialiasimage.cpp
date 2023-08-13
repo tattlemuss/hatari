@@ -19,7 +19,10 @@ NonAntiAliasImage::NonAntiAliasImage(QWidget *parent, Session* pSession)
     setMouseTracking(true);
     setFocusPolicy(Qt::FocusPolicy::StrongFocus);
     m_pSaveImageAction = new QAction(tr("Save Image..."), this);
-
+    m_pixelInfo.isValid = false;
+    m_pixelInfo.x = 0;
+    m_pixelInfo.y = 0;
+    m_pixelInfo.pixelValue = 0;
     connect(m_pSession,         &Session::settingsChanged, this, &NonAntiAliasImage::settingsChanged);
     connect(m_pSaveImageAction, &QAction::triggered,       this, &NonAntiAliasImage::saveImageClicked);
 }
@@ -32,7 +35,7 @@ void NonAntiAliasImage::setPixmap(int width, int height)
     QPixmap pm = QPixmap::fromImage(m_img);
     m_pixmap = pm;
     UpdateString();
-    emit StringChanged();
+    emit MouseInfoChanged();
     update();
 }
 
@@ -111,8 +114,16 @@ void NonAntiAliasImage::mouseMoveEvent(QMouseEvent *event)
 {
     m_mousePos = event->localPos();
     UpdateString();
-    emit StringChanged();
+    emit MouseInfoChanged();
     QWidget::mouseMoveEvent(event);
+}
+
+void NonAntiAliasImage::leaveEvent(QEvent *event)
+{
+    m_mousePos = QPoint(-1, -1);
+    UpdateString();
+    emit MouseInfoChanged();
+    QWidget::leaveEvent(event);
 }
 
 void NonAntiAliasImage::keyPressEvent(QKeyEvent *event)
@@ -175,7 +186,7 @@ void NonAntiAliasImage::ContextMenu(QPoint pos)
 
 void NonAntiAliasImage::UpdateString()
 {
-    m_infoString.clear();
+    m_pixelInfo.isValid = false;
     if (m_pixmap.width() == 0)
         return;
 
@@ -191,14 +202,15 @@ void NonAntiAliasImage::UpdateString()
 
         int x = static_cast<int>(x_pix);
         int y = static_cast<int>(y_pix);
-        m_infoString = QString::asprintf("X:%d Y:%d", x, y);
-
+        m_pixelInfo.x = x;
+        m_pixelInfo.y = y;
+        m_pixelInfo.pixelValue = -1;
         if (x < m_pixmap.width() && y < m_pixmap.height() &&
             m_pBitmap)
         {
-            uint8_t pixelValue = m_pBitmap[y * m_pixmap.width() + x];
-            m_infoString += QString::asprintf(", Pixel value: %u", pixelValue);
+            m_pixelInfo.pixelValue = m_pBitmap[y * m_pixmap.width() + x];
         }
+        m_pixelInfo.isValid = true;
     }
 }
 
