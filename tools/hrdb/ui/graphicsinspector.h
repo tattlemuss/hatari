@@ -5,8 +5,9 @@
 #include <QObject>
 
 // Forward declarations
-#include "../models/session.h"
-#include "nonantialiasimage.h"
+#include "../models/session.h"  // for WindowType
+#include "nonantialiasimage.h"  // for MouseInfo
+#include "showaddressactions.h"
 
 class QLabel;
 class QLineEdit;
@@ -52,11 +53,13 @@ private slots:
     void widthChangedSlot(int width);
     void heightChangedSlot(int height);
     void paddingChangedSlot(int height);
+    void saveImageClicked();
 
 private:
-    void tooltipStringChanged();
+    void mouseOverChanged();
 protected:
     virtual void keyPressEvent(QKeyEvent *ev) override;
+    virtual void contextMenuEvent(QContextMenuEvent *event) override;
 
 private:
     enum Mode
@@ -117,6 +120,9 @@ private:
 
     static int32_t BytesPerMode(Mode mode);
 
+    void KeyboardContextMenu();
+    void ContextMenu(QPoint pos);
+
     QLineEdit*      m_pBitmapAddressLineEdit;
     QLineEdit*      m_pPaletteAddressLineEdit;
     QComboBox*      m_pModeComboBox;
@@ -136,6 +142,7 @@ private:
 
     QAbstractItemModel* m_pSymbolTableModel;
 
+    // logical UI state shadowing widgets
     Mode            m_mode;
     uint32_t        m_bitmapAddress;
     int             m_width;            // in "chunks"
@@ -166,9 +173,21 @@ private:
         }
     };
 
-    Request         m_requestRegs;
-    Request         m_requestPalette;
-    Request         m_requestBitmap;
+    Request                         m_requestRegs;
+    Request                         m_requestPalette;
+    Request                         m_requestBitmap;
+
+    // Mouseover data
+    NonAntiAliasImage::MouseInfo    m_mouseInfo;            // data from MouseOver in bitmap
+    uint32_t                        m_addressUnderMouse;    // ~0U for "invalid"
+
+    // Context menu actions
+    QAction*                        m_pSaveImageAction;
+
+    // "Show memory for $x" top-level menus:
+    // [0] Show Base Address
+    // [1] Show Memory under mouse
+    ShowAddressMenu                 m_showAddressMenus[2];
 };
 
 #endif // GRAPHICSINSPECTOR_H

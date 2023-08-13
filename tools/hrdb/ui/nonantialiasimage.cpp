@@ -4,7 +4,6 @@
 #include <QPainter>
 #include <QStyle>
 #include <QMenu>
-#include <QFileDialog>
 #include "../models/session.h"
 #include "../models/targetmodel.h"
 
@@ -18,13 +17,11 @@ NonAntiAliasImage::NonAntiAliasImage(QWidget *parent, Session* pSession)
     m_renderRect = rect();
     setMouseTracking(true);
     setFocusPolicy(Qt::FocusPolicy::StrongFocus);
-    m_pSaveImageAction = new QAction(tr("Save Image..."), this);
     m_pixelInfo.isValid = false;
     m_pixelInfo.x = 0;
     m_pixelInfo.y = 0;
     m_pixelInfo.pixelValue = 0;
     connect(m_pSession,         &Session::settingsChanged, this, &NonAntiAliasImage::settingsChanged);
-    connect(m_pSaveImageAction, &QAction::triggered,       this, &NonAntiAliasImage::saveImageClicked);
 }
 
 void NonAntiAliasImage::setPixmap(int width, int height)
@@ -34,7 +31,7 @@ void NonAntiAliasImage::setPixmap(int width, int height)
     m_img.setColorTable(m_colours);
     QPixmap pm = QPixmap::fromImage(m_img);
     m_pixmap = pm;
-    UpdateString();
+    UpdateMouseInfo();
     emit MouseInfoChanged();
     update();
 }
@@ -113,7 +110,7 @@ void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
 void NonAntiAliasImage::mouseMoveEvent(QMouseEvent *event)
 {
     m_mousePos = event->localPos();
-    UpdateString();
+    UpdateMouseInfo();
     emit MouseInfoChanged();
     QWidget::mouseMoveEvent(event);
 }
@@ -121,70 +118,20 @@ void NonAntiAliasImage::mouseMoveEvent(QMouseEvent *event)
 void NonAntiAliasImage::leaveEvent(QEvent *event)
 {
     m_mousePos = QPoint(-1, -1);
-    UpdateString();
+    UpdateMouseInfo();
     emit MouseInfoChanged();
     QWidget::leaveEvent(event);
-}
-
-void NonAntiAliasImage::keyPressEvent(QKeyEvent *event)
-{
-    if (m_pSession->m_pTargetModel->IsConnected())
-    {
-        // Handle keyboard shortcuts with scope here, since QShortcut is global
-        if (event->modifiers() == Qt::ControlModifier)
-        {
-            switch (event->key())
-            {
-                case Qt::Key_Space:     KeyboardContextMenu();    return;
-                default: break;
-            }
-        }
-    }
-    QWidget::keyPressEvent(event);
-}
-
-void NonAntiAliasImage::contextMenuEvent(QContextMenuEvent *event)
-{
-    ContextMenu(event->globalPos());
 }
 
 void NonAntiAliasImage::settingsChanged()
 {
     // Force redraw in case square pixels changed
+    UpdateMouseInfo();
+    emit MouseInfoChanged();
     update();
 }
 
-void NonAntiAliasImage::saveImageClicked()
-{
-    // Choose output file
-    QString filter = "Bitmap files (*.bmp *.png);;All files (*.*);";
-    QString filename = QFileDialog::getSaveFileName(
-          this,
-          tr("Choose image filename"),
-          QString(),
-          filter);
-
-    if (filename.size() != 0)
-        m_img.save(filename);
-}
-
-void NonAntiAliasImage::KeyboardContextMenu()
-{
-    ContextMenu(mapToGlobal(QPoint(this->width() / 2, this->height() / 2)));
-}
-
-void NonAntiAliasImage::ContextMenu(QPoint pos)
-{
-    // Right click menus are instantiated on demand, so we can
-    // dynamically add to them
-    QMenu menu(this);
-
-    // Add the default actions
-    menu.addAction(m_pSaveImageAction);
-    menu.exec(pos);
-}
-
-void NonAntiAliasImage::UpdateString()
+void NonAntiAliasImage::UpdateMouseInfo()
 {
     m_pixelInfo.isValid = false;
     if (m_pixmap.width() == 0)

@@ -4,7 +4,6 @@
 #include <QWidget>
 
 class Session;
-class QContextMenuEvent;
 
 // Taken from https://forum.qt.io/topic/94996/qlabel-and-image-antialiasing/5
 class NonAntiAliasImage : public QWidget
@@ -18,15 +17,16 @@ public:
     void setPixmap(int width, int height);
     uint8_t* AllocBitmap(int size);
     void SetRunning(bool runFlag);
-
+    const QImage& GetImage() const { return m_img; }
     QVector<QRgb>   m_colours;
 
+    // Describes what's currently under the mouse pointer
     struct MouseInfo
     {
-        bool isValid;
+        bool isValid;       // is there a pixel here?
         int x;
         int y;
-        int pixelValue;
+        int pixelValue;     // currently: palette value, or -1 if invalid
     };
 
     const MouseInfo& GetMouseInfo() { return m_pixelInfo; }
@@ -37,18 +37,14 @@ protected:
     virtual void paintEvent(QPaintEvent*) override;
     virtual void mouseMoveEvent(QMouseEvent *event) override;
     virtual void leaveEvent(QEvent *event) override;
-    virtual void keyPressEvent(QKeyEvent *event) override;
-    virtual void contextMenuEvent(QContextMenuEvent *event) override;
 
 private:
     void KeyboardContextMenu();
-    void ContextMenu(QPoint pos);
     void settingsChanged();
-    void saveImageClicked();
 
-    void UpdateString();
+    void UpdateMouseInfo();
 
-    Session*        m_pSession;
+    Session*        m_pSession;         // Used for settings change
     QPixmap         m_pixmap;
     QPointF         m_mousePos;
     QRect           m_renderRect;       // rectangle image was last drawn into
@@ -61,9 +57,6 @@ private:
 
     MouseInfo       m_pixelInfo;
     bool            m_bRunningMask;
-
-    // Context menu
-    QAction*        m_pSaveImageAction;
 };
 
 
