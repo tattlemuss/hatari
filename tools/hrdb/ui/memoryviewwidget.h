@@ -12,6 +12,7 @@ class TargetModel;
 class Dispatcher;
 class QComboBox;
 class QCheckBox;
+class ElidedLabel;
 
 class MemoryWidget : public QWidget
 {
@@ -265,7 +266,7 @@ private:
     QComboBox*          m_pSizeModeComboBox;
     QComboBox*          m_pWidthComboBox;
     QCheckBox*          m_pLockCheckBox;
-    QLabel*             m_pCursorInfoLabel;
+    ElidedLabel*        m_pCursorInfoLabel;
     MemoryWidget*       m_pMemoryWidget;
 
     Session*            m_pSession;

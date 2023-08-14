@@ -24,6 +24,7 @@
 #include "../models/symboltablemodel.h"
 #include "../models/session.h"
 #include "colouring.h"
+#include "elidedlabel.h"
 #include "quicklayout.h"
 #include "searchdialog.h"
 #include "symboltext.h"
@@ -1125,7 +1126,7 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
     m_pAddressEdit->setCompleter(pCompl);
 
     m_pLockCheckBox = new QCheckBox(tr("Lock"), this);
-    m_pCursorInfoLabel = new QLabel(this);
+    m_pCursorInfoLabel = new ElidedLabel("", this);
 
     m_pSizeModeComboBox = new QComboBox(this);
     m_pSizeModeComboBox->insertItem(MemoryWidget::kModeByte, "Byte");

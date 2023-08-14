@@ -24,6 +24,8 @@
 #include "../models/stringparsers.h"
 #include "../models/session.h"
 #include "../hardware/regs_st.h"
+
+#include "elidedlabel.h"
 #include "quicklayout.h"
 #include "symboltext.h"
 
@@ -141,8 +143,7 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     m_pPaletteComboBox->addItem(tr("Bitplane3"), kBitplane3);
     m_pPaletteAddressLineEdit = new QLineEdit(this);
     m_pPaletteAddressLineEdit->setCompleter(pCompl);    // use same completer as address box
-
-    m_pInfoLabel = new QLabel(this);
+    m_pInfoLabel = new ElidedLabel("", this);
 
     // Bottom
     m_pImageWidget->setSizePolicy(QSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding));
@@ -193,7 +194,6 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     hlayout3->addWidget(new QLabel(tr("Palette:"), this));
     hlayout3->addWidget(m_pPaletteComboBox);
     hlayout3->addWidget(m_pPaletteAddressLineEdit);
-    hlayout3->addStretch();
     hlayout3->addWidget(m_pInfoLabel);
     QWidget* pContainer3 = new QWidget(this);
     pContainer3->setLayout(hlayout3);
@@ -610,16 +610,16 @@ void GraphicsInspectorWidget::mouseOverChanged()
         if (addr != ~0U)
         {
             ref << " Address: " << Format::to_hex32(addr);
-            //QString symText = DescribeSymbol(m_pTargetModel->GetSymbolTable(), addr);
-            //if (!symText.isEmpty())
-            //    ref << " (" << symText << ")";
+            QString symText = DescribeSymbol(m_pTargetModel->GetSymbolTable(), addr);
+            if (!symText.isEmpty())
+                ref << " (" << symText << ")";
         }
         m_pInfoLabel->setText(str);
         m_addressUnderMouse = addr;
     }
     else
     {
-        m_pInfoLabel->clear();
+        m_pInfoLabel->setText(QString());
     }
 }
 

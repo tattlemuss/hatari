@@ -15,6 +15,7 @@ class QAbstractItemModel;
 class QSpinBox;
 class QCheckBox;
 class QComboBox;
+class ElidedLabel;
 
 class TargetModel;
 class Dispatcher;
@@ -135,7 +136,7 @@ private:
     QCheckBox*      m_pLockAddressToVideoCheckBox;
     QCheckBox*      m_pLockFormatToVideoCheckBox;
     QComboBox*      m_pPaletteComboBox;
-    QLabel*         m_pInfoLabel;
+    ElidedLabel*    m_pInfoLabel;
 
     NonAntiAliasImage*         m_pImageWidget;
 

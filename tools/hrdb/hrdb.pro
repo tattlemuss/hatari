@@ -41,6 +41,7 @@ SOURCES += \
     ui/breakpointswidget.cpp \
     ui/consolewindow.cpp \
     ui/disasmwidget.cpp \
+    ui/elidedlabel.cpp \
     ui/exceptiondialog.cpp \
     ui/graphicsinspector.cpp \
     ui/hardwarewindow.cpp \
@@ -84,6 +85,7 @@ HEADERS += \
     ui/colouring.h \
     ui/consolewindow.h \
     ui/disasmwidget.h \
+    ui/elidedlabel.h \
     ui/exceptiondialog.h \
     ui/graphicsinspector.h \
     ui/hardwarewindow.h \
