@@ -778,19 +778,22 @@ void MemoryWidget::keyPressEvent(QKeyEvent* event)
 
 void MemoryWidget::mousePressEvent(QMouseEvent *event)
 {
-    if (event->button() == Qt::MouseButton::LeftButton)
+    if (m_pTargetModel->IsConnected())
     {
-        // Over a hex char
-        int x = static_cast<int>(event->localPos().x());
-        int y = static_cast<int>(event->localPos().y());
-        int row;
-        int col;
-        if (CalcRowColFromMouse(x, y, row, col))
+        if (event->button() == Qt::MouseButton::LeftButton)
         {
-            m_cursorCol = col;
-            m_cursorRow = row;
-            RecalcCursorInfo();
-            update();
+            // Over a hex char
+            int x = static_cast<int>(event->localPos().x());
+            int y = static_cast<int>(event->localPos().y());
+            int row;
+            int col;
+            if (CalcRowColFromMouse(x, y, row, col))
+            {
+                m_cursorCol = col;
+                m_cursorRow = row;
+                RecalcCursorInfo();
+                update();
+            }
         }
     }
     QWidget::mousePressEvent(event);
@@ -798,7 +801,7 @@ void MemoryWidget::mousePressEvent(QMouseEvent *event)
 
 void MemoryWidget::wheelEvent(QWheelEvent *event)
 {
-    if (!this->underMouse())
+    if (!this->underMouse() || !m_pTargetModel->IsConnected())
     {
         event->ignore();
         return;
@@ -901,8 +904,6 @@ void MemoryWidget::RecalcLockedExpression()
 
 void MemoryWidget::RecalcRowCount()
 {
-    // It seems that viewport is updated without this even being called,
-    // which means that on startup, "h" == 0.
     int h = this->size().height() - (Session::kWidgetBorderY * 2);
     int rowh = m_lineHeight;
     int count = 0;
