@@ -3,7 +3,7 @@
 QString DescribeSymbol(const SymbolTable& table, uint32_t addr)
 {
     Symbol sym;
-    if (!table.FindLowerOrEqual(addr & 0xffffff, sym))
+    if (!table.FindLowerOrEqual(addr & 0xffffff, true, sym))
         return QString();
 
     uint32_t offset = addr - sym.address;
@@ -15,7 +15,7 @@ QString DescribeSymbol(const SymbolTable& table, uint32_t addr)
 QString DescribeSymbolComment(const SymbolTable& table, uint32_t addr)
 {
     Symbol sym;
-    if (!table.FindLowerOrEqual(addr & 0xffffff, sym))
+    if (!table.FindLowerOrEqual(addr & 0xffffff, true, sym))
         return QString();
 
     return QString::fromStdString(sym.comment);

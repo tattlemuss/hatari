@@ -120,6 +120,9 @@ private:
 
     static int32_t BytesPerMode(Mode mode);
 
+    bool CreateAnnotation(NonAntiAliasImage::Annotation &annot, uint32_t address,
+                          const EffectiveData &data, const char* label);
+
     void KeyboardContextMenu();
     void ContextMenu(QPoint pos);
 

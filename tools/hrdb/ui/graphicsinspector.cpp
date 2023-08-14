@@ -25,6 +25,7 @@
 #include "../models/session.h"
 #include "../hardware/regs_st.h"
 #include "quicklayout.h"
+#include "symboltext.h"
 
 /* A note on memory requests:
 
@@ -584,7 +585,7 @@ void GraphicsInspectorWidget::mouseOverChanged()
     if (info.isValid)
     {
         // We can calculate the memory address here
-        uint32_t addr = 0;
+        uint32_t addr = ~0U;
         uint32_t size = 0;
         EffectiveData data;
         GetEffectiveData(data);
@@ -606,11 +607,12 @@ void GraphicsInspectorWidget::mouseOverChanged()
         ref << "[" << info.x << ", " << info.y << "]";
         if (info.pixelValue >= 0)
             ref << " Pixel Value: " << info.pixelValue;
-        if (addr != 0)
+        if (addr != ~0U)
         {
             ref << " Address: " << Format::to_hex32(addr);
-            if (size)   // show range of bytes
-                ref << "-" << Format::to_hex32(addr + size -1 );
+            //QString symText = DescribeSymbol(m_pTargetModel->GetSymbolTable(), addr);
+            //if (!symText.isEmpty())
+            //    ref << " (" << symText << ")";
         }
         m_pInfoLabel->setText(str);
         m_addressUnderMouse = addr;
@@ -903,6 +905,35 @@ void GraphicsInspectorWidget::UpdateImage()
         }
     }
     m_pImageWidget->setPixmap(width, height);
+
+#if 0
+    // Update annotations
+    //EffectiveData data;
+    //GetEffectiveData(data);
+    QVector<NonAntiAliasImage::Annotation> annots;
+    for (int i = 0; i < 8; ++i)
+    {
+        NonAntiAliasImage::Annotation annot;
+        uint32_t regAddr = m_pTargetModel->GetRegs().GetAReg(i);
+        if (CreateAnnotation(annot, regAddr, data, Registers::s_names[Registers::A0 + i]))
+            annots.append(annot);
+    }
+
+    uint32_t symAddr = m_bitmapAddress + data.requiredSize;
+    Symbol sym;
+    while (symAddr >= m_bitmapAddress)
+    {
+        if (!m_pTargetModel->GetSymbolTable().FindLowerOrEqual(symAddr, false, sym))
+            break;
+
+        NonAntiAliasImage::Annotation annot;
+        if (CreateAnnotation(annot, sym.address, data, sym.name.c_str()))
+            annots.append(annot);
+        symAddr = sym.address - 1;
+    }
+
+    m_pImageWidget->m_annotations = annots;
+#endif
 }
 
 void GraphicsInspectorWidget::UpdateUIElements()
@@ -1017,6 +1048,24 @@ int32_t GraphicsInspectorWidget::BytesPerMode(GraphicsInspectorWidget::Mode mode
     case k1Bitplane: return 2;
     }
     return 0;
+}
+
+bool GraphicsInspectorWidget::CreateAnnotation(NonAntiAliasImage::Annotation &annot, uint32_t address,
+                                               const EffectiveData& data,
+                                               const char* label)
+{
+    if (address < m_bitmapAddress || address >= m_bitmapAddress + data.requiredSize)
+        return false;
+
+    uint32_t offset = address - m_bitmapAddress;
+    uint32_t y = offset / data.bytesPerLine;
+    uint32_t x_offset = offset - (y * data.bytesPerLine);
+
+    uint32_t chunk = x_offset / BytesPerMode(m_mode);
+    annot.x = chunk * 16;
+    annot.y = y;
+    annot.text = label;
+    return true;
 }
 
 void GraphicsInspectorWidget::KeyboardContextMenu()

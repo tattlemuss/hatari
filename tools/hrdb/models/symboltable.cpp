@@ -314,7 +314,7 @@ bool SymbolSubTable::Find(uint32_t address, Symbol &result) const
     return true;
 }
 
-bool SymbolSubTable::FindLowerOrEqual(uint32_t address, Symbol &result) const
+bool SymbolSubTable::FindLowerOrEqual(uint32_t address, bool sizeCheck, Symbol &result) const
 {
     // Degenerate cases
     if (m_addrKeys.size() == 0)
@@ -349,9 +349,14 @@ bool SymbolSubTable::FindLowerOrEqual(uint32_t address, Symbol &result) const
     // Size checks
     if (result.size == 0)
         return true;        // unlimited size
-    else if (result.size > (address - result.address))
-        return true;
-    return false;
+
+    if (sizeCheck)
+    {
+        if (result.size > (address - result.address))
+            return true;
+        return false;
+    }
+    return true;
 }
 
 bool SymbolSubTable::Find(std::string name, Symbol &result) const
@@ -410,7 +415,7 @@ bool SymbolTable::Find(uint32_t address, Symbol &result) const
     return false;
 }
 
-bool SymbolTable::FindLowerOrEqual(uint32_t address, Symbol &result) const
+bool SymbolTable::FindLowerOrEqual(uint32_t address, bool sizeCheck, Symbol &result) const
 {
     // This is non-intuitive, but we need to find the *higher* symbol
     // in all the subtables (the one that's closest to the given address)
@@ -419,7 +424,7 @@ bool SymbolTable::FindLowerOrEqual(uint32_t address, Symbol &result) const
     for (int i = 0; i < kNumTables; ++i)
     {
         Symbol tempRes;
-        if (m_subTables[i].FindLowerOrEqual(address, tempRes))
+        if (m_subTables[i].FindLowerOrEqual(address, sizeCheck, tempRes))
         {
             if (tempRes.address > highest)
             {

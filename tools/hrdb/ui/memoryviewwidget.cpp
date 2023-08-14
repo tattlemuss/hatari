@@ -46,7 +46,7 @@ static QString CreateTooltip(uint32_t address, const SymbolTable& symTable, uint
 
     ref << QString::asprintf("Address: $%x\n", address);
     Symbol sym;
-    if (symTable.FindLowerOrEqual(address, sym))
+    if (symTable.FindLowerOrEqual(address, true, sym))
     {
         QString symText = DescribeSymbol(symTable, address);
         ref << "Symbol: " << symText;
@@ -577,7 +577,7 @@ void MemoryWidget::RecalcText()
             row.m_symbolId[col] = -1;
             if (info.type != ColumnType::kSpace)
             {
-                if (symTable.FindLowerOrEqual(charAddress & 0xffffff, sym))
+                if (symTable.FindLowerOrEqual(charAddress & 0xffffff, true, sym))
                     row.m_symbolId[col] = (int)sym.index;
             }
             row.m_text[col] = outChar;

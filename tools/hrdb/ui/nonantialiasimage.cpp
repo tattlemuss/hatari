@@ -87,15 +87,35 @@ void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
             }
         }
 
+        bool runningMask = m_bRunningMask && !m_pSession->GetSettings().m_liveRefresh;
+
+        bool darkenMask = runningMask || m_annotations.size() != 0;
+
         // Darken the area if we don't have live refresh
-        if (m_bRunningMask && !m_pSession->GetSettings().m_liveRefresh)
+        if (darkenMask)
         {
             painter.setBrush(QBrush(QColor(0, 0, 0, 128)));
             painter.drawRect(r);
+        }
 
+        if (runningMask)
+        {
             painter.setPen(Qt::magenta);
             painter.setBrush(Qt::NoBrush);
             painter.drawText(r, Qt::AlignCenter, "Running...");
+        }
+
+        painter.setPen(Qt::magenta);
+        painter.setBrush(Qt::NoBrush);
+        for (const Annotation& annot : m_annotations)
+        {
+            // Work out position as a proportion of the render rect
+            float x = m_renderRect.x() + (m_renderRect.width() * annot.x) / m_pixmap.width();
+            float y = m_renderRect.y() + (m_renderRect.height() * annot.y) / m_pixmap.height();
+
+            painter.drawLine(x, y, x + 5, y);
+            painter.drawLine(x, y, x, y + 5);
+            //painter.drawText(QPoint(x, y), annot.text);
         }
     }
     else {

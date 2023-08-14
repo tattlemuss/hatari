@@ -28,7 +28,7 @@ public:
 
     size_t Count() const { return m_symbols.size(); }
     bool Find(uint32_t address, Symbol& result) const;
-    bool FindLowerOrEqual(uint32_t address, Symbol& result) const;
+    bool FindLowerOrEqual(uint32_t address, bool sizeCheck, Symbol& result) const;
     bool Find(std::string name, Symbol& result) const;
     const Symbol Get(size_t index) const;
 
@@ -55,7 +55,7 @@ public:
 
     size_t Count() const;
     bool Find(uint32_t address, Symbol& result) const;
-    bool FindLowerOrEqual(uint32_t address, Symbol& result) const;
+    bool FindLowerOrEqual(uint32_t address, bool sizeCheck, Symbol& result) const;
     bool Find(std::string name, Symbol& result) const;
     const Symbol Get(size_t index) const;
 

@@ -30,6 +30,15 @@ public:
     };
 
     const MouseInfo& GetMouseInfo() { return m_pixelInfo; }
+
+    struct Annotation
+    {
+        int x;
+        int y;
+        QString text;
+    };
+    QVector<Annotation> m_annotations;
+
 signals:
     void MouseInfoChanged();
 

@@ -203,7 +203,7 @@ void ProfileTableModel::rebuildEntries()
 
         if (m_grouping == kGroupingSymbol)
         {
-            if (!symbols.FindLowerOrEqual(ent.first, result))
+            if (!symbols.FindLowerOrEqual(ent.first, true, result))
                 continue;
 
             addr = result.address;
