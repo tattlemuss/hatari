@@ -20,6 +20,7 @@ void LaunchSettings::loadSettings(QSettings& settings)
     m_watcherFiles = settings.value("watcherFiles", QVariant("")).toString();
     m_watcherActive = settings.value("watcherActive", QVariant("false")).toBool();
     m_breakMode = settings.value("breakMode", QVariant("0")).toInt();
+    m_fastLaunch = settings.value("fastLaunch", QVariant("false")).toBool();
     settings.endGroup();
 }
 
@@ -33,6 +34,7 @@ void LaunchSettings::saveSettings(QSettings &settings) const
     settings.setValue("watcherFiles", m_watcherFiles);
     settings.setValue("watcherActive", m_watcherActive);
     settings.setValue("breakMode", m_breakMode);
+    settings.setValue("fastLaunch", m_fastLaunch);
     settings.endGroup();
 }
 
@@ -49,40 +51,71 @@ bool LaunchHatari(const LaunchSettings& settings, const Session* pSession)
     {
         FileWatcher* pFileWatcher=((Session*)pSession)->createFileWatcherInstance();
         if (pFileWatcher)
+        {
             pFileWatcher->clear(); //remove all watched files
-
-        if(settings.m_watcherFiles.length()>0)
-            pFileWatcher->addPaths(settings.m_watcherFiles.split(","));
-        else
-            pFileWatcher->addPath(settings.m_prgFilename);
+            if(settings.m_watcherFiles.length()>0)
+                pFileWatcher->addPaths(settings.m_watcherFiles.split(","));
+            else
+                pFileWatcher->addPath(settings.m_prgFilename);
+        }
     }
 
     // First make a temp file for breakpoints etc
-    if (settings.m_breakMode != LaunchSettings::BreakMode::kNone)
+
     {
-        QString tmpContents;
-        QTextStream ref(&tmpContents);
+        // Breakpoint script file
+        {
+            QString tmpContents;
+            QTextStream ref(&tmpContents);
 
-        // Generate some commands for
-        // Break at boot/start commands
-        if (settings.m_breakMode == LaunchSettings::BreakMode::kBoot)
-            ref << QString("b pc ! 0 : once\r\n");
-        else if (settings.m_breakMode == LaunchSettings::BreakMode::kProgStart)
-            ref << QString("b pc=TEXT && pc<$e00000 : once\r\n");
+            if (settings.m_fastLaunch)
+            {
+                ref << "setopt --fast-forward 0\r\n";   // in bp file
+                args.push_front("1");
+                args.push_front("--fast-forward");      // in startup args
+            }
 
-        // Create the temp file
-        // In theory we need to be careful about reuse?
-        QTemporaryFile& tmp(*pSession->m_pStartupFile);
-        if (!tmp.open())
-            return false;
+            // Create the temp file
+            QTemporaryFile& tmp(*pSession->m_pProgramStartScript);
+            if (!tmp.open())
+                return false;
 
-        tmp.setTextModeEnabled(true);
-        tmp.write(tmpContents.toUtf8());
-        tmp.close();
+            tmp.setTextModeEnabled(true);
+            tmp.write(tmpContents.toUtf8());
+            tmp.close();
+        }
 
-        // Prepend the "--parse N" part (backwards!)
-        args.push_front(tmp.fileName());
-        args.push_front("--parse");
+        // Startup script file
+        {
+            QString tmpContents;
+            QTextStream ref(&tmpContents);
+            QString progStartFilename = pSession->m_pProgramStartScript->fileName();
+
+            // Generate some commands for
+            // Break at boot/start commands
+            if (settings.m_breakMode == LaunchSettings::BreakMode::kBoot)
+                ref << "b pc ! 0 : once\r\n";     // don't run the breakpoint file yet
+
+            // Break at program start and run the program start script
+            if (settings.m_breakMode == LaunchSettings::BreakMode::kProgStart)
+                ref << "b pc=TEXT && pc<$e00000 :once :file " << progStartFilename << "\r\n";
+            else if (settings.m_fastLaunch)         // run bp file but don't stop
+                ref << "b pc=TEXT && pc<$e00000 :trace :once :file " << progStartFilename << "\r\n";
+
+            // Create the temp file
+            // In theory we need to be careful about reuse?
+            QTemporaryFile& tmp(*pSession->m_pStartupFile);
+            if (!tmp.open())
+                return false;
+
+            tmp.setTextModeEnabled(true);
+            tmp.write(tmpContents.toUtf8());
+            tmp.close();
+
+            // Prepend the "--parse N" part (backwards!)
+            args.push_front(tmp.fileName());
+            args.push_front("--parse");
+        }
     }
 
     // Executable goes as last arg

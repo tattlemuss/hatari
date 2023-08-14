@@ -13,6 +13,8 @@ Session::Session() :
     m_autoConnect(true)
 {
     m_pStartupFile = new QTemporaryFile(this);
+    m_pProgramStartScript = new QTemporaryFile(this);
+
     m_pLoggingFile = new QTemporaryFile(this);
 
     // Create the core data models, since other object want to connect to them.

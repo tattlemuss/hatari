@@ -28,6 +28,7 @@ public:
     QString m_watcherFiles;
     QString m_argsTxt;
     bool m_watcherActive;
+    bool m_fastLaunch;              // If true, start with --fast-forward and reset at program start
 };
 
 // Returns true on success (Qt doesn't offer more options?)

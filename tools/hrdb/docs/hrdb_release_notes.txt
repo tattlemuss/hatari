@@ -14,6 +14,10 @@ v0.008 (???)
   - Added Ctrl+Space shortcut for context menu.
   - Large internal rewrite for stability.
 
+- Launch Dialog
+  - Added "Fast Launch" to run Hatari with --fast-forward until selected .prg
+    is about to start.
+
 - Graphics Inspector
   - Allow width up to 80 chunks to support 1280 mode. This enables previewing of 
     the 1280x200 video mode created by running the Shifter in mono with the GLUE 

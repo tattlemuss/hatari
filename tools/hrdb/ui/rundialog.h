@@ -32,6 +32,7 @@ private:
     void watcherFilesClicked();
     void watcherTextChanged();
     void watcherActiveChanged();
+    void fastLaunchChanged();
 
     // Settings
     void LoadSettings();
@@ -43,6 +44,7 @@ private:
     // UI elements
     QLineEdit*      m_pExecutableTextEdit;
     QLineEdit*      m_pPrgTextEdit;
+    QCheckBox*      m_pFastLaunchCheckBox;
     QLineEdit*      m_pArgsTextEdit;
     QLineEdit*      m_pWorkingDirectoryTextEdit;
     QLineEdit*      m_pWatcherFilesTextEdit;

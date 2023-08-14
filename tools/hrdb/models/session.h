@@ -63,7 +63,9 @@ public:
     void Disconnect();
 
     QTcpSocket*     m_pTcpSocket;
-    QTemporaryFile* m_pStartupFile;
+    QTemporaryFile* m_pStartupFile;         // Debugger commands at Hatari launch
+    QTemporaryFile* m_pProgramStartScript;      // Debugger commands run at program start
+
     QTemporaryFile* m_pLoggingFile;
     FileWatcher*    m_pFileWatcher;
 

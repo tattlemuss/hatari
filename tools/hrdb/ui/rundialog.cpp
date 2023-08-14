@@ -66,6 +66,9 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     QPushButton* pPrgButton = new QPushButton(tr("Browse..."), this);
     QPushButton* pWDButton = new QPushButton(tr("Browse..."), this);
     QPushButton* pWatcherButton = new QPushButton(tr("Browse..."), this);
+    m_pFastLaunchCheckBox = new QCheckBox(tr("Fast Launch"), this);
+    m_pFastLaunchCheckBox->setToolTip("Run with fast-forward until program start");
+
     m_pWatcherCheckBox = new QCheckBox(tr("Watch changes"), this);
     m_pWatcherCheckBox->setLayoutDirection(Qt::LayoutDirection::RightToLeft);
     m_pWatcherCheckBox->setToolTip(tr("Watch this files/folders for changes and reset hatari if changed"));
@@ -99,6 +102,8 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     gridLayout->addWidget(new QLabel(tr("Run Program/Image:"), this), row, 0);
     gridLayout->addWidget(m_pPrgTextEdit, row, 2);
     gridLayout->addWidget(pPrgButton, row, 4);
+    ++row;
+    gridLayout->addWidget(m_pFastLaunchCheckBox, row, 2);
     ++row;
 
     //gridLayout->addWidget(new QLabel(tr("Watch:"), this), row, 0);
@@ -136,6 +141,7 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     connect(pWatcherButton, &QPushButton::clicked, this, &RunDialog::watcherFilesClicked);
     connect(m_pWatcherFilesTextEdit, &QLineEdit::textChanged, this, &RunDialog::watcherTextChanged);
     connect(m_pWatcherCheckBox, &QCheckBox::stateChanged, this, &RunDialog::watcherActiveChanged);
+    connect(m_pFastLaunchCheckBox, &QCheckBox::stateChanged, this, &RunDialog::fastLaunchChanged);
     connect(pOkButton, &QPushButton::clicked, this, &RunDialog::okClicked);
     connect(pCancelButton, &QPushButton::clicked, this, &RunDialog::reject);
     LoadSettings();
@@ -165,6 +171,7 @@ void RunDialog::LoadSettings()
     m_pWatcherFilesTextEdit->setEnabled(m_launchSettings.m_watcherActive);
     m_pWatcherCheckBox->setCheckState(m_launchSettings.m_watcherActive?Qt::CheckState::Checked:Qt::CheckState::Unchecked);
     m_pBreakModeCombo->setCurrentIndex(m_launchSettings.m_breakMode);
+    m_pFastLaunchCheckBox->setChecked(m_launchSettings.m_fastLaunch);
 }
 
 void RunDialog::SaveSettings()
@@ -307,6 +314,10 @@ void RunDialog::watcherActiveChanged()
         m_pWatcherFilesTextEdit->setDisabled(true);
 }
 
+void RunDialog::fastLaunchChanged()
+{
+}
+
 void RunDialog::UpdateInternalSettingsFromUI()
 {
     // Create the launcher settings as temporaries
@@ -318,4 +329,5 @@ void RunDialog::UpdateInternalSettingsFromUI()
     m_launchSettings.m_watcherFiles = m_pWatcherFilesTextEdit->text();
     m_launchSettings.m_watcherActive = m_pWatcherCheckBox->checkState()==Qt::CheckState::Checked?true:false;
     m_launchSettings.m_hatariFilename = m_pExecutableTextEdit->text();
+    m_launchSettings.m_fastLaunch = m_pFastLaunchCheckBox->isChecked();
 }
