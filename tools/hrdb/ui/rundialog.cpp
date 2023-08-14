@@ -73,9 +73,10 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     m_pExecutableTextEdit = new QLineEdit("hatari", this);
     m_pArgsTextEdit = new QLineEdit("", this);
     m_pPrgTextEdit = new QLineEdit("", this);
+    m_pPrgTextEdit->setPlaceholderText("<.prg file or disk image>");
     m_pWorkingDirectoryTextEdit = new QLineEdit("", this);
     m_pWatcherFilesTextEdit = new QLineEdit(this);
-    m_pWatcherFilesTextEdit->setPlaceholderText("<watch run programm/image>");
+    m_pWatcherFilesTextEdit->setPlaceholderText("<watch run program/image>");
 
     m_pBreakModeCombo = new QComboBox(this);
     m_pBreakModeCombo->addItem(tr("None"), LaunchSettings::BreakMode::kNone);
@@ -121,6 +122,7 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     ++row;
 
     gridLayout->setColumnStretch(2, 20);
+    gridGroupBox->setSizePolicy(QSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Maximum));
     gridGroupBox->setLayout(gridLayout);
 
     // Overall layout (options at top, buttons at bottom)
@@ -142,7 +144,6 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
 
 RunDialog::~RunDialog()
 {
-
 }
 
 void RunDialog::LoadSettings()
