@@ -613,7 +613,6 @@ void MemoryWidget::connectChanged()
 {
     m_rows.clear();
     m_address = 0;
-    m_rowCount = 10;
     RecalcCursorInfo();
     update();
 }
