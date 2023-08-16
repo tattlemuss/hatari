@@ -7,12 +7,12 @@ ElidedLabel::ElidedLabel(const QString &text, QWidget *parent)
     : QFrame(parent)
     , content(text)
 {
-    QPainter painter(this);
-    QFontMetrics fontMetrics = painter.fontMetrics();
-    // Set the preferred height here
-    setMinimumHeight(fontMetrics.lineSpacing());
+    // This workaround forces the label to appear by default...
 
-    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    setMinimumHeight(1);
+    // Set the preferred height here
+    setSizePolicy(QSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred,
+                                 QSizePolicy::Label));
 }
 
 void ElidedLabel::setText(const QString &newText)
@@ -27,6 +27,7 @@ void ElidedLabel::paintEvent(QPaintEvent *event)
 
     QPainter painter(this);
     QFontMetrics fontMetrics = painter.fontMetrics();
+    setMinimumHeight(fontMetrics.lineSpacing());
 
     int lineSpacing = fontMetrics.lineSpacing();
     QString elidedLastLine = fontMetrics.elidedText(content, Qt::ElideRight, width());
