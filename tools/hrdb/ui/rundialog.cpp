@@ -94,7 +94,7 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     pArgumentLink->setTextFormat(Qt::RichText);
 
     int row = 0;
-    gridLayout->addWidget(new QLabel(tr("Executable:"), this), row, 0);
+    gridLayout->addWidget(new QLabel(tr("Hatari Executable:"), this), row, 0);
     gridLayout->addWidget(m_pExecutableTextEdit, row, 2);
     gridLayout->addWidget(pExeButton, row, 4);
     ++row;
