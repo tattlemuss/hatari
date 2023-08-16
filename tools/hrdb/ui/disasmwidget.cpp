@@ -443,9 +443,10 @@ void DisasmWidget::paintEvent(QPaintEvent* ev)
         }
 
         // Highlight the cursor row
+        QBrush cursorColour = hasFocus() ? pal.highlight() : pal.mid();
         if (m_cursorRow != -1)
         {
-            painter.setPen(QPen(palette().highlight(), 1, Qt::PenStyle::DashLine));
+            painter.setPen(QPen(cursorColour, 1, Qt::PenStyle::DashLine));
             painter.setBrush(Qt::BrushStyle::NoBrush);
             painter.drawRect(0, GetPixelFromRow(m_cursorRow), rect().width(), m_lineHeight);
         }
@@ -457,7 +458,7 @@ void DisasmWidget::paintEvent(QPaintEvent* ev)
             if (!t.isPc)
                 continue;
             painter.setPen(Qt::PenStyle::NoPen);
-            painter.setBrush(pal.highlight());
+            painter.setBrush(cursorColour);
             painter.drawRect(0, GetPixelFromRow(row), rect().width(), m_lineHeight);
             break;
         }

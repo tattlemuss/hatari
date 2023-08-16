@@ -716,12 +716,13 @@ void MemoryWidget::paintEvent(QPaintEvent* ev)
         }
 
         // Draw highlight/cursor area in the hex
+        QBrush cursorColour = hasFocus() ? pal.highlight() : pal.mid();
         if (m_cursorRow >= 0 && m_cursorRow < m_rows.size())
         {
             int y_curs = GetPixelFromRow(m_cursorRow);
             int x_curs = GetPixelFromCol(m_cursorCol);
 
-            painter.setBrush(pal.highlight());
+            painter.setBrush(cursorColour);
             painter.drawRect(x_curs, y_curs, char_width, m_lineHeight);
 
             QChar st = m_rows[m_cursorRow].m_text.at(m_cursorCol);
