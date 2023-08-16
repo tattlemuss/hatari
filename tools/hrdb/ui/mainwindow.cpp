@@ -455,7 +455,7 @@ void MainWindow::PopulateRunningSquare()
     {
         col = Qt::green;
     }
-    pal.setColor(QPalette::Background, col);
+    pal.setColor(QPalette::Window, col);
     m_pRunningSquare->setAutoFillBackground(true);
     m_pRunningSquare->setPalette(pal);
 }

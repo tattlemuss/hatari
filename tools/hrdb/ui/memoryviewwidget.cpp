@@ -670,7 +670,7 @@ void MemoryWidget::paintEvent(QPaintEvent* ev)
         int char_width = info.horizontalAdvance("0");
 
         // Set up the rendering info
-        QColor backCol = pal.background().color();
+        QColor backCol = pal.window().color();
         QColor cols[7] =
         {
             QColor(backCol.red() ^  0, backCol.green() ^ 32, backCol.blue() ^ 0),
