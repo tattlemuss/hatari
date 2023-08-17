@@ -214,6 +214,14 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
 
     // Actions
     m_pSaveImageAction = new QAction(tr("Save Image..."), this);
+    m_pOverlayMenu = new QMenu("Overlays", this);
+    m_pOverlayDarkenAction = new QAction("Darken Image", this);
+    m_pOverlayDarkenAction->setCheckable(true);
+    m_pOverlayGridAction = new QAction("Grid", this);
+    m_pOverlayGridAction->setCheckable(true);
+
+    m_pOverlayMenu->addAction(m_pOverlayDarkenAction);
+    m_pOverlayMenu->addAction(m_pOverlayGridAction);
 
     // Keyboard shortcuts
     new QShortcut(QKeySequence("Ctrl+G"),         this, SLOT(gotoClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
@@ -242,7 +250,9 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     connect(m_pSession,      &Session::addressRequested,                  this, &GraphicsInspectorWidget::RequestBitmapAddress);
 
     // Context menus
-    connect(m_pSaveImageAction, &QAction::triggered,                      this, &GraphicsInspectorWidget::saveImageClicked);
+    connect(m_pSaveImageAction,             &QAction::triggered,          this, &GraphicsInspectorWidget::saveImageClicked);
+    connect(m_pOverlayDarkenAction,         &QAction::triggered,          this, &GraphicsInspectorWidget::overlayDarkenChanged);
+    connect(m_pOverlayGridAction,           &QAction::triggered,          this, &GraphicsInspectorWidget::overlayGridChanged);
 
     loadSettings();
     UpdateUIElements();
@@ -275,6 +285,12 @@ void GraphicsInspectorWidget::loadSettings()
 
     int palette = settings.value("palette", QVariant((int)Palette::kGreyscale)).toInt();
     m_pPaletteComboBox->setCurrentIndex(palette);
+
+    bool darken = settings.value("darken", QVariant(false)).toBool();
+    bool grid = settings.value("grid", QVariant(false)).toBool();
+    m_pImageWidget->SetDarken(darken);
+    m_pImageWidget->SetGrid(grid);
+
     UpdateUIElements();
     settings.endGroup();
 }
@@ -292,6 +308,8 @@ void GraphicsInspectorWidget::saveSettings()
     settings.setValue("lockFormat", m_pLockFormatToVideoCheckBox->isChecked());
     settings.setValue("mode", static_cast<int>(m_mode));
     settings.setValue("palette", m_pPaletteComboBox->currentIndex());
+    settings.setValue("darken", m_pImageWidget->GetDarken());
+    settings.setValue("grid", m_pImageWidget->GetGrid());
     settings.endGroup();
 }
 
@@ -475,6 +493,18 @@ void GraphicsInspectorWidget::lockFormatToVideoChanged()
         m_requestBitmap.Dirty();
         UpdateMemoryRequests();
     }
+    UpdateUIElements();
+}
+
+void GraphicsInspectorWidget::overlayDarkenChanged()
+{
+    m_pImageWidget->SetDarken(!m_pImageWidget->GetDarken());
+    UpdateUIElements();
+}
+
+void GraphicsInspectorWidget::overlayGridChanged()
+{
+    m_pImageWidget->SetGrid(!m_pImageWidget->GetGrid());
     UpdateUIElements();
 }
 
@@ -949,6 +979,9 @@ void GraphicsInspectorWidget::UpdateUIElements()
     m_pModeComboBox->setEnabled(!m_pLockFormatToVideoCheckBox->isChecked());
 
     m_pPaletteAddressLineEdit->setVisible(m_paletteMode == kUserMemory);
+
+    m_pOverlayDarkenAction->setChecked(m_pImageWidget->GetDarken());
+    m_pOverlayGridAction->setChecked(m_pImageWidget->GetGrid());
     DisplayAddress();
 }
 
@@ -1081,6 +1114,7 @@ void GraphicsInspectorWidget::ContextMenu(QPoint pos)
 
     // Add the default actions
     menu.addAction(m_pSaveImageAction);
+    menu.addMenu(m_pOverlayMenu);
 
     m_showAddressMenus[0].setAddress(m_pSession, m_bitmapAddress);
     m_showAddressMenus[0].setTitle(Format::to_hex32(m_bitmapAddress) + QString(" (Bitmap address)"));
@@ -1092,6 +1126,7 @@ void GraphicsInspectorWidget::ContextMenu(QPoint pos)
         m_showAddressMenus[1].setTitle(Format::to_hex32(m_addressUnderMouse) + QString(" (Mouse Cursor address)"));
         menu.addMenu(m_showAddressMenus[1].m_pMenu);
     }
+
     menu.exec(pos);
 }
 

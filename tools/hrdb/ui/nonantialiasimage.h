@@ -37,7 +37,14 @@ public:
         int y;
         QString text;
     };
-    QVector<Annotation> m_annotations;
+
+    void SetAnnotations(const QVector<Annotation>& annots);
+
+    bool GetGrid() const { return m_enableGrid; }
+    void SetGrid(bool enable);
+
+    bool GetDarken() const { return m_darken; }
+    void SetDarken(bool enable);
 
 signals:
     void MouseInfoChanged();
@@ -50,8 +57,9 @@ protected:
 private:
     void KeyboardContextMenu();
     void settingsChanged();
-
     void UpdateMouseInfo();
+    QPoint ScreenPointFromBitmapPoint(const QPoint &bitmapPoint, const QRect &rect) const;
+    QPoint BitmapPointFromScreenPoint(const QPoint &bitmapPoint, const QRect &rect) const;
 
     Session*        m_pSession;         // Used for settings change
     QPixmap         m_pixmap;
@@ -66,6 +74,11 @@ private:
 
     MouseInfo       m_pixelInfo;
     bool            m_bRunningMask;
+
+    // Overlays/helpers\s
+    bool            m_darken;
+    bool            m_enableGrid;
+    QVector<Annotation> m_annotations;
 };
 
 

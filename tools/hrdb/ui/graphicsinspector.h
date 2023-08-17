@@ -44,6 +44,8 @@ private:
     void paletteAddressChanged();
     void lockAddressToVideoChanged();
     void lockFormatToVideoChanged();
+    void overlayDarkenChanged();
+    void overlayGridChanged();
 
 private slots:
     // These are genuine slots
@@ -187,6 +189,9 @@ private:
 
     // Context menu actions
     QAction*                        m_pSaveImageAction;
+    QMenu*                          m_pOverlayMenu;
+    QAction*                        m_pOverlayDarkenAction;
+    QAction*                        m_pOverlayGridAction;
 
     // "Show memory for $x" top-level menus:
     // [0] Show Base Address

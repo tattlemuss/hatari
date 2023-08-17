@@ -12,7 +12,9 @@ NonAntiAliasImage::NonAntiAliasImage(QWidget *parent, Session* pSession)
       m_pSession(pSession),
       m_pBitmap(nullptr),
       m_bitmapSize(0),
-      m_bRunningMask(false)
+      m_bRunningMask(false),
+      m_darken(false),
+      m_enableGrid(false)
 {
     m_renderRect = rect();
     setMouseTracking(true);
@@ -58,6 +60,24 @@ void NonAntiAliasImage::SetRunning(bool runFlag)
     update();
 }
 
+void NonAntiAliasImage::SetAnnotations(const QVector<NonAntiAliasImage::Annotation> &annots)
+{
+    m_annotations = annots;
+    update();
+}
+
+void NonAntiAliasImage::SetGrid(bool enable)
+{
+    m_enableGrid = enable;
+    update();
+}
+
+void NonAntiAliasImage::SetDarken(bool enable)
+{
+    m_darken = enable;
+    update();
+}
+
 void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
 {
     QPainter painter(this);
@@ -89,7 +109,7 @@ void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
 
         bool runningMask = m_bRunningMask && !m_pSession->GetSettings().m_liveRefresh;
 
-        bool darkenMask = runningMask || m_annotations.size() != 0;
+        bool darkenMask = runningMask || m_darken;
 
         // Darken the area if we don't have live refresh
         if (darkenMask)
@@ -109,13 +129,26 @@ void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
         painter.setBrush(Qt::NoBrush);
         for (const Annotation& annot : m_annotations)
         {
-            // Work out position as a proportion of the render rect
-            float x = m_renderRect.x() + (m_renderRect.width() * annot.x) / m_pixmap.width();
-            float y = m_renderRect.y() + (m_renderRect.height() * annot.y) / m_pixmap.height();
-
-            painter.drawLine(x, y, x + 5, y);
-            painter.drawLine(x, y, x, y + 5);
+            QPoint pt = ScreenPointFromBitmapPoint(QPoint(annot.x, annot.y), m_renderRect);
+            painter.drawLine(pt, pt + QPoint(5, 0));
+            painter.drawLine(pt, pt + QPoint(0, 5));
             //painter.drawText(QPoint(x, y), annot.text);
+        }
+
+        if (m_enableGrid)
+        {
+            for (int x = 0; x < m_pixmap.width(); x += 16)
+            {
+                QPoint pt0 = ScreenPointFromBitmapPoint(QPoint(x, 0), m_renderRect);
+                QPoint pt1 = ScreenPointFromBitmapPoint(QPoint(x, m_pixmap.height()), m_renderRect);
+                painter.drawLine(pt0, pt1);
+            }
+            for (int y = 0; y < m_pixmap.height(); y += 16)
+            {
+                QPoint pt0 = ScreenPointFromBitmapPoint(QPoint(0, y), m_renderRect);
+                QPoint pt1 = ScreenPointFromBitmapPoint(QPoint(m_pixmap.width(), y), m_renderRect);
+                painter.drawLine(pt0, pt1);
+            }
         }
     }
     else {
@@ -160,19 +193,18 @@ void NonAntiAliasImage::UpdateMouseInfo()
     QPoint mpos(static_cast<int>(m_mousePos.x()), static_cast<int>(m_mousePos.y()));
     if (m_renderRect.contains(mpos))
     {
-        const QRect& r = m_renderRect;
-        double x_frac = (m_mousePos.x() - r.x()) / r.width();
-        double y_frac = (m_mousePos.y() - r.y()) / r.height();
-
-        double x_pix = x_frac * m_pixmap.width();
-        double y_pix = y_frac * m_pixmap.height();
-
-        int x = static_cast<int>(x_pix);
-        int y = static_cast<int>(y_pix);
+        // Calc bitmap pos from screen pos
+        QPoint bmPoint = BitmapPointFromScreenPoint(mpos, m_renderRect);
+        int x = bmPoint.x();
+        int y = bmPoint.y();
         m_pixelInfo.x = x;
         m_pixelInfo.y = y;
         m_pixelInfo.pixelValue = -1;
-        if (x < m_pixmap.width() && y < m_pixmap.height() &&
+
+        if (x >= 0 &&
+            x < m_pixmap.width() &&
+            y >= 0 &&
+            y < m_pixmap.height() &&
             m_pBitmap)
         {
             m_pixelInfo.pixelValue = m_pBitmap[y * m_pixmap.width() + x];
@@ -181,3 +213,24 @@ void NonAntiAliasImage::UpdateMouseInfo()
     }
 }
 
+QPoint NonAntiAliasImage::ScreenPointFromBitmapPoint(const QPoint &bitmapPoint, const QRect &rect) const
+{
+    // Work out position as a proportion of the render rect
+    float x = rect.x() + (rect.width() * bitmapPoint.x()) / m_pixmap.width();
+    float y = rect.y() + (rect.height() * bitmapPoint.y()) / m_pixmap.height();
+    return QPoint(x, y);
+}
+
+QPoint NonAntiAliasImage::BitmapPointFromScreenPoint(const QPoint &bitmapPoint, const QRect &rect) const
+{
+    const QRect& r = rect;
+    double x_frac = double(bitmapPoint.x() - r.x()) / r.width();
+    double y_frac = double(bitmapPoint.y() - r.y()) / r.height();
+
+    double x_pix = x_frac * m_pixmap.width();
+    double y_pix = y_frac * m_pixmap.height();
+
+    int x = static_cast<int>(x_pix);
+    int y = static_cast<int>(y_pix);
+    return QPoint(x,y);
+}
