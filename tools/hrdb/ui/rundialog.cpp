@@ -62,29 +62,40 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     QGroupBox* gridGroupBox = new QGroupBox(tr("Options"));
     QGridLayout *gridLayout = new QGridLayout;
 
+    // Create widgets in tab order
+    m_pExecutableTextEdit = new QLineEdit("hatari", this);
     QPushButton* pExeButton = new QPushButton(tr("Browse..."), this);
+
+    m_pPrgTextEdit = new QLineEdit("", this);
     QPushButton* pPrgButton = new QPushButton(tr("Browse..."), this);
-    QPushButton* pWDButton = new QPushButton(tr("Browse..."), this);
-    QPushButton* pWatcherButton = new QPushButton(tr("Browse..."), this);
-    m_pFastLaunchCheckBox = new QCheckBox(tr("Fast Launch"), this);
-    m_pFastLaunchCheckBox->setToolTip("Run with fast-forward until program start");
 
     m_pWatcherCheckBox = new QCheckBox(tr("Watch changes"), this);
-    m_pWatcherCheckBox->setLayoutDirection(Qt::LayoutDirection::RightToLeft);
-    m_pWatcherCheckBox->setToolTip(tr("Watch this files/folders for changes and reset hatari if changed"));
-
-    m_pExecutableTextEdit = new QLineEdit("hatari", this);
-    m_pArgsTextEdit = new QLineEdit("", this);
-    m_pPrgTextEdit = new QLineEdit("", this);
-    m_pPrgTextEdit->setPlaceholderText("<.prg file or disk image>");
-    m_pWorkingDirectoryTextEdit = new QLineEdit("", this);
     m_pWatcherFilesTextEdit = new QLineEdit(this);
-    m_pWatcherFilesTextEdit->setPlaceholderText("<watch run program/image>");
+    QPushButton* pWatcherButton = new QPushButton(tr("Browse..."), this);
+
+    m_pFastLaunchCheckBox = new QCheckBox(tr("Fast Launch"), this);
+
+    m_pWatcherCheckBox->setLayoutDirection(Qt::LayoutDirection::RightToLeft);
+
+    m_pArgsTextEdit = new QLineEdit("", this);
+
+    m_pWorkingDirectoryTextEdit = new QLineEdit("", this);
+    QPushButton* pWDButton = new QPushButton(tr("Browse..."), this);
 
     m_pBreakModeCombo = new QComboBox(this);
+    m_pBreakpointTextEdit = new QLineEdit(this);
+
+    // Customise widgets
+    m_pFastLaunchCheckBox->setToolTip("Run with fast-forward until program start");
+    m_pWatcherCheckBox->setToolTip(tr("Watch this files/folders for changes and reset hatari if changed"));
+    m_pBreakpointTextEdit->setPlaceholderText("<e.g \"pc=label\">");
+    m_pWatcherFilesTextEdit->setPlaceholderText("<watch run program/image>");
+    m_pPrgTextEdit->setPlaceholderText("<.prg file or disk image>");
+
     m_pBreakModeCombo->addItem(tr("None"), LaunchSettings::BreakMode::kNone);
     m_pBreakModeCombo->addItem(tr("Boot"), LaunchSettings::BreakMode::kBoot);
     m_pBreakModeCombo->addItem(tr("Program Start"), LaunchSettings::BreakMode::kProgStart);
+    m_pBreakModeCombo->addItem(tr("Program Breakpoint"), LaunchSettings::BreakMode::kProgramBreakpoint);
     m_pBreakModeCombo->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
     QLabel* pArgumentLink = new QLabel(this);
@@ -125,6 +136,8 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     gridLayout->addWidget(new QLabel(tr("Break at:"), this), row, 0);
     gridLayout->addWidget(m_pBreakModeCombo, row, 2);
     ++row;
+    gridLayout->addWidget(m_pBreakpointTextEdit, row, 2);
+    ++row;
 
     gridLayout->setColumnStretch(2, 20);
     gridGroupBox->setSizePolicy(QSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Maximum));
@@ -141,9 +154,11 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     connect(pWatcherButton, &QPushButton::clicked, this, &RunDialog::watcherFilesClicked);
     connect(m_pWatcherFilesTextEdit, &QLineEdit::textChanged, this, &RunDialog::watcherTextChanged);
     connect(m_pWatcherCheckBox, &QCheckBox::stateChanged, this, &RunDialog::watcherActiveChanged);
-    connect(m_pFastLaunchCheckBox, &QCheckBox::stateChanged, this, &RunDialog::fastLaunchChanged);
+    connect(m_pFastLaunchCheckBox, &QCheckBox::stateChanged, this, &RunDialog::fastLaunchChanged);   
     connect(pOkButton, &QPushButton::clicked, this, &RunDialog::okClicked);
     connect(pCancelButton, &QPushButton::clicked, this, &RunDialog::reject);
+    connect(m_pBreakModeCombo, SIGNAL(activated(int)), SLOT(breakModeChangedSlot(int)));  // this is user-changed
+
     LoadSettings();
     this->setLayout(pLayout);
 }
@@ -172,6 +187,8 @@ void RunDialog::LoadSettings()
     m_pWatcherCheckBox->setCheckState(m_launchSettings.m_watcherActive?Qt::CheckState::Checked:Qt::CheckState::Unchecked);
     m_pBreakModeCombo->setCurrentIndex(m_launchSettings.m_breakMode);
     m_pFastLaunchCheckBox->setChecked(m_launchSettings.m_fastLaunch);
+    m_pBreakpointTextEdit->setText(m_launchSettings.m_breakPointTxt);
+    m_pWatcherFilesTextEdit->setVisible(m_launchSettings.m_breakMode == LaunchSettings::kProgramBreakpoint);
 }
 
 void RunDialog::SaveSettings()
@@ -198,6 +215,11 @@ void RunDialog::closeEvent(QCloseEvent *event)
     UpdateInternalSettingsFromUI();
     SaveSettings();
     event->accept();
+}
+
+void RunDialog::breakModeChangedSlot(int index)
+{
+    m_pBreakpointTextEdit->setVisible(index == LaunchSettings::kProgramBreakpoint);
 }
 
 void RunDialog::okClicked()
@@ -330,4 +352,5 @@ void RunDialog::UpdateInternalSettingsFromUI()
     m_launchSettings.m_watcherActive = m_pWatcherCheckBox->checkState()==Qt::CheckState::Checked?true:false;
     m_launchSettings.m_hatariFilename = m_pExecutableTextEdit->text();
     m_launchSettings.m_fastLaunch = m_pFastLaunchCheckBox->isChecked();
+    m_launchSettings.m_breakPointTxt = m_pBreakpointTextEdit->text();
 }

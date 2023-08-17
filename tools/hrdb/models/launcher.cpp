@@ -21,6 +21,7 @@ void LaunchSettings::loadSettings(QSettings& settings)
     m_watcherActive = settings.value("watcherActive", QVariant("false")).toBool();
     m_breakMode = settings.value("breakMode", QVariant("0")).toInt();
     m_fastLaunch = settings.value("fastLaunch", QVariant("false")).toBool();
+    m_breakPointTxt = settings.value("breakPointTxt", QVariant("")).toString();
     settings.endGroup();
 }
 
@@ -35,6 +36,7 @@ void LaunchSettings::saveSettings(QSettings &settings) const
     settings.setValue("watcherActive", m_watcherActive);
     settings.setValue("breakMode", m_breakMode);
     settings.setValue("fastLaunch", m_fastLaunch);
+    settings.setValue("breakPointTxt", m_breakPointTxt);
     settings.endGroup();
 }
 
@@ -75,6 +77,10 @@ bool LaunchHatari(const LaunchSettings& settings, const Session* pSession)
                 args.push_front("--fast-forward");      // in startup args
             }
 
+            ref << "symbols prg\r\n";
+            if (settings.m_breakMode == LaunchSettings::kProgramBreakpoint)
+                ref << "b " << settings.m_breakPointTxt << ":once\r\n";
+
             // Create the temp file
             QTemporaryFile& tmp(*pSession->m_pProgramStartScript);
             if (!tmp.open())
@@ -96,11 +102,17 @@ bool LaunchHatari(const LaunchSettings& settings, const Session* pSession)
             if (settings.m_breakMode == LaunchSettings::BreakMode::kBoot)
                 ref << "b pc ! 0 : once\r\n";     // don't run the breakpoint file yet
 
-            // Break at program start and run the program start script
             if (settings.m_breakMode == LaunchSettings::BreakMode::kProgStart)
+            {
+                // Break at program start and run the program start script
                 ref << "b pc=TEXT && pc<$e00000 :once :file " << progStartFilename << "\r\n";
-            else if (settings.m_fastLaunch)         // run bp file but don't stop
+            }
+            else if (settings.m_fastLaunch ||
+                     settings.m_breakMode == LaunchSettings::BreakMode::kProgramBreakpoint)
+            {
+               // run bp file but don't stop
                 ref << "b pc=TEXT && pc<$e00000 :trace :once :file " << progStartFilename << "\r\n";
+            }
 
             // Create the temp file
             // In theory we need to be careful about reuse?

@@ -24,6 +24,9 @@ protected:
     virtual void showEvent(QShowEvent *event) override;
     virtual void closeEvent(QCloseEvent *event) override;
 
+private slots:
+    // These are genuine slots
+    void breakModeChangedSlot(int index);
 private:
     void okClicked();
     void exeClicked();
@@ -50,6 +53,7 @@ private:
     QLineEdit*      m_pWatcherFilesTextEdit;
     QCheckBox*      m_pWatcherCheckBox; 
     QComboBox*      m_pBreakModeCombo;
+    QLineEdit*      m_pBreakpointTextEdit;
 
     // Current temporary settings to launch with
     LaunchSettings m_launchSettings;
