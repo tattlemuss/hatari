@@ -188,7 +188,7 @@ void RunDialog::LoadSettings()
     m_pBreakModeCombo->setCurrentIndex(m_launchSettings.m_breakMode);
     m_pFastLaunchCheckBox->setChecked(m_launchSettings.m_fastLaunch);
     m_pBreakpointTextEdit->setText(m_launchSettings.m_breakPointTxt);
-    m_pWatcherFilesTextEdit->setVisible(m_launchSettings.m_breakMode == LaunchSettings::kProgramBreakpoint);
+    m_pBreakpointTextEdit->setVisible(m_launchSettings.m_breakMode == LaunchSettings::kProgramBreakpoint);
 }
 
 void RunDialog::SaveSettings()
