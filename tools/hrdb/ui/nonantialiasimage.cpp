@@ -81,7 +81,10 @@ void NonAntiAliasImage::SetDarken(bool enable)
 void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
 {
     QPainter painter(this);
-    const QRect& r = rect();
+    QRect r = rect();
+    const int border = 6;
+    // Reduce so that the border doesn't overlap the image
+    r.adjust(border, border, -border, -border);
 
     QPalette pal = this->palette();
     painter.setFont(m_pSession->GetSettings().m_font);
@@ -96,7 +99,7 @@ void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
                 float texelsToPixelsY = r.height() / static_cast<float>(m_pixmap.height());
                 float minRatio = std::min(texelsToPixelsX, texelsToPixelsY);
 
-                QRect fixedR(0, 0, minRatio * m_pixmap.width(), minRatio * m_pixmap.height());
+                QRect fixedR(r.x(), r.y(), minRatio * m_pixmap.width(), minRatio * m_pixmap.height());
                 painter.setRenderHint(QPainter::Antialiasing, false);
                 style()->drawItemPixmap(&painter, fixedR, Qt::AlignCenter, m_pixmap.scaled(fixedR.size()));
                 m_renderRect = fixedR;
@@ -156,7 +159,7 @@ void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
     }
 
     painter.setPen(QPen(pal.dark(), hasFocus() ? 6 : 2));
-    painter.drawRect(r);
+    painter.drawRect(rect());
     QWidget::paintEvent(ev);
 }
 
