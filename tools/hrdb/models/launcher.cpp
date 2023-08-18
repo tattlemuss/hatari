@@ -83,7 +83,8 @@ bool LaunchHatari(const LaunchSettings& settings, const Session* pSession)
 
             // Create the temp file
             QTemporaryFile& tmp(*pSession->m_pProgramStartScript);
-            tmp.remove();
+            if (tmp.exists())
+                tmp.remove();
             if (!tmp.open())
                 return false;
 
@@ -118,7 +119,8 @@ bool LaunchHatari(const LaunchSettings& settings, const Session* pSession)
             // Create the temp file
             // In theory we need to be careful about reuse?
             QTemporaryFile& tmp(*pSession->m_pStartupFile);
-            tmp.remove();
+            if (tmp.exists())
+                tmp.remove();
 
             if (!tmp.open())
                 return false;
