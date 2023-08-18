@@ -1,5 +1,6 @@
 #ifndef STRINGSPLITTER_H
 #define STRINGSPLITTER_H
+#include <cstdint>
 #include <string>
 #include <vector>
 
