@@ -1,6 +1,7 @@
 #ifndef BREAKPOINT_H
 #define BREAKPOINT_H
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
