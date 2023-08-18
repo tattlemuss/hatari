@@ -1108,6 +1108,9 @@ void GraphicsInspectorWidget::KeyboardContextMenu()
 
 void GraphicsInspectorWidget::ContextMenu(QPoint pos)
 {
+    if (!m_pTargetModel->IsConnected())
+        return;
+
     // Right click menus are instantiated on demand, so we can
     // dynamically add to them
     QMenu menu(this);
