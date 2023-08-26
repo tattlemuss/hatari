@@ -18,14 +18,20 @@ namespace Format
     // Handles the nasty "-$5" case
     inline QString to_signed(int32_t val, bool isHex);
 
+    inline QTextStream &flush(QTextStream &stream)
+    {
+        stream.flush();
+        return stream;
+    }
+
     // This is a wrapper for Qt::endl() which isn't available
     // in Qt 5.12, but TextStream::endl() causes deprecation warnings.
+    // We don't need to flush either.
     inline QTextStream &endl(QTextStream &stream)
     {
-        return stream << QLatin1Char('\n') << Qt::flush;
+        return stream << QLatin1Char('\n') << Format::flush;
     }
 };
-
 // ----------------------------------------------------------------------------
 //	INSTRUCTION DISPLAY FORMATTING
 // ----------------------------------------------------------------------------
