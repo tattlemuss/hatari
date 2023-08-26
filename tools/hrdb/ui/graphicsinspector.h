@@ -47,6 +47,7 @@ private:
     void overlayDarkenChanged();
     void overlayGridChanged();
     void overlayZoomChanged();
+    void overlayRegistersChanged();
 
 private slots:
     // These are genuine slots
@@ -124,6 +125,8 @@ private:
 
     static int32_t BytesPerMode(Mode mode);
 
+    void UpdateAnnotations();
+
     bool CreateAnnotation(NonAntiAliasImage::Annotation &annot, uint32_t address,
                           const EffectiveData &data, const char* label);
 
@@ -188,12 +191,16 @@ private:
     NonAntiAliasImage::MouseInfo    m_mouseInfo;            // data from MouseOver in bitmap
     uint32_t                        m_addressUnderMouse;    // ~0U for "invalid"
 
+    // Options
+    bool                            m_annotateRegisters;
+
     // Context menu actions
     QAction*                        m_pSaveImageAction;
     QMenu*                          m_pOverlayMenu;
     QAction*                        m_pOverlayDarkenAction;
     QAction*                        m_pOverlayGridAction;
     QAction*                        m_pOverlayZoomAction;
+    QAction*                        m_pOverlayRegistersAction;
 
     // "Show memory for $x" top-level menus:
     // [0] Show Base Address

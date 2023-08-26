@@ -84,7 +84,8 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     m_width(20),
     m_height(200),
     m_padding(0),
-    m_paletteMode(kRegisters)
+    m_paletteMode(kRegisters),
+    m_annotateRegisters(false)
 {
     m_paletteAddress = Regs::VID_PAL_0;
 
@@ -221,10 +222,13 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     m_pOverlayGridAction->setCheckable(true);
     m_pOverlayZoomAction = new QAction("Zoom", this);
     m_pOverlayZoomAction->setCheckable(true);
+    m_pOverlayRegistersAction = new QAction("Address Registers", this);
+    m_pOverlayRegistersAction->setCheckable(true);
 
     m_pOverlayMenu->addAction(m_pOverlayDarkenAction);
     m_pOverlayMenu->addAction(m_pOverlayGridAction);
     m_pOverlayMenu->addAction(m_pOverlayZoomAction);
+    m_pOverlayMenu->addAction(m_pOverlayRegistersAction);
 
     // Keyboard shortcuts
     new QShortcut(QKeySequence("Ctrl+G"),         this, SLOT(gotoClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
@@ -257,6 +261,7 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     connect(m_pOverlayDarkenAction,         &QAction::triggered,          this, &GraphicsInspectorWidget::overlayDarkenChanged);
     connect(m_pOverlayGridAction,           &QAction::triggered,          this, &GraphicsInspectorWidget::overlayGridChanged);
     connect(m_pOverlayZoomAction,           &QAction::triggered,          this, &GraphicsInspectorWidget::overlayZoomChanged);
+    connect(m_pOverlayRegistersAction,      &QAction::triggered,          this, &GraphicsInspectorWidget::overlayRegistersChanged);
 
     loadSettings();
     UpdateUIElements();
@@ -296,6 +301,7 @@ void GraphicsInspectorWidget::loadSettings()
     m_pImageWidget->SetDarken(darken);
     m_pImageWidget->SetGrid(grid);
     m_pImageWidget->SetZoom(zoom);
+    m_annotateRegisters = settings.value("annotateRegisters", QVariant(false)).toBool();
 
     UpdateUIElements();
     settings.endGroup();
@@ -317,6 +323,7 @@ void GraphicsInspectorWidget::saveSettings()
     settings.setValue("darken", m_pImageWidget->GetDarken());
     settings.setValue("grid", m_pImageWidget->GetGrid());
     settings.setValue("zoom", m_pImageWidget->GetZoom());
+    settings.setValue("annotateRegisters", m_annotateRegisters);
     settings.endGroup();
 }
 
@@ -506,19 +513,22 @@ void GraphicsInspectorWidget::lockFormatToVideoChanged()
 void GraphicsInspectorWidget::overlayDarkenChanged()
 {
     m_pImageWidget->SetDarken(m_pOverlayDarkenAction->isChecked());
-    UpdateUIElements();
 }
 
 void GraphicsInspectorWidget::overlayGridChanged()
 {
     m_pImageWidget->SetGrid(m_pOverlayGridAction->isChecked());
-    UpdateUIElements();
 }
 
 void GraphicsInspectorWidget::overlayZoomChanged()
 {
     m_pImageWidget->SetZoom(m_pOverlayZoomAction->isChecked());
-    UpdateUIElements();
+}
+
+void GraphicsInspectorWidget::overlayRegistersChanged()
+{
+    m_annotateRegisters = m_pOverlayRegistersAction->isChecked();
+    UpdateAnnotations();
 }
 
 void GraphicsInspectorWidget::modeChangedSlot(int index)
@@ -776,7 +786,7 @@ void GraphicsInspectorWidget::UpdateImage()
     // Colours are ARGB
     m_pImageWidget->m_colours.clear();
 
-    // Now update palette
+    // Now palette
     switch (m_paletteMode)
     {
         case kRegisters:
@@ -949,35 +959,10 @@ void GraphicsInspectorWidget::UpdateImage()
     }
     m_pImageWidget->setPixmap(width, height);
 
-#if 0
     // Update annotations
     //EffectiveData data;
     //GetEffectiveData(data);
-    QVector<NonAntiAliasImage::Annotation> annots;
-    for (int i = 0; i < 8; ++i)
-    {
-        NonAntiAliasImage::Annotation annot;
-        uint32_t regAddr = m_pTargetModel->GetRegs().GetAReg(i);
-        if (CreateAnnotation(annot, regAddr, data, Registers::s_names[Registers::A0 + i]))
-            annots.append(annot);
-    }
-
-#if 0
-    uint32_t symAddr = m_bitmapAddress + data.requiredSize;
-    Symbol sym;
-    while (symAddr >= m_bitmapAddress)
-    {
-        if (!m_pTargetModel->GetSymbolTable().FindLowerOrEqual(symAddr, false, sym))
-            break;
-
-        NonAntiAliasImage::Annotation annot;
-        if (CreateAnnotation(annot, sym.address, data, sym.name.c_str()))
-            annots.append(annot);
-        symAddr = sym.address - 1;
-    }
-#endif
-    m_pImageWidget->SetAnnotations(annots);
-#endif
+    UpdateAnnotations();
 }
 
 void GraphicsInspectorWidget::UpdateUIElements()
@@ -997,6 +982,7 @@ void GraphicsInspectorWidget::UpdateUIElements()
     m_pOverlayDarkenAction->setChecked(m_pImageWidget->GetDarken());
     m_pOverlayGridAction->setChecked(m_pImageWidget->GetGrid());
     m_pOverlayZoomAction->setChecked(m_pImageWidget->GetZoom());
+    m_pOverlayRegistersAction->setChecked(m_annotateRegisters);
     DisplayAddress();
 }
 
@@ -1096,6 +1082,44 @@ int32_t GraphicsInspectorWidget::BytesPerMode(GraphicsInspectorWidget::Mode mode
     case k1Bitplane: return 2;
     }
     return 0;
+}
+
+void GraphicsInspectorWidget::UpdateAnnotations()
+{
+    EffectiveData data;
+    GetEffectiveData(data);
+
+    QVector<NonAntiAliasImage::Annotation> annots;
+    if (m_annotateRegisters)
+    {
+        for (int i = 0; i < 8; ++i)
+        {
+            NonAntiAliasImage::Annotation annot;
+            uint32_t regAddr = m_pTargetModel->GetRegs().GetAReg(i);
+            if (CreateAnnotation(annot, regAddr, data, Registers::s_names[Registers::A0 + i]))
+                annots.append(annot);
+
+            uint32_t dregAddr = m_pTargetModel->GetRegs().GetDReg(i);
+            if (CreateAnnotation(annot, dregAddr, data, Registers::s_names[Registers::D0 + i]))
+                annots.append(annot);
+        }
+    }
+
+#if 0
+    uint32_t symAddr = m_bitmapAddress + data.requiredSize;
+    Symbol sym;
+    while (symAddr >= m_bitmapAddress)
+    {
+        if (!m_pTargetModel->GetSymbolTable().FindLowerOrEqual(symAddr, false, sym))
+            break;
+
+        NonAntiAliasImage::Annotation annot;
+        if (CreateAnnotation(annot, sym.address, data, sym.name.c_str()))
+            annots.append(annot);
+        symAddr = sym.address - 1;
+    }
+#endif
+    m_pImageWidget->SetAnnotations(annots);
 }
 
 bool GraphicsInspectorWidget::CreateAnnotation(NonAntiAliasImage::Annotation &annot, uint32_t address,

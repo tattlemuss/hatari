@@ -143,7 +143,7 @@ void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
             QPoint pt = ScreenPointFromBitmapPoint(QPoint(annot.x, annot.y), m_renderRect);
             painter.drawLine(pt, pt + QPoint(5, 0));
             painter.drawLine(pt, pt + QPoint(0, 5));
-            painter.drawText(pt + QPoint(5,5), annot.text);
+            painter.drawText(pt + QPoint(7,5), annot.text);
         }
 
         if (m_enableGrid)
