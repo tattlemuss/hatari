@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <QString>
+#include <QTextStream>
 
 namespace Format
 {
@@ -16,6 +17,13 @@ namespace Format
     // Format a value as signed decimal or hexadecimal.
     // Handles the nasty "-$5" case
     inline QString to_signed(int32_t val, bool isHex);
+
+    // This is a wrapper for Qt::endl() which isn't available
+    // in Qt 5.12, but TextStream::endl() causes deprecation warnings.
+    inline QTextStream &endl(QTextStream &stream)
+    {
+        return stream << QLatin1Char('\n') << Qt::flush;
+    }
 };
 
 // ----------------------------------------------------------------------------

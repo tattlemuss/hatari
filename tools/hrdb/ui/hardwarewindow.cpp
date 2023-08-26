@@ -13,6 +13,7 @@
 #include "../transport/dispatcher.h"
 #include "../models/targetmodel.h"
 #include "../models/session.h"
+#include "../models/stringformat.h"
 #include "../hardware/hardware_st.h"
 #include "../hardware/regs_st.h"
 #include "nonantialiasimage.h"
@@ -725,7 +726,7 @@ HardwareTreeModel::~HardwareTreeModel()
     delete rootItem;
 }
 
-int HardwareTreeModel::columnCount(const QModelIndex &parent) const
+int HardwareTreeModel::columnCount(const QModelIndex &/*parent*/) const
 {
     return 2;
 }
@@ -1235,7 +1236,7 @@ static void AddNode(QTextStream& ref, HardwareBase* pNode, int indent)
     ref.setFieldWidth(28);
     ref << pNode->m_title;
     ref.setFieldWidth(0);
-    ref << "\t\t" << pNode->m_text << endl;
+    ref << "\t\t" << pNode->m_text << Format::endl;
 
     for (HardwareBase* pChild : pNode->m_children)
         AddNode(ref, pChild, indent + 1);
@@ -1288,7 +1289,7 @@ void HardwareWindow::startStopChanged()
 }
 
 //-----------------------------------------------------------------------------
-void HardwareWindow::flush(const TargetChangedFlags& flags, uint64_t commandId)
+void HardwareWindow::flush(const TargetChangedFlags& /*flags*/, uint64_t commandId)
 {
     if (commandId == m_flushUid)
     {

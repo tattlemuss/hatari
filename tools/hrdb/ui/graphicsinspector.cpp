@@ -365,7 +365,7 @@ void GraphicsInspectorWidget::keyPressEvent(QKeyEvent* ev)
         if (offset && m_requestBitmap.requestId == 0)
         {
             // Going up or down by a small amount is OK
-            if (offset > 0 || m_bitmapAddress > -offset)
+            if (offset > 0 || (int)m_bitmapAddress > -offset)
             {
                 m_bitmapAddress += offset;
             }
@@ -639,7 +639,6 @@ void GraphicsInspectorWidget::mouseOverChanged()
     {
         // We can calculate the memory address here
         uint32_t addr = ~0U;
-        uint32_t size = 0;
         EffectiveData data;
         GetEffectiveData(data);
         switch(m_mode)
@@ -649,7 +648,6 @@ void GraphicsInspectorWidget::mouseOverChanged()
         case Mode::k3Bitplane:
         case Mode::k4Bitplane:
             addr = m_bitmapAddress + info.y * data.bytesPerLine + (info.x / 16) * BytesPerMode(m_mode);
-            size = BytesPerMode(m_mode);
             break;
         default:
             break;
@@ -847,7 +845,7 @@ void GraphicsInspectorWidget::UpdateImage()
     int required = data.requiredSize;
 
     // Ensure we have the right size memory
-    if (pMemOrig->GetSize() < required)
+    if ((int)pMemOrig->GetSize() < required)
         return;
 
     int bitmapSize = width * 16 * height;
