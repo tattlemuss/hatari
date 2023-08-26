@@ -32,6 +32,7 @@ public:
         return m_value[A0 + index];
     }
     static const char* GetSRBitName(uint32_t bit);
+    static const char* GetCACRBitName(uint32_t bit);
 
     enum
     {
@@ -55,7 +56,17 @@ public:
         SR,
         USP,
         ISP,
-        EX,			// Exception number
+
+        // 68020+
+        CAAR,
+        CACR,
+        DFC,
+        MSP,
+        SFC,
+        VBR,
+
+        // Exception number
+        EX,
 
         // Variables
         AesOpcode,
@@ -97,6 +108,23 @@ public:
         kZ = 2,
         kV = 1,
         kC = 0
+    };
+
+    enum CACRBits
+    {
+        WA = 13,    // Write allocate
+
+        DBE = 12,   // Data Burst Enable
+        CD = 11,    // Clear Data Cache
+        CED = 10,   // Clear Entry in Data Cache
+        FD = 9,     // Freeze Data Cache
+        ED = 8,     // Enable Data Cache
+
+        IBE = 4,    // Instruction Burst Enable
+        CI = 3,     // Clear Instruction Cache
+        CEI = 2,    // Clear Entry in Instruction Cache
+        FI = 1,     // Freeze Instruction Cache
+        EI = 0      // Enable Instruction Cache
     };
 
     uint32_t	m_value[REG_COUNT];

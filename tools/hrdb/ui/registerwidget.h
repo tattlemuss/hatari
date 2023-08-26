@@ -41,6 +41,7 @@ private:
         kRegister,
         kSymbol,                // aka an arbitray "address"
         kStatusRegisterBit,
+        kCACRBit,
         kNone,
     };
 
@@ -72,6 +73,7 @@ private:
     int AddReg32(int x, int y, uint32_t regIndex, const Registers &prevRegs, const Registers &m_currRegs);
 
     int AddSRBit(int x, int y, const Registers &prevRegs, const Registers &m_currRegs, uint32_t bit, const char *pName);
+    int AddCACRBit(int x, int y, const Registers &prevRegs, const Registers &m_currRegs, uint32_t bit, const char *pName);
     int AddSymbol(int x, int y, uint32_t address);
 
     QString GetTooltipText(const Token& token);

@@ -61,6 +61,13 @@ static QString CreateSRTooltip(uint32_t srRegValue, uint32_t registerBit)
                              valSet ? "TRUE" : "False");
 }
 
+static QString CreateCACRTooltip(uint32_t cacrRegValue, uint32_t registerBit)
+{
+    uint32_t valSet = (cacrRegValue >> registerBit) & 1;
+    return QString::asprintf("%s = %s", Registers::GetCACRBitName(registerBit),
+                             valSet ? "TRUE" : "False");
+}
+
 static QString MakeBracket(QString str)
 {
     return QString("(") + str + ")";
@@ -268,7 +275,7 @@ void RegisterWidget::mainStateUpdated()
         return;
 
     buffer_reader disasmBuf(pMem->GetData(), pMem->GetSize(), pMem->GetAddress());
-    Disassembler::decode_buf(disasmBuf, m_disasm, pMem->GetAddress(), 2);
+    Disassembler::decode_buf(disasmBuf, m_disasm, m_pTargetModel->GetDisasmSettings(), pMem->GetAddress(), 2);
 
     PopulateRegisters();
     update();
@@ -420,7 +427,7 @@ void RegisterWidget::PopulateRegisters()
     }
 
     row += 2;
-    AddReg16(0, row, Registers::SR, m_prevRegs, m_currRegs);
+    AddReg16(1, row, Registers::SR, m_prevRegs, m_currRegs);
     AddSRBit(10, row, m_prevRegs, m_currRegs, Registers::SRBits::kTrace1, "T");
     AddSRBit(14, row, m_prevRegs, m_currRegs, Registers::SRBits::kSupervisor, "S");
 
@@ -441,14 +448,48 @@ void RegisterWidget::PopulateRegisters()
     row++;
     for (uint32_t reg = 0; reg < 8; ++reg)
     {
-        AddReg32(0, row, Registers::D0 + reg, m_prevRegs, m_currRegs); AddReg32(15, row, Registers::A0 + reg, m_prevRegs, m_currRegs); AddSymbol(28, row, m_currRegs.m_value[Registers::A0 + reg]);
+        AddReg32(2, row, Registers::D0 + reg, m_prevRegs, m_currRegs);
+
+        AddReg32(17, row, Registers::A0 + reg, m_prevRegs, m_currRegs); AddSymbol(30, row, m_currRegs.m_value[Registers::A0 + reg]);
         row++;
     }
-    AddReg32(14, row, Registers::USP, m_prevRegs, m_currRegs); AddSymbol(28, row, m_currRegs.m_value[Registers::USP]);
+    AddReg32(16, row, Registers::ISP, m_prevRegs, m_currRegs); AddSymbol(30, row, m_currRegs.m_value[Registers::ISP]);
     row++;
-    AddReg32(14, row, Registers::ISP, m_prevRegs, m_currRegs); AddSymbol(28, row, m_currRegs.m_value[Registers::ISP]);
+    AddReg32(16, row, Registers::USP, m_prevRegs, m_currRegs); AddSymbol(30, row, m_currRegs.m_value[Registers::USP]);
+    if (m_pTargetModel->GetCpuLevel() >= TargetModel::CpuLevel::kCpuLevel68020)
+    {
+        row++;
+        AddReg32(16, row, Registers::MSP, m_prevRegs, m_currRegs); AddSymbol(30, row, m_currRegs.m_value[Registers::MSP]);
+    }
     row++;
     row++;
+
+    // More sundry non-stack registers
+
+    if (m_pTargetModel->GetCpuLevel() >= TargetModel::CpuLevel::kCpuLevel68010)
+    {
+        AddReg32(1, row, Registers::DFC, m_prevRegs, m_currRegs); AddReg32(16, row, Registers::SFC, m_prevRegs, m_currRegs);
+        row++;
+    }
+    if (m_pTargetModel->GetCpuLevel() >= TargetModel::CpuLevel::kCpuLevel68020)
+    {
+        // 68020
+        AddReg32(0, row, Registers::CAAR, m_prevRegs, m_currRegs);
+        AddReg16(15, row, Registers::CACR, m_prevRegs, m_currRegs);
+        const int x = 28;
+        AddCACRBit(x+0, row, m_prevRegs, m_currRegs, Registers::CACRBits::WA, "WA");
+        AddCACRBit(x+7, row, m_prevRegs, m_currRegs, Registers::CACRBits::DBE, "DBE");
+        AddCACRBit(x+13, row, m_prevRegs, m_currRegs, Registers::CACRBits::CD, "CD");
+        AddCACRBit(x+18, row, m_prevRegs, m_currRegs, Registers::CACRBits::FD, "FD");
+        AddCACRBit(x+23, row, m_prevRegs, m_currRegs, Registers::CACRBits::ED, "ED");
+
+        AddCACRBit(x+30, row, m_prevRegs, m_currRegs, Registers::CACRBits::IBE, "IBE");
+        AddCACRBit(x+36, row, m_prevRegs, m_currRegs, Registers::CACRBits::CI, "CI");
+        AddCACRBit(x+41, row, m_prevRegs, m_currRegs, Registers::CACRBits::FI, "FI");
+        AddCACRBit(x+46, row, m_prevRegs, m_currRegs, Registers::CACRBits::EI, "EI");
+        row++;
+        row++;
+    }
 
     // Sundry info
     AddToken(0, row, QString::asprintf("VBL: %10u Frame Cycles: %6u", GET_REG(m_currRegs, VBL), GET_REG(m_currRegs, FrameCycles)), TokenType::kNone);
@@ -519,6 +560,16 @@ int RegisterWidget::AddSRBit(int x, int y, const Registers& prevRegs, const Regi
     return AddToken(x, y, QString(text), TokenType::kStatusRegisterBit, bit, highlight);
 }
 
+int RegisterWidget::AddCACRBit(int x, int y, const Registers& prevRegs, const Registers& regs, uint32_t bit, const char* pName)
+{
+    uint32_t valNew = (regs.m_value[Registers::CACR] >> bit) & 1;
+    uint32_t valOld = (prevRegs.m_value[Registers::CACR] >> bit) & 1;
+
+    TokenColour highlight = (valNew != valOld) ? kChanged : kNormal;
+    QString text = QString::asprintf("%s=%x", pName, valNew);
+    return AddToken(x, y, QString(text), TokenType::kCACRBit, bit, highlight);
+}
+
 int RegisterWidget::AddSymbol(int x, int y, uint32_t address)
 {
     QString symText = FindSymbol(address & 0xffffff);
@@ -545,6 +596,8 @@ QString RegisterWidget::GetTooltipText(const RegisterWidget::Token& token)
         return QString::asprintf("Original address: $%08x", token.subIndex);
     case TokenType::kStatusRegisterBit:
          return CreateSRTooltip(m_currRegs.Get(Registers::SR), token.subIndex);
+    case TokenType::kCACRBit:
+         return CreateCACRTooltip(m_currRegs.Get(Registers::CACR), token.subIndex);
     default:
         break;
     }

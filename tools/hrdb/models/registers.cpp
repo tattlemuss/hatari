@@ -8,6 +8,13 @@ const char* Registers::s_names[] =
     "A0", "A1", "A2", "A3", "A4", "A5", "A6", "A7",
     "PC", "SR",
     "USP", "ISP",
+    // Exception number
+    "CAAR",
+    "CACR",
+    "DFC",
+    "MSP",
+    "SFC",
+    "VBR",
     "EX",
     // Vars
     "AesOpcode",
@@ -61,4 +68,21 @@ const char *Registers::GetSRBitName(uint32_t bit)
     return "";
 }
 
-
+const char* Registers::GetCACRBitName(uint32_t bit)
+{
+    switch (bit)
+    {
+    case WA: return "Write Allocate";
+    case DBE: return "Data Burst Enable";
+    case CD: return "Clear Data Cache";
+    case CED: return "Clear Entry in Data Cache";
+    case FD: return "Freeze Data Cache";
+    case ED: return "Enable Data Cache";
+    case IBE: return "Instruction Burst Enable";
+    case CI: return "Clear Instruction Cache";
+    case CEI: return "Clear Entry in Instruction Cache";
+    case FI: return "Freeze Instruction Cache";
+    case EI: return "Enable Instruction Cache";
+    }
+    return "";
+}

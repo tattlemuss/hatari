@@ -6,6 +6,7 @@
 
 #include "hopper/instruction.h"
 #include "hopper/buffer.h"
+#include "hopper/decode.h"
 
 class SymbolTable;
 class Registers;
@@ -36,10 +37,10 @@ public:
     };
 
     // Try to decode a single instruction
-    static int decode_inst(buffer_reader &buf, instruction &inst);
+    static void decode_inst(buffer_reader& buf, instruction& inst, const decode_settings& settings);
 
     // Decode a block of instructions
-    static int decode_buf(buffer_reader& buf, disassembly& disasm, uint32_t address, int32_t maxLines);
+    static int decode_buf(buffer_reader& buf, disassembly& disasm, const decode_settings& settings, uint32_t address, int32_t maxLines);
 
     // Format a single instruction and its arguments
     static void print(const instruction& inst, /*const symbols& symbols, */ uint32_t inst_address, QTextStream& ref, bool bDisassHexNumerics );
