@@ -46,6 +46,7 @@ private:
     void lockFormatToVideoChanged();
     void overlayDarkenChanged();
     void overlayGridChanged();
+    void overlayZoomChanged();
 
 private slots:
     // These are genuine slots
@@ -192,6 +193,7 @@ private:
     QMenu*                          m_pOverlayMenu;
     QAction*                        m_pOverlayDarkenAction;
     QAction*                        m_pOverlayGridAction;
+    QAction*                        m_pOverlayZoomAction;
 
     // "Show memory for $x" top-level menus:
     // [0] Show Base Address

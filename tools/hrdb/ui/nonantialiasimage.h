@@ -46,6 +46,9 @@ public:
     bool GetDarken() const { return m_darken; }
     void SetDarken(bool enable);
 
+    bool GetZoom() const { return m_enableZoom; }
+    void SetZoom(bool enable);
+
 signals:
     void MouseInfoChanged();
 
@@ -55,9 +58,14 @@ protected:
     virtual void leaveEvent(QEvent *event) override;
 
 private:
+    static const int kZoomRatio = 20;
+    static const int kZoomPixelBorder = 4;  // number of pixels around the cursor to grab in each direction
+
     void KeyboardContextMenu();
     void settingsChanged();
     void UpdateMouseInfo();
+    void DrawZoom(QPainter& painter) const;
+
     QPoint ScreenPointFromBitmapPoint(const QPoint &bitmapPoint, const QRect &rect) const;
     QPoint BitmapPointFromScreenPoint(const QPoint &bitmapPoint, const QRect &rect) const;
 
@@ -78,6 +86,7 @@ private:
     // Overlays/helpers\s
     bool            m_darken;
     bool            m_enableGrid;
+    bool            m_enableZoom;
     QVector<Annotation> m_annotations;
 };
 

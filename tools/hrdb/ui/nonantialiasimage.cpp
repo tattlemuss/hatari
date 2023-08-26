@@ -14,7 +14,8 @@ NonAntiAliasImage::NonAntiAliasImage(QWidget *parent, Session* pSession)
       m_bitmapSize(0),
       m_bRunningMask(false),
       m_darken(false),
-      m_enableGrid(false)
+      m_enableGrid(false),
+      m_enableZoom(false)
 {
     m_renderRect = rect();
     setMouseTracking(true);
@@ -23,6 +24,7 @@ NonAntiAliasImage::NonAntiAliasImage(QWidget *parent, Session* pSession)
     m_pixelInfo.x = 0;
     m_pixelInfo.y = 0;
     m_pixelInfo.pixelValue = 0;
+    setCursor(Qt::CrossCursor);
     connect(m_pSession,         &Session::settingsChanged, this, &NonAntiAliasImage::settingsChanged);
 }
 
@@ -75,6 +77,12 @@ void NonAntiAliasImage::SetGrid(bool enable)
 void NonAntiAliasImage::SetDarken(bool enable)
 {
     m_darken = enable;
+    update();
+}
+
+void NonAntiAliasImage::SetZoom(bool enable)
+{
+    m_enableZoom = enable;
     update();
 }
 
@@ -135,7 +143,7 @@ void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
             QPoint pt = ScreenPointFromBitmapPoint(QPoint(annot.x, annot.y), m_renderRect);
             painter.drawLine(pt, pt + QPoint(5, 0));
             painter.drawLine(pt, pt + QPoint(0, 5));
-            //painter.drawText(QPoint(x, y), annot.text);
+            painter.drawText(pt + QPoint(5,5), annot.text);
         }
 
         if (m_enableGrid)
@@ -153,6 +161,10 @@ void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
                 painter.drawLine(pt0, pt1);
             }
         }
+
+        // Zoom
+        if (m_enableZoom && m_pixelInfo.isValid)
+            DrawZoom(painter);
     }
     else {
         painter.drawText(r, Qt::AlignCenter, "Not connected.");
@@ -168,6 +180,7 @@ void NonAntiAliasImage::mouseMoveEvent(QMouseEvent *event)
     m_mousePos = event->localPos();
     UpdateMouseInfo();
     emit MouseInfoChanged();
+    update();// re-render zoom
     QWidget::mouseMoveEvent(event);
 }
 
@@ -176,6 +189,7 @@ void NonAntiAliasImage::leaveEvent(QEvent *event)
     m_mousePos = QPoint(-1, -1);
     UpdateMouseInfo();
     emit MouseInfoChanged();
+    update();// re-render zoom
     QWidget::leaveEvent(event);
 }
 
@@ -214,6 +228,48 @@ void NonAntiAliasImage::UpdateMouseInfo()
         }
         m_pixelInfo.isValid = true;
     }
+}
+
+void NonAntiAliasImage::DrawZoom(QPainter& painter) const
+{
+    const int pixelCountX = kZoomPixelBorder * 2 + 1;  // overall rect grab size
+    const int pixelCountY = pixelCountX;
+
+    QRect grabRegion(m_pixelInfo.x - kZoomPixelBorder, m_pixelInfo.y - kZoomPixelBorder, pixelCountX, pixelCountY);
+
+    QPoint zoomRenderPos = ScreenPointFromBitmapPoint(QPoint(m_pixelInfo.x, m_pixelInfo.y), m_renderRect);
+    zoomRenderPos -= QPoint(pixelCountX * kZoomRatio / 2, pixelCountY * kZoomRatio / 2);
+    QPoint zoomRenderPosBase = zoomRenderPos;
+
+    // Clip on sides
+    if (grabRegion.x() < 0)
+    {
+        int adj = grabRegion.x();
+        grabRegion.adjust(-adj, 0, 0, 0);     // move in from left
+        zoomRenderPos += QPoint(-adj * kZoomRatio, 0);
+    }
+    if (grabRegion.y() < 0)
+    {
+        int adj = grabRegion.y();
+        grabRegion.adjust(0, -adj, 0, 0);
+        zoomRenderPos += QPoint(0, -adj * kZoomRatio);
+    }
+    // These don't need to adjust the render pos
+    if (grabRegion.right() > m_pixmap.width())
+        grabRegion.setWidth(m_pixmap.width() - grabRegion.x());
+    if (grabRegion.bottom() > m_pixmap.height())
+        grabRegion.setHeight(m_pixmap.height() - grabRegion.y());
+
+    QPixmap zoomRec = m_pixmap.copy(grabRegion);
+    zoomRec = zoomRec.scaled(grabRegion.size() * kZoomRatio);
+
+    style()->drawItemPixmap(&painter, QRect(zoomRenderPos, QSize(zoomRec.size())), Qt::AlignCenter,
+                            zoomRec);
+
+    // Highlight the cursor pixel
+    painter.drawRect(zoomRenderPosBase.x() + kZoomPixelBorder * kZoomRatio,
+                     zoomRenderPosBase.y() + kZoomPixelBorder * kZoomRatio, kZoomRatio, kZoomRatio);
+
 }
 
 QPoint NonAntiAliasImage::ScreenPointFromBitmapPoint(const QPoint &bitmapPoint, const QRect &rect) const

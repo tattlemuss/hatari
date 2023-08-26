@@ -219,9 +219,12 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     m_pOverlayDarkenAction->setCheckable(true);
     m_pOverlayGridAction = new QAction("Grid", this);
     m_pOverlayGridAction->setCheckable(true);
+    m_pOverlayZoomAction = new QAction("Zoom", this);
+    m_pOverlayZoomAction->setCheckable(true);
 
     m_pOverlayMenu->addAction(m_pOverlayDarkenAction);
     m_pOverlayMenu->addAction(m_pOverlayGridAction);
+    m_pOverlayMenu->addAction(m_pOverlayZoomAction);
 
     // Keyboard shortcuts
     new QShortcut(QKeySequence("Ctrl+G"),         this, SLOT(gotoClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
@@ -253,6 +256,7 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     connect(m_pSaveImageAction,             &QAction::triggered,          this, &GraphicsInspectorWidget::saveImageClicked);
     connect(m_pOverlayDarkenAction,         &QAction::triggered,          this, &GraphicsInspectorWidget::overlayDarkenChanged);
     connect(m_pOverlayGridAction,           &QAction::triggered,          this, &GraphicsInspectorWidget::overlayGridChanged);
+    connect(m_pOverlayZoomAction,           &QAction::triggered,          this, &GraphicsInspectorWidget::overlayZoomChanged);
 
     loadSettings();
     UpdateUIElements();
@@ -288,8 +292,10 @@ void GraphicsInspectorWidget::loadSettings()
 
     bool darken = settings.value("darken", QVariant(false)).toBool();
     bool grid = settings.value("grid", QVariant(false)).toBool();
+    bool zoom = settings.value("zoom", QVariant(false)).toBool();
     m_pImageWidget->SetDarken(darken);
     m_pImageWidget->SetGrid(grid);
+    m_pImageWidget->SetZoom(zoom);
 
     UpdateUIElements();
     settings.endGroup();
@@ -310,6 +316,7 @@ void GraphicsInspectorWidget::saveSettings()
     settings.setValue("palette", m_pPaletteComboBox->currentIndex());
     settings.setValue("darken", m_pImageWidget->GetDarken());
     settings.setValue("grid", m_pImageWidget->GetGrid());
+    settings.setValue("zoom", m_pImageWidget->GetZoom());
     settings.endGroup();
 }
 
@@ -498,13 +505,19 @@ void GraphicsInspectorWidget::lockFormatToVideoChanged()
 
 void GraphicsInspectorWidget::overlayDarkenChanged()
 {
-    m_pImageWidget->SetDarken(!m_pImageWidget->GetDarken());
+    m_pImageWidget->SetDarken(m_pOverlayDarkenAction->isChecked());
     UpdateUIElements();
 }
 
 void GraphicsInspectorWidget::overlayGridChanged()
 {
-    m_pImageWidget->SetGrid(!m_pImageWidget->GetGrid());
+    m_pImageWidget->SetGrid(m_pOverlayGridAction->isChecked());
+    UpdateUIElements();
+}
+
+void GraphicsInspectorWidget::overlayZoomChanged()
+{
+    m_pImageWidget->SetZoom(m_pOverlayZoomAction->isChecked());
     UpdateUIElements();
 }
 
@@ -949,6 +962,7 @@ void GraphicsInspectorWidget::UpdateImage()
             annots.append(annot);
     }
 
+#if 0
     uint32_t symAddr = m_bitmapAddress + data.requiredSize;
     Symbol sym;
     while (symAddr >= m_bitmapAddress)
@@ -961,8 +975,8 @@ void GraphicsInspectorWidget::UpdateImage()
             annots.append(annot);
         symAddr = sym.address - 1;
     }
-
-    m_pImageWidget->m_annotations = annots;
+#endif
+    m_pImageWidget->SetAnnotations(annots);
 #endif
 }
 
@@ -982,6 +996,7 @@ void GraphicsInspectorWidget::UpdateUIElements()
 
     m_pOverlayDarkenAction->setChecked(m_pImageWidget->GetDarken());
     m_pOverlayGridAction->setChecked(m_pImageWidget->GetGrid());
+    m_pOverlayZoomAction->setChecked(m_pImageWidget->GetZoom());
     DisplayAddress();
 }
 
