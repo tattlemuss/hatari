@@ -10,33 +10,41 @@ Normal focus
 - U            - Run Until (RTS/RTE/VBL/HBL)
 - Ctrl+Shift+U - Cycle "Run Until.." choice
 - Alt+Shift+B  - Add breakpoint (dialog)
-- Alt+D - Focus Disassembly View
-- Alt+M - Focus Memory View 1
-- Alt+2 - Focus Memory View 2
-- Alt+3 - Focus Memory View 3
-- Alt+4 - Focus Memory View 4
-- Alt+G - Focus Graphics Inspector
-- Alt+B - Focus Breakpoints View
-- Alt+H - Focus Hardware View
-- Alt+P - Focus Profile Window
-- Alt+C - Focus Console Window
-- Alt+L - Launch (run Hatari dialog)
-- Alt+Q - QuickLaunch (run Hatari with previous settings)
+- Alt+D        - Focus Disassembly View
+- Alt+M        - Focus Memory View 1
+- Alt+2        - Focus Memory View 2
+- Alt+3        - Focus Memory View 3
+- Alt+4        - Focus Memory View 4
+- Alt+G        - Focus Graphics Inspector
+- Alt+B        - Focus Breakpoints View
+- Alt+H        - Focus Hardware View
+- Alt+P        - Focus Profile Window
+- Alt+C        - Focus Console Window
+- Alt+L        - Launch (run Hatari dialog)
+- Alt+Q        - QuickLaunch (run Hatari with previous settings)
+Visual Studio control:
+- F5           - Start/stop
+- F10          - Step (execute next instruction)
+- F11          - Next (step through bsr/jsr)
 
 Disassembly focus
 =================
 - Up/Down Cursor movement, Page Up/Down - line navigation
-- Ctrl+B - Toggle breakpoint (cursor position)
-- Ctrl+H - Run to "Here" (cursor position)
-- Ctrl+Space - show Context Menu
+- Ctrl+B       - Toggle breakpoint (cursor position)
+- Ctrl+H       - Run to "Here" (cursor position)
+- Ctrl+Space   - Show Context Menu
+Visual Studio control:
+- F9           - Toggle breakpoint (cursor position)
+- Ctrl+F10     - Run to "Here" (cursor position)
+
 
 Memory Window focus
 ===================
 - Cursor movement, Page Up/Down - navigation
-- Ctrl+F - Search for text/hexadecimal string
-- Ctrl+Space - show Context Menu
+- Ctrl+F       - Search for text/hexadecimal string
+- Ctrl+Space   - Show Context Menu
 
 Graphics Inspector focus
 ========================
-- Ctrl+Space - show Context Menu
+- Ctrl+Space   - Show Context Menu
 

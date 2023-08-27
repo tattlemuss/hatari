@@ -47,13 +47,14 @@ v0.008 (August 2023)
 
 - General
   - Base Hatari build version is still 2.4.1 release.
+  - New shortcut Ctrl+Shift+U to cycle the "Run Until..." mode.
   - Add application window icon.
   - Docked and tabbed windows now appear correctly when using Alt+ shortcuts to
     switch to them.
   - Add shortcuts for nearly all windows: Alt+P for Profile Window, Alt+C for
     Console Window, Alt+2/3/4 for Memory Windows 2/3/4.
-  - Symbol system now supports comments; comments are added for the internal
-    hardware registers, vectors and TOS variables.
+  - Symbol system now supports comments for each label. Comments are added for the
+    internal hardware register addresses, low-memory vectors and TOS variables.
 
 v0.007 (August 2022)
 
