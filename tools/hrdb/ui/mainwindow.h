@@ -83,6 +83,7 @@ private:
 
     void about();
     void aboutQt();
+    void onlineHelp();
 
     // status
     void messageSet(const QString& msg);
@@ -183,6 +184,7 @@ private:
     QAction* m_pHardwareWindowAct;
     QAction* m_pProfileWindowAct;
 
+    QAction* m_pOnlineHelpAct;
     QAction* m_pAboutAct;
     QAction* m_pAboutQtAct;
 };

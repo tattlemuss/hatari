@@ -583,6 +583,7 @@ void DisasmWidget::keyPressEvent(QKeyEvent* event)
                 case Qt::Key_H:         runToCursor();            return;
                 case Qt::Key_B:         toggleBreakpoint();       return;
                 case Qt::Key_Space:     KeyboardContextMenu();    return;
+                case Qt::Key_F10:       runToCursor();            return;
                 default: break;
             }
         }
@@ -594,6 +595,7 @@ void DisasmWidget::keyPressEvent(QKeyEvent* event)
             case Qt::Key_Down:       MoveDown();            return;
             case Qt::Key_PageUp:     PageUp();              return;
             case Qt::Key_PageDown:   PageDown();            return;
+            case Qt::Key_F9:         toggleBreakpoint();       return;
             default: break;
             }
         }

@@ -4,6 +4,7 @@
 #include <QApplication>
 #include <QCloseEvent>
 #include <QComboBox>
+#include <QDesktopServices>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QPushButton>
@@ -178,6 +179,10 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     new QShortcut(QKeySequence("N"),              this, SLOT(nextClickedSlot()));
     new QShortcut(QKeySequence("U"),              this, SLOT(runToClickedSlot()));
     new QShortcut(QKeySequence("Ctrl+Shift+U"),   this, SLOT(cycleRunToSlot()));
+
+    new QShortcut(QKeySequence("F5"),            this, SLOT(startStopClickedSlot()));
+    new QShortcut(QKeySequence("F11"),           this, SLOT(singleStepClickedSlot()));
+    new QShortcut(QKeySequence("F10"),           this, SLOT(nextClickedSlot()));
 
     // Try initial connect
     ConnectTriggered();
@@ -610,6 +615,11 @@ void MainWindow::aboutQt()
 {
 }
 
+void MainWindow::onlineHelp()
+{
+    QDesktopServices::openUrl(QUrl(HELP_URL));
+}
+
 void MainWindow::messageSet(const QString &msg)
 {
     this->statusBar()->showMessage(msg, 5000);
@@ -750,6 +760,11 @@ void MainWindow::createActions()
     m_pAboutAct->setStatusTip(tr("Show the application's About box"));
     connect(m_pAboutAct, &QAction::triggered, this, &MainWindow::about);
 
+    // "About"
+    m_pOnlineHelpAct = new QAction(tr("Online Help"), this);
+    m_pOnlineHelpAct->setStatusTip(tr("Access online help page"));
+    connect(m_pOnlineHelpAct, &QAction::triggered, this, &MainWindow::onlineHelp);
+
     m_pAboutQtAct = new QAction(tr("About &Qt"), this);
     m_pAboutQtAct->setStatusTip(tr("Show the Qt library's About box"));
     connect(m_pAboutQtAct, &QAction::triggered, qApp, &QApplication::aboutQt);
@@ -805,6 +820,7 @@ void MainWindow::createMenus()
     m_pWindowMenu->addAction(m_pProfileWindowAct);
 
     m_pHelpMenu = menuBar()->addMenu(tr("Help"));
+    m_pHelpMenu->addAction(m_pOnlineHelpAct);
     m_pHelpMenu->addAction(m_pAboutAct);
     m_pHelpMenu->addAction(m_pAboutQtAct);
 }
