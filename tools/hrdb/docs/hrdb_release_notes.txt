@@ -1,13 +1,25 @@
 hrdb Release Notes
 ==================
 
-v0.008 (???)
+v0.008 (August 2023)
+
+- Graphics Inspector
+  - Added overlay for 16-pixel grid, register address positions, and a "zoom"
+    overlay. These are available from the right-click/context menu.
+  - Allow width up to 80 chunks to support 1280 mode. This enables previewing of
+    the 1280x200 video mode created by running the Shifter in mono with the GLUE
+    in colour. (request from Troed/SYNC)
+  - Added Ctrl+Space shortcut for context menu.
+  - Show memory address(es) of pixel under mouse pointer (suggestion by ggn/KÜA)
+    This address can also be sent to other windows (e.g. Memory) with the
+    right-click/context menu.
 
 - Memory Window
   - Added search feature on Ctrl+F. Search supports hex or text, with case
     sensitivity.
-  - Added selection of row widths of 4, 8, 16, 32 or 64 bytes, or auto-sizing.
-  - Window shows the address of the active editing cursor.
+  - Added selection of row widths of 4, 8, 16, 32 or 64 bytes, or auto-sizing
+    based on the visible window width.
+  - Window label shows the address of the active editing cursor.
     (request from zChris)
   - Fix tooltip crash bug when viewing the first byte in the window if window
     address is set to an odd value.
@@ -16,14 +28,9 @@ v0.008 (???)
 
 - Launch Dialog
   - Added "Fast Launch" to run Hatari with --fast-forward until selected .prg
-    is about to start.
-
-- Graphics Inspector
-  - Allow width up to 80 chunks to support 1280 mode. This enables previewing of 
-    the 1280x200 video mode created by running the Shifter in mono with the GLUE 
-    in colour. (request from Troed/SYNC)
-  - Added Ctrl+Space shortcut for context menu.
-  - Show memory address(es) of pixel under mouse pointer (suggestion by ggn/KÜA)
+    is about to start, when it reverts to normal speed.
+  - Added "Program Breakpoint" breakpoint option, to set a breakpoint automatically
+    at a program label or other condition, for focussed automatic debugging.
 
 - Disassembly Window
   - Supported decoding of 68020 and 68030 instructions (except for floating-
@@ -31,13 +38,15 @@ v0.008 (???)
   - Added Ctrl+Space shortcut for context menu.
 
 - Register Window
-  - Added display of 68020 and 68030 register values when appropriate.
+  - Added display of 68020 and 68030 register values when appropriate, including
+    flag breakdown of the Cache Control Register.
 
 - Breakpoints Window
   - Fixed "Trace" flag when creating breakpoints.
   - Removed unnecessary columns from display.
 
 - General
+  - Base Hatari build version is still 2.4.1 release.
   - Add application window icon.
   - Docked and tabbed windows now appear correctly when using Alt+ shortcuts to
     switch to them.
