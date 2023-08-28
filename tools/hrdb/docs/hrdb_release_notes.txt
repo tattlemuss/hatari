@@ -35,6 +35,8 @@ v0.008 (August 2023)
 - Disassembly Window
   - Supported decoding of 68020 and 68030 instructions (except for floating-
     point co-processor instructions).
+  - Added search feature on Ctrl+F. Search supports hex or text, with case
+    sensitivity.
   - Added Ctrl+Space shortcut for context menu.
 
 - Register Window
@@ -55,6 +57,7 @@ v0.008 (August 2023)
     Console Window, Alt+2/3/4 for Memory Windows 2/3/4.
   - Symbol system now supports comments for each label. Comments are added for the
     internal hardware register addresses, low-memory vectors and TOS variables.
+
 
 v0.007 (August 2022)
 
