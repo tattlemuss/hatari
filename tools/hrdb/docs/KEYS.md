@@ -2,14 +2,17 @@ Normal focus
 ============
 (always active unless in dialog, text boxes)
 
+Basic program control
 - Ctrl+R       - Start/stop
 - Esc          - Stop
 - S            - Step (execute next instruction)
 - Ctrl+S       - Skip (move to next instruction without executing current)
-- N            - Next (step through bsr/jsr)
-- U            - Run Until (RTS/RTE/VBL/HBL)
+- N            - Next (execute, but step through bsr/jsr/dbf)
+- U            - Run Until RTS/RTE/VBL/HBL
 - Ctrl+Shift+U - Cycle "Run Until.." choice
 - Alt+Shift+B  - Add breakpoint (dialog)
+
+Window focussing
 - Alt+D        - Focus Disassembly View
 - Alt+M        - Focus Memory View 1
 - Alt+2        - Focus Memory View 2
@@ -20,8 +23,9 @@ Normal focus
 - Alt+H        - Focus Hardware View
 - Alt+P        - Focus Profile Window
 - Alt+C        - Focus Console Window
-- Alt+L        - Launch (run Hatari dialog)
+- Alt+L        - Launch Dialog (to run Hatari)
 - Alt+Q        - QuickLaunch (run Hatari with previous settings)
+
 Visual Studio control:
 - F5           - Start/stop
 - F10          - Step (execute next instruction)
@@ -33,10 +37,10 @@ Disassembly focus
 - Ctrl+B       - Toggle breakpoint (cursor position)
 - Ctrl+H       - Run to "Here" (cursor position)
 - Ctrl+Space   - Show Context Menu
+
 Visual Studio control:
 - F9           - Toggle breakpoint (cursor position)
 - Ctrl+F10     - Run to "Here" (cursor position)
-
 
 Memory Window focus
 ===================
@@ -46,5 +50,8 @@ Memory Window focus
 
 Graphics Inspector focus
 ========================
+- Up/Down      - move by one bitmap line
+- Shift+Up/Down- move by 8 lines
+- Left/Right   - move by 2 bytes
 - Ctrl+Space   - Show Context Menu
 
