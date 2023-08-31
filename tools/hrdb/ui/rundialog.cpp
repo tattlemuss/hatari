@@ -146,6 +146,7 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     // Overall layout (options at top, buttons at bottom)
     QVBoxLayout* pLayout = new QVBoxLayout(this);
     pLayout->addWidget(gridGroupBox);
+    pLayout->addStretch();
     pLayout->addWidget(pButtonContainer);
 
     connect(pExeButton, &QPushButton::clicked, this, &RunDialog::exeClicked);
