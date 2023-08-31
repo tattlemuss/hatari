@@ -996,7 +996,8 @@ GraphicsInspectorWidget::Mode GraphicsInspectorWidget::GetEffectiveMode() const
     uint8_t val = 0;
     if (!pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, val))
         return Mode::k1Bitplane;
-    Regs::RESOLUTION modeReg = (Regs::RESOLUTION)val;
+
+    Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(val);
     if (modeReg == Regs::RESOLUTION::LOW)
         return Mode::k4Bitplane;
     else if (modeReg == Regs::RESOLUTION::MEDIUM)
