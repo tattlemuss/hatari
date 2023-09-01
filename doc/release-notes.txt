@@ -6,12 +6,120 @@
 Following features are deprecated and will be removed in a future release:
 - SDL 2.x "bUseSdlRenderer" config and "GPU scaling" GUI options
   (after HW support for SDL2 is available widely enough)
-- The "external" disassembler (i.e. use "--disasm uae" instead)
 - Hatari XBios(255) API enabled with the "--bios-intercept" option
   (i.e. use "--natfeats" & "--cmd-fifo" options and "hconsole" instead)
 - The old ~/.hatari configuration file location (use ~/.config/hatari instead)
-- The rendering functions for 16 bits-per-pixel host screens (almost all
-  recent hardware should have 32 bpp nowadays)
+- Less flexible command FIFO / remote socket API command variants:
+  - "hatari-shortcut screenshot" (use "hatari-debug screenshot <file>")
+  - "hatari-shortcut coldreset"  (use "hatari-debug reset soft")
+  - "hatari-shortcut warmreset"  (use "hatari-debug reset hard")
+  - "hatari-shortcut savemem"    (use "hatari-debug statesave <file>")
+  - "hatari-shortcut quit"       (use "hatari-debug quit [exit value]")
+
+
+ Development version
+ -------------------
+
+Removed features:
+- The "--bpp" command line option and related code (i.e. the rendering
+  functions for 16 bits-per-pixel host screens) have been removed
+  since almost all recent hardware should support 32 bpp nowadays
+
+Emulation improvements:
+- MFP:
+  - When IRQ is cleared on one of the 2 ACIAs, do not clear IRQ on
+    the MFP side if the IRQ is still set on the other ACIA
+- Blitter:
+  - Ignore byte accesses to blitter registers defined as word only
+- TT/DMA:
+  - Update sound FIFO on each HBL (like on STE)
+- CPU:
+  - Fix IACK timings
+- Video:
+  - Add support for 4 pixel hardscroll on STF by stopping shifter with
+    $FF8260=3 (new technique by Troed/Sync)
+
+Emulator improvements:
+- TOS:
+  - Fix: set TOS country code from CountryCode setting, not Language one
+- RTC:
+  - CLI/config option to override NVRAM/RTC year, useful with
+    applications that do not handle current dates
+- Joystick support:
+  - Fix: joystick button 2 space key emulation "autofiring"
+  - Support for mapping joystick buttons
+- GEMDOS HD:
+  - Fix: Frename() should fail when target exists
+  - Support up to 64 simultaneously open files (earlier limit was 32)
+  - Similarly to TOS, allow programs to write to a file they have opened
+    as read-only (by opening all writable files as read/write).  As this
+    could fail with real HW under MiNT/MagiC, show warning about it
+- Debugger:
+  - Fix: free all debugger allocations before exit
+  - Fix: invalid free on freeing loaded GNU debug symbols
+  - Fix: CPU core disassembler crashes with longer symbol names
+  - Add support for reading symbols from new MINT+ELF binaries
+  - Add support for demangled C++/a.out symbols (which can be
+    very long and contain almost any characters)
+  - ".sym" file beside a program file acts as its symbols override
+  - Add address width (addr).[bwl] support to expression evaluation
+  - Add optional argument for "symbols <name|code|data>" commands,
+    to limit listed symbols to ones with the given substring
+  - Improved support for weak symbols (important for C++ code)
+  - "os_base" trace option outputs now also dir create/delete + file delete
+    calls (in addition to earlier pexec/pterm & file create/open calls)
+  - Separate CPU video cycles under its own "cpu_video_cycles" trace flag
+  - Suppress repeats of identical log & trace messages by default
+    (show only their count) and add "--msg-repeat" option to toggle that
+  - History skips address repeats (e.g. with "stop" instruction)
+  - When entering debugger with 'history' enabled, disassembly address
+    defaults to an address in history preceeding the PC register value
+    (to give more context than disassembling directly from PC)
+  - Support for disassembly output options working also for CPU core
+    disassembler, in addition to external disassember output
+  - The built-in "external" disassembler has been replaced by a
+    disassembler provided by the Capstone library (version >= 4.0)
+
+GUI improvements:
+- SDL GUI:
+  - Fix: mouse not visible in floppy disk dialog when it is invoked
+    from a keyboard shortcut in fullscreen mode
+  - Support for joystick button mapping + space key vs. jump option
+- Mac GUI:
+  - Accept all file names as Mac file selector does not show
+    a list of the accepted file name extensions any more
+
+Tools:
+- gst2ascii "-o" option split to "-f" and "-g" options
+- Profile data post-processor:
+  - Does not show (most) of symbol conflict messages any more
+    (unless '--verbose' option is given)
+  - When address has multiple symbols which names are thought
+    as C/C++ symbols, prefer shortest one
+  - Support for symbol files + Hatari profile data containing
+    demangled C++ symbols
+  - Support weak symbols (used for C++ template methods)
+  - Overtly long C++ symbol names are shortened in callgraphs
+    (unless '--full-symbols' option is given)
+  - Symbols given for "--only", "--ignore" and "--ignore-from"
+    are interpreted as match patterns (with '*?[]' wildcards)
+  - Only single arrow shown between callgraph nodes when
+    "--compact" option is used
+
+Build improvements:
+- Fix: CPU core compile warnings (WinUAE upstream)
+- Fix: groff/troff warnings for manual pages
+
+Programs with fixed MIDI (MFP IRQ clear) handling:
+- Bad Mood
+- Midi Maze
+- Midi Maze II
+- Oxyd 2
+
+Fixed demos:
+- Little -ME- Demo end part : black screen after a while (IACK timing)
+- Monscape : bad sound (TT/DMA FIFO update)
+
 
 
  Version 2.4.1 (2022-08-03)
@@ -168,6 +276,7 @@ Emulator improvements:
     and "midi_raw" (IRQ and register read/write access).  Trace
     logging added also for MIDI byte writes, not just reads
   - Trace options are listed in alphabetical order
+  - Show loaded symbols in CPU core disassembly
 - Windows:
   - Next/prev drive change buttons added to SDL GUI file select dialog
 

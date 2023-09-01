@@ -18,7 +18,6 @@ const char Joy_fileid[] = "Hatari joy.c";
 #include "joy.h"
 #include "log.h"
 #include "m68000.h"
-#include "screen.h"
 #include "video.h"
 #include "statusbar.h"
 
@@ -29,9 +28,9 @@ const char Joy_fileid[] = "Hatari joy.c";
 #define Dprintf(a)
 #endif
 
-#define JOYREADING_BUTTON1  1		/* bit 0 */
-#define JOYREADING_BUTTON2  2		/* bit 1 */
-#define JOYREADING_BUTTON3  4		/* bit 2 */
+#define JOYREADING_BUTTON1  1		/* bit 0, regular fire button */
+#define JOYREADING_BUTTON2  2		/* bit 1, space / jump button */
+#define JOYREADING_BUTTON3  4		/* bit 2, autofire button */
 
 typedef struct
 {
@@ -62,9 +61,9 @@ static bool bJoystickWorking[ JOYSTICK_COUNT ] =		/* Is joystick plugged in and 
 	false, false, false, false, false, false
 };
 
-int JoystickSpaceBar = false;           /* State of space-bar on joystick button 2 */
-static Uint8 nJoyKeyEmu[ JOYSTICK_COUNT ];
-static Uint16 nSteJoySelect;
+int JoystickSpaceBar = JOYSTICK_SPACE_NULL;   /* State of space-bar on joystick button 2 */
+static uint8_t nJoyKeyEmu[ JOYSTICK_COUNT ];
+static uint16_t nSteJoySelect;
 
 
 /**
@@ -166,7 +165,7 @@ void Joy_Init(void)
 	for (i = 0; i < JOYSTICK_COUNT ; i++)
 		Joy_ValidateJoyId(i);
 
-	JoystickSpaceBar = false;
+	JoystickSpaceBar = JOYSTICK_SPACE_NULL;
 }
 
 
@@ -195,8 +194,9 @@ void Joy_UnInit(void)
  * Read details from joystick using SDL calls
  * NOTE ID is that of SDL
  */
-static bool Joy_ReadJoystick(int nSdlJoyID, JOYREADING *pJoyReading)
+static bool Joy_ReadJoystick(int nStJoyId, JOYREADING *pJoyReading)
 {
+	int nSdlJoyID = ConfigureParams.Joysticks.Joy[nStJoyId].nJoyId;
 	unsigned hat = SDL_JoystickGetHat(sdlJoystick[nSdlJoyID], 0);
 
 	/* Joystick is OK, read position from the configured joystick axis */
@@ -211,18 +211,56 @@ static bool Joy_ReadJoystick(int nSdlJoyID, JOYREADING *pJoyReading)
 		pJoyReading->YPos = -32768;
 	if (hat & SDL_HAT_DOWN)
 		pJoyReading->YPos = 32767;
-	/* Sets bit #0 if button #1 is pressed: */
-	pJoyReading->Buttons = SDL_JoystickGetButton(sdlJoystick[nSdlJoyID], 0);
-	/* Sets bit #1 if button #2 is pressed: */
-	if (SDL_JoystickGetButton(sdlJoystick[nSdlJoyID], 1))
-		pJoyReading->Buttons |= JOYREADING_BUTTON2;
-	/* Sets bit #2 if button #3 is pressed: */
-	if (SDL_JoystickGetButton(sdlJoystick[nSdlJoyID], 2))
-		pJoyReading->Buttons |= JOYREADING_BUTTON3;
 
+	pJoyReading->Buttons = 0;
+	/* Sets bits based on pressed buttons */
+	for (int i = 0; i < JOYSTICK_BUTTONS; i++)
+	{
+		int button = ConfigureParams.Joysticks.Joy[nStJoyId].nJoyButMap[i];
+		if (button >= 0 && SDL_JoystickGetButton(sdlJoystick[nSdlJoyID], button))
+			pJoyReading->Buttons |= 1 << i;
+	}
 	return true;
 }
 
+
+/*-----------------------------------------------------------------------*/
+/**
+ * Enable PC Joystick button press to mimic space bar
+ * (For XenonII, Flying Shark etc...) or joystick up (jump)
+ *
+ * Return up bit or zero
+ */
+static uint8_t Joy_ButtonSpaceJump(int press, bool jump)
+{
+	/* If "Jump on Button" is enabled, button acts as "ST Joystick up" */
+	if (jump)
+	{
+		if (press)
+			return ATARIJOY_BITMASK_UP;
+		return 0;
+	}
+	/* Otherwise, it acts as pressing SPACE on the ST keyboard
+	 *
+	 * "JoystickSpaceBar" goes through following transitions:
+	 * - JOYSTICK_SPACE_NULL   (joy.c:  init)
+	 * - JOYSTICK_SPACE_DOWN   (joy.c:  button pressed)
+	 * - JOYSTICK_SPACE_DOWNED (ikbd.c: space  pressed)
+	 * - JOYSTICK_SPACE_UP     (joy.c:  button released)
+	 * - JOYSTICK_SPACE_NULL   (ikbd.c: space  released)
+	 */
+	if (press)
+	{
+		if (JoystickSpaceBar == JOYSTICK_SPACE_NULL)
+			JoystickSpaceBar = JOYSTICK_SPACE_DOWN;
+	}
+	else
+	{
+		if (JoystickSpaceBar == JOYSTICK_SPACE_DOWNED)
+			JoystickSpaceBar = JOYSTICK_SPACE_UP;
+	}
+	return 0;
+}
 
 /*-----------------------------------------------------------------------*/
 /**
@@ -231,9 +269,9 @@ static bool Joy_ReadJoystick(int nSdlJoyID, JOYREADING *pJoyReading)
  * NOTE : ID 0 is Joystick 0/Mouse and ID 1 is Joystick 1 (default),
  *        ID 2 and 3 are STE joypads and ID 4 and 5 are parport joysticks.
  */
-Uint8 Joy_GetStickData(int nStJoyId)
+uint8_t Joy_GetStickData(int nStJoyId)
 {
-	Uint8 nData = 0;
+	uint8_t nData = 0;
 	JOYREADING JoyReading;
 
 	/* Are we emulating the joystick via the keyboard? */
@@ -271,7 +309,7 @@ Uint8 Joy_GetStickData(int nStJoyId)
 		}
 
 		/* Read real joystick and map to emulated ST joystick for emulation */
-		if (!Joy_ReadJoystick(nSdlJoyId, &JoyReading))
+		if (!Joy_ReadJoystick(nStJoyId, &JoyReading))
 		{
 			/* Something is wrong, we cannot read the joystick from SDL */
 			bJoystickWorking[nSdlJoyId] = false;
@@ -292,23 +330,10 @@ Uint8 Joy_GetStickData(int nStJoyId)
 		if (JoyReading.Buttons & JOYREADING_BUTTON1)
 			nData |= ATARIJOY_BITMASK_FIRE;
 
-		/* Enable PC Joystick button 2 to mimic space bar (For XenonII, Flying Shark etc...) */
-		if (nStJoyId == JOYID_JOYSTICK1 && (JoyReading.Buttons & JOYREADING_BUTTON2))
-		{
-			if (ConfigureParams.Joysticks.Joy[nStJoyId].bEnableJumpOnFire2)
-			{
-				/* If "Jump on Button 2" is enabled, PC Joystick button 2 acts as "ST Joystick up" */
-				nData |= ATARIJOY_BITMASK_UP;
-			} else {
-				/* If "Jump on Button 2" is not enabled, PC Joystick button 2 acts as pressing SPACE on the ST keyboard */
-				/* Only press 'space bar' if not in NULL state */
-				if (!JoystickSpaceBar)
-				{
-					/* Press, ikbd will send packets and de-press */
-					JoystickSpaceBar = JOYSTICK_SPACE_DOWN;
-				}
-			}
-		}
+		/* PC Joystick button 2 mimics space bar or jump */
+		const bool press = JoyReading.Buttons & JOYREADING_BUTTON2;
+		const bool jump = ConfigureParams.Joysticks.Joy[nStJoyId].bEnableJumpOnFire2;
+		nData |= Joy_ButtonSpaceJump(press, jump);
 
 		/* PC Joystick button 3 is autofire button for ST joystick button */
 		if (JoyReading.Buttons & JOYREADING_BUTTON3)
@@ -546,8 +571,8 @@ bool Joy_KeyUp(int symkey, int modkey)
  */
 void Joy_StePadButtons_DIPSwitches_ReadWord(void)
 {
-	Uint16 nData = 0xff;
-	Uint8 DIP;
+	uint16_t nData = 0xff;
+	uint8_t DIP;
 
 	if ( !Config_IsMachineFalcon()
 	  && ( nIoMemAccessSize == SIZE_BYTE ) && ( IoAccessCurrentAddress == 0xff9200 ) )
@@ -653,7 +678,7 @@ void Joy_StePadButtons_DIPSwitches_WriteWord(void)
  */
 void Joy_StePadMulti_ReadWord(void)
 {
-	Uint16 nData = 0xff;
+	uint16_t nData = 0xff;
 
 	if (ConfigureParams.Joysticks.Joy[JOYID_STEPADA].nJoystickMode != JOYSTICK_DISABLED
 	    && (nSteJoySelect & 0x0f) != 0x0f)
@@ -722,7 +747,7 @@ void Joy_StePadMulti_WriteWord(void)
  */
 void Joy_SteLightpenX_ReadWord(void)
 {
-	Uint16 nData = 0;	/* Lightpen is not supported yet */
+	uint16_t nData = 0;	/* Lightpen is not supported yet */
 
 	Dprintf(("0xff9220 -> 0x%04x\n", nData));
 
@@ -741,7 +766,7 @@ void Joy_SteLightpenX_ReadWord(void)
  */
 void Joy_SteLightpenY_ReadWord(void)
 {
-	Uint16 nData = 0;	/* Lightpen is not supported yet */
+	uint16_t nData = 0;	/* Lightpen is not supported yet */
 
 	Dprintf(("0xff9222 -> 0x%04x\n", nData));
 

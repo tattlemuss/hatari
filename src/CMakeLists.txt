@@ -3,13 +3,17 @@ set(SOURCES
 	acia.c audio.c avi_record.c bios.c blitter.c cart.c cfgopts.c
 	clocks_timings.c configuration.c options.c change.c control.c
 	cycInt.c cycles.c dialog.c dmaSnd.c fdc.c file.c floppy.c
-	floppy_ipf.c floppy_stx.c gemdos.c hd6301_cpu.c hdc.c ide.c ikbd.c
+	floppy_ipf.c floppy_stx.c gemdos.c hdc.c ide.c ikbd.c
 	ioMem.c ioMemTabST.c ioMemTabSTE.c ioMemTabTT.c ioMemTabFalcon.c joy.c
 	keymap.c m68000.c main.c midi.c memorySnapShot.c mfp.c nf_scsidrv.c
 	ncr5380.c paths.c  psg.c printer.c resolution.c rs232.c reset.c rtc.c
 	scandir.c scc.c stMemory.c screen.c screenConvert.c screenSnapShot.c
 	shortcut.c sound.c spec512.c statusbar.c str.c tos.c utils.c
 	vdi.c vme.c inffile.c video.c wavFormat.c xbios.c ymFormat.c lilo.c)
+
+if(EMSCRIPTEN)
+	set(SOURCES ${SOURCES} emscripten.js emscripten_shell.html)
+endif()
 
 # Disk image code is shared with the hmsa tool, so we put it into a library:
 add_library(Floppy createBlankImage.c dim.c msa.c st.c zip.c)
@@ -45,7 +49,7 @@ if(WIN32)
 endif(WIN32)
 
 include_directories(includes debug falcon
-		    ${CMAKE_BINARY_DIR} ${SDL2_INCLUDE_DIR} cpu)
+		    ${CMAKE_BINARY_DIR} ${SDL2_INCLUDE_DIRS} cpu)
 
 if(ZLIB_FOUND)
 	include_directories(${ZLIB_INCLUDE_DIR})
@@ -68,6 +72,10 @@ if(CapsImage_FOUND)
 	include_directories(${CAPSIMAGE_INCLUDE_DIR})
 endif(CapsImage_FOUND)
 
+if(Capstone_FOUND)
+	include_directories(${CAPSTONE_INCLUDE_DIR})
+endif(Capstone_FOUND)
+
 link_directories(${CMAKE_CURRENT_BINARY_DIR}/debug
 		 ${CMAKE_CURRENT_BINARY_DIR}/falcon
 		 ${CMAKE_CURRENT_BINARY_DIR}/gui-sdl
@@ -86,6 +94,9 @@ if(ENABLE_OSX_BUNDLE)
 	add_executable(hatari MACOSX_BUNDLE ${GUIOSX_RSRCS} ${GUIOSX_DOCS} ${SOURCES} ${GUIOSX_SOURCES} ${FRAMEWORKS})
 	set_target_properties(hatari PROPERTIES MACOSX_BUNDLE_INFO_PLIST
 			      ${CMAKE_CURRENT_SOURCE_DIR}/gui-osx/Info-Hatari.plist)
+	set_target_properties(hatari PROPERTIES INSTALL_RPATH
+			      "@executable_path/../Frameworks")
+	set_target_properties(hatari PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE)
 	set(MACOSX_BUNDLE_ICON_FILE Hatari.icns)
 	if(CMAKE_GENERATOR MATCHES "Xcode")
 		set(BUNDLE_CONTENTS ${CMAKE_CURRENT_BINARY_DIR}/\${CONFIGURATION}/Hatari.app/Contents)
@@ -95,7 +106,7 @@ if(ENABLE_OSX_BUNDLE)
 	# Create Hatari.app bundle
 	add_custom_target(osx_bundle_dirs
 			COMMAND mkdir -p ${BUNDLE_CONTENTS}/Resources
-			#COMMAND mkdir -p ${BUNDLE_CONTENTS}/Frameworks
+			COMMAND mkdir -p ${BUNDLE_CONTENTS}/Frameworks
 			COMMAND mkdir -p ${BUNDLE_CONTENTS}/MacOS
 			COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/gui-osx/${MACOSX_BUNDLE_ICON_FILE}
 				   ${BUNDLE_CONTENTS}/Resources/${MACOSX_BUNDLE_ICON_FILE}
@@ -139,6 +150,22 @@ elseif(WIN32)
 	set_source_files_properties(${GUIWIN_RES} PROPERTIES LANGUAGE RC)
 	add_executable(hatari ${GUIWIN_RES} ${SOURCES} ${GUIWIN_SOURCES})
 
+#emscripten needs some em-specific linker flags
+elseif(EMSCRIPTEN)
+	add_executable(hatari ${SOURCES})
+	set_target_properties(
+		hatari
+		PROPERTIES
+		LINK_FLAGS
+		"-O3 \
+-fno-exceptions \
+-s USE_SDL=2 -s USE_ZLIB=1 -s INITIAL_MEMORY=262144000 -s ASYNCIFY -s -s ASSERTIONS=0 \
+-s EXPORTED_RUNTIME_METHODS='[\"ccall\",\"cwrap\"]' \
+-s EXPORTED_FUNCTIONS=\"['_main','_Reset_Warm','_Reset_Cold','_Statusbar_UpdateInfo','_Main_UnPauseEmulation','_Floppy_InsertDiskIntoDrive','_Floppy_SetDiskFileName','_Floppy_EjectDiskFromDrive','_Configuration_ChangeMemory','_Configuration_ChangeSystem','_Configuration_ChangeTos','_Configuration_ChangeUseHardDiskDirectories','_Configuration_ChangeFastForward','_Configuration_Apply','_IoMem_UnInit','_IoMem_Init']\" \
+--preload-file ${CMAKE_BINARY_DIR}/files/@/share/hatari/ \
+--pre-js ${CMAKE_SOURCE_DIR}/src/emscripten.js \
+--shell-file ${CMAKE_SOURCE_DIR}/src/emscripten_shell.html"
+	)
 # Other targets, use default sources
 else()
 	add_executable(hatari ${SOURCES})
@@ -149,15 +176,11 @@ if(SDL2_OTHER_CFLAGS)
 	# message(STATUS "Additional CFLAGS of SDL: ${SDL2_OTHER_CFLAGS}")
 endif(SDL2_OTHER_CFLAGS)
 
-target_link_libraries(hatari Falcon UaeCpu GuiSdl Floppy Debug ${SDL2_LIBRARY})
+target_link_libraries(hatari Falcon UaeCpu GuiSdl Floppy Debug ${SDL2_LIBRARIES})
 
 if(Math_FOUND AND NOT APPLE)
 	target_link_libraries(hatari ${MATH_LIBRARY})
 endif()
-
-if(SDL2MAIN_LIBRARY)
-	target_link_libraries(hatari ${SDL2MAIN_LIBRARY})
-endif(SDL2MAIN_LIBRARY)
 
 if(Readline_FOUND)
 	target_link_libraries(hatari ${READLINE_LIBRARY})
@@ -186,6 +209,14 @@ endif(CapsImage_FOUND)
 if(Udev_FOUND)
 	target_link_libraries(hatari ${UDEV_LIBRARY})
 endif(Udev_FOUND)
+
+if(Capstone_FOUND)
+	target_link_libraries(hatari ${CAPSTONE_LIBRARY})
+endif(Capstone_FOUND)
+
+if(APPLE)
+	target_link_libraries(hatari "-framework Cocoa")
+endif()
 
 if(WIN32)
 	# Needed for socket() on Windows

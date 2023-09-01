@@ -83,7 +83,6 @@ static const struct Config_Tag configs_Screen[] =
 	{ "bResizable", Bool_Tag, &ConfigureParams.Screen.bResizable },
 	{ "bAllowOverscan", Bool_Tag, &ConfigureParams.Screen.bAllowOverscan },
 	{ "nSpec512Threshold", Int_Tag, &ConfigureParams.Screen.nSpec512Threshold },
-	{ "nForceBpp", Int_Tag, &ConfigureParams.Screen.nForceBpp },
 	{ "bAspectCorrect", Bool_Tag, &ConfigureParams.Screen.bAspectCorrect },
 	{ "bUseExtVdiResolutions", Bool_Tag, &ConfigureParams.Screen.bUseExtVdiResolutions },
 	{ "nVdiWidth", Int_Tag, &ConfigureParams.Screen.nVdiWidth },
@@ -109,6 +108,9 @@ static const struct Config_Tag configs_Joystick0[] =
 	{ "bEnableAutoFire", Bool_Tag, &ConfigureParams.Joysticks.Joy[0].bEnableAutoFire },
 	{ "bEnableJumpOnFire2", Bool_Tag, &ConfigureParams.Joysticks.Joy[0].bEnableJumpOnFire2 },
 	{ "nJoyId", Int_Tag, &ConfigureParams.Joysticks.Joy[0].nJoyId },
+	{ "nJoyBut1Index", Int_Tag, &ConfigureParams.Joysticks.Joy[0].nJoyButMap[0] },
+	{ "nJoyBut2Index", Int_Tag, &ConfigureParams.Joysticks.Joy[0].nJoyButMap[1] },
+	{ "nJoyBut3Index", Int_Tag, &ConfigureParams.Joysticks.Joy[0].nJoyButMap[2] },
 	{ "kUp", Key_Tag, &ConfigureParams.Joysticks.Joy[0].nKeyCodeUp },
 	{ "kDown", Key_Tag, &ConfigureParams.Joysticks.Joy[0].nKeyCodeDown },
 	{ "kLeft", Key_Tag, &ConfigureParams.Joysticks.Joy[0].nKeyCodeLeft },
@@ -124,6 +126,9 @@ static const struct Config_Tag configs_Joystick1[] =
 	{ "bEnableAutoFire", Bool_Tag, &ConfigureParams.Joysticks.Joy[1].bEnableAutoFire },
 	{ "bEnableJumpOnFire2", Bool_Tag, &ConfigureParams.Joysticks.Joy[1].bEnableJumpOnFire2 },
 	{ "nJoyId", Int_Tag, &ConfigureParams.Joysticks.Joy[1].nJoyId },
+	{ "nJoyBut1Index", Int_Tag, &ConfigureParams.Joysticks.Joy[1].nJoyButMap[0] },
+	{ "nJoyBut2Index", Int_Tag, &ConfigureParams.Joysticks.Joy[1].nJoyButMap[1] },
+	{ "nJoyBut3Index", Int_Tag, &ConfigureParams.Joysticks.Joy[1].nJoyButMap[2] },
 	{ "kUp", Key_Tag, &ConfigureParams.Joysticks.Joy[1].nKeyCodeUp },
 	{ "kDown", Key_Tag, &ConfigureParams.Joysticks.Joy[1].nKeyCodeDown },
 	{ "kLeft", Key_Tag, &ConfigureParams.Joysticks.Joy[1].nKeyCodeLeft },
@@ -139,6 +144,9 @@ static const struct Config_Tag configs_Joystick2[] =
 	{ "bEnableAutoFire", Bool_Tag, &ConfigureParams.Joysticks.Joy[2].bEnableAutoFire },
 	{ "bEnableJumpOnFire2", Bool_Tag, &ConfigureParams.Joysticks.Joy[2].bEnableJumpOnFire2 },
 	{ "nJoyId", Int_Tag, &ConfigureParams.Joysticks.Joy[2].nJoyId },
+	{ "nJoyBut1Index", Int_Tag, &ConfigureParams.Joysticks.Joy[2].nJoyButMap[0] },
+	{ "nJoyBut2Index", Int_Tag, &ConfigureParams.Joysticks.Joy[2].nJoyButMap[1] },
+	{ "nJoyBut3Index", Int_Tag, &ConfigureParams.Joysticks.Joy[2].nJoyButMap[2] },
 	{ "kUp", Key_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeUp },
 	{ "kDown", Key_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeDown },
 	{ "kLeft", Key_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeLeft },
@@ -154,6 +162,9 @@ static const struct Config_Tag configs_Joystick3[] =
 	{ "bEnableAutoFire", Bool_Tag, &ConfigureParams.Joysticks.Joy[3].bEnableAutoFire },
 	{ "bEnableJumpOnFire2", Bool_Tag, &ConfigureParams.Joysticks.Joy[3].bEnableJumpOnFire2 },
 	{ "nJoyId", Int_Tag, &ConfigureParams.Joysticks.Joy[3].nJoyId },
+	{ "nJoyBut1Index", Int_Tag, &ConfigureParams.Joysticks.Joy[3].nJoyButMap[0] },
+	{ "nJoyBut2Index", Int_Tag, &ConfigureParams.Joysticks.Joy[3].nJoyButMap[1] },
+	{ "nJoyBut3Index", Int_Tag, &ConfigureParams.Joysticks.Joy[3].nJoyButMap[2] },
 	{ "kUp", Key_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeUp },
 	{ "kDown", Key_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeDown },
 	{ "kLeft", Key_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeLeft },
@@ -169,6 +180,9 @@ static const struct Config_Tag configs_Joystick4[] =
 	{ "bEnableAutoFire", Bool_Tag, &ConfigureParams.Joysticks.Joy[4].bEnableAutoFire },
 	{ "bEnableJumpOnFire2", Bool_Tag, &ConfigureParams.Joysticks.Joy[4].bEnableJumpOnFire2 },
 	{ "nJoyId", Int_Tag, &ConfigureParams.Joysticks.Joy[4].nJoyId },
+	{ "nJoyBut1Index", Int_Tag, &ConfigureParams.Joysticks.Joy[4].nJoyButMap[0] },
+	{ "nJoyBut2Index", Int_Tag, &ConfigureParams.Joysticks.Joy[4].nJoyButMap[1] },
+	{ "nJoyBut3Index", Int_Tag, &ConfigureParams.Joysticks.Joy[4].nJoyButMap[2] },
 	{ "kUp", Key_Tag, &ConfigureParams.Joysticks.Joy[4].nKeyCodeUp },
 	{ "kDown", Key_Tag, &ConfigureParams.Joysticks.Joy[4].nKeyCodeDown },
 	{ "kLeft", Key_Tag, &ConfigureParams.Joysticks.Joy[4].nKeyCodeLeft },
@@ -184,6 +198,9 @@ static const struct Config_Tag configs_Joystick5[] =
 	{ "bEnableAutoFire", Bool_Tag, &ConfigureParams.Joysticks.Joy[5].bEnableAutoFire },
 	{ "bEnableJumpOnFire2", Bool_Tag, &ConfigureParams.Joysticks.Joy[5].bEnableJumpOnFire2 },
 	{ "nJoyId", Int_Tag, &ConfigureParams.Joysticks.Joy[5].nJoyId },
+	{ "nJoyBut1Index", Int_Tag, &ConfigureParams.Joysticks.Joy[5].nJoyButMap[0] },
+	{ "nJoyBut2Index", Int_Tag, &ConfigureParams.Joysticks.Joy[5].nJoyButMap[1] },
+	{ "nJoyBut3Index", Int_Tag, &ConfigureParams.Joysticks.Joy[5].nJoyButMap[2] },
 	{ "kUp", Key_Tag, &ConfigureParams.Joysticks.Joy[5].nKeyCodeUp },
 	{ "kDown", Key_Tag, &ConfigureParams.Joysticks.Joy[5].nKeyCodeDown },
 	{ "kLeft", Key_Tag, &ConfigureParams.Joysticks.Joy[5].nKeyCodeLeft },
@@ -479,6 +496,7 @@ static const struct Config_Tag configs_System[] =
 	{ "bBlitter", Bool_Tag, &ConfigureParams.System.bBlitter },
 	{ "nDSPType", Int_Tag, &ConfigureParams.System.nDSPType },
 	{ "nVMEType", Int_Tag, &ConfigureParams.System.nVMEType },
+	{ "nRtcYear", Int_Tag, &ConfigureParams.System.nRtcYear },
 	{ "bPatchTimerD", Bool_Tag, &ConfigureParams.System.bPatchTimerD },
 	{ "bFastBoot", Bool_Tag, &ConfigureParams.System.bFastBoot },
 	{ "bFastForward", Bool_Tag, &ConfigureParams.System.bFastForward },
@@ -539,8 +557,7 @@ void Configuration_SetDefault(void)
 	ConfigureParams.Debugger.bSymbolsAutoLoad = true;
 	ConfigureParams.Debugger.bMatchAllSymbols = false;
 	ConfigureParams.Debugger.nDisasmOptions = Disasm_GetOptions();
-	if ( ConfigureParams.Debugger.bDisasmUAE )
-		disasm_init();
+	Disasm_Init();
 
 	/* Set defaults for floppy disk images */
 	ConfigureParams.DiskImage.bAutoInsertDiskB = true;
@@ -608,8 +625,10 @@ void Configuration_SetDefault(void)
 	{
 		ConfigureParams.Joysticks.Joy[i].nJoystickMode = JOYSTICK_DISABLED;
 		ConfigureParams.Joysticks.Joy[i].bEnableAutoFire = false;
-		ConfigureParams.Joysticks.Joy[i].bEnableJumpOnFire2 = false;
+		ConfigureParams.Joysticks.Joy[i].bEnableJumpOnFire2 = true;
 		ConfigureParams.Joysticks.Joy[i].nJoyId = (i > maxjoy ? maxjoy : i);
+		for (int j = 0; j < JOYSTICK_BUTTONS; j++)
+			ConfigureParams.Joysticks.Joy[i].nJoyButMap[j] = j;
 		ConfigureParams.Joysticks.Joy[i].nKeyCodeUp = SDLK_UP;
 		ConfigureParams.Joysticks.Joy[i].nKeyCodeDown = SDLK_DOWN;
 		ConfigureParams.Joysticks.Joy[i].nKeyCodeLeft = SDLK_LEFT;
@@ -622,6 +641,7 @@ void Configuration_SetDefault(void)
 		ConfigureParams.Joysticks.Joy[1].nJoyId = 0;
 		ConfigureParams.Joysticks.Joy[0].nJoyId = (maxjoy ? 1 : 0);
 		ConfigureParams.Joysticks.Joy[1].nJoystickMode = JOYSTICK_REALSTICK;
+		ConfigureParams.Joysticks.Joy[1].bEnableJumpOnFire2 = false;
 	}
 
 	/* Set defaults for Keyboard */
@@ -631,12 +651,12 @@ void Configuration_SetDefault(void)
 	ConfigureParams.Keyboard.nKbdLayout = TOS_LANG_UNKNOWN;
 	ConfigureParams.Keyboard.nLanguage = TOS_LANG_UNKNOWN;
 	strcpy(ConfigureParams.Keyboard.szMappingFileName, "");
-  
+
 	/* Set defaults for Shortcuts */
 	ConfigureParams.Shortcut.withoutModifier[SHORTCUT_OPTIONS] = SDLK_F12;
 	ConfigureParams.Shortcut.withoutModifier[SHORTCUT_FULLSCREEN] = SDLK_F11;
 	ConfigureParams.Shortcut.withoutModifier[SHORTCUT_PAUSE] = SDLK_PAUSE;
-  
+
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_DEBUG] = SDLK_PAUSE;
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_OPTIONS] = SDLK_o;
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_FULLSCREEN] = SDLK_f;
@@ -700,7 +720,6 @@ void Configuration_SetDefault(void)
 	ConfigureParams.Screen.nFrameSkips = AUTO_FRAMESKIP_LIMIT;
 	ConfigureParams.Screen.bAllowOverscan = true;
 	ConfigureParams.Screen.nSpec512Threshold = 1;
-	ConfigureParams.Screen.nForceBpp = 0;
 	ConfigureParams.Screen.bAspectCorrect = true;
 	ConfigureParams.Screen.nMonitorType = MONITOR_TYPE_RGB;
 	ConfigureParams.Screen.bUseExtVdiResolutions = false;
@@ -761,6 +780,7 @@ void Configuration_SetDefault(void)
 	ConfigureParams.System.nCpuFreq = 8;	nCpuFreqShift = 0;
 	ConfigureParams.System.nDSPType = DSP_TYPE_NONE;
 	ConfigureParams.System.nVMEType = VME_TYPE_DUMMY; /* for TOS MegaSTE detection */
+	ConfigureParams.System.nRtcYear = 0;
 	ConfigureParams.System.bAddressSpace24 = true;
 	ConfigureParams.System.n_FPUType = FPU_NONE;
 	ConfigureParams.System.bCompatibleFPU = true; /* JIT */
@@ -823,10 +843,6 @@ void Configuration_Apply(bool bReset)
 	if (ConfigureParams.Screen.nFrameSkips < AUTO_FRAMESKIP_LIMIT)
 	{
 		nFrameSkips = ConfigureParams.Screen.nFrameSkips;
-	}
-	if (ConfigureParams.Screen.nForceBpp < 15)	/* Avoid 8-bit depth */
-	{
-		ConfigureParams.Screen.nForceBpp = 0;
 	}
 
 	/* Check/convert ST RAM size in KB */
@@ -928,8 +944,7 @@ void Configuration_Apply(bool bReset)
 	FDC_Drive_Set_NumberOfHeads ( 1 , ConfigureParams.DiskImage.DriveB_NumberOfHeads );
 
 	/* Update disassembler */
-	Disasm_SetCPUType(ConfigureParams.System.nCpuLevel, ConfigureParams.System.n_FPUType,
-	                  ConfigureParams.System.bMMU);
+	Disasm_Init();
 
 #if ENABLE_DSP_EMU
 	/* Enable DSP ? */
@@ -1206,3 +1221,59 @@ void Configuration_ChangeCpuFreq ( int CpuFreq_new )
 		M68000_ChangeCpuFreq();
 	}
 }
+
+#ifdef EMSCRIPTEN
+void Configuration_ChangeMemory ( int RamSizeKb )
+{
+	ConfigureParams.Memory.STRamSize_KB = RamSizeKb;
+	int size = STMemory_RAM_Validate_Size_KB ( ConfigureParams.Memory.STRamSize_KB );
+	if ( size < 0 )
+	{
+		size = 1024;
+		Log_Printf(LOG_WARN, "Unsupported %d KB ST-RAM amount, defaulting to %d KB\n",
+			   ConfigureParams.Memory.STRamSize_KB, size);
+	}
+	ConfigureParams.Memory.STRamSize_KB = size;
+	STMemory_Init ( ConfigureParams.Memory.STRamSize_KB * 1024 );
+}
+
+void Configuration_ChangeTos ( const char* szTosImageFileName )
+{
+		if(strlen(szTosImageFileName)<4096){
+			strcpy(ConfigureParams.Rom.szTosImageFileName,szTosImageFileName);
+		}
+}
+
+void Configuration_ChangeSystem ( int nMachineType )
+{
+	switch (nMachineType)
+	{
+	 case 0:
+		if (!bOldRealTimeClock)
+			ConfigureParams.System.nMachineType = MACHINE_ST;
+		else
+			ConfigureParams.System.nMachineType = MACHINE_MEGA_ST;
+		break;
+	 case 1:
+		ConfigureParams.System.nMachineType = MACHINE_STE;
+		break;
+	 case 2:
+		ConfigureParams.System.nMachineType = MACHINE_TT;
+		break;
+	 case 3:
+		ConfigureParams.System.nMachineType = MACHINE_FALCON;
+		break;
+	}
+}
+
+void Configuration_ChangeUseHardDiskDirectories ( bool bUseHardDiskDirectories )
+{
+	ConfigureParams.HardDisk.bUseHardDiskDirectories=bUseHardDiskDirectories;
+}
+
+void Configuration_ChangeFastForward ( bool bFastForwardActive )
+{
+	ConfigureParams.System.bFastForward=bFastForwardActive;
+}
+
+#endif

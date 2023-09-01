@@ -13,8 +13,8 @@
 extern SDL_Window *sdlWindow;
 
 /* TODO: Get rid of the following wrappers: */
-void SDL_UpdateRects(SDL_Surface *screen, int numrects, SDL_Rect *rects);
-void SDL_UpdateRect(SDL_Surface *screen, Sint32 x, Sint32 y, Sint32 w, Sint32 h);
+void Screen_UpdateRects(SDL_Surface *screen, int numrects, SDL_Rect *rects);
+void Screen_UpdateRect(SDL_Surface *screen, Sint32 x, Sint32 y, Sint32 w, Sint32 h);
 
 /* The 'screen' is a representation of the ST video memory	*/
 /* taking into account all the border tricks. Data are stored	*/
@@ -93,6 +93,11 @@ extern SDL_Surface *sdlscrn;
 extern Uint32 STRGBPalette[16];
 extern Uint32 ST2RGB[4096];
 
+extern uint16_t HBLPalettes[HBL_PALETTE_LINES];
+extern uint16_t *pHBLPalettes;
+extern uint32_t HBLPaletteMasks[HBL_PALETTE_MASKS];
+extern uint32_t *pHBLPaletteMasks;
+
 extern void Screen_Init(void);
 extern void Screen_UnInit(void);
 extern void Screen_Reset(void);
@@ -105,7 +110,7 @@ extern void Screen_ModeChanged(bool bForceChange);
 extern bool Screen_Draw(void);
 extern void Screen_SetTextureScale(int width, int height, int win_width,
                                    int win_height, bool bForceCreation);
-extern void Screen_SetGenConvSize(int width, int height, int bpp, bool bForceChange);
+extern void Screen_SetGenConvSize(int width, int height, bool bForceChange);
 extern void Screen_GenConvUpdate(SDL_Rect *extra, bool forced);
 extern Uint32 Screen_GetGenConvWidth(void);
 extern Uint32 Screen_GetGenConvHeight(void);

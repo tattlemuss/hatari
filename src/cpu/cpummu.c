@@ -143,7 +143,7 @@ void mmu_tt_modified (void)
 /* This dump output makes much more sense than old one */
 
 #ifdef WINUAE_FOR_HATARI
-#define	ULONG	Uint32
+#define	ULONG	uint32_t
 #endif
 
 #define LEVELA_SIZE 7
@@ -1090,7 +1090,7 @@ static void REGPARAM2 mmu_put_lrmw_word_unaligned(uaecptr addr, uae_u16 val)
 	SAVE_EXCEPTION;
 	TRY(prb) {
 		mmu_put_user_byte(addr, val >> 8, regs.s != 0, sz_word, true);
-		mmu_put_user_byte(addr + 1, val, regs.s != 0, sz_word, true);
+		mmu_put_user_byte(addr + 1, (uae_u8)val, regs.s != 0, sz_word, true);
 		RESTORE_EXCEPTION;
 	}
 	CATCH(prb) {
@@ -1131,7 +1131,7 @@ void REGPARAM2 mmu_put_word_unaligned(uaecptr addr, uae_u16 val, bool data)
 	SAVE_EXCEPTION;
 	TRY(prb) {
 		mmu_put_byte(addr, val >> 8, data, sz_word);
-		mmu_put_byte(addr + 1, val, data, sz_word);
+		mmu_put_byte(addr + 1, (uae_u8)val, data, sz_word);
 		RESTORE_EXCEPTION;
 	}
 	CATCH(prb) {
@@ -1260,7 +1260,7 @@ void REGPARAM2 dfc_put_word(uaecptr addr, uae_u16 val)
 			mmu_put_user_word(addr, val, super, sz_word, false);
 		} else {
 			mmu_put_user_byte(addr, val >> 8, super, sz_word, false);
-			mmu_put_user_byte(addr + 1, val, super, sz_word, false);
+			mmu_put_user_byte(addr + 1, (uae_u8)val, super, sz_word, false);
 		}
 		RESTORE_EXCEPTION;
 	}

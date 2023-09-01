@@ -18,7 +18,6 @@ const char Options_fileid[] = "Hatari options.c";
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <SDL.h>
 
 #include "main.h"
 #include "version.h"
@@ -86,7 +85,6 @@ enum {
 	OPT_MAXWIDTH,
 	OPT_MAXHEIGHT,
 	OPT_ZOOM,
-	OPT_FORCEBPP,
 	OPT_DISABLE_VIDEO,
 
 	OPT_BORDERS,		/* ST/STE display options */
@@ -171,8 +169,9 @@ enum {
 
 	OPT_MACHINE,		/* system options */
 	OPT_BLITTER,
-	OPT_VME,
 	OPT_DSP,
+	OPT_VME,
+	OPT_RTC_YEAR,
 	OPT_TIMERD,
 	OPT_FASTBOOT,
 
@@ -194,6 +193,7 @@ enum {
 	OPT_NATFEATS,
 	OPT_TRACE,
 	OPT_TRACEFILE,
+	OPT_MSG_REPEAT,
 	OPT_PARSE,
 	OPT_SAVECONFIG,
 	OPT_CONTROLSOCKET,
@@ -271,8 +271,6 @@ static const opt_t HatariOptions[] = {
 	  "<x>", "Maximum Hatari screen height before scaling" },
 	{ OPT_ZOOM, "-z", "--zoom",
 	  "<x>", "Hatari screen/window scaling factor (1.0 - 8.0)" },
-	{ OPT_FORCEBPP, NULL, "--bpp",
-	  "<x>", "Force internal bitdepth (x = 15/16/32, 0=disable)" },
 	{ OPT_DISABLE_VIDEO,   NULL, "--disable-video",
 	  "<bool>", "Run emulation without displaying video (audio only)" },
 
@@ -447,6 +445,8 @@ static const opt_t HatariOptions[] = {
 	  "<x>", "DSP emulation (x = none/dummy/emu, Falcon only)" },
 	{ OPT_VME,	NULL, "--vme",
 	  "<x>", "VME mode (x = none/dummy, MegaSTE/TT only)" },
+	{ OPT_RTC_YEAR,   NULL, "--rtc-year",
+	  "<x>", "Set initial year for RTC (0, 1980 <= x < 2080)" },
 	{ OPT_TIMERD,    NULL, "--timer-d",
 	  "<bool>", "Patch Timer-D (about doubles ST emulation speed)" },
 	{ OPT_FASTBOOT, NULL, "--fast-boot",
@@ -486,6 +486,8 @@ static const opt_t HatariOptions[] = {
 	  "<flags>", "Activate emulation tracing, see '--trace help'" },
 	{ OPT_TRACEFILE, NULL, "--trace-file",
 	  "<file>", "Save trace output to <file> (default=stderr)" },
+	{ OPT_MSG_REPEAT, NULL, "--msg-repeat",
+	  NULL, "Toggle log/trace message repeats (default=suppress)" },
 	{ OPT_PARSE, NULL, "--parse",
 	  "<file>", "Parse/execute debugger commands from <file>" },
 	{ OPT_SAVECONFIG, NULL, "--saveconfig",
@@ -942,7 +944,7 @@ static bool Opt_ValidateOptions(void)
 bool Opt_IsAtariProgram(const char *path)
 {
 	bool ret = false;
-	Uint8 test[2];
+	uint8_t test[2];
 	FILE *fp;
 
 	if (File_Exists(path) && (fp = fopen(path, "rb")))
@@ -1050,7 +1052,7 @@ static bool Opt_HandleArgument(const char *path)
 bool Opt_ParseParameters(int argc, const char * const argv[])
 {
 	int ncpu, skips, planes, cpuclock, threshold, memsize;
-	int dev, port, freq, temp, drive;
+	int dev, port, freq, temp, drive, year;
 	const char *errstr, *str;
 	int i, ok = true;
 	float zoom;
@@ -1197,24 +1199,6 @@ bool Opt_ParseParameters(int argc, const char * const argv[])
 
 		case OPT_DRIVE_LED:
 			ok = Opt_Bool(argv[++i], OPT_DRIVE_LED, &ConfigureParams.Screen.bShowDriveLed);
-			break;
-
-		case OPT_FORCEBPP:
-			planes = atoi(argv[++i]);
-			switch(planes)
-			{
-			case 32:
-			case 16:
-			case 15:
-				break;       /* supported */
-			case 24:
-				planes = 32; /* We do not support 24 bpp (yet) */
-				break;
-			default:
-				return Opt_ShowError(OPT_FORCEBPP, argv[i], "Invalid bit depth");
-			}
-			Log_Printf(LOG_DEBUG, "Hatari window BPP = %d.\n", planes);
-			ConfigureParams.Screen.nForceBpp = planes;
 			break;
 
 		case OPT_DISABLE_VIDEO:
@@ -1929,6 +1913,7 @@ bool Opt_ParseParameters(int argc, const char * const argv[])
 		case OPT_TIMERD:
 			ok = Opt_Bool(argv[++i], OPT_TIMERD, &ConfigureParams.System.bPatchTimerD);
 			break;
+
 		case OPT_FASTBOOT:
 			ok = Opt_Bool(argv[++i], OPT_FASTBOOT, &ConfigureParams.System.bFastBoot);
 			break;
@@ -1973,6 +1958,15 @@ bool Opt_ParseParameters(int argc, const char * const argv[])
 				return Opt_ShowError(OPT_VME, argv[i], "Unknown VME type");
 			}
 			bLoadAutoSave = false; /* TODO: needed? */
+			break;
+
+		case OPT_RTC_YEAR:
+			year = atoi(argv[++i]);
+			if(year && (year < 1980 || year >= 2080))
+			{
+				return Opt_ShowError(OPT_RTC_YEAR, argv[i], "Invalid RTC year");
+			}
+			ConfigureParams.System.nRtcYear = year;
 			break;
 
 			/* sound options */
@@ -2178,6 +2172,10 @@ bool Opt_ParseParameters(int argc, const char * const argv[])
 			ok = Opt_StrCpy(OPT_TRACEFILE, false, ConfigureParams.Log.sTraceFileName,
 					argv[i], sizeof(ConfigureParams.Log.sTraceFileName),
 					NULL);
+			break;
+
+		case OPT_MSG_REPEAT:
+			Log_ToggleMsgRepeat();
 			break;
 
 		case OPT_CONTROLSOCKET:

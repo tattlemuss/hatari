@@ -162,6 +162,7 @@ typedef enum
   JOYSTICK_KEYBOARD
 } JOYSTICKMODE;
 #define JOYSTICK_MODES 3
+#define JOYSTICK_BUTTONS 3
 
 typedef struct
 {
@@ -169,6 +170,7 @@ typedef struct
   bool bEnableAutoFire;
   bool bEnableJumpOnFire2;
   int nJoyId;
+  int nJoyButMap[JOYSTICK_BUTTONS];
   int nKeyCodeUp, nKeyCodeDown, nKeyCodeLeft, nKeyCodeRight, nKeyCodeFire;
 } JOYSTICK;
 
@@ -306,7 +308,6 @@ typedef struct
   bool bUseSdlRenderer;
   float nZoomFactor;
   int nSpec512Threshold;
-  int nForceBpp;
   int nVdiColors;
   int nVdiWidth;
   int nVdiHeight;
@@ -386,6 +387,7 @@ typedef struct
   bool bBlitter;                  /* TRUE if Blitter is enabled */
   DSPTYPE nDSPType;               /* how to "emulate" DSP */
   VMETYPE nVMEType;               /* how to "emulate" SCU/VME */
+  int nRtcYear;
   bool bPatchTimerD;
   bool bFastBoot;                 /* Enable to patch TOS for fast boot */
   bool bFastForward;
@@ -470,5 +472,12 @@ extern void Configuration_Load(const char *psFileName);
 extern void Configuration_Save(void);
 extern void Configuration_MemorySnapShot_Capture(bool bSave);
 extern void Configuration_ChangeCpuFreq ( int CpuFreq_new );
+#ifdef EMSCRIPTEN
+extern void Configuration_ChangeMemory(int RamSizeKb);
+extern void Configuration_ChangeSystem(int nMachineType);
+extern void Configuration_ChangeTos(const char* szTosImageFileName);
+extern void Configuration_ChangeUseHardDiskDirectories(bool bUseHardDiskDirectories);
+extern void Configuration_ChangeFastForward(bool bFastForwardActive);
+#endif
 
 #endif

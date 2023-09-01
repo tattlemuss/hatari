@@ -1457,6 +1457,7 @@ bool mapped_malloc (addrbank *ab)
 			if (md.hasbarrier) {
 				// fill end of ram with ILLEGAL to catch direct PC falling out of RAM.
 				put_long_host(ab->baseaddr + ab->reserved_size, 0x4afc4afc);
+				ab->barrier = true;
 			}
 			ab->allocated_size = ab->reserved_size;
 		}
@@ -1580,7 +1581,7 @@ static void fill_ce_banks (int start, int size, int banktype, int cachable )
  *
  * See stMemory.c for the address translation used by the MMU/MCU
  */
-void memory_map_Standard_RAM ( Uint32 MMU_Bank0_Size , Uint32 MMU_Bank1_Size )
+void memory_map_Standard_RAM ( uint32_t MMU_Bank0_Size , uint32_t MMU_Bank1_Size )
 {
 	Log_Printf(LOG_DEBUG, "memory_map_Standard_RAM total=%d ram0=%d ram1=%d mmu0=%d mmu1=%d\n", STmem_size, RAM_Bank0_Size, RAM_Bank1_Size, MMU_Bank0_Size, MMU_Bank1_Size);
 

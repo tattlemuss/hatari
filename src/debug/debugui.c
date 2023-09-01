@@ -45,6 +45,7 @@ const char DebugUI_fileid[] = "Hatari debugui.c";
 #include "debugui.h"
 #include "evaluate.h"
 #include "history.h"
+#include "profile.h"
 #include "symbols.h"
 #include "vars.h"
 
@@ -144,7 +145,7 @@ static int DebugUI_SetLogFile(int nArgc, char *psArgs[])
 /**
  * Helper to print given value in all supported number bases
  */
-static void DebugUI_PrintValue(Uint32 value)
+static void DebugUI_PrintValue(uint32_t value)
 {
 	bool one, ones;
 	int bit;
@@ -177,7 +178,7 @@ static void DebugUI_PrintValue(Uint32 value)
 static int DebugUI_Evaluate(int nArgc, char *psArgs[])
 {
 	const char *errstr, *expression = (const char *)psArgs[1];
-	Uint32 result;
+	uint32_t result;
 	int offset;
 
 	if (nArgc < 2)
@@ -221,7 +222,7 @@ static char *DebugUI_EvaluateExpressions(const char *initial)
 	char *end, *start, *input;
 	const char *errstr;
 	char valuestr[12];
-	Uint32 value;
+	uint32_t value;
 	bool fordsp;
 
 	/* input is split later on, need to save len here */
@@ -661,7 +662,7 @@ static int DebugUI_ParseCommand(const char *input_orig)
 	if (retval == DEBUGGER_CMDCONT || retval == DEBUGGER_ENDCONT)
 	{
 		if (psArgs[0] != sLastCmd)
-			strlcpy(sLastCmd, psArgs[0], sizeof(sLastCmd));
+			Str_Copy(sLastCmd, psArgs[0], sizeof(sLastCmd));
 		if (retval == DEBUGGER_ENDCONT)
 			retval = DEBUGGER_END;
 	}
@@ -951,11 +952,11 @@ static const dbgcommand_t uicommand[] =
 	  "\tThose are replaced by their values. Supported operators in\n"
 	  "\texpressions are, in the descending order of precedence:\n"
 	  "\t\t(), +, -, ~, *, /, +, -, >>, <<, ^, &, |\n"
-	  "\tParenthesis will fetch a _long_ value from the address\n"
-	  "\tto what the value inside it evaluates to. Prefixes can be\n"
+	  "\tParenthesis fetch long value from the given address,\n"
+	  "\tunless .<width> suffix is given. Prefixes can be\n"
 	  "\tused only in start of line or parenthesis.\n"
 	  "\tFor example:\n"
-	  "\t\t~%101 & $f0f0f ^ (d0 + 0x21)\n"
+	  "\t\t~%101 & $f0f0f ^ (d0 + 0x21).w\n"
 	  "\tResult value is shown as binary, decimal and hexadecimal.\n"
 	  "\tAfter this, '$' will TAB-complete to last result value.",
 	  true },
@@ -967,11 +968,11 @@ static const dbgcommand_t uicommand[] =
 	  false },
 	{ History_Parse, History_Match,
 	  "history", "hi",
-	  "show last CPU/DSP PC values & executed instructions",
+	  "show last CPU and/or DSP PC values + instructions",
 	  "cpu|dsp|on|off|<count> [limit]|save <file>\n"
-	  "\t'cpu' and 'dsp' enable instruction history tracking for just given\n"
+	  "\t'cpu' and 'dsp' enable program counter history tracking for given\n"
 	  "\tprocessor, 'on' tracks them both, 'off' will disable history.\n"
-	  "\tOptional 'limit' will set how many past instructions are tracked.\n"
+	  "\tOptional 'limit' will set how many past addresses are tracked.\n"
 	  "\tGiving just count will show (at max) given number of last saved PC\n"
 	  "\tvalues and instructions currently at corresponding RAM addresses.",
 	  false },
@@ -1073,6 +1074,8 @@ void DebugUI_Init(void)
 	const dbgcommand_t *cpucmd, *dspcmd;
 	int cpucmds, dspcmds;
 
+	Log_ResetMsgRepeat();
+
 	/* already initialized? */
 	if (debugCommands)
 		return;
@@ -1110,6 +1113,19 @@ void DebugUI_Init(void)
 		parseFileNames = NULL;
 		parseFiles = 0;
 	}
+}
+
+/**
+ * Debugger user interface de-initialization / free.
+ */
+void DebugUI_UnInit(void)
+{
+	Profile_CpuFree();
+	Profile_DspFree();
+	Symbols_FreeAll();
+	Log_ResetMsgRepeat();
+	free(debugCommand);
+	debugCommands = 0;
 }
 
 

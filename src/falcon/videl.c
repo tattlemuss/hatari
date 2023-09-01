@@ -130,8 +130,7 @@ void Videl_Init(void)
 void VIDEL_reset(void)
 {
 	Videl_Init();
-	Screen_SetGenConvSize(videl.save_scrWidth, videl.save_scrHeight,
-	                      ConfigureParams.Screen.nForceBpp, false);
+	Screen_SetGenConvSize(videl.save_scrWidth, videl.save_scrHeight, false);
 
 	videl.bUseSTShifter = false;				/* Use Falcon color palette by default */
 	videl.reg_ffff8006_save = IoMem_ReadByte(0xff8006);
@@ -896,28 +895,10 @@ void VIDEL_UpdateColors(void)
 
 void Videl_ScreenModeChanged(bool bForceChange)
 {
-	int bpp;
-
-	if (ConfigureParams.Screen.nForceBpp)
-	{
-		bpp = ConfigureParams.Screen.nForceBpp;
-	}
-	else if (Avi_AreWeRecording())
-	{
-		/* Avoid changing the bpp if we are recording */
-		bpp = sdlscrn->format->BitsPerPixel;
-	}
-	else
-	{
-		/* Using SDL's 16 bpp conversion function is a bit faster */
-		bpp = (videl.save_scrBpp == 16) ? 16 : 0;
-	}
-
 	LOG_TRACE(TRACE_VIDEL, "Videl : video mode change to %dx%d@%d\n",
 	          videl.save_scrWidth, videl.save_scrHeight, videl.save_scrBpp);
 
-	Screen_SetGenConvSize(videl.save_scrWidth, videl.save_scrHeight,
-	                      bpp, bForceChange);
+	Screen_SetGenConvSize(videl.save_scrWidth, videl.save_scrHeight, bForceChange);
 }
 
 
@@ -1126,7 +1107,7 @@ void Videl_Color15_WriteWord(void)
 /**
  * display Videl registers values (for debugger info command)
  */
-void Videl_Info(FILE *fp, Uint32 dummy)
+void Videl_Info(FILE *fp, uint32_t dummy)
 {
 	if (ConfigureParams.System.nMachineType != MACHINE_FALCON) {
 		fprintf(fp, "Not Falcon - no Videl!\n");

@@ -23,7 +23,6 @@ const char HatariGlue_fileid[] = "Hatari hatari-glue.c";
 #include "vdi.h"
 #include "stMemory.h"
 #include "ikbd.h"
-#include "screen.h"
 #include "video.h"
 #include "psg.h"
 #include "mfp.h"
@@ -185,7 +184,10 @@ void Exit680x0(void)
  */
 static void	CpuDoNOP ( void )
 {
-	(*cpufunctbl[0X4E71])(0x4E71);
+	if ( !CpuRunFuncNoret )
+		(*cpufunctbl[0X4E71])(0x4E71);
+	else
+		(*cpufunctbl_noret[0X4E71])(0x4E71);
 }
 
 
@@ -196,7 +198,7 @@ static void	CpuDoNOP ( void )
  */
 static bool is_cart_pc(void)
 {
-	Uint32 pc = M68000_GetPC();
+	uint32_t pc = M68000_GetPC();
 
 	if (ConfigureParams.System.bAddressSpace24 || (pc >> 24) == 0xff)
 	{
@@ -249,6 +251,11 @@ uae_u32 REGPARAM3 OpCode_SysInit(uae_u32 opcode)
 	return 4 * CYCLE_UNIT / 2;
 }
 
+void REGPARAM3 OpCode_SysInit_noret(uae_u32 opcode)
+{
+	OpCode_SysInit(opcode);
+}
+
 
 /**
  * Handle illegal opcode #8 (GEMDOS_OPCODE).
@@ -273,6 +280,12 @@ uae_u32 REGPARAM3 OpCode_GemDos(uae_u32 opcode)
 	return 4 * CYCLE_UNIT / 2;
 }
 
+void REGPARAM3 OpCode_GemDos_noret(uae_u32 opcode)
+{
+	OpCode_GemDos(opcode);
+}
+
+
 /**
  * Handle illegal opcode #9 (PEXEC_OPCODE).
  * When GEMDOS HD emulation is enabled, we use it to intercept the end of
@@ -294,6 +307,11 @@ uae_u32 REGPARAM3 OpCode_Pexec(uae_u32 opcode)
 	}
 
 	return 4 * CYCLE_UNIT / 2;
+}
+
+void REGPARAM3 OpCode_Pexec_noret(uae_u32 opcode)
+{
+	OpCode_Pexec(opcode);
 }
 
 
@@ -322,13 +340,18 @@ uae_u32 REGPARAM3 OpCode_VDI(uae_u32 opcode)
 	return 4 * CYCLE_UNIT / 2;
 }
 
+void REGPARAM3 OpCode_VDI_noret(uae_u32 opcode)
+{
+	OpCode_VDI(opcode);
+}
+
 
 /**
  * Emulator Native Features ID opcode interception.
  */
 uae_u32 REGPARAM3 OpCode_NatFeat_ID(uae_u32 opcode)
 {
-	Uint32 stack = Regs[REG_A7] + SIZE_LONG;	/* skip return address */
+	uint32_t stack = Regs[REG_A7] + SIZE_LONG;	/* skip return address */
 
 	if (NatFeat_ID(stack, &(Regs[REG_D0])))
 	{
@@ -337,13 +360,19 @@ uae_u32 REGPARAM3 OpCode_NatFeat_ID(uae_u32 opcode)
 	return 4 * CYCLE_UNIT / 2;
 }
 
+void REGPARAM3 OpCode_NatFeat_ID_noret(uae_u32 opcode)
+{
+	OpCode_NatFeat_ID(opcode);
+}
+
+
 /**
  * Emulator Native Features call opcode interception.
  */
 uae_u32 REGPARAM3 OpCode_NatFeat_Call(uae_u32 opcode)
 {
-	Uint32 stack = Regs[REG_A7] + SIZE_LONG;	/* skip return address */
-	Uint16 SR = M68000_GetSR();
+	uint32_t stack = Regs[REG_A7] + SIZE_LONG;	/* skip return address */
+	uint16_t SR = M68000_GetSR();
 	bool super;
 
 	super = ((SR & SR_SUPERMODE) == SR_SUPERMODE);
@@ -352,6 +381,11 @@ uae_u32 REGPARAM3 OpCode_NatFeat_Call(uae_u32 opcode)
 		CpuDoNOP ();
 	}
 	return 4 * CYCLE_UNIT / 2;
+}
+
+void REGPARAM3 OpCode_NatFeat_Call_noret(uae_u32 opcode)
+{
+	OpCode_NatFeat_Call(opcode);
 }
 
 

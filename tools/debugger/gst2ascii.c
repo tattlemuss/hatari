@@ -1,7 +1,7 @@
 /*
  * Hatari - gst2ascii.c
  * 
- * Copyright (C) 2013-2021 by Eero Tamminen
+ * Copyright (C) 2013-2023 by Eero Tamminen
  * 
  * This file is distributed under the GNU General Public License, version 2
  * or at your option any later version. Read the file gpl.txt for details.
@@ -19,20 +19,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 #if defined(__MINT__)	/* assume MiNT/lib is always big-endian */
-# define SDL_SwapBE16(x) x
-# define SDL_SwapBE32(x) x
+# define be_swap16(x) ((uint16_t)(x))
+# define be_swap32(x) ((uint32_t)(x))
 #else
-# include <SDL_endian.h>
+# include "maccess.h"
 #endif
 #include <assert.h>
 #include "../../src/debug/a.out.h"
-
-typedef enum {
-	SYMTYPE_TEXT = 1,
-	SYMTYPE_DATA = 2,
-	SYMTYPE_BSS  = 4,
-	SYMTYPE_ABS  = 8
-} symtype_t;
 
 #define ARRAY_SIZE(x) (int)(sizeof(x)/sizeof(x[0]))
 
@@ -60,10 +53,12 @@ static void usage(const char *msg)
 		{ 'a', "no absolute symbols (are values, not addresses)" },
 		{ 'b', "no BSS symbols" },
 		{ 'd', "no DATA symbols" },
-		{ 't', "no TEXT symbols" },
+		{ 'f', "no file/path symbols" },
+		{ 'g', "no GCC internal (object) symbols" },
 		{ 'l', "no local (.L*) symbols" },
-		{ 'o', "no object symbols (filenames or GCC internals)" },
 		{ 'n', "sort by name (not address)" },
+		{ 't', "no TEXT symbols" },
+		{ 'w', "no weak symbols" },
 	};
 	const char *name;
 	int i;
@@ -89,6 +84,8 @@ static void usage(const char *msg)
 	for (i = 0; i < ARRAY_SIZE(OptInfo); i++) {
 		fprintf(stderr, "\t-%c\t%s\n", OptInfo[i].opt, OptInfo[i].desc);
 	}
+	fprintf(stderr, "\n(Normally one should use at least '-f -g -l' options.)\n");
+
 	if (msg) {
 		fprintf(stderr, "\nERROR: %s!\n", msg);
 	}
@@ -135,7 +132,7 @@ static symbol_list_t* symbols_load(const char *filename, const symbol_opts_t *op
 		usage("reading program file failed");
 	}
 
-	if (SDL_SwapBE16(magic) != ATARI_PROGRAM_MAGIC) {
+	if (be_swap16(magic) != ATARI_PROGRAM_MAGIC) {
 		usage("file isn't an Atari program file");
 	}
 	list = symbols_load_binary(fp, opts, update_sections);
@@ -229,17 +226,23 @@ int main(int argc, const char *argv[])
 		case 'd':
 			opts.notypes |= SYMTYPE_DATA;
 			break;
-		case 't':
-			opts.notypes |= SYMTYPE_TEXT;
+		case 'f':
+			opts.no_files = true;
+			break;
+		case 'g':
+			opts.no_gccint = true;
 			break;
 		case 'l':
 			opts.no_local = true;
 			break;
-		case 'o':
-			opts.no_obj = true;
-			break;
 		case 'n':
 			opts.sort_name = true;
+			break;
+		case 't':
+			opts.notypes |= SYMTYPE_TEXT;
+			break;
+		case 'w':
+			opts.notypes |= SYMTYPE_WEAK;
 			break;
 		default:
 			usage("unknown option");

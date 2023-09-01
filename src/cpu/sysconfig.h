@@ -19,11 +19,16 @@
 
 #define DRIVESOUND
 #define GFXFILTER
+#if defined(_M_ARM64) || defined(_M_ARM64EC)
+#define __arm__
+#define MSVC_LONG_DOUBLE
+#else
 #define X86_MSVC_ASSEMBLY
 //#define OPTIMIZED_FLAGS
 #define MSVC_LONG_DOUBLE
 #ifndef __i386__
 #define __i386__
+#endif
 #endif
 #define WINDOWS
 #define ZLIB_WINAPI
@@ -34,12 +39,16 @@
 
 #ifndef UAE_MINI
 
+#if !defined(_M_ARM64) && !defined(_M_ARM64EC) && !defined(__aarch64__)
+//#define JIT /* JIT compiler support */
+//#define USE_JIT_FPU
+#endif
+
 #define DEBUGGER
+//#define GDBSERVER
 #define FILESYS /* filesys emulation */
 #define UAE_FILESYS_THREADS
 //#define AUTOCONFIG /* autoconfig support, fast ram, harddrives etc.. */
-//#define JIT /* JIT compiler support */
-//#define USE_JIT_FPU
 //#define NOFLAGS_SUPPORT_GENCPU
 #define NOFLAGS_SUPPORT_GENCOMP
 //#define HAVE_GET_WORD_UNSWAPPED
