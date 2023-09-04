@@ -65,17 +65,13 @@ bool LaunchHatari(const LaunchSettings& settings, const Session* pSession)
     // First make a temp file for breakpoints etc
 
     {
-        // Breakpoint script file
+        // Program start script file
         {
             QString tmpContents;
             QTextStream ref(&tmpContents);
 
             if (settings.m_fastLaunch)
-            {
-                ref << "setopt --fast-forward 0\r\n";   // in bp file
-                args.push_front("1");
-                args.push_front("--fast-forward");      // in startup args
-            }
+                ref << "setopt --fast-forward 0\r\n";   // speed = 0 in bp file
 
             ref << "symbols prg\r\n";
             if (settings.m_breakMode == LaunchSettings::kProgramBreakpoint)
@@ -98,6 +94,9 @@ bool LaunchHatari(const LaunchSettings& settings, const Session* pSession)
             QString tmpContents;
             QTextStream ref(&tmpContents);
             QString progStartFilename = pSession->m_pProgramStartScript->fileName();
+
+            if (settings.m_fastLaunch)
+                ref << "setopt --fast-forward 1\r\n";   // speed=1 in startup file
 
             // Generate some commands for
             // Break at boot/start commands
