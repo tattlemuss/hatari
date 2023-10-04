@@ -286,9 +286,10 @@ static bool read_hex32_value(const char* c, uint32_t* result)
 	uint32_t acc = 0;
 	uint8_t val = 0;
 	int count;
+	*result = 0;
 
-	// Check for empty string
-	if (*c == 0)
+	// Check for string with no hex chars in
+	if (!read_hex_char(*c, &val))
 		return false;
 
 	for (count = 0; count < 8; ++count)
