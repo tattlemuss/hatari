@@ -62,8 +62,8 @@ uint64_t Dispatcher::InsertFlush()
 
 uint64_t Dispatcher::ReadMemory(MemorySlot slot, uint32_t address, uint32_t size)
 {
-    std::string command = std::string("mem ") + std::to_string(address) + " " + std::to_string(size);
-    return SendCommandShared(slot, command);
+    QString tmp = QString::asprintf("mem %x %x", address, size);
+    return SendCommandShared(slot, tmp.toStdString());
 }
 
 uint64_t Dispatcher::ReadInfoYm()
@@ -88,7 +88,7 @@ uint64_t Dispatcher::ReadSymbols()
 
 uint64_t Dispatcher::WriteMemory(uint32_t address, const QVector<uint8_t> &data)
 {
-    QString command = QString::asprintf("memset %u %d ", address, data.size());
+    QString command = QString::asprintf("memset %x %x ", address, data.size());
     for (int i = 0; i <  data.size(); ++i)
         command += QString::asprintf("%02x", data[i]);
 
@@ -142,7 +142,7 @@ uint64_t Dispatcher::SetBreakpoint(std::string expression, uint64_t optionFlags)
 
 uint64_t Dispatcher::DeleteBreakpoint(uint32_t breakpointId)
 {
-    QString cmd = QString::asprintf("bpdel %d", breakpointId);
+    QString cmd = QString::asprintf("bpdel %x", breakpointId);
     SendCommandPacket(cmd.toStdString().c_str());
     return SendCommandPacket("bplist");
 }
@@ -157,7 +157,7 @@ uint64_t Dispatcher::SetRegister(int reg, uint32_t val)
 
 uint64_t Dispatcher::SetExceptionMask(uint32_t mask)
 {
-    return SendCommandPacket(QString::asprintf("exmask %u", mask).toStdString().c_str());
+    return SendCommandPacket(QString::asprintf("exmask %x", mask).toStdString().c_str());
 }
 
 uint64_t Dispatcher::SetLoggingFile(const std::string& filename)
@@ -194,7 +194,7 @@ uint64_t Dispatcher::SendConsoleCommand(const std::string& cmd)
 uint64_t Dispatcher::SendMemFind(const QVector<uint8_t>& valuesAndMasks, uint32_t startAddress, uint32_t endAddress)
 {
     std::string packet = "memfind ";
-    QString command = QString::asprintf("memfind %u %d ", startAddress, endAddress - startAddress);
+    QString command = QString::asprintf("memfind %x %x ", startAddress, endAddress - startAddress);
 
     for (int i = 0; i <  valuesAndMasks.size(); ++i)
         command += QString::asprintf("%02x", valuesAndMasks[i]);

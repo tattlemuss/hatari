@@ -33,7 +33,6 @@
 #include "debugui.h"	/* For DebugUI_RegisterRemoteDebug */
 #include "debug_priv.h"	/* For debugOutput control */
 #include "debugcpu.h"	/* For stepping */
-#include "evaluate.h"
 #include "stMemory.h"
 #include "breakcond.h"
 #include "symbols.h"
@@ -276,6 +275,33 @@ static bool read_hex_char(char c, uint8_t* result)
 	}
 	*result = 0;
 	return false;
+}
+
+// -----------------------------------------------------------------------------
+// Read a value of [1..8] hex chars, zero-terminated.
+// Returns false if no correct match is made.
+static bool read_hex32_value(const char* c, uint32_t* result)
+{
+	uint32_t acc = 0;
+	uint8_t val = 0;
+	int count;
+
+	// Check for empty string
+	if (*c == 0)
+		return false;
+
+	for (count = 0; count < 8; ++count)
+	{
+		if (!read_hex_char(*c, &val))
+			break;
+		acc <<= 4;
+		acc |= val;
+		++c;
+	}
+	*result = acc;
+
+	// We expect the string to end with a zero-terminator, or it's an error.
+	return *c == 0;
 }
 
 // -----------------------------------------------------------------------------
@@ -533,9 +559,9 @@ static int RemoteDebug_regs(int nArgc, char *psArgs[], RemoteDebugState* state)
 /**
  * Dump the requested area of ST memory.
  *
- * Input: "mem <start addr> <size in bytes>\n"
+ * Input: "mem <start addr:hex> <size in bytes:hex>\n"
  *
- * Output: "mem <address-expr> <size-expr> <memory as base16 string>\n"
+ * Output: "mem <address:hex> <size:hexr> <memory as base16 string>\n"
  */
 
 static int RemoteDebug_mem(int nArgc, char *psArgs[], RemoteDebugState* state)
@@ -543,20 +569,15 @@ static int RemoteDebug_mem(int nArgc, char *psArgs[], RemoteDebugState* state)
 	int arg;
 	Uint32 memdump_addr = 0;
 	Uint32 memdump_count = 0;
-	int offset = 0;
-	const char* err_str = NULL;
 
 	/* For remote debug, only "address" "count" is supported */
 	arg = 1;
 	if (nArgc >= arg + 2)
 	{
-		err_str = Eval_Expression(psArgs[arg], &memdump_addr, &offset, false);
-		if (err_str)
+		if (!read_hex32_value(psArgs[arg], &memdump_addr))
 			return 1;
-
 		++arg;
-		err_str = Eval_Expression(psArgs[arg], &memdump_count, &offset, false);
-		if (err_str)
+		if (!read_hex32_value(psArgs[arg], &memdump_count))
 			return 1;
 		++arg;
 	}
@@ -621,7 +642,7 @@ static int RemoteDebug_mem(int nArgc, char *psArgs[], RemoteDebugState* state)
 /**
  * Write the requested area of ST memory.
  *
- * Input: "memset <start addr> <hex-data>\n"
+ * Input: "memset <start addr:hex> <hex-data:hex>\n"
  *
  * Output: "OK"/"NG"
  */
@@ -629,27 +650,22 @@ static int RemoteDebug_mem(int nArgc, char *psArgs[], RemoteDebugState* state)
 static int RemoteDebug_memset(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	int arg;
-	Uint32 memdump_addr = 0;
-	Uint32 memdump_end = 0;
-	Uint32 memdump_count = 0;
+	Uint32 memset_addr = 0;
+	Uint32 memset_end = 0;
+	Uint32 memset_count = 0;
 	uint8_t valHi;
 	uint8_t valLo;
-	int offset = 0;
-	const char* err_str = NULL;
 
 	/* For remote debug, only "address" "count" is supported */
 	arg = 1;
 	if (nArgc >= arg + 3)
 	{
 		// Address
-		err_str = Eval_Expression(psArgs[arg], &memdump_addr, &offset, false);
-		if (err_str)
+		if (!read_hex32_value(psArgs[arg], &memset_addr))
 			return 1;
-
 		++arg;
 		// Size
-		err_str = Eval_Expression(psArgs[arg], &memdump_count, &offset, false);
-		if (err_str)
+		if (!read_hex32_value(psArgs[arg], &memset_count))
 			return 1;
 		++arg;
 	}
@@ -659,9 +675,9 @@ static int RemoteDebug_memset(int nArgc, char *psArgs[], RemoteDebugState* state
 		return 1;
 	}
 
-	memdump_end = memdump_addr + memdump_count;
+	memset_end = memset_addr + memset_count;
 	uint32_t pos = 0;
-	while (memdump_addr < memdump_end)
+	while (memset_addr < memset_end)
 	{
 		if (!read_hex_char(psArgs[arg][pos], &valHi))
 			return 1;
@@ -670,16 +686,15 @@ static int RemoteDebug_memset(int nArgc, char *psArgs[], RemoteDebugState* state
 			return 1;
 		++pos;
 
-		//put_byte(memdump_addr, (valHi << 4) | valLo);
-		STMemory_WriteByte(memdump_addr, (valHi << 4) | valLo);
-		++memdump_addr;
+		STMemory_WriteByte(memset_addr, (valHi << 4) | valLo);
+		++memset_addr;
 	}
 	send_str(state, "OK");
 	send_sep(state);
 	// Report changed range so tools can decide to update
-	send_hex(state, memdump_end - memdump_count);
+	send_hex(state, memset_end - memset_count);
 	send_sep(state);
-	send_hex(state, memdump_count);
+	send_hex(state, memset_count);
 	return 0;
 }
 
@@ -733,7 +748,10 @@ static int RemoteDebug_bplist(int nArgc, char *psArgs[], RemoteDebugState* state
 
 // -----------------------------------------------------------------------------
 /* Remove breakpoint number N.
-   NOTE breakpoint IDs start at 1!
+ *
+ * Input: "bpdel <breakpoint_index:hex>
+ * 
+ * NOTE breakpoint IDs start at 1!
 */
 static int RemoteDebug_bpdel(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
@@ -741,7 +759,7 @@ static int RemoteDebug_bpdel(int nArgc, char *psArgs[], RemoteDebugState* state)
 	Uint32 bp_position;
 	if (nArgc >= arg + 1)
 	{
-		if (Eval_Number(psArgs[arg], &bp_position))
+		if (read_hex32_value(psArgs[arg], &bp_position))
 		{
 			if (BreakCond_RemoveCpuBreakpoint(bp_position))
 			{
@@ -780,20 +798,21 @@ static int RemoteDebug_symlist(int nArgc, char *psArgs[], RemoteDebugState* stat
 }
 
 // -----------------------------------------------------------------------------
-/* "exmask" -- Read or set exception mask */
-/* returns "OK <mask val>"" */
+/* "exmask" -- Read or set exception mask
+ *
+ * Input: exmask
+ * Input: exmask <new_mask:hex>
+ * 
+ *  returns "OK <mask val:hex>"" */
 static int RemoteDebug_exmask(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	int arg = 1;
 	Uint32 mask;
-	int offset;
-	const char* err_str;
 
 	if (nArgc == 2)
 	{
 		// Assumed to set the mask
-		err_str = Eval_Expression(psArgs[arg], &mask, &offset, false);
-		if (err_str)
+		if (!read_hex32_value(psArgs[arg], &mask))
 			return 1;
 		ExceptionDebugMask = mask;
 	}
@@ -940,15 +959,13 @@ static int RemoteDebug_ffwd(int nArgc, char *psArgs[], RemoteDebugState* state)
 }
 
 // -----------------------------------------------------------------------------
-/* "memfind <start> <count> <stringdata>" Search memory for string */
+/* "memfind <start:hex> <count:hex> <stringdata>" Search memory for string */
 /* returns "OK <addr>" where addr is the next address found if successful */
 static int RemoteDebug_memfind(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	Uint32 find_addr = 0;
 	Uint32 find_count = 0;
 	Uint32 find_end = 0;
-	int offset = 0;
-	const char* err_str = NULL;
 	int readPos = 0;
 	RemoteDebugBuffer searchBuffer;
 	size_t stringSize;
@@ -960,13 +977,11 @@ static int RemoteDebug_memfind(int nArgc, char *psArgs[], RemoteDebugState* stat
 	arg = 1;
 	if (nArgc >= arg + 2)
 	{
-		err_str = Eval_Expression(psArgs[arg], &find_addr, &offset, false);
-		if (err_str)
+		if (!read_hex32_value(psArgs[arg], &find_addr))
 			return 1;
 
 		++arg;
-		err_str = Eval_Expression(psArgs[arg], &find_count, &offset, false);
-		if (err_str)
+		if (!read_hex32_value(psArgs[arg], &find_count))
 			return 1;
 		++arg;
 	}
