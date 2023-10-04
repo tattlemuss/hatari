@@ -79,7 +79,8 @@ static bool bRemoteBreakIsActive = false;
 /* 0x1003 -- add reset commands */
 /* 0x1004    add ffwd command, and ffwd status in NotifyStatus() */
 /* 0x1005    add memfind command, add stramsize to $config notification */
-#define REMOTEDEBUG_PROTOCOL_ID	(0x1005)
+/* 0x1006    use hex only for address/size in mem[*], bpdel, exmask commands */
+#define REMOTEDEBUG_PROTOCOL_ID	(0x1006)
 
 /* Char ID to denote terminator of a token. This is under the ASCII "normal"
 	character value range so that 32-255 can be used */
