@@ -6,6 +6,7 @@
 
 // Forward declarations
 #include "../models/session.h"  // for WindowType
+#include "../hardware/regs_st.h"
 #include "nonantialiasimage.h"  // for MouseInfo
 #include "showaddressactions.h"
 
@@ -161,6 +162,10 @@ private:
 
     Palette         m_paletteMode;
     uint32_t        m_paletteAddress;
+
+    // Cached information when video register fetch happens.
+    // Used to control palette when in Mono mode.
+    Regs::RESOLUTION    m_cachedResolution;
 
     // Stores state of "memory wanted" vs "memory request in flight"
     struct Request
