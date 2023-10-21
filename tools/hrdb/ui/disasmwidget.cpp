@@ -27,36 +27,6 @@
 #include "quicklayout.h"
 #include "symboltext.h"
 
-#include "../fonda/readelf.h"
-
-Elf g_elf;
-
-struct CodeLine
-{
-    QString dir;
-    QString file;
-    int line;
-};
-
-bool FindCodePoint(const Elf& elf, uint32_t offset, CodeLine& res)
-{
-    for (const CompilationUnit& cu : elf.units)
-    {
-        for (const CodePoint& point : cu.points)
-        {
-            if (point.address == offset)
-            {
-                const CompilationUnit::File& f = cu.files[point.file_index];
-                res.dir = cu.dirs[f.dir_index].c_str();
-                res.file = f.filename.c_str();
-                res.line = point.line;
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
 DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex):
     QWidget(parent),
     m_memory(0, 0),
@@ -118,17 +88,6 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex):
     setMouseTracking(true);
 
     this->setFocusPolicy(Qt::FocusPolicy::StrongFocus);
-
- //   QFile elfFile("/home/steve/projects/atari/ttrak/TTRAK.elf");
-//    QFile elfFile("/home/steve/projects/atari/AdamIsMeee/build_st/obj/adam.elf");
-        QFile elfFile("/home/steve/projects/atari/bigbrownbuild-git/barebones/cpptest.elf");
-    elfFile.open(QIODevice::ReadOnly);
-    QByteArray elfData = elfFile.readAll();
-    elfFile.close();
-
-    int elfRef = process_elf_file((const uint8_t*)elfData.data(), elfData.size(), g_elf);
-    (void)elfRef;
-
 }
 
 DisasmWidget::~DisasmWidget()
@@ -421,24 +380,6 @@ void DisasmWidget::memoryChanged(int memorySlot, uint64_t commandId)
     // Clear the request, to say we are up to date
     m_requestId = 0;
     update();
-
-    // Try to find source line.
-    const Registers& regs = m_pTargetModel->GetRegs();
-    uint32_t pc_offset = regs.Get(Registers::PC) - regs.Get(Registers::TEXT);
-
-    CodeLine line;
-    if (FindCodePoint(g_elf, pc_offset, line))
-    {
-        QString msg;
-        QTextStream ref(&msg);
-        ref << "Code: " << line.dir << "/" << line.file << ": " << line.line;
-        m_pSession->SetMessage(msg);
-    }
-    else
-    {
-        m_pSession->SetMessage("");
-    }
-
 }
 
 void DisasmWidget::breakpointsChanged(uint64_t /*commandId*/)
