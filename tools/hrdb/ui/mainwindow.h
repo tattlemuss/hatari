@@ -117,6 +117,14 @@ private:
     // Exection
     void runTo(RunToMode mode);
 
+private slots:
+    void runToRtsSlot() { runTo(RunToMode::kRunToRts); }
+    void runToRteSlot() { runTo(RunToMode::kRunToRte); }
+    void runToVblSlot() { runTo(RunToMode::kRunToVbl); }
+    void runToHblSlot() { runTo(RunToMode::kRunToHbl); }
+    void runToRamSlot() { runTo(RunToMode::kRunToRam); }
+
+private:
     // Our UI widgets
     QWidget*        m_pRunningSquare;
     QPushButton*    m_pStartStopButton;

@@ -181,11 +181,11 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     new QShortcut(QKeySequence("U"),              this, SLOT(runToClickedSlot()));
     new QShortcut(QKeySequence("Ctrl+Shift+U"),   this, SLOT(cycleRunToSlot()));
     // Specific "Run until" modes
-    new QShortcut(QKeySequence("Ctrl+U,S"),       this, [=] () { this->runTo(RunToMode::kRunToRts); });
-    new QShortcut(QKeySequence("Ctrl+U,E"),       this, [=] () { this->runTo(RunToMode::kRunToRte); });
-    new QShortcut(QKeySequence("Ctrl+U,V"),       this, [=] () { this->runTo(RunToMode::kRunToVbl); });
-    new QShortcut(QKeySequence("Ctrl+U,H"),       this, [=] () { this->runTo(RunToMode::kRunToHbl); });
-    new QShortcut(QKeySequence("Ctrl+U,R"),       this, [=] () { this->runTo(RunToMode::kRunToRam); });
+    new QShortcut(QKeySequence("Ctrl+U,S"),       this, SLOT(runToRtsSlot()));
+    new QShortcut(QKeySequence("Ctrl+U,E"),       this, SLOT(runToRteSlot()));
+    new QShortcut(QKeySequence("Ctrl+U,V"),       this, SLOT(runToVblSlot()));
+    new QShortcut(QKeySequence("Ctrl+U,H"),       this, SLOT(runToHblSlot()));
+    new QShortcut(QKeySequence("Ctrl+U,R"),       this, SLOT(runToRamSlot()));
 
     new QShortcut(QKeySequence("F5"),            this, SLOT(startStopClickedSlot()));
     new QShortcut(QKeySequence("F11"),           this, SLOT(singleStepClickedSlot()));
