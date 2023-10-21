@@ -9,8 +9,13 @@ Basic program control:
 | S             | Step (execute next instruction)              |
 | Ctrl+S        | Skip (jump over instruction                  |
 | N             | Next (execute, but step through bsr/jsr/dbf) |
-| U             | Run Until RTS/RTE/VBL/HBL                    |
+| U             | Run Until RTS/RTE/VBL/HBL/RAM                |
 | Ctrl+Shift+U  | Cycle "Run Until.." choice                   |
+| Ctrl+U, S     | Run To RTS                                   |
+| Ctrl+U, E     | Run To RTE                                   |
+| Ctrl+U, V     | Run To VBL                                   |
+| Ctrl+U, H     | Run To HBL                                   |
+| Ctrl+U, R     | Run To RAM (exits e.g. TOS, cartridge)       |
 | Alt+Shift+B   | Add breakpoint (dialog)                      |
 
 Window focus:

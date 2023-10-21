@@ -50,6 +50,17 @@ public:
 protected:
     virtual void closeEvent(QCloseEvent *event) override;
 
+private:
+    enum RunToMode
+    {
+        kRunToRts,
+        kRunToRte,
+        kRunToVbl,
+        kRunToHbl,
+        kRunToRam,
+        kRunToMax,
+    };
+
 private slots:
     void startStopClickedSlot();
     void singleStepClickedSlot();
@@ -60,14 +71,6 @@ private slots:
     void breakPressedSlot();
 
 private:
-    enum RunToMode
-    {
-        kRunToRts,
-        kRunToRte,
-        kRunToVbl,
-        kRunToHbl,
-        kRunToMax,
-    };
     void connectChanged();
     void startStopChanged();
     void memoryChanged(int slot, uint64_t commandId);
@@ -110,6 +113,9 @@ private:
     // Settings
     void loadSettings();
     void saveSettings();
+
+    // Exection
+    void runTo(RunToMode mode);
 
     // Our UI widgets
     QWidget*        m_pRunningSquare;

@@ -69,6 +69,7 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     m_pRunToCombo->insertItem(kRunToRte, "RTE");
     m_pRunToCombo->insertItem(kRunToVbl, "Next VBL");
     m_pRunToCombo->insertItem(kRunToHbl, "Next HBL");
+    m_pRunToCombo->insertItem(kRunToRam, "In RAM");
 
     for (int i = 0; i < kNumDisasmViews; ++i)
     {
@@ -179,6 +180,12 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     new QShortcut(QKeySequence("N"),              this, SLOT(nextClickedSlot()));
     new QShortcut(QKeySequence("U"),              this, SLOT(runToClickedSlot()));
     new QShortcut(QKeySequence("Ctrl+Shift+U"),   this, SLOT(cycleRunToSlot()));
+    // Specific "Run until" modes
+    new QShortcut(QKeySequence("Ctrl+U,S"),       this, [=] () { this->runTo(RunToMode::kRunToRts); });
+    new QShortcut(QKeySequence("Ctrl+U,E"),       this, [=] () { this->runTo(RunToMode::kRunToRte); });
+    new QShortcut(QKeySequence("Ctrl+U,V"),       this, [=] () { this->runTo(RunToMode::kRunToVbl); });
+    new QShortcut(QKeySequence("Ctrl+U,H"),       this, [=] () { this->runTo(RunToMode::kRunToHbl); });
+    new QShortcut(QKeySequence("Ctrl+U,R"),       this, [=] () { this->runTo(RunToMode::kRunToRam); });
 
     new QShortcut(QKeySequence("F5"),            this, SLOT(startStopClickedSlot()));
     new QShortcut(QKeySequence("F11"),           this, SLOT(singleStepClickedSlot()));
@@ -363,17 +370,7 @@ void MainWindow::runToClickedSlot()
     if (m_pTargetModel->IsRunning())
         return;
 
-    if (m_pRunToCombo->currentIndex() == kRunToRts)
-        m_pDispatcher->SetBreakpoint("(pc).w = $4e75", Dispatcher::kBpFlagOnce);   // RTS
-    else if (m_pRunToCombo->currentIndex() == kRunToRte)
-        m_pDispatcher->SetBreakpoint("(pc).w = $4e73", Dispatcher::kBpFlagOnce);   // RTE
-    else if (m_pRunToCombo->currentIndex() == kRunToVbl)
-        m_pDispatcher->SetBreakpoint("VBL ! VBL", Dispatcher::kBpFlagOnce);        // VBL
-    else if (m_pRunToCombo->currentIndex() == kRunToHbl)
-        m_pDispatcher->SetBreakpoint("HBL ! HBL", Dispatcher::kBpFlagOnce);        // VBL
-    else
-        return;
-    m_pDispatcher->Run();
+    runTo((RunToMode)m_pRunToCombo->currentIndex());
 }
 
 void MainWindow::cycleRunToSlot()
@@ -572,6 +569,29 @@ void MainWindow::saveSettings()
     m_pConsoleWindow->saveSettings();
     m_pHardwareWindow->saveSettings();
     m_pProfileWindow->saveSettings();
+}
+
+void MainWindow::runTo(MainWindow::RunToMode mode)
+{
+    if (!m_pTargetModel->IsConnected())
+        return;
+    if (m_pTargetModel->IsRunning())
+        return;
+
+    if (mode == kRunToRts)
+        m_pDispatcher->SetBreakpoint("(pc).w = $4e75", Dispatcher::kBpFlagOnce);   // RTS
+    else if (mode == kRunToRte)
+        m_pDispatcher->SetBreakpoint("(pc).w = $4e73", Dispatcher::kBpFlagOnce);   // RTE
+    else if (mode == kRunToVbl)
+        m_pDispatcher->SetBreakpoint("VBL ! VBL", Dispatcher::kBpFlagOnce);        // VBL
+    else if (mode == kRunToHbl)
+        m_pDispatcher->SetBreakpoint("HBL ! HBL", Dispatcher::kBpFlagOnce);        // VBL
+    else if (mode == kRunToRam)
+        m_pDispatcher->SetBreakpoint("PC < $e00000", Dispatcher::kBpFlagOnce);     // Not in TOS
+    else
+        return;
+    // start execution again
+    m_pDispatcher->Run();
 }
 
 void MainWindow::menuConnect()
