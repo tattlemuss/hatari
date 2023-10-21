@@ -15,6 +15,7 @@
 #include <QSettings>
 #include <QGuiApplication>
 
+#include "../hardware/tos.h"
 #include "../transport/dispatcher.h"
 #include "../models/targetmodel.h"
 #include "../models/stringparsers.h"
@@ -25,6 +26,36 @@
 #include "colouring.h"
 #include "quicklayout.h"
 #include "symboltext.h"
+
+#include "../fonda/readelf.h"
+
+Elf g_elf;
+
+struct CodeLine
+{
+    QString dir;
+    QString file;
+    int line;
+};
+
+bool FindCodePoint(const Elf& elf, uint32_t offset, CodeLine& res)
+{
+    for (const CompilationUnit& cu : elf.units)
+    {
+        for (const CodePoint& point : cu.points)
+        {
+            if (point.address == offset)
+            {
+                const CompilationUnit::File& f = cu.files[point.file_index];
+                res.dir = cu.dirs[f.dir_index].c_str();
+                res.file = f.filename.c_str();
+                res.line = point.line;
+                return true;
+            }
+        }
+    }
+    return false;
+}
 
 DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex):
     QWidget(parent),
@@ -87,6 +118,17 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex):
     setMouseTracking(true);
 
     this->setFocusPolicy(Qt::FocusPolicy::StrongFocus);
+
+ //   QFile elfFile("/home/steve/projects/atari/ttrak/TTRAK.elf");
+//    QFile elfFile("/home/steve/projects/atari/AdamIsMeee/build_st/obj/adam.elf");
+        QFile elfFile("/home/steve/projects/atari/bigbrownbuild-git/barebones/cpptest.elf");
+    elfFile.open(QIODevice::ReadOnly);
+    QByteArray elfData = elfFile.readAll();
+    elfFile.close();
+
+    int elfRef = process_elf_file((const uint8_t*)elfData.data(), elfData.size(), g_elf);
+    (void)elfRef;
+
 }
 
 DisasmWidget::~DisasmWidget()
@@ -379,6 +421,24 @@ void DisasmWidget::memoryChanged(int memorySlot, uint64_t commandId)
     // Clear the request, to say we are up to date
     m_requestId = 0;
     update();
+
+    // Try to find source line.
+    const Registers& regs = m_pTargetModel->GetRegs();
+    uint32_t pc_offset = regs.Get(Registers::PC) - regs.Get(Registers::TEXT);
+
+    CodeLine line;
+    if (FindCodePoint(g_elf, pc_offset, line))
+    {
+        QString msg;
+        QTextStream ref(&msg);
+        ref << "Code: " << line.dir << "/" << line.file << ": " << line.line;
+        m_pSession->SetMessage(msg);
+    }
+    else
+    {
+        m_pSession->SetMessage("");
+    }
+
 }
 
 void DisasmWidget::breakpointsChanged(uint64_t /*commandId*/)
@@ -676,6 +736,8 @@ void DisasmWidget::CalcDisasm()
     buffer_reader disasmBuf(m_memory.GetData() + offset, size, m_memory.GetAddress() + offset);
     m_disasm.lines.clear();
     Disassembler::decode_buf(disasmBuf, m_disasm, m_pTargetModel->GetDisasmSettings(), m_logicalAddr, m_rowCount);
+
+    // Annotate traps
     CalcOpAddresses();
 
     // Recalc Text (which depends on e.g. symbols
@@ -751,6 +813,8 @@ void DisasmWidget::CalcDisasm()
         if (t.comments.size() != 0)
             refC << "  ";
         printEA(line.inst.op1, regs, line.address, refC);
+
+        refC << m_opAddresses[row].trapText;
 
         // Breakpoint/PC
         for (size_t i = 0; i < m_breakpoints.m_breakpoints.size(); ++i)
@@ -869,11 +933,14 @@ void DisasmWidget::CalcOpAddresses()
     uint32_t pc = regs.Get(Registers::PC);
     for (int i = 0; i < m_disasm.lines.size(); ++i)
     {
-        const instruction& inst = m_disasm.lines[i].inst;
+        const Disassembler::line& line = m_disasm.lines[i];
+        const instruction& inst = line.inst;
         OpAddresses& addrs = m_opAddresses[i];
         bool useRegs = inst.address == pc;
         addrs.valid[0] = Disassembler::calc_fixed_ea(inst.op0, useRegs, regs, m_disasm.lines[i].address, addrs.address[0]);
         addrs.valid[1] = Disassembler::calc_fixed_ea(inst.op1, useRegs, regs, m_disasm.lines[i].address, addrs.address[1]);
+
+        addrs.trapText = GetTOSAnnotation(m_memory, line.address, inst);
     }
 }
 

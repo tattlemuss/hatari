@@ -88,6 +88,7 @@ private:
     {
         bool valid[2];
         uint32_t address[2];
+        QString annotationText;     // Extra info like trap call name, line-A in future?
     };
 
     Disassembler::disassembly m_disasm;
