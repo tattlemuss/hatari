@@ -814,7 +814,7 @@ void DisasmWidget::CalcDisasm()
             refC << "  ";
         printEA(line.inst.op1, regs, line.address, refC);
 
-        refC << m_opAddresses[row].trapText;
+        refC << m_opAddresses[row].annotationText;
 
         // Breakpoint/PC
         for (size_t i = 0; i < m_breakpoints.m_breakpoints.size(); ++i)
@@ -940,7 +940,7 @@ void DisasmWidget::CalcOpAddresses()
         addrs.valid[0] = Disassembler::calc_fixed_ea(inst.op0, useRegs, regs, m_disasm.lines[i].address, addrs.address[0]);
         addrs.valid[1] = Disassembler::calc_fixed_ea(inst.op1, useRegs, regs, m_disasm.lines[i].address, addrs.address[1]);
 
-        addrs.trapText = GetTOSAnnotation(m_memory, line.address, inst);
+        addrs.annotationText = GetTOSAnnotation(m_memory, line.address, inst);
     }
 }
 

@@ -8,6 +8,7 @@
 #include <QToolTip>
 
 #include "../models/session.h"
+#include "../hardware/tos.h"
 #include "symboltext.h"
 
 static QString CreateNumberTooltip(uint32_t value, uint32_t prevValue)
@@ -420,13 +421,22 @@ void RegisterWidget::PopulateRegisters()
                     }
                 }
             }
+            // TOS calls
+            if (regs.m_value[Registers::GemdosOpcode] != 0xffff)
+                col = AddToken(col, row, GetTrapAnnotation(1, regs.m_value[Registers::GemdosOpcode]), TokenType::kNone, 0, TokenColour::kChanged);
+            else if (regs.m_value[Registers::BiosOpcode] != 0xffff)
+                col = AddToken(col, row, GetTrapAnnotation(13, regs.m_value[Registers::BiosOpcode]), TokenType::kNone, 0, TokenColour::kChanged);
+            else if (regs.m_value[Registers::XbiosOpcode] != 0xffff)
+                col = AddToken(col, row, GetTrapAnnotation(14, regs.m_value[Registers::XbiosOpcode]), TokenType::kNone, 0, TokenColour::kChanged);
         }
 
         // Add EA analysis
 //        ref << "   " << eaText;
     }
 
-    row += 2;
+    ++row;
+
+    ++row;
     AddReg16(1, row, Registers::SR, m_prevRegs, m_currRegs);
     AddSRBit(10, row, m_prevRegs, m_currRegs, Registers::SRBits::kTrace1, "T");
     AddSRBit(14, row, m_prevRegs, m_currRegs, Registers::SRBits::kSupervisor, "S");
@@ -442,7 +452,7 @@ void RegisterWidget::PopulateRegisters()
 
     uint32_t ex = GET_REG(m_currRegs, EX);
     if (ex != 0)
-        AddToken(0, row, QString::asprintf("EXCEPTION: %s", ExceptionMask::GetName(ex)), TokenType::kNone, 0, TokenColour::kChanged);
+        AddToken(4, row, QString::asprintf("EXCEPTION: %s", ExceptionMask::GetName(ex)), TokenType::kNone, 0, TokenColour::kChanged);
 
     // D-regs // A-regs
     row++;
