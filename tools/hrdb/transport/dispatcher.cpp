@@ -11,6 +11,9 @@
 
 //#define DISPATCHER_DEBUG
 
+// Protocol ID which needs to match the Hatari target
+#define REMOTEDEBUG_PROTOCOL_ID	(0x1006)
+
 //-----------------------------------------------------------------------------
 // Character value for the separator in responses/notifications from the target
 static const char SEP_CHAR = 1;
@@ -608,8 +611,43 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
     std::cout << "NOTIFICATION:" << cmd.m_payload << std::endl;
 #endif
     StringSplitter s(cmd.m_payload);
-
     std::string type = s.Split(SEP_CHAR);
+
+    // Only accept one message type if we are awaiting a protcol ack
+    if (m_waitingConnectionAck)
+    {
+        if (type == "!connected")
+        {
+            // Check the protocol
+            std::string protoColIdStr = s.Split(SEP_CHAR);
+            uint32_t protocolId;
+            if (!StringParsers::ParseHexString(protoColIdStr.c_str(), protocolId))
+                return;
+
+            if (protocolId != REMOTEDEBUG_PROTOCOL_ID)
+            {
+                std::cout << "Connection refused (wrong protocol)" << std::endl;
+                m_pTcpSocket->disconnectFromHost();
+                disconnected(); // do our cleanup too
+                m_waitingConnectionAck = false;
+                m_pTargetModel->SetProtocolMismatch(protocolId, REMOTEDEBUG_PROTOCOL_ID);
+                return;
+            }
+            // This connection looks ok
+            // Allow new command responses to be processed.
+            m_waitingConnectionAck = false;
+
+            std::cout << "Connection acknowleged by server" << std::endl;
+            m_pTargetModel->SetConnected(1);
+        }
+        return;
+    }
+
+    // Ditch any notifications that might still be coming through after a
+    // connection rejection
+    if (!m_portConnected)
+        return;
+
     if (type == "!status")
     {
         std::string runningStr = s.Split(SEP_CHAR);
@@ -645,14 +683,6 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
             return;
         m_pTargetModel->SetConfig(machineType, cpuLevel, stRamSize);
         this->InsertFlush();
-    }
-    else if (type == "!connected")
-    {
-        // Allow new command responses to be processed.
-        m_waitingConnectionAck = false;
-        std::cout << "Connection acknowleged by server" << std::endl;
-        // Flag for the UI to request the data it wants
-        m_pTargetModel->SetConnected(1);
     }
     else if (type == "!profile")
     {

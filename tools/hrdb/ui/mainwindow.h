@@ -76,6 +76,7 @@ private:
     void memoryChanged(int slot, uint64_t commandId);
     void runningRefreshTimer();
     void flush(const TargetChangedFlags& flags, uint64_t commandId);
+    void protocolMismatch(uint32_t hatariProtocol, uint32_t hrdbProtocol);
 
     // Button callbacks
     void addBreakpointPressed();

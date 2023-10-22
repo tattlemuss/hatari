@@ -159,6 +159,7 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     connect(m_pTargetModel, &TargetModel::memoryChangedSignal,       this, &MainWindow::memoryChanged);
     connect(m_pTargetModel, &TargetModel::runningRefreshTimerSignal, this, &MainWindow::runningRefreshTimer);
     connect(m_pTargetModel, &TargetModel::flushSignal,               this, &MainWindow::flush);
+    connect(m_pTargetModel, &TargetModel::protocolMismatchSignal,    this, &MainWindow::protocolMismatch);
 
     // Wire up buttons to actions
     connect(m_pStartStopButton, &QAbstractButton::clicked, this, &MainWindow::startStopClickedSlot);
@@ -281,6 +282,20 @@ void MainWindow::flush(const TargetChangedFlags& /*flags*/, uint64_t commandId)
         emit m_session.mainStateUpdated();
         m_mainStateUpdateRequest = 0;
     }
+}
+
+void MainWindow::protocolMismatch(uint32_t hatariProtocol, uint32_t hrdbProtocol)
+{
+    // Ensure that auto-connect gets turned off!
+    m_session.Disconnect();
+    QString text;
+    QTextStream ref(&text);
+    ref.setIntegerBase(16);
+    ref << "Protocol version mismatch:\n";
+    ref << "\nHatari protocol: 0x" << hatariProtocol;
+    ref << "\nhrdb protocol: 0x" << hrdbProtocol;
+    QMessageBox box(QMessageBox::Critical, "Can't connect", text);
+    box.exec();
 }
 
 void MainWindow::startStopClickedSlot()

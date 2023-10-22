@@ -120,6 +120,11 @@ void TargetModel::SetConfig(uint32_t machineType, uint32_t cpuLevel, uint32_t st
         m_decodeSettings.cpu_type = cpu_types[cpuLevel];
 }
 
+void TargetModel::SetProtocolMismatch(uint32_t hatariProtocol, uint32_t hrdbProtocol)
+{
+    emit protocolMismatchSignal(hatariProtocol, hrdbProtocol);
+}
+
 void TargetModel::SetRegisters(const Registers& regs, uint64_t commandId)
 {
     m_regs = regs;
