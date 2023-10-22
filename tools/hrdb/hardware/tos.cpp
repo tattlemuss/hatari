@@ -203,7 +203,7 @@ const char* GetGemdosName(uint16_t id)
         case 0x1069 : return "ys_Break 	SysMon";
         case 0x5DC0 : return "TEFcntrl 	STEmulator";
     }
-    return "";
+    return "Unknown";
 }
 
 const char* GetBiosName(uint16_t id)
@@ -223,7 +223,7 @@ const char* GetBiosName(uint16_t id)
     case 0x0A : return "Drvmap";
     case 0x0B : return "Kbshift";
     }
-    return "";
+    return "Unknown";
 }
 
 const char* GetXbiosName(uint16_t id)
@@ -344,9 +344,32 @@ const char* GetXbiosName(uint16_t id)
         case 0xFE :	return "Debug output to console 	Hatari DHS version only";
         case 0xFF :	return "Change Emulator Options (DHS version) 	Hatari and DHS version";
     }
-    return "";
+    return "Unknown";
 }
 
+const char* GetLineAName(uint16_t id)
+{
+    switch (id)
+    {
+    case 0xa000: return "linea_init";
+    case 0xa001: return "put_pixel";
+    case 0xa002: return "get_pixel";
+    case 0xa003: return "draw_line";
+    case 0xa004: return "horizontal_line";
+    case 0xa005: return "filled_rect";
+    case 0xa006: return "filled_polygon";
+    case 0xa007: return "bit_blt";
+    case 0xa008: return "text_blt";
+    case 0xa009: return "show_mouse";
+    case 0xa00a: return "hide_mouse";
+    case 0xa00b: return "transform_mouse";
+    case 0xa00c: return "undraw_sprite";
+    case 0xa00d: return "draw_sprite";
+    case 0xa00e: return "copy_raster";
+    case 0xa00f: return "seed_fill";
+    }
+    return "Unknown";
+}
 QString GetTrapAnnotation(uint8_t trapNum, uint16_t callId)
 {
     if (trapNum == 1)
@@ -378,6 +401,11 @@ QString GetTOSAnnotation(const Memory& mem, uint32_t address, const instruction&
             uint16_t callId = prevInst & 0xffff;
             return GetTrapAnnotation(trapNum, callId);
         }
+    }
+    else if (inst.opcode == NONE && (inst.header >> 12) == 0xa)
+    {
+        // Line A opcode
+        return QString::asprintf("Line-A %s", GetLineAName(inst.header));
     }
     return QString();
 }
