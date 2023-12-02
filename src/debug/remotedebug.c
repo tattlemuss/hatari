@@ -311,6 +311,8 @@ static bool read_hex32_value(const char* c, uint32_t* result)
 // Format: "!status <break active> <pc> <ffwd>"
 static int RemoteDebug_NotifyState(RemoteDebugState* state)
 {
+	const char* ProgramPath = Symbols_GetCurrentProgramPath();
+
 	send_str(state, "!status");
 	send_sep(state);
 	send_hex(state, bRemoteBreakIsActive ? 0 : 1);
@@ -318,6 +320,11 @@ static int RemoteDebug_NotifyState(RemoteDebugState* state)
 	send_hex(state, M68000_GetPC());
 	send_sep(state);
 	send_hex(state, ConfigureParams.System.bFastForward ? 1 : 0);
+	send_term(state);
+
+	send_str(state, "!programpath");
+	send_sep(state);
+	send_str(state, ProgramPath ? ProgramPath : "");
 	send_term(state);
 	return 0;
 }

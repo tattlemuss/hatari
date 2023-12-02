@@ -953,3 +953,8 @@ bool Symbols_GetCpuSymbol(int index, rdb_symbol_t* result)
 	result->type = symbol_char(entry->type);
 	return true;
 }
+
+const char* Symbols_GetCurrentProgramPath(void)
+{
+	return CurrentProgramPath;
+}

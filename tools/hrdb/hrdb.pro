@@ -17,6 +17,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    fonda/readelf.cpp \
     hardware/hardware_st.cpp \
     hardware/regs_st.cpp \
     hardware/tos.cpp \
@@ -59,6 +60,10 @@ SOURCES += \
     ui/symboltext.cpp \
 
 HEADERS += \
+    fonda/buffer.h \
+    fonda/dwarf_struct.h \
+    fonda/elf_struct.h \
+    fonda/readelf.h \
     hardware/hardware_st.h \
     hardware/regs_st.h \
     hardware/tos.h \

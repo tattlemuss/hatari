@@ -214,6 +214,11 @@ void TargetModel::Flush(uint64_t commmandId)
     m_changedFlags.Clear();
 }
 
+void TargetModel::SetProgramPath(const std::string& path)
+{
+    m_programPath = path;
+}
+
 void TargetModel::GetProfileData(uint32_t addr, uint32_t& count, uint32_t& cycles) const
 {
     m_pProfileData->Get(addr, count, cycles);

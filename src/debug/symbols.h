@@ -57,5 +57,6 @@ typedef struct {
 } rdb_symbol_t;
 extern int Symbols_CpuSymbolCount(void);
 extern bool Symbols_GetCpuSymbol(int index, rdb_symbol_t* result);
+extern const char* Symbols_GetCurrentProgramPath(void);
 
 #endif

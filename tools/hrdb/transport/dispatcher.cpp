@@ -667,7 +667,7 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
         m_pTargetModel->SetStatus(running != 0, pc, ffwd);
         this->InsertFlush();
     }
-    if (type == "!config")
+    else if (type == "!config")
     {
         std::string machineTypeStr = s.Split(SEP_CHAR);
         std::string cpuLevelStr = s.Split(SEP_CHAR);
@@ -722,6 +722,15 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
             ++numDeltas;
         }
         m_pTargetModel->ProfileDeltaComplete(static_cast<int>(enabled));
+    }
+    else if (type == "!programpath")
+    {
+        std::string path = s.Split(SEP_CHAR);
+        m_pTargetModel->SetProgramPath(path);
+    }
+    else
+    {
+        std::cout << "Unknown notification:" << cmd.m_payload << std::endl;
     }
 }
 

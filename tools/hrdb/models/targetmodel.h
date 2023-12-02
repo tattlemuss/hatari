@@ -131,6 +131,9 @@ public:
     // emits flushSignal()
     void Flush(uint64_t commmandId);
 
+    // Updates currently-loaded GEMDOS program path.
+    void SetProgramPath(const std::string& path);
+
     // =========================== DATA ACCESS =================================
 	// NOTE: all these return copies to avoid data contention
     MACHINETYPE	GetMachineType() const { return m_machineType; }
@@ -237,6 +240,8 @@ private:
     ExceptionMask   m_exceptionMask;
     YmState         m_ymState;
     ProfileData*    m_pProfileData;
+
+    std::string     m_programPath;  // Active GEMDOS program path
 
     SearchResults   m_searchResults;
 
