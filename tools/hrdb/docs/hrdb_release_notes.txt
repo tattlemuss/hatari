@@ -38,6 +38,8 @@ v0.008 (August 2023)
   - Added search feature on Ctrl+F. Search supports hex or text, with case
     sensitivity.
   - Added Ctrl+Space shortcut for context menu.
+  - Fixed 68000 disassembly of operands of mode "Address Register Indirect with
+    Index" where the index register is A0-A7. Reported by Martin Sedlak.
 
 - Register Window
   - Added display of 68020 and 68030 register values when appropriate, including
@@ -46,6 +48,9 @@ v0.008 (August 2023)
 - Breakpoints Window
   - Fixed "Trace" flag when creating breakpoints.
   - Removed unnecessary columns from display.
+
+- Console Window
+  - Fixed bug on Windows where Hatari's output would not update properly.
 
 - General
   - Base Hatari build version is still 2.4.1 release.
