@@ -121,8 +121,8 @@ void BreakpointsTableModel::breakpointsChanged()
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-BreakpointsTableView::BreakpointsTableView(QWidget* parent, BreakpointsTableModel* pModel) :
-    QTableView(parent),
+BreakpointsTreeView::BreakpointsTreeView(QWidget* parent, BreakpointsTableModel* pModel) :
+    QTreeView(parent),
     m_pTableModel(pModel),
     //m_rightClickMenu(this),
     m_rightClickRow(-1)
@@ -144,16 +144,13 @@ BreakpointsWindow::BreakpointsWindow(QWidget *parent, Session* pSession) :
     setObjectName("BreakpointsWidget");
 
     // Make the data first
-    pModel = new BreakpointsTableModel(this, m_pTargetModel, m_pDispatcher);
-    m_pTableView = new BreakpointsTableView(this, pModel);
-    m_pTableView->setModel(pModel);
-
-    // Down the side
-    m_pTableView->verticalHeader()->show();
-//    m_pTableView->verticalHeader()->setDefaultSectionSize(fm.height());
-    m_pTableView->setShowGrid(true);
-    m_pTableView->setSelectionBehavior(QAbstractItemView::SelectionBehavior::SelectRows);
-    m_pTableView->setSelectionMode(QAbstractItemView::SelectionMode::SingleSelection);
+    m_pTableModel = new BreakpointsTableModel(this, m_pTargetModel, m_pDispatcher);
+    m_pTreeView = new BreakpointsTreeView(this, m_pTableModel);
+    m_pTreeView->setModel(m_pTableModel);
+    m_pTreeView->setSelectionBehavior(QAbstractItemView::SelectionBehavior::SelectRows);
+    m_pTreeView->setSelectionMode(QAbstractItemView::SelectionMode::SingleSelection);
+    m_pTreeView->header()->setSectionResizeMode(BreakpointsTableModel::kColExpression, QHeaderView::ResizeToContents);
+    m_pTreeView->header()->setStretchLastSection(false);
 
     // Layouts
     QVBoxLayout* pMainLayout = new QVBoxLayout;
@@ -172,7 +169,7 @@ BreakpointsWindow::BreakpointsWindow(QWidget *parent, Session* pSession) :
     pTopRegion->setLayout(pTopLayout);
 
     pMainLayout->addWidget(pTopRegion);
-    pMainLayout->addWidget(m_pTableView);
+    pMainLayout->addWidget(m_pTreeView);
 
     pMainRegion->setLayout(pMainLayout);
     setWidget(pMainRegion);
@@ -190,7 +187,7 @@ BreakpointsWindow::BreakpointsWindow(QWidget *parent, Session* pSession) :
 void BreakpointsWindow::keyFocus()
 {
     activateWindow();
-    m_pTableView->setFocus();
+    m_pTreeView->setFocus();
 }
 
 void BreakpointsWindow::connectChangedSlot()
@@ -209,7 +206,7 @@ void BreakpointsWindow::addBreakpointClicked()
 void BreakpointsWindow::deleteBreakpointClicked()
 {
     Breakpoint bp;
-    if (pModel->GetBreakpoint(m_pTableView->currentIndex().row(), bp))
+    if (m_pTableModel->GetBreakpoint(m_pTreeView->currentIndex().row(), bp))
     {
         m_pDispatcher->DeleteBreakpoint(bp.m_id);
     }
@@ -219,5 +216,5 @@ void BreakpointsWindow::settingsChangedSlot()
 {
 //    QFontMetrics fm(m_pSession->GetSettings().m_font);
 //    int h = fm.height();
-    m_pTableView->setFont(m_pSession->GetSettings().m_font);
+    m_pTreeView->setFont(m_pSession->GetSettings().m_font);
 }
