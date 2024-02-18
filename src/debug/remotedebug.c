@@ -173,7 +173,7 @@ typedef struct RemoteDebugState
 	/* Redirection info when running Console window commands */
 	FILE* original_debugOutput;				/* This is easy to save and repoint */
 #ifdef __WINDOWS__
-	char consoleOutputFilename[PATH_MAX+1];	/* output filename for redirected output */
+	char consoleOutputFilename[FILENAME_MAX+1];	/* output filename for redirected output */
 #else
 	FILE* original_stdout;					/* original file pointers for redirecting output */
 	FILE* original_stderr;
@@ -385,9 +385,12 @@ static void RemoteDebug_OpenDebugOutput(RemoteDebugState* state)
 	if (state->consoleOutputFilename[0] == 0)
 		return;
 
-	// Repoint
-	freopen(state->consoleOutputFilename, "w", stdout);
-	freopen(state->consoleOutputFilename, "w", stderr);
+	// Repoint stdout etc to our temporary file again
+	// Use the "append" mode, otherwise the file is reset,
+	// and this confuses the hrdb tool whose read pointer
+	// might be at the end of the old file...
+	freopen(state->consoleOutputFilename, "a", stdout);
+	freopen(state->consoleOutputFilename, "a", stderr);
 	debugOutput = stderr;
 #else
 	// Save old values for restore
@@ -862,8 +865,8 @@ static int RemoteDebug_setstd(int nArgc, char *psArgs[], RemoteDebugState* state
 		// Create the output file
 		const char* filename = psArgs[1];
 #ifdef __WINDOWS__
-		strncpy(state->consoleOutputFilename, filename, PATH_MAX);
-		state->consoleOutputFilename[PATH_MAX] = 0; /* ensure terminator */
+		strncpy(state->consoleOutputFilename, filename, FILENAME_MAX);
+		state->consoleOutputFilename[FILENAME_MAX] = 0; /* ensure terminator */
 		return 0;
 #else
 		FILE* outpipe = fopen(filename, "w");

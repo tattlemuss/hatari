@@ -244,8 +244,6 @@ void decode_brief_index_indirect(uint16_t word, int cpu_type, int8_t& disp, inde
 
 	uint8_t reg_number = (word >> 12) & 7;
 	uint8_t d_or_a = (word >> 15) & 1;
-	if (cpu_type < CPU_TYPE_68020)
-		d_or_a = 0;
 	info.index_reg = calc_index_register(d_or_a, reg_number);
 }
 
