@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <QString>
 class Memory;
-class instruction;
+struct instruction;
 
 const char* GetGemdosName(uint16_t id);
 const char* GetBiosName(uint16_t id);
