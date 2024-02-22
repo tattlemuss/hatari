@@ -63,6 +63,14 @@ static QString CreateTooltip(uint32_t address, const SymbolTable& symTable, uint
     if (longVal & 0x80000000)
         ref << QString::asprintf(" (%d)", static_cast<int32_t>(longVal));
 
+    ref << "\n   Bin: ";
+    for (int bit = 31; bit >= 0; --bit)
+    {
+        ref << ((longVal & (1U << bit)) ? "1" : "0");
+        if (bit && ((bit & 7) == 0))
+            ref << "/";
+    }
+
     ref << QString::asprintf("\nWord: $%x -> %u", wordVal, wordVal);
     if (wordVal & 0x8000)
         ref << QString::asprintf(" (%d)", static_cast<int16_t>(wordVal));
