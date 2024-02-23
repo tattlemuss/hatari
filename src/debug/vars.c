@@ -165,11 +165,6 @@ static Uint32 GetNextPC(void)
 	return Disasm_GetNextPC(M68000_GetPC());
 }
 
-static Uint32 GetTOSStart(void)
-{
-	return TosAddress;
-}
-
 static Uint32 GetTOSEnd(void)
 {
 	return TosAddress + TosSize;
