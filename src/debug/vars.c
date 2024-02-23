@@ -27,8 +27,8 @@ const char Vars_fileid[] = "Hatari vars.c";
 #include "debugui.h"
 #include "symbols.h"
 #include "68kDisass.h"
+#include "tos.h"
 #include "vars.h"
-
 
 static Uint32 GetCycleCounter(void)
 {
@@ -165,6 +165,16 @@ static Uint32 GetNextPC(void)
 	return Disasm_GetNextPC(M68000_GetPC());
 }
 
+static Uint32 GetTOSStart(void)
+{
+	return TosAddress;
+}
+
+static Uint32 GetTOSEnd(void)
+{
+	return TosAddress + TosSize;
+}
+
 /* sorted by variable name so that this can be bisected */
 static const var_addr_t hatari_vars[] = {
 	{ "AesOpcode", (Uint32*)Vars_GetAesOpcode, VALUE_TYPE_FUNCTION32, 16, "$FFFF when not on AES trap" },
@@ -192,6 +202,8 @@ static const var_addr_t hatari_vars[] = {
 	{ "PConSymbol", (Uint32*)PConSymbol, VALUE_TYPE_FUNCTION32, 16, "1 if PC on symbol, 0 otherwise" },
 	{ "TEXT", (Uint32*)DebugInfo_GetTEXT, VALUE_TYPE_FUNCTION32, 0, "invalid before Desktop is up" },
 	{ "TEXTEnd", (Uint32*)DebugInfo_GetTEXTEnd, VALUE_TYPE_FUNCTION32, 0, "invalid before Desktop is up" },
+	{ "TOSEnd", (Uint32*)GetTOSEnd, VALUE_TYPE_FUNCTION32, 0, "end of TOS ROM" },
+	{ "TOSStart", &TosAddress, VALUE_TYPE_VAR32, 0, "start of TOS ROM" },
 	{ "VBL", (Uint32*)&nVBLs, VALUE_TYPE_VAR32, sizeof(nVBLs)*8, "number of VBL interrupts" },
 	{ "VdiOpcode", (Uint32*)Vars_GetVdiOpcode, VALUE_TYPE_FUNCTION32, 16, "$FFFF when not on VDI trap" },
 	{ "XbiosOpcode", (Uint32*)GetXbiosOpcode, VALUE_TYPE_FUNCTION32, 16, "$FFFF when not on XBIOS trap" }

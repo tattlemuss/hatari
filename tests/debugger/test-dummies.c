@@ -79,8 +79,7 @@ bool STMemory_CheckAreaType(Uint32 addr, int size, int mem_type ) {
 	return true;
 }
 
-/* fake CPU wrapper stuff */
-#include "m68000.h"
+/* fake CPU wrapper stuff */#include "m68000.h"
 Uint16 M68000_GetSR(void) { return 0x2700; }
 void M68000_SetSR(Uint16 v) { }
 void M68000_SetPC(uaecptr v) { }
@@ -200,6 +199,10 @@ bool DebugUI_ParseFile(const char *path, bool reinit)
 {
 	return File_Exists(path);
 }
+
+/* fake TOS wrapper stuff */
+Uint32 TosAddress = 0;
+Uint32 TosSize = 0;
 
 /* fake disassembly output */
 #include "68kDisass.h"
