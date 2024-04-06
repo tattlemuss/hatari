@@ -108,9 +108,9 @@ void SaveBinDialog::filenameClicked()
         {
             QString name = QDir::toNativeSeparators(fileNames[0]);
             m_pFilenameTextEdit->setText(name);
+            CheckInputs();
+            m_returnedSettings = m_localSettings;
         }
-
-        m_returnedSettings = m_localSettings;
     }
 
 }

@@ -160,6 +160,7 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     connect(m_pTargetModel, &TargetModel::runningRefreshTimerSignal, this, &MainWindow::runningRefreshTimer);
     connect(m_pTargetModel, &TargetModel::flushSignal,               this, &MainWindow::flush);
     connect(m_pTargetModel, &TargetModel::protocolMismatchSignal,    this, &MainWindow::protocolMismatch);
+    connect(m_pTargetModel, &TargetModel::saveBinCompleteSignal,     this, &MainWindow::saveBinComplete);
 
     // Wire up buttons to actions
     connect(m_pStartStopButton, &QAbstractButton::clicked, this, &MainWindow::startStopClickedSlot);
@@ -296,6 +297,11 @@ void MainWindow::protocolMismatch(uint32_t hatariProtocol, uint32_t hrdbProtocol
     ref << "\nbut hrdb expects version: 0x" << hrdbProtocol;
     QMessageBox box(QMessageBox::Critical, "Can't connect", text);
     box.exec();
+}
+
+void MainWindow::saveBinComplete(uint64_t /*commandId*/)
+{
+    messageSet("File saved.");
 }
 
 void MainWindow::startStopClickedSlot()

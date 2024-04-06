@@ -204,7 +204,7 @@ signals:
     void searchResultsChangedSignal(uint64_t commandId);
 
     // When a flle write completed
-    void saveBinComplete(uint64_t commandId);
+    void saveBinCompleteSignal(uint64_t commandId);
 
     // When exception mask updated
     void exceptionMaskChanged();
