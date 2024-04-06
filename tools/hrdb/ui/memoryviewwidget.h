@@ -49,7 +49,7 @@ public:
         bool     m_isValid;
     };
 
-    MemoryWidget(QWidget* parent, Session* pSession, int windowIndex);
+    MemoryWidget(QWidget* parent, Session* pSession, int windowIndex, QAction* pSearchAction);
     virtual ~MemoryWidget();
 
     uint32_t GetRowCount() const { return m_rowCount; }
@@ -229,6 +229,7 @@ private:
 
     // Menu actions
     ShowAddressMenu     m_showAddressMenus[2];   // 0 == "this address", 1 == "referenced address"
+    QAction*            m_pSearchAction;
 
     // Mouse wheel
     float               m_wheelAngleDelta;

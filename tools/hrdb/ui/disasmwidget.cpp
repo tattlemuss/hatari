@@ -27,7 +27,7 @@
 #include "quicklayout.h"
 #include "symboltext.h"
 
-DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex):
+DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex, QAction* pSearchAction):
     QWidget(parent),
     m_memory(0, 0),
     m_rowCount(25),
@@ -39,6 +39,7 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex):
     m_pSession(pSession),
     m_pTargetModel(pSession->m_pTargetModel),
     m_pDispatcher(pSession->m_pDispatcher),
+    m_pSearchAction(pSearchAction),
     m_bShowHex(true),
     m_rightClickRow(-1),
     m_cursorRow(0),
@@ -1134,6 +1135,8 @@ void DisasmWidget::ContextMenu(int row, QPoint globalPos)
         }
     }
 
+    menu.addAction(m_pSearchAction);
+
     // Run it
     menu.exec(globalPos);
 }
@@ -1152,8 +1155,12 @@ DisasmWindow::DisasmWindow(QWidget *parent, Session* pSession, int windowIndex) 
     QString key = QString::asprintf("DisasmView%d", m_windowIndex);
     setObjectName(key);
 
+    // Search action created first so we can pass it to the child widget
+    QAction* pMenuSearchAction = new QAction("Search...", this);
+    connect(pMenuSearchAction, &QAction::triggered, this, &DisasmWindow::findClickedSlot);
+
     // Construction. Do in order of tabbing
-    m_pDisasmWidget = new DisasmWidget(this, pSession, windowIndex);
+    m_pDisasmWidget = new DisasmWidget(this, pSession, windowIndex, pMenuSearchAction);
     m_pDisasmWidget->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
     m_pAddressEdit = new QLineEdit(this);
     m_pFollowPC = new QCheckBox("Follow PC", this);

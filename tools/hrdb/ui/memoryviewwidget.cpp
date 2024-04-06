@@ -83,7 +83,7 @@ static QString CreateTooltip(uint32_t address, const SymbolTable& symTable, uint
 }
 
 MemoryWidget::MemoryWidget(QWidget *parent, Session* pSession,
-                                           int windowIndex) :
+                           int windowIndex, QAction* pSearchAction) :
     QWidget(parent),
     m_pSession(pSession),
     m_pTargetModel(pSession->m_pTargetModel),
@@ -101,6 +101,7 @@ MemoryWidget::MemoryWidget(QWidget *parent, Session* pSession,
     m_windowIndex(windowIndex),
     m_currentMemory(0, 0),
     m_previousMemory(0, 0),
+    m_pSearchAction(pSearchAction),
     m_wheelAngleDelta(0)
 {
     m_memSlot = static_cast<MemorySlot>(MemorySlot::kMemoryView0 + m_windowIndex);
@@ -1084,6 +1085,8 @@ void MemoryWidget::ContextMenu(int row, int col, QPoint globalPos)
         }
     }
 
+    menu.addAction(m_pSearchAction);
+
     // Run it
     menu.exec(globalPos);
 }
@@ -1123,12 +1126,16 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
     QString key = QString::asprintf("MemoryView%d", m_windowIndex);
     setObjectName(key);
 
+    // Search action created first so we can pass it to the child widget
+    QAction* pMenuSearchAction = new QAction("Search...", this);
+    connect(pMenuSearchAction, &QAction::triggered, this, &MemoryWindow::findClickedSlot);
+
     m_pSymbolTableModel = new SymbolTableModel(this, m_pTargetModel->GetSymbolTable());
     QCompleter* pCompl = new QCompleter(m_pSymbolTableModel, this);
     pCompl->setCaseSensitivity(Qt::CaseSensitivity::CaseInsensitive);
 
     // Construction. Do in order of tabbing
-    m_pMemoryWidget = new MemoryWidget(this, pSession, windowIndex);
+    m_pMemoryWidget = new MemoryWidget(this, pSession, windowIndex, pMenuSearchAction);
     m_pMemoryWidget->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
 
     m_pAddressEdit = new QLineEdit(this);
