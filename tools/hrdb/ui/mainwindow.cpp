@@ -292,8 +292,8 @@ void MainWindow::protocolMismatch(uint32_t hatariProtocol, uint32_t hrdbProtocol
     QTextStream ref(&text);
     ref.setIntegerBase(16);
     ref << "Protocol version mismatch:\n";
-    ref << "\nHatari protocol: 0x" << hatariProtocol;
-    ref << "\nhrdb protocol: 0x" << hrdbProtocol;
+    ref << "\nHatari protocol version is: 0x" << hatariProtocol;
+    ref << "\nbut hrdb expects version: 0x" << hrdbProtocol;
     QMessageBox box(QMessageBox::Critical, "Can't connect", text);
     box.exec();
 }
@@ -324,6 +324,9 @@ void MainWindow::nextClickedSlot()
 {
     if (!m_pTargetModel->IsConnected())
         return;
+
+    m_pDispatcher->SendSaveBin(0x0, 0x1000, std::string("/tmp/saved.bin"));
+
 
     if (m_pTargetModel->IsRunning())
         return;

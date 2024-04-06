@@ -3,6 +3,7 @@
 
 #include <QDockWidget>
 #include <QAbstractItemModel>
+#include "savebindialog.h"
 #include "searchdialog.h"
 #include "showaddressactions.h"
 #include "../models/memory.h"
@@ -45,11 +46,14 @@ public:
 
     struct CursorInfo
     {
-        uint32_t m_address;
-        bool     m_isValid;
+        uint32_t m_cursorAddress;
+        bool     m_isCursorValid;
+
+        uint32_t m_startAddress;     // addr of top-left entry
+        uint32_t m_sizeInBytes;
     };
 
-    MemoryWidget(QWidget* parent, Session* pSession, int windowIndex, QAction* pSearchAction);
+    MemoryWidget(QWidget* parent, Session* pSession, int windowIndex, QAction* pSearchAction, QAction* pSaveAction);
     virtual ~MemoryWidget();
 
     uint32_t GetRowCount() const { return m_rowCount; }
@@ -230,6 +234,7 @@ private:
     // Menu actions
     ShowAddressMenu     m_showAddressMenus[2];   // 0 == "this address", 1 == "referenced address"
     QAction*            m_pSearchAction;
+    QAction*            m_pSaveAction;
 
     // Mouse wheel
     float               m_wheelAngleDelta;
@@ -257,6 +262,7 @@ public slots:
     void sizeModeComboBoxChangedSlot(int index);
     void widthComboBoxChangedSlot(int index);
     void findClickedSlot();
+    void saveBinClickedSlot();
     void nextClickedSlot();
     void gotoClickedSlot();
     void lockClickedSlot();
@@ -278,6 +284,7 @@ private:
 
     SearchSettings      m_searchSettings;
     uint64_t            m_searchRequestId;
+    SaveBinSettings     m_saveBinSettings;
 };
 
 #endif // MEMORYVIEWWIDGET_H

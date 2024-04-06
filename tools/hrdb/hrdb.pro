@@ -54,6 +54,7 @@ SOURCES += \
     ui/profilewindow.cpp \
     ui/registerwidget.cpp \
     ui/rundialog.cpp \
+    ui/savebindialog.cpp \
     ui/searchdialog.cpp \
     ui/showaddressactions.cpp \
     ui/symboltext.cpp \
@@ -100,6 +101,7 @@ HEADERS += \
     ui/quicklayout.h \
     ui/registerwidget.h \
     ui/rundialog.h \
+    ui/savebindialog.h \
     ui/searchdialog.h \
     ui/showaddressactions.h \
     ui/symboltext.h

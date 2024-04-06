@@ -114,6 +114,9 @@ public:
     // emits searchResultsChangedSignal()
     void SetSearchResults(uint64_t commmandId, const SearchResults& results);
 
+    // emits saveBinComplete()
+    void SaveBinComplete(uint64_t commmandId);
+
     // The following 2 commands are processed as a batch
     // Update profiling data. Does not emit signal
     void AddProfileDelta(const ProfileDelta& delta);
@@ -199,6 +202,9 @@ signals:
 
     // When search results returned. Use GetSearchResults()
     void searchResultsChangedSignal(uint64_t commandId);
+
+    // When a flle write completed
+    void saveBinComplete(uint64_t commandId);
 
     // When exception mask updated
     void exceptionMaskChanged();

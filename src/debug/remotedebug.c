@@ -80,7 +80,8 @@ static bool bRemoteBreakIsActive = false;
 /* 0x1004    add ffwd command, and ffwd status in NotifyStatus() */
 /* 0x1005    add memfind command, add stramsize to $config notification */
 /* 0x1006    use hex only for address/size in mem[*], bpdel, exmask commands */
-#define REMOTEDEBUG_PROTOCOL_ID	(0x1006)
+/* 0x1007    add savebin */
+#define REMOTEDEBUG_PROTOCOL_ID	(0x1007)
 
 /* Char ID to denote terminator of a token. This is under the ASCII "normal"
 	character value range so that 32-255 can be used */
@@ -1050,6 +1051,43 @@ static int RemoteDebug_memfind(int nArgc, char *psArgs[], RemoteDebugState* stat
 	return 0;
 }
 
+
+/**
+ * Dump memory from an address to a binary file.
+ */
+// -----------------------------------------------------------------------------
+/* "savebin <start:hex> <count:hex> <filename"  write memory data to binary file */
+/* returns OK/NG */
+static int RemoteDebug_savebin(int nArgc, char *psArgs[], RemoteDebugState* state)
+{
+	FILE *fp;
+	unsigned char c;
+	Uint32 address;
+	Uint32 bytes, i = 0;
+
+	if (nArgc != 4)
+		return 2;
+
+	if (!read_hex32_value(psArgs[1], &address))
+		return 1;
+
+	if (!read_hex32_value(psArgs[2], &bytes))
+		return 1;
+
+	if ((fp = fopen(psArgs[3], "wb")) == NULL)
+		return 3;
+
+	while (i < bytes)
+	{
+		c = STMemory_ReadByte(address++);
+		fputc(c, fp);
+		i++;
+	}
+	fclose(fp);
+	send_str(state, "OK");
+	return 0;
+}
+
 // -----------------------------------------------------------------------------
 /* DebugUI command structure */
 typedef struct
@@ -1081,6 +1119,7 @@ static const rdbcommand_t remoteDebugCommandList[] = {
 	{ RemoteDebug_resetcold,"resetcold"	, true		},
 	{ RemoteDebug_ffwd,		"ffwd"		, true		},
 	{ RemoteDebug_memfind,	"memfind"	, true		},
+	{ RemoteDebug_savebin,	"savebin"	, true		},
 
 	/* Terminator */
 	{ NULL, NULL }

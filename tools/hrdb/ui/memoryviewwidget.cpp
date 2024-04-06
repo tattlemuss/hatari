@@ -83,7 +83,8 @@ static QString CreateTooltip(uint32_t address, const SymbolTable& symTable, uint
 }
 
 MemoryWidget::MemoryWidget(QWidget *parent, Session* pSession,
-                           int windowIndex, QAction* pSearchAction) :
+                           int windowIndex,
+                           QAction* pSearchAction, QAction* pSaveAction) :
     QWidget(parent),
     m_pSession(pSession),
     m_pTargetModel(pSession->m_pTargetModel),
@@ -102,6 +103,7 @@ MemoryWidget::MemoryWidget(QWidget *parent, Session* pSession,
     m_currentMemory(0, 0),
     m_previousMemory(0, 0),
     m_pSearchAction(pSearchAction),
+    m_pSaveAction(pSaveAction),
     m_wheelAngleDelta(0)
 {
     m_memSlot = static_cast<MemorySlot>(MemorySlot::kMemoryView0 + m_windowIndex);
@@ -840,10 +842,16 @@ void MemoryWidget::contextMenuEvent(QContextMenuEvent *event)
     int row;
     int col;
     if (!CalcRowColFromMouse(x, y, row, col))
-        return;
+    {
+         ContextMenu(-1, -1, event->globalPos());
+         return;
+    }
 
     if (m_columnMap[col].type == ColumnType::kSpace)
+    {
+        ContextMenu(-1, -1, event->globalPos());
         return;
+    }
 
     ContextMenu(row, col, event->globalPos());
 }
@@ -968,8 +976,11 @@ void MemoryWidget::RecalcRowWidth()
 
 void MemoryWidget::RecalcCursorInfo()
 {
-    m_cursorInfo.m_address = 0;
-    m_cursorInfo.m_isValid = false;
+    m_cursorInfo.m_cursorAddress = 0;
+    m_cursorInfo.m_isCursorValid = false;
+    m_cursorInfo.m_startAddress = CalcAddress(0, 0);
+    m_cursorInfo.m_sizeInBytes = m_rowCount * m_bytesPerRow;
+
     if (m_cursorRow < m_rows.size())
     {
         // Search leftwards for the first valid character
@@ -978,8 +989,8 @@ void MemoryWidget::RecalcCursorInfo()
             const ColInfo& info = m_columnMap[col];
             if (info.type == ColumnType::kSpace)
                 break;
-            m_cursorInfo.m_address = CalcAddress(m_cursorRow, m_cursorCol);
-            m_cursorInfo.m_isValid = true;
+            m_cursorInfo.m_cursorAddress = CalcAddress(m_cursorRow, m_cursorCol);
+            m_cursorInfo.m_isCursorValid = true;
             break;
         }
     }
@@ -1059,34 +1070,39 @@ void MemoryWidget::KeyboardContextMenu()
 
 void MemoryWidget::ContextMenu(int row, int col, QPoint globalPos)
 {
-    // Align the memory location to 2 or 4 bytes, based on context
-    // (view address, or word/long mode)
-    uint32_t addr = CalcAddress(row, col);
-    if (m_sizeMode == SizeMode::kModeLong)
-        addr &= ~3U;
-    else
-        addr &= ~1U;
-
     QMenu menu(this);
-    m_showAddressMenus[0].setAddress(m_pSession, addr);
-    m_showAddressMenus[0].setTitle(QString::asprintf("Data Address: $%x", addr));
-    menu.addMenu(m_showAddressMenus[0].m_pMenu);
+    menu.addAction(m_pSaveAction);
 
-    const Memory* mem = m_pTargetModel->GetMemory(m_memSlot);
-    if (mem)
+    // These actions are optional
+    if (row != -1)
     {
-        uint32_t longContents;
-        if (mem->ReadAddressMulti(addr, 4, longContents))
+        // Align the memory location to 2 or 4 bytes, based on context
+        // (view address, or word/long mode)
+        uint32_t addr = CalcAddress(row, col);
+        if (m_sizeMode == SizeMode::kModeLong)
+            addr &= ~3U;
+        else
+            addr &= ~1U;
+
+        menu.addAction(m_pSearchAction);
+
+        m_showAddressMenus[0].setAddress(m_pSession, addr);
+        m_showAddressMenus[0].setTitle(QString::asprintf("Data Address: $%x", addr));
+        menu.addMenu(m_showAddressMenus[0].m_pMenu);
+
+        const Memory* mem = m_pTargetModel->GetMemory(m_memSlot);
+        if (mem)
         {
-            longContents &= 0xffffff;
-            m_showAddressMenus[1].setAddress(m_pSession, longContents);
-            m_showAddressMenus[1].setTitle(QString::asprintf("Pointer Address: $%x", longContents));
-            menu.addMenu(m_showAddressMenus[1].m_pMenu);
+            uint32_t longContents;
+            if (mem->ReadAddressMulti(addr, 4, longContents))
+            {
+                longContents &= 0xffffff;
+                m_showAddressMenus[1].setAddress(m_pSession, longContents);
+                m_showAddressMenus[1].setTitle(QString::asprintf("Pointer Address: $%x", longContents));
+                menu.addMenu(m_showAddressMenus[1].m_pMenu);
+            }
         }
     }
-
-    menu.addAction(m_pSearchAction);
-
     // Run it
     menu.exec(globalPos);
 }
@@ -1128,14 +1144,18 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
 
     // Search action created first so we can pass it to the child widget
     QAction* pMenuSearchAction = new QAction("Search...", this);
+    pMenuSearchAction->setShortcut(QKeySequence("Ctrl+F"));
     connect(pMenuSearchAction, &QAction::triggered, this, &MemoryWindow::findClickedSlot);
+    QAction* pMenuSaveAction = new QAction("Write to File...", this);
+    pMenuSaveAction->setShortcut(QKeySequence("Ctrl+W"));
+    connect(pMenuSaveAction, &QAction::triggered, this, &MemoryWindow::saveBinClickedSlot);
 
     m_pSymbolTableModel = new SymbolTableModel(this, m_pTargetModel->GetSymbolTable());
     QCompleter* pCompl = new QCompleter(m_pSymbolTableModel, this);
     pCompl->setCaseSensitivity(Qt::CaseSensitivity::CaseInsensitive);
 
     // Construction. Do in order of tabbing
-    m_pMemoryWidget = new MemoryWidget(this, pSession, windowIndex, pMenuSearchAction);
+    m_pMemoryWidget = new MemoryWidget(this, pSession, windowIndex, pMenuSearchAction, pMenuSaveAction);
     m_pMemoryWidget->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
 
     m_pAddressEdit = new QLineEdit(this);
@@ -1183,10 +1203,11 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
     loadSettings();
 
     // The scope here is explained at https://forum.qt.io/topic/67981/qshortcut-multiple-widget-instances/2
-    new QShortcut(QKeySequence("Ctrl+F"),         this, SLOT(findClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
-    new QShortcut(QKeySequence("F3"),             this, SLOT(nextClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
-    new QShortcut(QKeySequence("Ctrl+G"),         this, SLOT(gotoClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
-    new QShortcut(QKeySequence("Ctrl+L"),         this, SLOT(lockClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(QKeySequence("Ctrl+F"),         this, SLOT(findClickedSlot()),    nullptr, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(QKeySequence("Ctrl+W"),         this, SLOT(saveBinClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(QKeySequence("F3"),             this, SLOT(nextClickedSlot()),    nullptr, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(QKeySequence("Ctrl+G"),         this, SLOT(gotoClickedSlot()),    nullptr, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(QKeySequence("Ctrl+L"),         this, SLOT(lockClickedSlot()),    nullptr, Qt::WidgetWithChildrenShortcut);
 
     connect(m_pAddressEdit,  &QLineEdit::returnPressed,        this, &MemoryWindow::returnPressedSlot);
     connect(m_pAddressEdit,  &QLineEdit::textChanged,          this, &MemoryWindow::textEditedSlot);
@@ -1259,16 +1280,16 @@ void MemoryWindow::cursorChangedSlot()
 {
     const MemoryWidget::CursorInfo& info = m_pMemoryWidget->GetCursorInfo();
 
-    if (info.m_isValid)
+    if (info.m_isCursorValid)
     {
         QString final;
         QTextStream ref(&final);
-        ref << QString("Cursor: ") << Format::to_hex32(info.m_address & 0xffffff);
-        QString symText = DescribeSymbol(m_pTargetModel->GetSymbolTable(), info.m_address & 0xffffff);
+        ref << QString("Cursor: ") << Format::to_hex32(info.m_cursorAddress & 0xffffff);
+        QString symText = DescribeSymbol(m_pTargetModel->GetSymbolTable(), info.m_cursorAddress & 0xffffff);
         if (!symText.isEmpty())
             ref << " (" + symText + ")";
 
-        QString commentText = DescribeSymbolComment(m_pTargetModel->GetSymbolTable(), info.m_address);
+        QString commentText = DescribeSymbolComment(m_pTargetModel->GetSymbolTable(), info.m_cursorAddress);
         if (!commentText.isEmpty())
             ref << " " + commentText;
 
@@ -1314,11 +1335,11 @@ void MemoryWindow::findClickedSlot()
         return;
 
     const MemoryWidget::CursorInfo& info = m_pMemoryWidget->GetCursorInfo();
-    if (!info.m_isValid)
+    if (!info.m_isCursorValid)
         return;
 
     // Fill in the "default"
-    m_searchSettings.m_startAddress = info.m_address;
+    m_searchSettings.m_startAddress = info.m_cursorAddress;
     if (m_searchSettings.m_endAddress == 0)
         m_searchSettings.m_endAddress = m_pTargetModel->GetSTRamSize();
 
@@ -1341,7 +1362,7 @@ void MemoryWindow::nextClickedSlot()
         return;
 
     const MemoryWidget::CursorInfo& info = m_pMemoryWidget->GetCursorInfo();
-    if (!info.m_isValid)
+    if (!info.m_isCursorValid)
         return;
 
     if (m_searchSettings.m_masksAndValues.size() != 0)
@@ -1349,9 +1370,33 @@ void MemoryWindow::nextClickedSlot()
         // Start address should already have been filled
         {
             m_searchRequestId = m_pDispatcher->SendMemFind(m_searchSettings.m_masksAndValues,
-                                     info.m_address + 1,
+                                     info.m_cursorAddress + 1,
                                      m_searchSettings.m_endAddress);
         }
+    }
+}
+
+void MemoryWindow::saveBinClickedSlot()
+{
+    if (!m_pTargetModel->IsConnected())
+        return;
+
+    const MemoryWidget::CursorInfo& info = m_pMemoryWidget->GetCursorInfo();
+
+    // Fill in the "default"
+    m_saveBinSettings.m_startAddress = info.m_startAddress;
+    m_saveBinSettings.m_sizeInBytes = info.m_sizeInBytes;
+
+    SaveBinDialog search(this, m_pTargetModel, m_saveBinSettings);
+    search.setModal(true);
+    int code = search.exec();
+    if (code == QDialog::DialogCode::Accepted &&
+        m_pTargetModel->IsConnected())
+    {
+        std::string filename = m_saveBinSettings.m_filename.toStdString();
+        (void) m_pDispatcher->SendSaveBin(m_saveBinSettings.m_startAddress,
+                                          m_saveBinSettings.m_sizeInBytes,
+                                          filename);
     }
 }
 

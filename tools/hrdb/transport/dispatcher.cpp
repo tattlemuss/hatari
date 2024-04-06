@@ -12,7 +12,7 @@
 //#define DISPATCHER_DEBUG
 
 // Protocol ID which needs to match the Hatari target
-#define REMOTEDEBUG_PROTOCOL_ID	(0x1006)
+#define REMOTEDEBUG_PROTOCOL_ID	(0x1007)
 
 //-----------------------------------------------------------------------------
 // Character value for the separator in responses/notifications from the target
@@ -196,12 +196,18 @@ uint64_t Dispatcher::SendConsoleCommand(const std::string& cmd)
 
 uint64_t Dispatcher::SendMemFind(const QVector<uint8_t>& valuesAndMasks, uint32_t startAddress, uint32_t endAddress)
 {
-    std::string packet = "memfind ";
     QString command = QString::asprintf("memfind %x %x ", startAddress, endAddress - startAddress);
 
     for (int i = 0; i <  valuesAndMasks.size(); ++i)
         command += QString::asprintf("%02x", valuesAndMasks[i]);
 
+    return SendCommandPacket(command.toStdString().c_str());
+}
+
+uint64_t Dispatcher::SendSaveBin(uint32_t startAddress, uint32_t size, const std::string &filename)
+{
+    QString command = QString::asprintf("savebin %x %x %s", startAddress, size,
+                                        filename.c_str());
     return SendCommandPacket(command.toStdString().c_str());
 }
 
@@ -597,6 +603,10 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
             results.addresses.push_back(value);
         }
         m_pTargetModel->SetSearchResults(cmd.m_uid, results);
+    }
+    else if (type == "savebin")
+    {
+       m_pTargetModel->SaveBinComplete(cmd.m_uid);
     }
     else
     {

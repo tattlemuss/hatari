@@ -57,6 +57,7 @@ public:
     uint64_t SetFastForward(bool enable);
     uint64_t SendConsoleCommand(const std::string& cmd);
     uint64_t SendMemFind(const QVector<uint8_t>& valuesAndMasks, uint32_t startAddress, uint32_t endAddress);
+    uint64_t SendSaveBin(uint32_t startAddress, uint32_t size, const std::string& filename);
 
     // Don't use this except for testing
     uint64_t DebugSendRawPacket(const char* command);

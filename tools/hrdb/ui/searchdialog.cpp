@@ -57,7 +57,7 @@ SearchDialog::SearchDialog(QWidget *parent, const TargetModel* pTargetModel, Sea
     m_returnedSettings(returnedSettings)
 {
     this->setWindowTitle(tr("Find..."));
-    this->setObjectName("SeachDialog");
+    this->setObjectName("SearchDialog");
 
     // Take a copy of the input settings
     m_localSettings = returnedSettings;

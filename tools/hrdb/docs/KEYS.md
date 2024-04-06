@@ -70,6 +70,7 @@ Memory Window focus
 | Cursor kyes   | Move editing cursor                |
 | Page Up/Down  | Move to previous/next page         |
 | Ctrl+F        | Search for text/hexadecimal string |
+| Ctrl+W        | Write memory to file               |
 | Ctrl+Space    | Show Context Menu                  |
 
 Graphics Inspector focus
