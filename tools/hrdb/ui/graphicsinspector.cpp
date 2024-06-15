@@ -583,7 +583,7 @@ void GraphicsInspectorWidget::lockClickedSlot()
 void GraphicsInspectorWidget::otherMemoryChanged(uint32_t address, uint32_t size)
 {
     // Do a re-request if our memory is touched
-    uint32_t ourSize = GetEffectiveHeight() * GetEffectiveWidth() * BytesPerMode(m_mode);
+    uint32_t ourSize = GetEffectiveHeight() * (GetEffectiveWidth() + GetEffectivePadding()) * BytesPerMode(m_mode);
     if (Overlaps(m_bitmapAddress, ourSize, address, size))
     {
         m_requestBitmap.Dirty();
