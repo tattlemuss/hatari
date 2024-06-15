@@ -200,7 +200,7 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     connectChanged();
     startStopChanged();
 
-    messageSet("Welcome to hrdb!");
+    this->statusBar()->showMessage("Welcome to hrdb, version " VERSION_STRING, 0);
 }
 
 MainWindow::~MainWindow()

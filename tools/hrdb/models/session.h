@@ -13,7 +13,7 @@ class Dispatcher;
 class TargetModel;
 class FileWatcher;
 
-#define VERSION_STRING      "0.008 (August 2023)"
+#define VERSION_STRING      "0.009 (June 2024)"
 #define HELP_URL            "http://clarets.org/steve/projects/hrdb.html"
 
 // Shared runtime data about the debugging session used by multiple UI components
