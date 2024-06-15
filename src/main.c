@@ -806,7 +806,6 @@ static void Main_Init(void)
  */
 static void Main_UnInit(void)
 {
-	RemoteDebug_UnInit();
 	Screen_ReturnFromFullScreen();
 	Floppy_UnInit();
 	HDC_UnInit();
@@ -833,6 +832,7 @@ static void Main_UnInit(void)
 	/* SDL uninit: */
 	SDL_Quit();
 
+	RemoteDebug_UnInit();
 	/* Close debug log file */
 	DebugUI_UnInit();
 	Log_UnInit();
