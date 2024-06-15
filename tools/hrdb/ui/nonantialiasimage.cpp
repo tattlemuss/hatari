@@ -31,7 +31,7 @@ NonAntiAliasImage::NonAntiAliasImage(QWidget *parent, Session* pSession)
 void NonAntiAliasImage::setPixmap(int width, int height)
 {
     // Regenerate a new shape
-    m_img = QImage(m_pBitmap, width * 16, height, QImage::Format_Indexed8);
+    m_img = QImage(m_pBitmap, width, height, QImage::Format_Indexed8);
     m_img.setColorTable(m_colours);
     QPixmap pm = QPixmap::fromImage(m_img);
     m_pixmap = pm;

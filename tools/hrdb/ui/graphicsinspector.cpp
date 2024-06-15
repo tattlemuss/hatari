@@ -557,7 +557,7 @@ void GraphicsInspectorWidget::paletteChangedSlot(int index)
     m_paletteMode = static_cast<Palette>(rawIdx);
 
     // Ensure pixmap is updated
-    m_pImageWidget->setPixmap(GetEffectiveWidth(), GetEffectiveHeight());
+    m_pImageWidget->setPixmap(GetEffectiveWidth() * 16, GetEffectiveHeight());
 
     UpdateUIElements();
 
@@ -980,7 +980,7 @@ void GraphicsInspectorWidget::UpdateImage()
             }
         }
     }
-    m_pImageWidget->setPixmap(width, height);
+    m_pImageWidget->setPixmap(width * 16, height);
 
     // Update annotations
     //EffectiveData data;
@@ -1038,12 +1038,13 @@ int GraphicsInspectorWidget::GetEffectiveWidth() const
 
     const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
     if (!pMem)
-        return Mode::k4Bitplane;
+        return 0;
 
     // Handle ST scroll
     int width = 0;
     uint8_t tmpReg = 0;
-    if (!IsMachineST(m_pTargetModel->GetMachineType()))
+    MACHINETYPE mtype = m_pTargetModel->GetMachineType();
+    if (!IsMachineST(mtype))
     {
         uint8_t modeReg;
         pMem->ReadAddressByte(Regs::VID_HORIZ_SCROLL_STE, tmpReg);
@@ -1058,6 +1059,7 @@ int GraphicsInspectorWidget::GetEffectiveWidth() const
         return width + 20;
     else if (modeReg == Regs::RESOLUTION::MEDIUM)
         return width + 40;
+
     return width + 40;
 }
 
@@ -1068,7 +1070,7 @@ int GraphicsInspectorWidget::GetEffectiveHeight() const
 
     const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
     if (!pMem)
-        return Mode::k4Bitplane;
+        return 0;
     uint8_t tmpReg;
     pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, tmpReg);
     Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(tmpReg);
@@ -1084,7 +1086,22 @@ int GraphicsInspectorWidget::GetEffectivePadding() const
     if (!m_pLockFormatToVideoCheckBox->isChecked())
         return m_padding;
 
-    return 0;       // TODO handle STE padding
+    const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
+    if (!pMem)
+        return Mode::k4Bitplane;
+
+    MACHINETYPE mtype = m_pTargetModel->GetMachineType();
+    // handle STE padding
+    if (IsMachineSTE(mtype))
+    {
+        uint8_t lineDelta = 0;
+        pMem->ReadAddressByte(Regs::VID_SCANLINE_OFFSET_STE, lineDelta);
+        if (lineDelta != 0)
+            return static_cast<uint32_t>(lineDelta) * 2;
+    }
+
+    // TODO handle Falcon padding, when understood
+    return 0;
 }
 
 void GraphicsInspectorWidget::GetEffectiveData(GraphicsInspectorWidget::EffectiveData &data) const

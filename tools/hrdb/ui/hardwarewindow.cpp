@@ -683,7 +683,7 @@ bool HardwareBitmapBlitterHalftone::Update(const TargetModel *pTarget)
     m_pImage->m_colours.resize(2U);
     m_pImage->m_colours[0] = 0xffffffff;
     m_pImage->m_colours[1] = 0xff000000;
-    m_pImage->setPixmap(1U, 16);
+    m_pImage->setPixmap(16, 16);
     return true;
 }
 
