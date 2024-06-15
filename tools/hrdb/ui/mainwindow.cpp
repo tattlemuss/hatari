@@ -299,9 +299,12 @@ void MainWindow::protocolMismatch(uint32_t hatariProtocol, uint32_t hrdbProtocol
     box.exec();
 }
 
-void MainWindow::saveBinComplete(uint64_t /*commandId*/)
+void MainWindow::saveBinComplete(uint64_t /*commandId*/, uint32_t errorCode)
 {
-    messageSet("File saved.");
+    if (!errorCode)
+        messageSet("File saved.");
+    else
+        messageSet(QString::asprintf("Unable to save file (error %d)", errorCode));
 }
 
 void MainWindow::startStopClickedSlot()

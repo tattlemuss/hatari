@@ -397,8 +397,21 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
     std::string cmd_status = splitResp.Split(SEP_CHAR);
     if (cmd_status != std::string("OK"))
     {
-        std::cout << "Repsonse dropped: " << cmd.m_response << std::endl;
-        std::cout << "Original command: " << cmd.m_cmd << std::endl;
+        assert(cmd_status == "NG");
+        std::cout << "WARNING: Repsonse dropped: " << cmd.m_response << std::endl;
+        std::cout << "WARNING: Original command: " << cmd.m_cmd << std::endl;
+
+        // "NG" commands return a value now, so parse that
+        // for future information
+        std::string valueStr = splitResp.Split(SEP_CHAR);
+        uint32_t value;
+        if (!StringParsers::ParseHexString(valueStr.c_str(), value))
+            return;
+
+        // Send signals for some packet types
+        if (type == "savebin")
+            m_pTargetModel->saveBinCompleteSignal(cmd.m_uid, value);
+
         return;
     }
 
@@ -606,7 +619,7 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
     }
     else if (type == "savebin")
     {
-       m_pTargetModel->SaveBinComplete(cmd.m_uid);
+       m_pTargetModel->SaveBinComplete(cmd.m_uid, 0U);
     }
     else
     {

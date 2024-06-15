@@ -181,9 +181,9 @@ void TargetModel::SetSearchResults(uint64_t commmandId, const SearchResults& res
     emit searchResultsChangedSignal(commmandId);
 }
 
-void TargetModel::SaveBinComplete(uint64_t commmandId)
+void TargetModel::SaveBinComplete(uint64_t commmandId, uint32_t errorCode)
 {
-    emit saveBinCompleteSignal(commmandId);
+    emit saveBinCompleteSignal(commmandId, errorCode);
 }
 
 void TargetModel::AddProfileDelta(const ProfileDelta& delta)

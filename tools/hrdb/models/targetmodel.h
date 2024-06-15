@@ -115,7 +115,7 @@ public:
     void SetSearchResults(uint64_t commmandId, const SearchResults& results);
 
     // emits saveBinComplete()
-    void SaveBinComplete(uint64_t commmandId);
+    void SaveBinComplete(uint64_t commmandId, uint32_t errorCode);
 
     // The following 2 commands are processed as a batch
     // Update profiling data. Does not emit signal
@@ -204,7 +204,7 @@ signals:
     void searchResultsChangedSignal(uint64_t commandId);
 
     // When a flle write completed
-    void saveBinCompleteSignal(uint64_t commandId);
+    void saveBinCompleteSignal(uint64_t commandId, uint32_t errorCode);
 
     // When exception mask updated
     void exceptionMaskChanged();

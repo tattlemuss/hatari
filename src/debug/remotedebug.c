@@ -1328,8 +1328,11 @@ static void RemoteDebug_ProcessBuffer(RemoteDebugState* state)
 
 		if (cmd_ret != 0)
 		{
-			// return an error if something failed
+			// Return an error if something failed
+			// and give the error number
 			send_str(state, "NG");
+			send_sep(state);
+			send_hex(state, cmd_ret);
 		}
 		send_term(state);
 
