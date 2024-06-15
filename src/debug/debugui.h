@@ -47,4 +47,6 @@ extern void DebugUI_RegisterRemoteDebug(DebugUI_ProcessRemoteCommands cmdCallbac
 /* Process command from remote debug. Returns DEBUGGER_* code */
 extern int DebugUI_ParseConsoleCommand(const char* command);
 
+extern void DebugUI_UnInit(void);
+
 #endif /* HATARI_DEBUGUI_H */

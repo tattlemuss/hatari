@@ -44,6 +44,7 @@ const char Main_fileid[] = "Hatari main.c";
 #include "reset.h"
 #include "resolution.h"
 #include "rs232.h"
+#include "rtc.h"
 #include "scc.h"
 #include "screen.h"
 #include "sdlgui.h"
@@ -59,6 +60,7 @@ const char Main_fileid[] = "Hatari main.c";
 #include "debugui.h"
 #include "remotedebug.h"
 #include "clocks_timings.h"
+#include "utils.h"
 
 #include "hatari-glue.h"
 
@@ -73,13 +75,17 @@ const char Main_fileid[] = "Hatari main.c";
 #include "gui-win/opencon.h"
 #endif
 
+#ifdef EMSCRIPTEN
+#include "emscripten.h"
+#endif
+
 bool bQuitProgram = false;                /* Flag to quit program cleanly */
 static int nQuitValue;                    /* exit value */
 
-static Uint32 nRunVBLs;                   /* Whether and how many VBLS to run before exit */
-static Uint32 nFirstMilliTick;            /* Ticks when VBL counting started */
-static Uint32 nVBLCount;                  /* Frame count */
-static int nVBLSlowdown = 1;		  /* host VBL wait multiplier */
+static uint32_t nRunVBLs;                 /* Whether and how many VBLS to run before exit */
+static uint32_t nFirstMilliTick;          /* Ticks when VBL counting started */
+static uint32_t nVBLCount;                /* Frame count */
+static int nVBLSlowdown = 1;              /* host VBL wait multiplier */
 
 static bool bEmulationActive = true;      /* Run emulation when started */
 static bool bAccurateDelays;              /* Host system has an accurate SDL_Delay()? */
@@ -98,7 +104,7 @@ static bool bAllowMouseWarp = true;       /* disabled when Hatari window loses m
 #if HAVE_SYS_TIMES_H
 #include <unistd.h>
 #include <sys/times.h>
-static Uint32 Main_GetTicks(void)
+static uint32_t Main_GetTicks(void)
 {
 	static unsigned int ticks_to_msec = 0;
 	struct tms fields;
@@ -129,16 +135,16 @@ static Uint32 Main_GetTicks(void)
  * return of SDL_GetTicks in micro sec.
  */
 
-static Sint64	Time_GetTicks ( void )
+static int64_t Time_GetTicks(void)
 {
-	Sint64	ticks_micro;
+	int64_t ticks_micro;
 
 #if HAVE_GETTIMEOFDAY
 	struct timeval	now;
 	gettimeofday ( &now , NULL );
-	ticks_micro = (Sint64)now.tv_sec * 1000000 + now.tv_usec;
+	ticks_micro = (int64_t)now.tv_sec * 1000000 + now.tv_usec;
 #else
-	ticks_micro = (Sint64)SDL_GetTicks() * 1000;		/* milli sec -> micro sec */
+	ticks_micro = (int64_t)SDL_GetTicks() * 1000;		/* milli sec -> micro sec */
 #endif
 
 	return ticks_micro;
@@ -152,8 +158,11 @@ static Sint64	Time_GetTicks ( void )
  * (which is portable, but less accurate as is uses milli-seconds)
  */
 
-static void	Time_Delay ( Sint64 ticks_micro )
+static void Time_Delay(int64_t ticks_micro)
 {
+#ifdef EMSCRIPTEN
+	emscripten_sleep((uint32_t)(ticks_micro / 1000));	/* micro sec -> milli sec */
+#else
 #if HAVE_NANOSLEEP
 	struct timespec	ts;
 	int		ret;
@@ -166,7 +175,8 @@ static void	Time_Delay ( Sint64 ticks_micro )
                 ret = nanosleep(&ts, &ts);
 	} while ( ret && ( errno == EINTR ) );		/* keep on sleeping if we were interrupted */
 #else
-	SDL_Delay ( (Uint32)(ticks_micro / 1000) ) ;	/* micro sec -> milli sec */
+	SDL_Delay((uint32_t)(ticks_micro / 1000)) ;	/* micro sec -> milli sec */
+#endif
 #endif
 }
 
@@ -282,7 +292,7 @@ void Main_SetQuitValue(int exitval)
  *
  * If zero value given instead, returns earlier set VBL count.
  */
-Uint32 Main_SetRunVBLs(Uint32 vbls)
+uint32_t Main_SetRunVBLs(uint32_t vbls)
 {
 	if (!vbls)
 		return nRunVBLs;
@@ -319,10 +329,10 @@ const char* Main_SetVBLSlowdown(int factor)
  */
 void Main_WaitOnVbl(void)
 {
-	Sint64 CurrentTicks;
-	static Sint64 DestTicks = 0;
-	Sint64 FrameDuration_micro;
-	Sint64 nDelay;
+	int64_t CurrentTicks;
+	static int64_t DestTicks = 0;
+	int64_t FrameDuration_micro;
+	int64_t nDelay;
 
 	nVBLCount++;
 	if (nRunVBLs &&	nVBLCount >= nRunVBLs)
@@ -332,7 +342,7 @@ void Main_WaitOnVbl(void)
 		exit(0);
 	}
 
-//	FrameDuration_micro = (Sint64) ( 1000000.0 / nScreenRefreshRate + 0.5 );	/* round to closest integer */
+//	FrameDuration_micro = (int64_t) ( 1000000.0 / nScreenRefreshRate + 0.5 );	/* round to closest integer */
 	FrameDuration_micro = ClocksTimings_GetVBLDuration_micro ( ConfigureParams.System.nMachineType , nScreenRefreshRate );
 	FrameDuration_micro *= nVBLSlowdown;
 	CurrentTicks = Time_GetTicks();
@@ -366,6 +376,9 @@ void Main_WaitOnVbl(void)
 		}
 		/* Only update DestTicks for next VBL */
 		DestTicks = CurrentTicks + FrameDuration_micro;
+		#ifdef EMSCRIPTEN
+		emscripten_sleep(0);
+		#endif
 		return;
 	}
 
@@ -639,14 +652,14 @@ void Main_EventHandler(bool remoteDebugging)
 				/* Note: any changes here should most likely
 				 * be done also in sdlgui.c::SDLGui_DoDialog()
 				 */
-				SDL_UpdateRect(sdlscrn, 0, 0, 0, 0);
+				Screen_UpdateRect(sdlscrn, 0, 0, 0, 0);
 				break;
 			case SDL_WINDOWEVENT_SIZE_CHANGED:
 				/* internal & external window size changes */
 				Screen_SetTextureScale(sdlscrn->w, sdlscrn->h,
 						       event.window.data1,
 						       event.window.data2, false);
-				SDL_UpdateRect(sdlscrn, 0, 0, 0, 0);
+				Screen_UpdateRect(sdlscrn, 0, 0, 0, 0);
 				break;
 				/* mouse & keyboard focus */
 			case SDL_WINDOWEVENT_ENTER:
@@ -779,7 +792,8 @@ static void Main_Init(void)
 	IoMem_Init();
 	NvRam_Init();
 	Sound_Init();
-	
+	Rtc_Init();
+
 	/* done as last, needs CPU & DSP running... */
 	DebugUI_Init();
 	RemoteDebug_Init();
@@ -820,6 +834,7 @@ static void Main_UnInit(void)
 	SDL_Quit();
 
 	/* Close debug log file */
+	DebugUI_UnInit();
 	Log_UnInit();
 
 	Paths_UnInit();
@@ -918,7 +933,7 @@ static void Main_StatusbarSetup(void)
 int main(int argc, char *argv[])
 {
 	/* Generate random seed */
-	srand(time(NULL));
+	Hatari_srand(time(NULL));
 
 	/* Logs default to stderr at start */
 	Log_Default();

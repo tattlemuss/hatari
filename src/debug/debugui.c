@@ -45,6 +45,7 @@ const char DebugUI_fileid[] = "Hatari debugui.c";
 #include "debugui.h"
 #include "evaluate.h"
 #include "history.h"
+#include "profile.h"
 #include "symbols.h"
 #include "vars.h"
 
@@ -91,7 +92,7 @@ void DebugUI_MemorySnapShot_Capture(const char *path, bool bSave)
 		if (File_Exists(filename))
 		{
 			/* and parse back the saved breakpoints */
-			DebugUI_ParseFile(filename, true);
+			DebugUI_ParseFile(filename, true, true);
 		}
 	}
 	free(filename);
@@ -146,7 +147,7 @@ static int DebugUI_SetLogFile(int nArgc, char *psArgs[])
 /**
  * Helper to print given value in all supported number bases
  */
-static void DebugUI_PrintValue(Uint32 value)
+static void DebugUI_PrintValue(uint32_t value)
 {
 	bool one, ones;
 	int bit;
@@ -179,7 +180,7 @@ static void DebugUI_PrintValue(Uint32 value)
 static int DebugUI_Evaluate(int nArgc, char *psArgs[])
 {
 	const char *errstr, *expression = (const char *)psArgs[1];
-	Uint32 result;
+	uint32_t result;
 	int offset;
 
 	if (nArgc < 2)
@@ -223,7 +224,7 @@ static char *DebugUI_EvaluateExpressions(const char *initial)
 	char *end, *start, *input;
 	const char *errstr;
 	char valuestr[12];
-	Uint32 value;
+	uint32_t value;
 	bool fordsp;
 
 	/* input is split later on, need to save len here */
@@ -435,6 +436,21 @@ static int DebugUI_ChangeDir(int argc, char *argv[])
 }
 
 /**
+ * Command: Print strings to debug log output, with escape handling.
+ */
+static int DebugUI_Echo(int argc, char *argv[])
+{
+	if (argc < 2)
+		return DebugUI_PrintCmdHelp(argv[0]);
+	for (int i = 1; i < argc; i++)
+	{
+		Str_UnEscape(argv[i]);
+		fputs(argv[i], debugOutput);
+	}
+	return DEBUGGER_CMDDONE;
+}
+
+/**
  * Command: Rename file
  */
 static int DebugUI_Rename(int argc, char *argv[])
@@ -478,7 +494,7 @@ static int DebugUI_Reset(int argc, char *argv[])
 static int DebugUI_CommandsFromFile(int argc, char *argv[])
 {
 	if (argc == 2)
-		DebugUI_ParseFile(argv[1], true);
+		DebugUI_ParseFile(argv[1], true, true);
 	else
 		DebugUI_PrintCmdHelp(argv[0]);
 	return DEBUGGER_CMDDONE;
@@ -663,7 +679,7 @@ static int DebugUI_ParseCommand(const char *input_orig)
 	if (retval == DEBUGGER_CMDCONT || retval == DEBUGGER_ENDCONT)
 	{
 		if (psArgs[0] != sLastCmd)
-			strlcpy(sLastCmd, psArgs[0], sizeof(sLastCmd));
+			Str_Copy(sLastCmd, psArgs[0], sizeof(sLastCmd));
 		if (retval == DEBUGGER_ENDCONT)
 			retval = DEBUGGER_END;
 	}
@@ -944,6 +960,11 @@ static const dbgcommand_t uicommand[] =
 	  "\tChange Hatari work directory. With '-f', directory is\n"
 	  "\tchanged only after all script files have been parsed.",
 	  false },
+	{ DebugUI_Echo, NULL,
+	  "echo", "",
+	  "output given string(s)",
+	  "<strings>\n",
+	  false },
 	{ DebugUI_Evaluate, Vars_MatchCpuVariable,
 	  "evaluate", "e",
 	  "evaluate an expression",
@@ -953,11 +974,11 @@ static const dbgcommand_t uicommand[] =
 	  "\tThose are replaced by their values. Supported operators in\n"
 	  "\texpressions are, in the descending order of precedence:\n"
 	  "\t\t(), +, -, ~, *, /, +, -, >>, <<, ^, &, |\n"
-	  "\tParenthesis will fetch a _long_ value from the address\n"
-	  "\tto what the value inside it evaluates to. Prefixes can be\n"
+	  "\tParenthesis fetch long value from the given address,\n"
+	  "\tunless .<width> suffix is given. Prefixes can be\n"
 	  "\tused only in start of line or parenthesis.\n"
 	  "\tFor example:\n"
-	  "\t\t~%101 & $f0f0f ^ (d0 + 0x21)\n"
+	  "\t\t~%101 & $f0f0f ^ (d0 + 0x21).w\n"
 	  "\tResult value is shown as binary, decimal and hexadecimal.\n"
 	  "\tAfter this, '$' will TAB-complete to last result value.",
 	  true },
@@ -969,11 +990,11 @@ static const dbgcommand_t uicommand[] =
 	  false },
 	{ History_Parse, History_Match,
 	  "history", "hi",
-	  "show last CPU/DSP PC values & executed instructions",
+	  "show last CPU and/or DSP PC values + instructions",
 	  "cpu|dsp|on|off|<count> [limit]|save <file>\n"
-	  "\t'cpu' and 'dsp' enable instruction history tracking for just given\n"
+	  "\t'cpu' and 'dsp' enable program counter history tracking for given\n"
 	  "\tprocessor, 'on' tracks them both, 'off' will disable history.\n"
-	  "\tOptional 'limit' will set how many past instructions are tracked.\n"
+	  "\tOptional 'limit' will set how many past addresses are tracked.\n"
 	  "\tGiving just count will show (at max) given number of last saved PC\n"
 	  "\tvalues and instructions currently at corresponding RAM addresses.",
 	  false },
@@ -1075,6 +1096,8 @@ void DebugUI_Init(void)
 	const dbgcommand_t *cpucmd, *dspcmd;
 	int cpucmds, dspcmds;
 
+	Log_ResetMsgRepeat();
+
 	/* already initialized? */
 	if (debugCommands)
 		return;
@@ -1105,13 +1128,25 @@ void DebugUI_Init(void)
 		int i;
 		for (i = 0; i < parseFiles; i++)
 		{
-			DebugUI_ParseFile(parseFileNames[i], true);
+			DebugUI_ParseFile(parseFileNames[i], true, true);
 			free(parseFileNames[i]);
 		}
 		free(parseFileNames);
 		parseFileNames = NULL;
 		parseFiles = 0;
 	}
+}
+
+/**
+ * Debugger user interface de-initialization / free.
+ */
+void DebugUI_UnInit(void)
+{
+	Profile_CpuFree();
+	Profile_DspFree();
+	Symbols_FreeAll();
+	free(debugCommand);
+	debugCommands = 0;
 }
 
 
@@ -1237,11 +1272,12 @@ void DebugUI(debug_reason_t reason)
 
 
 /**
- * Read debugger commands from a file.  If 'reinit' is set
- * (as it normally should), reinitialize breakpoints etc.
- * afterwards. return false for error, true for success.
+ * Read debugger commands from a file.  If 'reinit' is set (as it
+ * normally should), reinitialize breakpoints etc. afterwards.
+ * Processed command lines are printed if 'verbose' is set.
+ * return false for error, true for success.
  */
-bool DebugUI_ParseFile(const char *path, bool reinit)
+bool DebugUI_ParseFile(const char *path, bool reinit, bool verbose)
 {
 	int recurse;
 	static int recursing;
@@ -1249,7 +1285,8 @@ bool DebugUI_ParseFile(const char *path, bool reinit)
 	char input[256];
 	FILE *fp;
 
-	fprintf(stderr, "Reading debugger commands from '%s'...\n", path);
+	if (verbose)
+		fprintf(stderr, "Reading debugger commands from '%s'...\n", path);
 	if (!(fp = fopen(path, "r")))
 	{
 		perror("ERROR");
@@ -1277,7 +1314,8 @@ bool DebugUI_ParseFile(const char *path, bool reinit)
 			fclose(fp);
 			return false;
 		}
-		fprintf(stderr, "Changed to input file dir '%s'.\n", dir);
+		if (verbose)
+			fprintf(stderr, "Changed to input file dir '%s'.\n", dir);
 	}
 	free(dir);
 
@@ -1297,7 +1335,8 @@ bool DebugUI_ParseFile(const char *path, bool reinit)
 			continue;
 
 		cmd = Str_Trim(expanded);
-		fprintf(stderr, "> %s\n", cmd);
+		if (verbose)
+			fprintf(stderr, "> %s\n", cmd);
 		DebugUI_ParseCommand(cmd);
 		free(expanded);
 	}
@@ -1309,7 +1348,7 @@ bool DebugUI_ParseFile(const char *path, bool reinit)
 	{
 		if (chdir(olddir) != 0)
 			perror("ERROR");
-		else
+		else if (verbose)
 			fprintf(stderr, "Changed back to '%s' dir.\n", olddir);
 		free(olddir);
 	}
@@ -1321,7 +1360,7 @@ bool DebugUI_ParseFile(const char *path, bool reinit)
 		{
 			if (chdir(finalDir) != 0)
 				perror("ERROR");
-			else
+			else if(verbose)
 				fprintf(stderr, "Delayed change to '%s' dir.\n", finalDir);
 			free(finalDir);
 			finalDir = NULL;
@@ -1379,9 +1418,11 @@ void DebugUI_Exceptions(int nr, long pc)
 		{ EXCEPT_ILLEGAL,   "Illegal instruction" },	/* 4 */
 		{ EXCEPT_ZERODIV,   "Div by zero" },		/* 5 */
 		{ EXCEPT_CHK,       "CHK" },			/* 6 */
-		{ EXCEPT_TRAPV,     "TRAPV" },			/* 7 */
+		{ EXCEPT_TRAPV,     "TRAPCc/TRAPV" },		/* 7 */
 		{ EXCEPT_PRIVILEGE, "Privilege violation" },	/* 8 */
-		{ EXCEPT_TRACE,     "Trace" }			/* 9 */
+		{ EXCEPT_TRACE,     "Trace" },			/* 9 */
+		{ EXCEPT_LINEA,     "Line-A" },			/* 10 */
+		{ EXCEPT_LINEF,     "Line-F" }			/* 11 */
 	};
 	nr -= 2;
 	if (nr < 0  || nr >= ARRAY_SIZE(ex))
