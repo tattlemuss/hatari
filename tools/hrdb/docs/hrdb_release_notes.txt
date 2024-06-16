@@ -1,6 +1,45 @@
 hrdb Release Notes
 ==================
 
+v0.009 (June 2024)
+
+- Hatari
+  - Update code to Hatari version 2.5.0
+  - (hrdb only) Add Vars for TOSStart and TOSEnd addresses.
+
+- General
+  - Added a "Run to RAM" command. Makes it easier to exit TOS calls. Requested by @troed.
+  - Added Ctrl+U <key> sequences for all the Run To... options.
+	 e.g. "Ctrl+U V" performs "run to next VBL"
+  - Added a protocol check between hrdb and Hatari, to prevent accidental user mismatches.
+  - Switched Breakpoints and Profile windows to use QTreeView.
+      This looks much nicer and more compact.
+
+- Graphics inspector
+  - Added support for STE line-padding register.
+  - Correctly use black & white palette in mono resolution. Reported by @troed.
+
+- Memory Window
+  - Added binary values in tooltips. Request from TheNameOfTheGame.
+  - Added "Search..." as context menu option.
+  - Added "Write to File..." context menu option to save binary data.
+
+- Disassembly Window
+  - Added "Search..." as context menu option.
+  - Added annotation of trap calls.
+      i.e. names of GemDOS/Xbios/Bios calls will be displayed as a comment.
+      Currently this only identifies calls of the form "move.w #xx,-(a7) ; trap #yy"
+      Requested by @troed.
+  - Added annotation of Line-A commands.
+      e.g. "dc.w $a000" will show the comment "linea_init"
+
+- Register Window
+  - TOS Annotations: show the trap name in the Register window.
+      This is only flagged by Hatari at the point where the trap #1 instruction
+      is about to be called, not during the lifetime of the trap, so its
+      value is limited.
+
+
 v0.008 (August 2023)
 
 - Graphics Inspector
@@ -13,6 +52,10 @@ v0.008 (August 2023)
   - Show memory address(es) of pixel under mouse pointer (suggestion by ggn/KÜA)
     This address can also be sent to other windows (e.g. Memory) with the
     right-click/context menu.
+  - Bug fix: Graphics Inspector didn't read $ff8260 cleanly in all cases.
+      This resulted in the mode being incorrectly detected as "1-Bitplane"
+      if any bits other than 0 and 1 were set. This happened sometimes with
+      EmuTOS.
 
 - Memory Window
   - Added search feature on Ctrl+F. Search supports hex or text, with case
@@ -62,6 +105,11 @@ v0.008 (August 2023)
     Console Window, Alt+2/3/4 for Memory Windows 2/3/4.
   - Symbol system now supports comments for each label. Comments are added for the
     internal hardware register addresses, low-memory vectors and TOS variables.
+  - Bug fix: crash when using the Hatari "number base" with anything other than 10.
+  - Launch dialog: Fix the resize behaviour so the last combo doesn't stretch.
+  - Added support Windows file names in breakpoint options
+  - Bug fix: correctly triggers fast-forward from the startup debugger script
+     when a separate config file is specified.
 
 
 v0.007 (August 2022)
