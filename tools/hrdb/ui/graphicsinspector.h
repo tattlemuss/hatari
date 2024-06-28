@@ -62,7 +62,7 @@ private slots:
     void saveImageClicked();
 
 private:
-    void mouseOverChanged();
+    void updateInfoLine();
 protected:
     virtual void keyPressEvent(QKeyEvent *ev) override;
     virtual void contextMenuEvent(QContextMenuEvent *event) override;

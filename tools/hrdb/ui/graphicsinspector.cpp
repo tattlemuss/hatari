@@ -254,7 +254,7 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     connect(m_pHeightSpinBox,   SIGNAL(valueChanged(int)),                SLOT(heightChangedSlot(int)));
     connect(m_pPaddingSpinBox,  SIGNAL(valueChanged(int)),                SLOT(paddingChangedSlot(int)));
 
-    connect(m_pImageWidget,  &NonAntiAliasImage::MouseInfoChanged,        this, &GraphicsInspectorWidget::mouseOverChanged);
+    connect(m_pImageWidget,  &NonAntiAliasImage::MouseInfoChanged,        this, &GraphicsInspectorWidget::updateInfoLine);
     connect(m_pSession,      &Session::addressRequested,                  this, &GraphicsInspectorWidget::RequestBitmapAddress);
 
     // Context menus
@@ -514,9 +514,10 @@ void GraphicsInspectorWidget::lockFormatToVideoChanged()
     if (m_bLockToVideo)
     {
         UpdateFormatFromUI();
-        m_requestBitmap.Dirty();
-        UpdateMemoryRequests();
     }
+    m_requestBitmap.Dirty();
+    UpdateMemoryRequests();
+    updateInfoLine();
     UpdateUIElements();
 }
 
@@ -607,6 +608,7 @@ void GraphicsInspectorWidget::widthChangedSlot(int value)
     m_width = value;
     m_requestBitmap.Dirty();
     UpdateMemoryRequests();
+    updateInfoLine();
 }
 
 void GraphicsInspectorWidget::heightChangedSlot(int value)
@@ -621,6 +623,7 @@ void GraphicsInspectorWidget::paddingChangedSlot(int value)
     m_padding = value;
     m_requestBitmap.Dirty();
     UpdateMemoryRequests();
+    updateInfoLine();
 }
 
 void GraphicsInspectorWidget::saveImageClicked()
@@ -637,20 +640,22 @@ void GraphicsInspectorWidget::saveImageClicked()
         m_pImageWidget->GetImage().save(filename);
 }
 
-void GraphicsInspectorWidget::mouseOverChanged()
+void GraphicsInspectorWidget::updateInfoLine()
 {
     const NonAntiAliasImage::MouseInfo& info = m_pImageWidget->GetMouseInfo();
 
     // Take a copy for right-click events
     m_mouseInfo = info;
     m_addressUnderMouse = -1;
+    EffectiveData data;
+    GetEffectiveData(data);
 
+    QString str;
+    QTextStream ref(&str);
     if (info.isValid)
     {
         // We can calculate the memory address here
         uint32_t addr = ~0U;
-        EffectiveData data;
-        GetEffectiveData(data);
         switch(m_mode)
         {
         case Mode::k1Bitplane:
@@ -663,25 +668,21 @@ void GraphicsInspectorWidget::mouseOverChanged()
             break;
         }
 
-        QString str;
-        QTextStream ref(&str);
         ref << "[" << info.x << ", " << info.y << "]";
         if (info.pixelValue >= 0)
             ref << " Pixel Value: " << info.pixelValue;
         if (addr != ~0U)
         {
-            ref << " Address: " << Format::to_hex32(addr);
+            ref << "; Address: " << Format::to_hex32(addr);
             QString symText = DescribeSymbol(m_pTargetModel->GetSymbolTable(), addr);
             if (!symText.isEmpty())
                 ref << " (" << symText << ")";
         }
-        m_pInfoLabel->setText(str);
+        ref << "; ";
         m_addressUnderMouse = addr;
     }
-    else
-    {
-        m_pInfoLabel->setText(QString());
-    }
+    ref << "Bytes/line: " << data.bytesPerLine;
+    m_pInfoLabel->setText(str);
 }
 
 void GraphicsInspectorWidget::RequestBitmapAddress(Session::WindowType type, int windowIndex, uint32_t address)
