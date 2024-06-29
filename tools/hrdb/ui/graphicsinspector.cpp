@@ -139,7 +139,7 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     // Width is now 80 to support the "1280" special ST mode for @troed
     m_pStrideSpinBox->setRange(1, 1280);
     m_pStrideSpinBox->setValue(m_userBytesPerLine);
-    m_pHeightSpinBox->setRange(16, 256);
+    m_pHeightSpinBox->setRange(16, 400);
     m_pHeightSpinBox->setValue(m_userHeight);
 
     // Third line
@@ -1073,24 +1073,41 @@ int GraphicsInspectorWidget::GetEffectiveStride() const
             return 0;
 
         // Handle ST scroll
-        int width = 0;
+        int bytes = 0;
+        int chunkSize = 0;
         uint8_t tmpReg = 0;
         MACHINETYPE mtype = m_pTargetModel->GetMachineType();
-        if (!IsMachineST(mtype))
+
+        pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, tmpReg);
+        Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(tmpReg);
+        switch (modeReg)
+        {
+        case Regs::RESOLUTION::HIGH:
+            bytes = 80; chunkSize = 2; break;
+        case Regs::RESOLUTION::MEDIUM:
+            bytes = 160; chunkSize = 4; break;
+        case Regs::RESOLUTION::LOW:
+            bytes = 160; chunkSize = 8; break;
+        }
+
+                    if (!IsMachineST(mtype))
         {
             uint8_t modeReg;
             pMem->ReadAddressByte(Regs::VID_HORIZ_SCROLL_STE, tmpReg);
             modeReg = Regs::GetField_VID_HORIZ_SCROLL_STE_PIXELS(tmpReg);
             if (modeReg != 0)
-                width = 16;  // extra read for scroll
+                bytes += chunkSize;  // extra read for scroll
         }
 
-        pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, tmpReg);
-        Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(tmpReg);
-        if (modeReg == Regs::RESOLUTION::HIGH)
-            return width + 80;
-
-        return width + 160;
+        // handle STE padding
+        if (IsMachineSTE(mtype))
+        {
+            uint8_t lineDelta = 0;
+            pMem->ReadAddressByte(Regs::VID_SCANLINE_OFFSET_STE, lineDelta);
+            if (lineDelta)
+                bytes += lineDelta * 2;
+        }
+        return bytes;
     }
     return m_userBytesPerLine;
 }
