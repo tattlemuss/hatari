@@ -44,7 +44,6 @@ private:
     void bitmapAddressChanged();
     void paletteAddressChanged();
     void lockAddressToVideoChanged();
-    void lockFormatToVideoChanged();
     void overlayDarkenChanged();
     void overlayGridChanged();
     void overlayZoomChanged();
@@ -70,10 +69,11 @@ protected:
 private:
     enum Mode
     {
-        k4Bitplane,
-        k3Bitplane,
-        k2Bitplane,
-        k1Bitplane
+        kFormat4Bitplane,
+        kFormat3Bitplane,
+        kFormat2Bitplane,
+        kFormat1Bitplane,
+        kFormatRegisters
     };
 
     enum Palette
@@ -141,7 +141,6 @@ private:
     QSpinBox*       m_pHeightSpinBox;
     QSpinBox*       m_pPaddingSpinBox;
     QCheckBox*      m_pLockAddressToVideoCheckBox;
-    QCheckBox*      m_pLockFormatToVideoCheckBox;
     QComboBox*      m_pPaletteComboBox;
     ElidedLabel*    m_pInfoLabel;
 

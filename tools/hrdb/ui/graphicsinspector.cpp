@@ -79,7 +79,7 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
                                                  Session* pSession) :
     QDockWidget(parent),
     m_pSession(pSession),
-    m_mode(k4Bitplane),
+    m_mode(kFormat4Bitplane),
     m_bitmapAddress(0U),
     m_width(20),
     m_height(200),
@@ -118,12 +118,12 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     m_pWidthSpinBox = new QSpinBox(this);
     m_pHeightSpinBox = new QSpinBox(this);
     m_pPaddingSpinBox = new QSpinBox(this);
-    m_pLockFormatToVideoCheckBox = new QCheckBox(tr("Use Registers"), this);
 
-    m_pModeComboBox->addItem(tr("4 Plane"), Mode::k4Bitplane);
-    m_pModeComboBox->addItem(tr("3 Plane"), Mode::k3Bitplane);
-    m_pModeComboBox->addItem(tr("2 Plane"), Mode::k2Bitplane);
-    m_pModeComboBox->addItem(tr("1 Plane"), Mode::k1Bitplane);
+    m_pModeComboBox->addItem(tr("Registers"), Mode::kFormatRegisters);
+    m_pModeComboBox->addItem(tr("4 Plane"), Mode::kFormat4Bitplane);
+    m_pModeComboBox->addItem(tr("3 Plane"), Mode::kFormat3Bitplane);
+    m_pModeComboBox->addItem(tr("2 Plane"), Mode::kFormat2Bitplane);
+    m_pModeComboBox->addItem(tr("1 Plane"), Mode::kFormat1Bitplane);
 
     // Width is now 80 to support the "1280" special ST mode for @troed
     m_pWidthSpinBox->setRange(1, 80);
@@ -185,7 +185,6 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     hlayout2->addWidget(pPaddingLabel);
     hlayout2->addWidget(m_pPaddingSpinBox);
 
-    hlayout2->addWidget(m_pLockFormatToVideoCheckBox);
     QWidget* pContainer2 = new QWidget(this);
     pContainer2->setLayout(hlayout2);
 
@@ -212,7 +211,6 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
 
     setWidget(pMainGroupBox);
     m_pLockAddressToVideoCheckBox->setChecked(true);
-    m_pLockFormatToVideoCheckBox->setChecked(true);
 
     // Actions
     m_pSaveImageAction = new QAction(tr("Save Image..."), this);
@@ -245,7 +243,6 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     connect(m_pBitmapAddressLineEdit,       &QLineEdit::returnPressed,    this, &GraphicsInspectorWidget::bitmapAddressChanged);
     connect(m_pPaletteAddressLineEdit,      &QLineEdit::returnPressed,    this, &GraphicsInspectorWidget::paletteAddressChanged);
     connect(m_pLockAddressToVideoCheckBox,  &QCheckBox::stateChanged,     this, &GraphicsInspectorWidget::lockAddressToVideoChanged);
-    connect(m_pLockFormatToVideoCheckBox,   &QCheckBox::stateChanged,     this, &GraphicsInspectorWidget::lockFormatToVideoChanged);
     connect(m_pLockAddressToVideoCheckBox,  &QCheckBox::stateChanged,     this, &GraphicsInspectorWidget::lockAddressToVideoChanged);
 
     connect(m_pModeComboBox,    SIGNAL(activated(int)),                   SLOT(modeChangedSlot(int)));  // this is user-changed
@@ -289,12 +286,13 @@ void GraphicsInspectorWidget::loadSettings()
     m_width = settings.value("width", QVariant(20)).toInt();
     m_height = settings.value("height", QVariant(200)).toInt();
     m_padding = settings.value("padding", QVariant(0)).toInt();
-    m_mode = static_cast<Mode>(settings.value("mode", QVariant((int)Mode::k4Bitplane)).toInt());
+    m_mode = static_cast<Mode>(settings.value("mode", QVariant((int)Mode::kFormat4Bitplane)).toInt());
     m_pLockAddressToVideoCheckBox->setChecked(settings.value("lockAddress", QVariant(true)).toBool());
-    m_pLockFormatToVideoCheckBox->setChecked(settings.value("lockFormat", QVariant(true)).toBool());
 
     int palette = settings.value("palette", QVariant((int)Palette::kGreyscale)).toInt();
     m_pPaletteComboBox->setCurrentIndex(palette);
+
+    m_pModeComboBox->setCurrentIndex(m_mode);
 
     bool darken = settings.value("darken", QVariant(false)).toBool();
     bool grid = settings.value("grid", QVariant(false)).toBool();
@@ -318,7 +316,6 @@ void GraphicsInspectorWidget::saveSettings()
     settings.setValue("height", m_height);
     settings.setValue("padding", m_padding);
     settings.setValue("lockAddress", m_pLockAddressToVideoCheckBox->isChecked());
-    settings.setValue("lockFormat", m_pLockFormatToVideoCheckBox->isChecked());
     settings.setValue("mode", static_cast<int>(m_mode));
     settings.setValue("palette", m_pPaletteComboBox->currentIndex());
     settings.setValue("darken", m_pImageWidget->GetDarken());
@@ -508,19 +505,6 @@ void GraphicsInspectorWidget::lockAddressToVideoChanged()
     UpdateUIElements();
 }
 
-void GraphicsInspectorWidget::lockFormatToVideoChanged()
-{
-    bool m_bLockToVideo = m_pLockFormatToVideoCheckBox->isChecked();
-    if (m_bLockToVideo)
-    {
-        UpdateFormatFromUI();
-    }
-    m_requestBitmap.Dirty();
-    UpdateMemoryRequests();
-    updateInfoLine();
-    UpdateUIElements();
-}
-
 void GraphicsInspectorWidget::overlayDarkenChanged()
 {
     m_pImageWidget->SetDarken(m_pOverlayDarkenAction->isChecked());
@@ -546,6 +530,8 @@ void GraphicsInspectorWidget::modeChangedSlot(int index)
 {
     int modeInt = m_pModeComboBox->itemData(index).toInt();
     m_mode = static_cast<Mode>(modeInt);
+
+    UpdateUIElements();
 
     // New mode can require different memory size, so re-request bitmap memory
     m_requestBitmap.Dirty();
@@ -658,10 +644,10 @@ void GraphicsInspectorWidget::updateInfoLine()
         uint32_t addr = ~0U;
         switch(m_mode)
         {
-        case Mode::k1Bitplane:
-        case Mode::k2Bitplane:
-        case Mode::k3Bitplane:
-        case Mode::k4Bitplane:
+        case Mode::kFormat1Bitplane:
+        case Mode::kFormat2Bitplane:
+        case Mode::kFormat3Bitplane:
+        case Mode::kFormat4Bitplane:
             addr = m_bitmapAddress + info.y * data.bytesPerLine + (info.x / 16) * BytesPerMode(m_mode);
             break;
         default:
@@ -877,7 +863,7 @@ void GraphicsInspectorWidget::UpdateImage()
     int bitmapSize = width * 16 * height;
     uint8_t* pDestPixels = m_pImageWidget->AllocBitmap(bitmapSize);
 
-    if (mode == k4Bitplane)
+    if (mode == kFormat4Bitplane)
     {
         for (int y = 0; y < height; ++y)
         {
@@ -908,7 +894,7 @@ void GraphicsInspectorWidget::UpdateImage()
             }
         }
     }
-    else if (mode == k3Bitplane)
+    else if (mode == kFormat3Bitplane)
     {
         for (int y = 0; y < height; ++y)
         {
@@ -936,7 +922,7 @@ void GraphicsInspectorWidget::UpdateImage()
             }
         }
     }
-    else if (mode == k2Bitplane)
+    else if (mode == kFormat2Bitplane)
     {
         for (int y = 0; y < height; ++y)
         {
@@ -960,7 +946,7 @@ void GraphicsInspectorWidget::UpdateImage()
             }
         }
     }
-    else if (mode == k1Bitplane)
+    else if (mode == kFormat1Bitplane)
     {
         for (int y = 0; y < height; ++y)
         {
@@ -994,12 +980,25 @@ void GraphicsInspectorWidget::UpdateUIElements()
     m_pWidthSpinBox->setValue(m_width);
     m_pHeightSpinBox->setValue(m_height);
     m_pPaddingSpinBox->setValue(m_padding);
-    m_pModeComboBox->setCurrentIndex(m_mode);
 
-    m_pWidthSpinBox->setEnabled(!m_pLockFormatToVideoCheckBox->isChecked());
-    m_pHeightSpinBox->setEnabled(!m_pLockFormatToVideoCheckBox->isChecked());
-    m_pPaddingSpinBox->setEnabled(!m_pLockFormatToVideoCheckBox->isChecked());
-    m_pModeComboBox->setEnabled(!m_pLockFormatToVideoCheckBox->isChecked());
+    bool allowAdjust = true;
+    switch (m_mode)
+    {
+    case kFormat1Bitplane:
+    case kFormat2Bitplane:
+    case kFormat3Bitplane:
+    case kFormat4Bitplane:
+        allowAdjust = true; break;
+    case kFormatRegisters:
+        allowAdjust = false; break;
+    default:
+        assert(0);
+        break;
+    }
+
+    m_pWidthSpinBox->setEnabled(allowAdjust);
+    m_pHeightSpinBox->setEnabled(allowAdjust);
+    m_pPaddingSpinBox->setEnabled(allowAdjust);
 
     m_pPaletteAddressLineEdit->setVisible(m_paletteMode == kUserMemory);
 
@@ -1012,97 +1011,101 @@ void GraphicsInspectorWidget::UpdateUIElements()
 
 GraphicsInspectorWidget::Mode GraphicsInspectorWidget::GetEffectiveMode() const
 {
-    if (!m_pLockFormatToVideoCheckBox->isChecked())
-        return m_mode;
+    if (m_mode == kFormatRegisters)
+    {
+        const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
+        if (!pMem)
+            return Mode::kFormat4Bitplane;
 
-    const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
-    if (!pMem)
-        return Mode::k4Bitplane;
+        uint8_t val = 0;
+        if (!pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, val))
+            return Mode::kFormat1Bitplane;
 
-    uint8_t val = 0;
-    if (!pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, val))
-        return Mode::k1Bitplane;
+        Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(val);
+        if (modeReg == Regs::RESOLUTION::LOW)
+            return Mode::kFormat4Bitplane;
+        else if (modeReg == Regs::RESOLUTION::MEDIUM)
+            return Mode::kFormat2Bitplane;
+        return Mode::kFormat1Bitplane;
+    }
 
-    Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(val);
-    if (modeReg == Regs::RESOLUTION::LOW)
-        return Mode::k4Bitplane;
-    else if (modeReg == Regs::RESOLUTION::MEDIUM)
-        return Mode::k2Bitplane;
-
-    return Mode::k1Bitplane;
+    return m_mode;
 }
 
 int GraphicsInspectorWidget::GetEffectiveWidth() const
 {
-    if (!m_pLockFormatToVideoCheckBox->isChecked())
-        return m_width;
-
-    const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
-    if (!pMem)
-        return 0;
-
-    // Handle ST scroll
-    int width = 0;
-    uint8_t tmpReg = 0;
-    MACHINETYPE mtype = m_pTargetModel->GetMachineType();
-    if (!IsMachineST(mtype))
+    if (m_mode == kFormatRegisters)
     {
-        uint8_t modeReg;
-        pMem->ReadAddressByte(Regs::VID_HORIZ_SCROLL_STE, tmpReg);
-        modeReg = Regs::GetField_VID_HORIZ_SCROLL_STE_PIXELS(tmpReg);
-        if (modeReg != 0)
-            width = 1;  // extra read for scroll
-    }
+        const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
+        if (!pMem)
+            return 0;
 
-    pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, tmpReg);
-    Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(tmpReg);
-    if (modeReg == Regs::RESOLUTION::LOW)
-        return width + 20;
-    else if (modeReg == Regs::RESOLUTION::MEDIUM)
+        // Handle ST scroll
+        int width = 0;
+        uint8_t tmpReg = 0;
+        MACHINETYPE mtype = m_pTargetModel->GetMachineType();
+        if (!IsMachineST(mtype))
+        {
+            uint8_t modeReg;
+            pMem->ReadAddressByte(Regs::VID_HORIZ_SCROLL_STE, tmpReg);
+            modeReg = Regs::GetField_VID_HORIZ_SCROLL_STE_PIXELS(tmpReg);
+            if (modeReg != 0)
+                width = 1;  // extra read for scroll
+        }
+
+        pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, tmpReg);
+        Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(tmpReg);
+        if (modeReg == Regs::RESOLUTION::LOW)
+            return width + 20;
+        else if (modeReg == Regs::RESOLUTION::MEDIUM)
+            return width + 40;
+
         return width + 40;
-
-    return width + 40;
+    }
+    return m_width;
 }
 
 int GraphicsInspectorWidget::GetEffectiveHeight() const
 {
-    if (!m_pLockFormatToVideoCheckBox->isChecked())
-        return m_height;
-
-    const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
-    if (!pMem)
-        return 0;
-    uint8_t tmpReg;
-    pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, tmpReg);
-    Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(tmpReg);
-    if (modeReg == Regs::RESOLUTION::LOW)
-        return 200;
-    else if (modeReg == Regs::RESOLUTION::MEDIUM)
-        return 200;
-    return 400;
+    if (m_mode == kFormatRegisters)
+    {
+        const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
+        if (!pMem)
+            return 0;
+        uint8_t tmpReg;
+        pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, tmpReg);
+        Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(tmpReg);
+        if (modeReg == Regs::RESOLUTION::LOW)
+            return 200;
+        else if (modeReg == Regs::RESOLUTION::MEDIUM)
+            return 200;
+        return 400;
+    }
+    return m_height;
 }
 
 int GraphicsInspectorWidget::GetEffectivePadding() const
 {
-    if (!m_pLockFormatToVideoCheckBox->isChecked())
-        return m_padding;
-
-    const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
-    if (!pMem)
-        return Mode::k4Bitplane;
-
-    MACHINETYPE mtype = m_pTargetModel->GetMachineType();
-    // handle STE padding
-    if (IsMachineSTE(mtype))
+    if (m_mode == kFormatRegisters)
     {
-        uint8_t lineDelta = 0;
-        pMem->ReadAddressByte(Regs::VID_SCANLINE_OFFSET_STE, lineDelta);
-        if (lineDelta != 0)
-            return static_cast<uint32_t>(lineDelta) * 2;
-    }
+        const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
+        if (!pMem)
+            return Mode::kFormat4Bitplane;
 
-    // TODO handle Falcon padding, when understood
-    return 0;
+        MACHINETYPE mtype = m_pTargetModel->GetMachineType();
+        // handle STE padding
+        if (IsMachineSTE(mtype))
+        {
+            uint8_t lineDelta = 0;
+            pMem->ReadAddressByte(Regs::VID_SCANLINE_OFFSET_STE, lineDelta);
+            if (lineDelta != 0)
+                return static_cast<uint32_t>(lineDelta) * 2;
+        }
+
+        // TODO handle Falcon padding, when understood
+        return 0;
+    }
+    return m_padding;
 }
 
 void GraphicsInspectorWidget::GetEffectiveData(GraphicsInspectorWidget::EffectiveData &data) const
@@ -1118,11 +1121,13 @@ int32_t GraphicsInspectorWidget::BytesPerMode(GraphicsInspectorWidget::Mode mode
 {
     switch (mode)
     {
-    case k4Bitplane: return 8;
-    case k3Bitplane: return 6;
-    case k2Bitplane: return 4;
-    case k1Bitplane: return 2;
+    case kFormat4Bitplane: return 8;
+    case kFormat3Bitplane: return 6;
+    case kFormat2Bitplane: return 4;
+    case kFormat1Bitplane: return 2;
+    default:               break;
     }
+    assert(0);
     return 0;
 }
 
