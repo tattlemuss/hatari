@@ -11,6 +11,7 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QMenu>
+#include <QToolButton>
 
 #include <QFontDatabase>
 #include <QSettings>
@@ -81,9 +82,8 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     m_pSession(pSession),
     m_mode(kFormat4Bitplane),
     m_bitmapAddress(0U),
-    m_width(20),
-    m_height(200),
-    m_padding(0),
+    m_userBytesPerLine(160),
+    m_userHeight(200),
     m_paletteMode(kRegisters),
     m_cachedResolution(Regs::RESOLUTION::LOW),
     m_annotateRegisters(false)
@@ -115,9 +115,10 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
 
     // Second line
     m_pModeComboBox = new QComboBox(this);
-    m_pWidthSpinBox = new QSpinBox(this);
+    m_pLeftStrideButton = new QToolButton(this);
+    m_pStrideSpinBox = new QSpinBox(this);
+    m_pRightStrideButton = new QToolButton(this);
     m_pHeightSpinBox = new QSpinBox(this);
-    m_pPaddingSpinBox = new QSpinBox(this);
 
     m_pModeComboBox->addItem(tr("Registers"), Mode::kFormatRegisters);
     m_pModeComboBox->addItem(tr("4 Plane"), Mode::kFormat4Bitplane);
@@ -125,13 +126,21 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     m_pModeComboBox->addItem(tr("2 Plane"), Mode::kFormat2Bitplane);
     m_pModeComboBox->addItem(tr("1 Plane"), Mode::kFormat1Bitplane);
 
+    m_pLeftStrideButton->setArrowType(Qt::ArrowType::LeftArrow);
+    m_pRightStrideButton->setArrowType(Qt::ArrowType::RightArrow);
+    m_pLeftStrideButton->setToolTip("Decrease by 16 pixels");
+    m_pRightStrideButton->setToolTip("Increase by 16 pixels");
+    m_pStrideSpinBox->setToolTip("Stride of image in bytes.\n"
+                                 "ST Low/Med = 160\n"
+                                 "ST Hi = 80\n"
+                                 "ST Overscan = 230\n"
+                                 "STE Overscan = 224");
+
     // Width is now 80 to support the "1280" special ST mode for @troed
-    m_pWidthSpinBox->setRange(1, 80);
-    m_pWidthSpinBox->setValue(m_width);
+    m_pStrideSpinBox->setRange(1, 1280);
+    m_pStrideSpinBox->setValue(m_userBytesPerLine);
     m_pHeightSpinBox->setRange(16, 256);
-    m_pHeightSpinBox->setValue(m_height);
-    m_pPaddingSpinBox->setRange(0, 8);
-    m_pPaddingSpinBox->setValue(m_padding);
+    m_pHeightSpinBox->setValue(m_userHeight);
 
     // Third line
     m_pPaletteComboBox = new QComboBox(this);
@@ -145,7 +154,8 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     m_pPaletteComboBox->addItem(tr("Bitplane3"), kBitplane3);
     m_pPaletteAddressLineEdit = new QLineEdit(this);
     m_pPaletteAddressLineEdit->setCompleter(pCompl);    // use same completer as address box
-    m_pInfoLabel = new ElidedLabel("", this);
+    m_pWidthInfoLabel = new ElidedLabel("", this);
+    m_pMouseInfoLabel = new ElidedLabel("", this);
 
     // Bottom
     m_pImageWidget->setSizePolicy(QSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding));
@@ -161,29 +171,21 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     pContainer1->setLayout(hlayout1);
 
     // Layout Second line
-    QString widthTooltip(tr("Width in 16-pixel chunks"));
-    QString padTooltip(tr("Line stride padding in bytes"));
-
     QHBoxLayout *hlayout2 = new QHBoxLayout();
     SetMargins(hlayout2);
     hlayout2->setAlignment(Qt::AlignLeft);
     hlayout2->addWidget(new QLabel(tr("Format:"), this));
     hlayout2->addWidget(m_pModeComboBox);
+    QLabel* pWidthLabel = new QLabel(tr("Bytes/Line:"), this);
 
-    QLabel* pWidthLabel = new QLabel(tr("Width:"), this);
-    pWidthLabel->setToolTip(widthTooltip);
-    m_pWidthSpinBox->setToolTip(widthTooltip);
     hlayout2->addWidget(pWidthLabel);
-    hlayout2->addWidget(m_pWidthSpinBox);
+    hlayout2->addWidget(m_pLeftStrideButton);
+    hlayout2->addWidget(m_pStrideSpinBox);
+    hlayout2->addWidget(m_pRightStrideButton);
 
     hlayout2->addWidget(new QLabel(tr("Height:"), this));
     hlayout2->addWidget(m_pHeightSpinBox);
-
-    QLabel* pPaddingLabel = new QLabel(tr("Pad:"), this);
-    pPaddingLabel->setToolTip(padTooltip);
-    m_pPaddingSpinBox->setToolTip(padTooltip);
-    hlayout2->addWidget(pPaddingLabel);
-    hlayout2->addWidget(m_pPaddingSpinBox);
+    hlayout2->addWidget(m_pWidthInfoLabel);
 
     QWidget* pContainer2 = new QWidget(this);
     pContainer2->setLayout(hlayout2);
@@ -195,7 +197,7 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     hlayout3->addWidget(new QLabel(tr("Palette:"), this));
     hlayout3->addWidget(m_pPaletteComboBox);
     hlayout3->addWidget(m_pPaletteAddressLineEdit);
-    hlayout3->addWidget(m_pInfoLabel);
+    hlayout3->addWidget(m_pMouseInfoLabel);
     QWidget* pContainer3 = new QWidget(this);
     pContainer3->setLayout(hlayout3);
 
@@ -247,9 +249,10 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
 
     connect(m_pModeComboBox,    SIGNAL(activated(int)),                   SLOT(modeChangedSlot(int)));  // this is user-changed
     connect(m_pPaletteComboBox, SIGNAL(currentIndexChanged(int)),         SLOT(paletteChangedSlot(int)));
-    connect(m_pWidthSpinBox,    SIGNAL(valueChanged(int)),                SLOT(widthChangedSlot(int)));
+    connect(m_pStrideSpinBox,      SIGNAL(valueChanged(int)),                SLOT(StrideChangedSlot(int)));
     connect(m_pHeightSpinBox,   SIGNAL(valueChanged(int)),                SLOT(heightChangedSlot(int)));
-    connect(m_pPaddingSpinBox,  SIGNAL(valueChanged(int)),                SLOT(paddingChangedSlot(int)));
+    connect(m_pLeftStrideButton,   &QToolButton::clicked,                    this, &GraphicsInspectorWidget::leftStrideClicked);
+    connect(m_pRightStrideButton,  &QToolButton::clicked,                    this, &GraphicsInspectorWidget::rightStrideClicked);
 
     connect(m_pImageWidget,  &NonAntiAliasImage::MouseInfoChanged,        this, &GraphicsInspectorWidget::updateInfoLine);
     connect(m_pSession,      &Session::addressRequested,                  this, &GraphicsInspectorWidget::RequestBitmapAddress);
@@ -283,16 +286,16 @@ void GraphicsInspectorWidget::loadSettings()
     settings.beginGroup("GraphicsInspector");
 
     restoreGeometry(settings.value("geometry").toByteArray());
-    m_width = settings.value("width", QVariant(20)).toInt();
-    m_height = settings.value("height", QVariant(200)).toInt();
-    m_padding = settings.value("padding", QVariant(0)).toInt();
+    m_userBytesPerLine = settings.value("bytesPerLine", QVariant(20)).toInt();
+    m_userHeight = settings.value("height", QVariant(200)).toInt();
     m_mode = static_cast<Mode>(settings.value("mode", QVariant((int)Mode::kFormat4Bitplane)).toInt());
     m_pLockAddressToVideoCheckBox->setChecked(settings.value("lockAddress", QVariant(true)).toBool());
 
     int palette = settings.value("palette", QVariant((int)Palette::kGreyscale)).toInt();
     m_pPaletteComboBox->setCurrentIndex(palette);
 
-    m_pModeComboBox->setCurrentIndex(m_mode);
+    int ind = m_pModeComboBox->findData(QVariant(m_mode));
+    m_pModeComboBox->setCurrentIndex(ind);
 
     bool darken = settings.value("darken", QVariant(false)).toBool();
     bool grid = settings.value("grid", QVariant(false)).toBool();
@@ -312,9 +315,9 @@ void GraphicsInspectorWidget::saveSettings()
     settings.beginGroup("GraphicsInspector");
 
     settings.setValue("geometry", saveGeometry());
-    settings.setValue("width", m_width);
-    settings.setValue("height", m_height);
-    settings.setValue("padding", m_padding);
+    settings.setValue("width", m_userBytesPerLine);
+    settings.setValue("height", m_userHeight);
+    settings.setValue("bytesPerLine", m_userBytesPerLine);
     settings.setValue("lockAddress", m_pLockAddressToVideoCheckBox->isChecked());
     settings.setValue("mode", static_cast<int>(m_mode));
     settings.setValue("palette", m_pPaletteComboBox->currentIndex());
@@ -544,7 +547,7 @@ void GraphicsInspectorWidget::paletteChangedSlot(int index)
     m_paletteMode = static_cast<Palette>(rawIdx);
 
     // Ensure pixmap is updated
-    m_pImageWidget->setPixmap(GetEffectiveWidth() * 16, GetEffectiveHeight());
+    m_pImageWidget->setPixmap(GetEffectiveStride(), GetEffectiveHeight());
 
     UpdateUIElements();
 
@@ -570,7 +573,7 @@ void GraphicsInspectorWidget::lockClickedSlot()
 void GraphicsInspectorWidget::otherMemoryChanged(uint32_t address, uint32_t size)
 {
     // Do a re-request if our memory is touched
-    uint32_t ourSize = GetEffectiveHeight() * (GetEffectiveWidth() + GetEffectivePadding()) * BytesPerMode(m_mode);
+    uint32_t ourSize = GetEffectiveHeight() * GetEffectiveStride();
     if (Overlaps(m_bitmapAddress, ourSize, address, size))
     {
         m_requestBitmap.Dirty();
@@ -589,27 +592,43 @@ void GraphicsInspectorWidget::runningRefreshTimer()
     }
 }
 
-void GraphicsInspectorWidget::widthChangedSlot(int value)
+void GraphicsInspectorWidget::StrideChangedSlot(int value)
 {
-    m_width = value;
-    m_requestBitmap.Dirty();
-    UpdateMemoryRequests();
-    updateInfoLine();
+    // Don't allow 0-byte sizes!
+    if (value > 2)
+    {
+        m_userBytesPerLine = value;
+        m_requestBitmap.Dirty();
+        UpdateMemoryRequests();
+        UpdateUIElements();
+    }
+}
+
+void GraphicsInspectorWidget::leftStrideClicked()
+{
+    int bpm = BytesPerChunk(m_mode);
+    if (m_userBytesPerLine > bpm)
+    {
+        m_userBytesPerLine -= bpm;
+        UpdateUIElements();
+    }
+}
+
+void GraphicsInspectorWidget::rightStrideClicked()
+{
+    int bpm = BytesPerChunk(m_mode);
+    if (m_userBytesPerLine + bpm <= 1280)
+    {
+        m_userBytesPerLine += bpm;
+        UpdateUIElements();
+    }
 }
 
 void GraphicsInspectorWidget::heightChangedSlot(int value)
 {
-    m_height = value;
+    m_userHeight = value;
     m_requestBitmap.Dirty();
     UpdateMemoryRequests();
-}
-
-void GraphicsInspectorWidget::paddingChangedSlot(int value)
-{
-    m_padding = value;
-    m_requestBitmap.Dirty();
-    UpdateMemoryRequests();
-    updateInfoLine();
 }
 
 void GraphicsInspectorWidget::saveImageClicked()
@@ -648,7 +667,7 @@ void GraphicsInspectorWidget::updateInfoLine()
         case Mode::kFormat2Bitplane:
         case Mode::kFormat3Bitplane:
         case Mode::kFormat4Bitplane:
-            addr = m_bitmapAddress + info.y * data.bytesPerLine + (info.x / 16) * BytesPerMode(m_mode);
+            addr = m_bitmapAddress + info.y * data.bytesPerLine + (info.x / 16) * BytesPerChunk(m_mode);
             break;
         default:
             break;
@@ -664,11 +683,9 @@ void GraphicsInspectorWidget::updateInfoLine()
             if (!symText.isEmpty())
                 ref << " (" << symText << ")";
         }
-        ref << "; ";
         m_addressUnderMouse = addr;
     }
-    ref << "Bytes/line: " << data.bytesPerLine;
-    m_pInfoLabel->setText(str);
+    m_pMouseInfoLabel->setText(str);
 }
 
 void GraphicsInspectorWidget::RequestBitmapAddress(Session::WindowType type, int windowIndex, uint32_t address)
@@ -764,15 +781,13 @@ void GraphicsInspectorWidget::DisplayAddress()
 void GraphicsInspectorWidget::UpdateFormatFromUI()
 {
     // Now we have the registers, we can now video dimensions.
-    int width = GetEffectiveWidth();
+    int Stride = GetEffectiveStride();
     int height = GetEffectiveHeight();
-    Mode mode = GetEffectiveMode();
 
     // Set these as current values, so that if we scroll around,
     // they are not lost
-    m_width = width;
-    m_height = height;
-    m_mode = mode;
+    m_userBytesPerLine = Stride;
+    m_userHeight = height;
     UpdateUIElements();
 }
 
@@ -850,8 +865,9 @@ void GraphicsInspectorWidget::UpdateImage()
     GetEffectiveData(data);
 
     Mode mode = data.mode;
-    int width = data.width;
+    int Stride = data.bytesPerLine;
     int height = data.height;
+    int width = 0;
 
     // Uncompress
     int required = data.requiredSize;
@@ -860,15 +876,16 @@ void GraphicsInspectorWidget::UpdateImage()
     if ((int)pMemOrig->GetSize() < required)
         return;
 
-    int bitmapSize = width * 16 * height;
-    uint8_t* pDestPixels = m_pImageWidget->AllocBitmap(bitmapSize);
-
     if (mode == kFormat4Bitplane)
     {
+        int numChunks = Stride / 8;
+        width = numChunks * 16;
+        int bitmapSize = numChunks * 16 * height;
+        uint8_t* pDestPixels = m_pImageWidget->AllocBitmap(bitmapSize);
         for (int y = 0; y < height; ++y)
         {
             const uint8_t* pChunk = pMemOrig->GetData() + y * data.bytesPerLine;
-            for (int x = 0; x < width; ++x)
+            for (int x = 0; x < numChunks; ++x)
             {
                 int32_t pSrc[4];    // top 16 bits never used
                 pSrc[3] = (pChunk[0] << 8) | pChunk[1];
@@ -896,10 +913,14 @@ void GraphicsInspectorWidget::UpdateImage()
     }
     else if (mode == kFormat3Bitplane)
     {
+        int numChunks = Stride / 6;
+        width = numChunks * 16;
+        int bitmapSize = numChunks * 16 * height;
+        uint8_t* pDestPixels = m_pImageWidget->AllocBitmap(bitmapSize);
         for (int y = 0; y < height; ++y)
         {
             const uint8_t* pChunk = pMemOrig->GetData() + y * data.bytesPerLine;
-            for (int x = 0; x < width; ++x)
+            for (int x = 0; x < numChunks; ++x)
             {
                 int32_t pSrc[3];    // top 16 bits never used
                 pSrc[2] = (pChunk[0] << 8) | pChunk[1];
@@ -924,10 +945,14 @@ void GraphicsInspectorWidget::UpdateImage()
     }
     else if (mode == kFormat2Bitplane)
     {
+        int numChunks = Stride / 4;
+        width = numChunks * 16;
+        int bitmapSize = numChunks * 16 * height;
+        uint8_t* pDestPixels = m_pImageWidget->AllocBitmap(bitmapSize);
         for (int y = 0; y < height; ++y)
         {
             const uint8_t* pChunk = pMemOrig->GetData() + y * data.bytesPerLine;
-            for (int x = 0; x < width; ++x)
+            for (int x = 0; x < numChunks; ++x)
             {
                 int32_t pSrc[2];
                 pSrc[1] = (pChunk[0] << 8) | pChunk[1];
@@ -948,10 +973,14 @@ void GraphicsInspectorWidget::UpdateImage()
     }
     else if (mode == kFormat1Bitplane)
     {
+        int numChunks = Stride / 2;
+        width = numChunks * 16;
+        int bitmapSize = numChunks * 16 * height;
+        uint8_t* pDestPixels = m_pImageWidget->AllocBitmap(bitmapSize);
         for (int y = 0; y < height; ++y)
         {
             const uint8_t* pChunk = pMemOrig->GetData() + y * data.bytesPerLine;
-            for (int x = 0; x < width; ++x)
+            for (int x = 0; x < numChunks; ++x)
             {
                 int32_t pSrc[1];
                 pSrc[0] = (pChunk[0] << 8) | pChunk[1];
@@ -967,19 +996,16 @@ void GraphicsInspectorWidget::UpdateImage()
             }
         }
     }
-    m_pImageWidget->setPixmap(width * 16, height);
+    m_pImageWidget->setPixmap(width, height);
 
     // Update annotations
-    //EffectiveData data;
-    //GetEffectiveData(data);
     UpdateAnnotations();
 }
 
 void GraphicsInspectorWidget::UpdateUIElements()
 {
-    m_pWidthSpinBox->setValue(m_width);
-    m_pHeightSpinBox->setValue(m_height);
-    m_pPaddingSpinBox->setValue(m_padding);
+    m_pStrideSpinBox->setValue(m_userBytesPerLine);
+    m_pHeightSpinBox->setValue(m_userHeight);
 
     bool allowAdjust = true;
     switch (m_mode)
@@ -996,9 +1022,10 @@ void GraphicsInspectorWidget::UpdateUIElements()
         break;
     }
 
-    m_pWidthSpinBox->setEnabled(allowAdjust);
-    m_pHeightSpinBox->setEnabled(allowAdjust);
-    m_pPaddingSpinBox->setEnabled(allowAdjust);
+    // Disable Stride controls if set by registers
+    m_pStrideSpinBox->setEnabled(allowAdjust);
+    m_pLeftStrideButton->setEnabled(allowAdjust);
+    m_pRightStrideButton->setEnabled(allowAdjust);
 
     m_pPaletteAddressLineEdit->setVisible(m_paletteMode == kUserMemory);
 
@@ -1007,6 +1034,11 @@ void GraphicsInspectorWidget::UpdateUIElements()
     m_pOverlayZoomAction->setChecked(m_pImageWidget->GetZoom());
     m_pOverlayRegistersAction->setChecked(m_annotateRegisters);
     DisplayAddress();
+
+    EffectiveData data;
+    GetEffectiveData(data);
+    int pixels = data.bytesPerLine / BytesPerChunk(data.mode) * 16;
+    m_pWidthInfoLabel->setText(QString::asprintf("%d pixels", pixels));
 }
 
 GraphicsInspectorWidget::Mode GraphicsInspectorWidget::GetEffectiveMode() const
@@ -1032,7 +1064,7 @@ GraphicsInspectorWidget::Mode GraphicsInspectorWidget::GetEffectiveMode() const
     return m_mode;
 }
 
-int GraphicsInspectorWidget::GetEffectiveWidth() const
+int GraphicsInspectorWidget::GetEffectiveStride() const
 {
     if (m_mode == kFormatRegisters)
     {
@@ -1050,19 +1082,17 @@ int GraphicsInspectorWidget::GetEffectiveWidth() const
             pMem->ReadAddressByte(Regs::VID_HORIZ_SCROLL_STE, tmpReg);
             modeReg = Regs::GetField_VID_HORIZ_SCROLL_STE_PIXELS(tmpReg);
             if (modeReg != 0)
-                width = 1;  // extra read for scroll
+                width = 16;  // extra read for scroll
         }
 
         pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, tmpReg);
         Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(tmpReg);
-        if (modeReg == Regs::RESOLUTION::LOW)
-            return width + 20;
-        else if (modeReg == Regs::RESOLUTION::MEDIUM)
-            return width + 40;
+        if (modeReg == Regs::RESOLUTION::HIGH)
+            return width + 80;
 
-        return width + 40;
+        return width + 160;
     }
-    return m_width;
+    return m_userBytesPerLine;
 }
 
 int GraphicsInspectorWidget::GetEffectiveHeight() const
@@ -1081,43 +1111,18 @@ int GraphicsInspectorWidget::GetEffectiveHeight() const
             return 200;
         return 400;
     }
-    return m_height;
-}
-
-int GraphicsInspectorWidget::GetEffectivePadding() const
-{
-    if (m_mode == kFormatRegisters)
-    {
-        const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
-        if (!pMem)
-            return Mode::kFormat4Bitplane;
-
-        MACHINETYPE mtype = m_pTargetModel->GetMachineType();
-        // handle STE padding
-        if (IsMachineSTE(mtype))
-        {
-            uint8_t lineDelta = 0;
-            pMem->ReadAddressByte(Regs::VID_SCANLINE_OFFSET_STE, lineDelta);
-            if (lineDelta != 0)
-                return static_cast<uint32_t>(lineDelta) * 2;
-        }
-
-        // TODO handle Falcon padding, when understood
-        return 0;
-    }
-    return m_padding;
+    return m_userHeight;
 }
 
 void GraphicsInspectorWidget::GetEffectiveData(GraphicsInspectorWidget::EffectiveData &data) const
 {
     data.mode = GetEffectiveMode();
-    data.width = GetEffectiveWidth();
     data.height = GetEffectiveHeight();
-    data.bytesPerLine = data.width * BytesPerMode(data.mode) + GetEffectivePadding();
+    data.bytesPerLine = GetEffectiveStride();
     data.requiredSize = data.bytesPerLine * data.height;
 }
 
-int32_t GraphicsInspectorWidget::BytesPerMode(GraphicsInspectorWidget::Mode mode)
+int32_t GraphicsInspectorWidget::BytesPerChunk(GraphicsInspectorWidget::Mode mode)
 {
     switch (mode)
     {
@@ -1180,7 +1185,7 @@ bool GraphicsInspectorWidget::CreateAnnotation(NonAntiAliasImage::Annotation &an
     uint32_t y = offset / data.bytesPerLine;
     uint32_t x_offset = offset - (y * data.bytesPerLine);
 
-    uint32_t chunk = x_offset / BytesPerMode(m_mode);
+    uint32_t chunk = x_offset / BytesPerChunk(data.mode);
     annot.x = chunk * 16;
     annot.y = y;
     annot.text = label;

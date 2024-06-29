@@ -16,6 +16,7 @@ class QAbstractItemModel;
 class QSpinBox;
 class QCheckBox;
 class QComboBox;
+class QToolButton;
 class ElidedLabel;
 
 class TargetModel;
@@ -55,9 +56,10 @@ private slots:
     void paletteChangedSlot(int index);
     void gotoClickedSlot();
     void lockClickedSlot();
-    void widthChangedSlot(int width);
+    void StrideChangedSlot(int width);
+    void leftStrideClicked();
+    void rightStrideClicked();
     void heightChangedSlot(int height);
-    void paddingChangedSlot(int height);
     void saveImageClicked();
 
 private:
@@ -109,7 +111,6 @@ private:
 
     struct EffectiveData
     {
-        int width;
         int height;
         Mode mode;
         int bytesPerLine;
@@ -119,12 +120,12 @@ private:
     // Get the effective data by checking the "lock to" flags and
     // using them if necessary.
     GraphicsInspectorWidget::Mode GetEffectiveMode() const;
-    int GetEffectiveWidth() const;
+    int GetEffectiveStride() const;
     int GetEffectiveHeight() const;
-    int GetEffectivePadding() const;
     void GetEffectiveData(EffectiveData& data) const;
 
-    static int32_t BytesPerMode(Mode mode);
+    // Calc the size of a 16-pixel chunk depending on mode
+    static int32_t BytesPerChunk(Mode mode);
 
     void UpdateAnnotations();
 
@@ -134,30 +135,31 @@ private:
     void KeyboardContextMenu();
     void ContextMenu(QPoint pos);
 
-    QLineEdit*      m_pBitmapAddressLineEdit;
-    QLineEdit*      m_pPaletteAddressLineEdit;
-    QComboBox*      m_pModeComboBox;
-    QSpinBox*       m_pWidthSpinBox;
-    QSpinBox*       m_pHeightSpinBox;
-    QSpinBox*       m_pPaddingSpinBox;
-    QCheckBox*      m_pLockAddressToVideoCheckBox;
-    QComboBox*      m_pPaletteComboBox;
-    ElidedLabel*    m_pInfoLabel;
+    QLineEdit*          m_pBitmapAddressLineEdit;
+    QLineEdit*          m_pPaletteAddressLineEdit;
+    QComboBox*          m_pModeComboBox;
+    QSpinBox*           m_pStrideSpinBox;
+    QToolButton*        m_pLeftStrideButton;
+    QToolButton*        m_pRightStrideButton;
+    QSpinBox*           m_pHeightSpinBox;
+    QCheckBox*          m_pLockAddressToVideoCheckBox;
+    QComboBox*          m_pPaletteComboBox;
+    ElidedLabel*        m_pWidthInfoLabel;
+    ElidedLabel*        m_pMouseInfoLabel;
 
-    NonAntiAliasImage*         m_pImageWidget;
+    NonAntiAliasImage*  m_pImageWidget;
 
-    Session*        m_pSession;
-    TargetModel*    m_pTargetModel;
-    Dispatcher*     m_pDispatcher;
+    Session*            m_pSession;
+    TargetModel*        m_pTargetModel;
+    Dispatcher*         m_pDispatcher;
 
     QAbstractItemModel* m_pSymbolTableModel;
 
     // logical UI state shadowing widgets
     Mode            m_mode;
     uint32_t        m_bitmapAddress;
-    int             m_width;            // in "chunks"
-    int             m_height;
-    int             m_padding;          // in bytes
+    int             m_userBytesPerLine;
+    int             m_userHeight;
 
     Palette         m_paletteMode;
     uint32_t        m_paletteAddress;

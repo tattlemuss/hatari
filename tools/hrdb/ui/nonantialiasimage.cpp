@@ -138,12 +138,15 @@ void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
 
         painter.setPen(Qt::magenta);
         painter.setBrush(Qt::NoBrush);
-        for (const Annotation& annot : m_annotations)
+        if (m_pixmap.width() && m_pixmap.height())
         {
-            QPoint pt = ScreenPointFromBitmapPoint(QPoint(annot.x, annot.y), m_renderRect);
-            painter.drawLine(pt, pt + QPoint(5, 0));
-            painter.drawLine(pt, pt + QPoint(0, 5));
-            painter.drawText(pt + QPoint(7,5), annot.text);
+            for (const Annotation& annot : m_annotations)
+            {
+                QPoint pt = ScreenPointFromBitmapPoint(QPoint(annot.x, annot.y), m_renderRect);
+                painter.drawLine(pt, pt + QPoint(5, 0));
+                painter.drawLine(pt, pt + QPoint(0, 5));
+                painter.drawText(pt + QPoint(7,5), annot.text);
+            }
         }
 
         if (m_enableGrid)
