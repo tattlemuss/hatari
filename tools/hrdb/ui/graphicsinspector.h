@@ -75,7 +75,8 @@ private:
         kFormat3Bitplane,
         kFormat2Bitplane,
         kFormat1Bitplane,
-        kFormatRegisters
+        kFormatRegisters,
+        kFormat1BPP
     };
 
     enum Palette
@@ -115,6 +116,7 @@ private:
         Mode mode;
         int bytesPerLine;
         int requiredSize;
+        int pixels;
     };
 
     // Get the effective data by checking the "lock to" flags and

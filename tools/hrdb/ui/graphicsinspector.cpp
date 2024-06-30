@@ -126,6 +126,7 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     m_pModeComboBox->addItem(tr("3 Plane"), Mode::kFormat3Bitplane);
     m_pModeComboBox->addItem(tr("2 Plane"), Mode::kFormat2Bitplane);
     m_pModeComboBox->addItem(tr("1 Plane"), Mode::kFormat1Bitplane);
+    m_pModeComboBox->addItem(tr("1 BPP"), Mode::kFormat1BPP);
 
     m_pLeftStrideButton->setArrowType(Qt::ArrowType::LeftArrow);
     m_pRightStrideButton->setArrowType(Qt::ArrowType::RightArrow);
@@ -670,6 +671,9 @@ void GraphicsInspectorWidget::updateInfoLine()
         case Mode::kFormat4Bitplane:
             addr = m_bitmapAddress + info.y * data.bytesPerLine + (info.x / 16) * BytesPerChunk(m_mode);
             break;
+        case Mode::kFormat1BPP:
+            addr = m_bitmapAddress + info.y * data.bytesPerLine + info.x;
+            break;
         default:
             break;
         }
@@ -798,8 +802,12 @@ void GraphicsInspectorWidget::UpdateImage()
     m_pImageWidget->m_colours.clear();
     m_pImageWidget->m_colours.resize(256);
 
-    // Now palette
-    switch (m_paletteMode)
+    if (GetEffectiveMode() == kFormat1BPP)
+    {
+        for (uint i = 0; i < 256; ++i)
+            m_pImageWidget->m_colours[i] = (0xff000000 + i * 0x010101);
+    }
+    else switch (m_paletteMode)
     {
         case kRegisters:
         case kUserMemory:
@@ -998,6 +1006,16 @@ void GraphicsInspectorWidget::UpdateImage()
             }
         }
     }
+    else if (mode == kFormat1BPP)
+    {
+        int bitmapSize = data.bytesPerLine * height;
+        uint8_t* pDestPixels = m_pImageWidget->AllocBitmap(bitmapSize);
+        assert(pMemOrig->GetSize() >= bitmapSize);
+
+        // This is a simple memcpy
+        memcpy(pDestPixels, pMemOrig->GetData(), bitmapSize);
+        width = data.pixels;
+    }
     m_pImageWidget->setPixmap(width, height);
 
     // Update annotations
@@ -1009,26 +1027,34 @@ void GraphicsInspectorWidget::UpdateUIElements()
     m_pStrideSpinBox->setValue(m_userBytesPerLine);
     m_pHeightSpinBox->setValue(m_userHeight);
 
-    bool allowAdjust = true;
+    bool allowAdjustWidth = true;
+    bool allowAdjustPalette = true;
     switch (m_mode)
     {
     case kFormat1Bitplane:
     case kFormat2Bitplane:
     case kFormat3Bitplane:
     case kFormat4Bitplane:
-        allowAdjust = true; break;
+        allowAdjustWidth = true; allowAdjustPalette = true;
+        break;
+    case kFormat1BPP:
+        allowAdjustWidth = true; allowAdjustPalette = false;
+        break;
     case kFormatRegisters:
-        allowAdjust = false; break;
+        allowAdjustWidth = false;  allowAdjustPalette = true;
+        break;
     default:
         assert(0);
         break;
     }
 
     // Disable Stride controls if set by registers
-    m_pStrideSpinBox->setEnabled(allowAdjust);
-    m_pLeftStrideButton->setEnabled(allowAdjust);
-    m_pRightStrideButton->setEnabled(allowAdjust);
+    m_pStrideSpinBox->setEnabled(allowAdjustWidth);
+    m_pLeftStrideButton->setEnabled(allowAdjustWidth);
+    m_pRightStrideButton->setEnabled(allowAdjustWidth);
 
+    // Disable palette control for chunky
+    m_pPaletteComboBox->setEnabled(allowAdjustPalette);
     m_pPaletteAddressLineEdit->setVisible(m_paletteMode == kUserMemory);
 
     m_pOverlayDarkenAction->setChecked(m_pImageWidget->GetDarken());
@@ -1039,8 +1065,7 @@ void GraphicsInspectorWidget::UpdateUIElements()
 
     EffectiveData data;
     GetEffectiveData(data);
-    int pixels = data.bytesPerLine / BytesPerChunk(data.mode) * 16;
-    m_pWidthInfoLabel->setText(QString::asprintf("%d pixels", pixels));
+    m_pWidthInfoLabel->setText(QString::asprintf("%d pixels", data.pixels));
 }
 
 GraphicsInspectorWidget::Mode GraphicsInspectorWidget::GetEffectiveMode() const
@@ -1092,7 +1117,7 @@ int GraphicsInspectorWidget::GetEffectiveStride() const
             bytes = 160; chunkSize = 8; break;
         }
 
-                    if (!IsMachineST(mtype))
+        if (!IsMachineST(mtype))
         {
             uint8_t modeReg;
             pMem->ReadAddressByte(Regs::VID_HORIZ_SCROLL_STE, tmpReg);
@@ -1139,6 +1164,18 @@ void GraphicsInspectorWidget::GetEffectiveData(GraphicsInspectorWidget::Effectiv
     data.height = GetEffectiveHeight();
     data.bytesPerLine = GetEffectiveStride();
     data.requiredSize = data.bytesPerLine * data.height;
+
+    // Calculate pixel size
+    data.pixels = 0;
+    switch (data.mode)
+    {
+    case kFormat1BPP:
+        data.pixels = data.bytesPerLine;
+        break;
+    default:
+        data.pixels = data.bytesPerLine / BytesPerChunk(data.mode) * 16;
+        break;
+    }
 }
 
 int32_t GraphicsInspectorWidget::BytesPerChunk(GraphicsInspectorWidget::Mode mode)
@@ -1149,6 +1186,7 @@ int32_t GraphicsInspectorWidget::BytesPerChunk(GraphicsInspectorWidget::Mode mod
     case kFormat3Bitplane: return 6;
     case kFormat2Bitplane: return 4;
     case kFormat1Bitplane: return 2;
+    case kFormat1BPP: assert(0);
     default:               break;
     }
     assert(0);
@@ -1204,8 +1242,15 @@ bool GraphicsInspectorWidget::CreateAnnotation(NonAntiAliasImage::Annotation &an
     uint32_t y = offset / data.bytesPerLine;
     uint32_t x_offset = offset - (y * data.bytesPerLine);
 
-    uint32_t chunk = x_offset / BytesPerChunk(data.mode);
-    annot.x = chunk * 16;
+    if (data.mode == kFormat1BPP)
+    {
+        annot.x = x_offset;
+    }
+    else
+    {
+        uint32_t chunk = x_offset / BytesPerChunk(data.mode);
+        annot.x = chunk * 16;
+    }
     annot.y = y;
     annot.text = label;
     return true;
