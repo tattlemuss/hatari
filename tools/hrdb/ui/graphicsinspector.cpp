@@ -58,22 +58,23 @@ static void CreateBitplanePalette(QVector<uint32_t>& palette,
                                   uint32_t col2,
                                   uint32_t col3)
 {
-    palette.append(0xff000000 + 0                  );
-    palette.append(0xff000000 +               +col0);
-    palette.append(0xff000000 +          +col1     );
-    palette.append(0xff000000 +          +col1+col0);
-    palette.append(0xff000000 +      col2          );
-    palette.append(0xff000000 +      col2     +col0);
-    palette.append(0xff000000 +      col2+col1     );
-    palette.append(0xff000000 +      col2+col1+col0);
-    palette.append(0xff000000 + col3               );
-    palette.append(0xff000000 + col3          +col0);
-    palette.append(0xff000000 + col3     +col1     );
-    palette.append(0xff000000 + col3     +col1+col0);
-    palette.append(0xff000000 + col3+col2          );
-    palette.append(0xff000000 + col3+col2     +col0);
-    palette.append(0xff000000 + col3+col2+col1     );
-    palette.append(0xff000000 + col3+col2+col1+col0);
+    int i = 0;
+    palette[i++] = (0xff000000 + 0                  );
+    palette[i++] = (0xff000000 +               +col0);
+    palette[i++] = (0xff000000 +          +col1     );
+    palette[i++] = (0xff000000 +          +col1+col0);
+    palette[i++] = (0xff000000 +      col2          );
+    palette[i++] = (0xff000000 +      col2     +col0);
+    palette[i++] = (0xff000000 +      col2+col1     );
+    palette[i++] = (0xff000000 +      col2+col1+col0);
+    palette[i++] = (0xff000000 + col3               );
+    palette[i++] = (0xff000000 + col3          +col0);
+    palette[i++] = (0xff000000 + col3     +col1     );
+    palette[i++] = (0xff000000 + col3     +col1+col0);
+    palette[i++] = (0xff000000 + col3+col2          );
+    palette[i++] = (0xff000000 + col3+col2     +col0);
+    palette[i++] = (0xff000000 + col3+col2+col1     );
+    palette[i++] = (0xff000000 + col3+col2+col1+col0);
 }
 
 GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
@@ -795,6 +796,7 @@ void GraphicsInspectorWidget::UpdateImage()
 {
     // Colours are ARGB
     m_pImageWidget->m_colours.clear();
+    m_pImageWidget->m_colours.resize(256);
 
     // Now palette
     switch (m_paletteMode)
@@ -814,14 +816,14 @@ void GraphicsInspectorWidget::UpdateImage()
 
                 uint32_t colour = 0xff000000U;
                 HardwareST::GetColour(regVal, m_pTargetModel->GetMachineType(), colour);
-                m_pImageWidget->m_colours.append(colour);
+                m_pImageWidget->m_colours[i] = colour;
             }
             break;
         }
         case kGreyscale:
             for (uint i = 0; i < 16; ++i)
             {
-                m_pImageWidget->m_colours.append(0xff000000 + i * 0x101010);
+                m_pImageWidget->m_colours[i] = (0xff000000 + i * 0x101010);
             }
             break;
         case kContrast1:
