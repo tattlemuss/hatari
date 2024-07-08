@@ -32,6 +32,18 @@
 #include "quicklayout.h"
 #include "prefsdialog.h"
 
+static int ShowResetWarning()
+{
+    QMessageBox msgBox;
+    msgBox.setText("Reset Hatari?");
+    msgBox.setIcon(QMessageBox::Warning);
+    msgBox.setInformativeText("All memory data will be lost.");
+    msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    msgBox.setDefaultButton(QMessageBox::No);
+    int ret = msgBox.exec();
+    return ret;
+}
+
 MainWindow::MainWindow(Session& session, QWidget *parent)
     : QMainWindow(parent),
       m_session(session),
@@ -448,9 +460,11 @@ void MainWindow::DisconnectTriggered()
 
 void MainWindow::WarmResetTriggered()
 {
+    int ret = ShowResetWarning();
     // Use the shared session call for this, which handles
     // things like symbol loading
-    m_session.resetWarm();
+    if (ret == QMessageBox::Yes)
+        m_session.resetWarm();
 }
 
 void MainWindow::FastForwardTriggered()
