@@ -103,6 +103,11 @@ uint64_t Dispatcher::ResetWarm()
     return SendCommandPacket("resetwarm");
 }
 
+uint64_t Dispatcher::ResetCold()
+{
+    return SendCommandPacket("resetcold");
+}
+
 uint64_t Dispatcher::Break()
 {
     return SendCommandPacket("break");

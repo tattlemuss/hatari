@@ -89,6 +89,7 @@ public:
     void saveSettings();
 
     void resetWarm();
+    void resetCold();
 
     FileWatcher* createFileWatcherInstance();
 

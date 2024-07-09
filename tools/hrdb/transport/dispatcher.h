@@ -32,6 +32,7 @@ public:
 
     // System control
     uint64_t ResetWarm();
+    uint64_t ResetCold();
 
     // CPU control
     uint64_t Break();

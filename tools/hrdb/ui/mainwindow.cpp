@@ -467,6 +467,15 @@ void MainWindow::WarmResetTriggered()
         m_session.resetWarm();
 }
 
+void MainWindow::ColdResetTriggered()
+{
+    int ret = ShowResetWarning();
+    // Use the shared session call for this, which handles
+    // things like symbol loading
+    if (ret == QMessageBox::Yes)
+        m_session.resetCold();
+}
+
 void MainWindow::FastForwardTriggered()
 {
     m_pDispatcher->SetFastForward(m_pFastForwardAct->isChecked());
@@ -534,6 +543,7 @@ void MainWindow::updateButtonEnable()
     m_pConnectAct->setEnabled(!isConnected);
     m_pDisconnectAct->setEnabled(isConnected);
     m_pWarmResetAct->setEnabled(isConnected);
+    m_pColdResetAct->setEnabled(isConnected);
     m_pExceptionsAct->setEnabled(isConnected);
     m_pFastForwardAct->setEnabled(isConnected);
     m_pFastForwardAct->setChecked(m_pTargetModel->IsFastForward());
@@ -734,6 +744,10 @@ void MainWindow::createActions()
     m_pWarmResetAct->setStatusTip(tr("Warm-Reset the machine"));
     connect(m_pWarmResetAct, &QAction::triggered, this, &MainWindow::WarmResetTriggered);
 
+    m_pColdResetAct = new QAction(tr("Cold Reset"), this);
+    m_pColdResetAct->setStatusTip(tr("Cold-Reset the machine"));
+    connect(m_pColdResetAct, &QAction::triggered, this, &MainWindow::ColdResetTriggered);
+
     m_pFastForwardAct = new QAction(tr("Fast-Forward"), this);
     m_pFastForwardAct->setStatusTip(tr("Control Fast-Forward mode"));
     m_pFastForwardAct->setCheckable(true);
@@ -839,6 +853,7 @@ void MainWindow::createToolBar()
     pToolbar->addAction(m_pQuickLaunchAct);
     pToolbar->addAction(m_pLaunchAct);
     pToolbar->addSeparator();
+    pToolbar->addAction(m_pColdResetAct);
     pToolbar->addAction(m_pWarmResetAct);
     pToolbar->addSeparator();
     pToolbar->addAction(m_pFastForwardAct);
@@ -854,6 +869,8 @@ void MainWindow::createMenus()
     m_pFileMenu->addAction(m_pLaunchAct);
     m_pFileMenu->addAction(m_pConnectAct);
     m_pFileMenu->addAction(m_pDisconnectAct);
+    m_pFileMenu->addSeparator();
+    m_pFileMenu->addAction(m_pColdResetAct);
     m_pFileMenu->addAction(m_pWarmResetAct);
     m_pFileMenu->addAction(m_pFastForwardAct);
     m_pFileMenu->addSeparator();

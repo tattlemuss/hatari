@@ -140,6 +140,19 @@ void Session::resetWarm()
         m_pDispatcher->Run();
 }
 
+void Session::resetCold()
+{
+    m_pDispatcher->ResetCold();
+
+    // This will re-request from Hatari, which should return
+    // an empty symbol table.
+    m_pDispatcher->ReadSymbols();
+
+    // Restart if in break mode
+    if (!m_pTargetModel->IsRunning())
+        m_pDispatcher->Run();
+}
+
 FileWatcher* Session::createFileWatcherInstance()
 {
         if (!m_pFileWatcher)
