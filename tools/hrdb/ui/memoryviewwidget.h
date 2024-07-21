@@ -10,6 +10,7 @@
 #include "../models/session.h"
 
 class TargetModel;
+class SymbolTableModel;
 class Dispatcher;
 class QComboBox;
 class QCheckBox;
@@ -267,6 +268,7 @@ public slots:
     void gotoClickedSlot();
     void lockClickedSlot();
     void searchResultsSlot(uint64_t responseId);
+    void symbolTableChangedSlot(uint64_t responseId);
 
 private:
     QLineEdit*          m_pAddressEdit;
@@ -279,7 +281,7 @@ private:
     Session*            m_pSession;
     TargetModel*        m_pTargetModel;
     Dispatcher*         m_pDispatcher;
-    QAbstractItemModel* m_pSymbolTableModel;
+    SymbolTableModel*   m_pSymbolTableModel;
     int                 m_windowIndex;
 
     SearchSettings      m_searchSettings;

@@ -243,6 +243,7 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     connect(m_pTargetModel,  &TargetModel::memoryChangedSignal,           this, &GraphicsInspectorWidget::memoryChanged);
     connect(m_pTargetModel,  &TargetModel::otherMemoryChangedSignal,      this, &GraphicsInspectorWidget::otherMemoryChanged);
     connect(m_pTargetModel,  &TargetModel::runningRefreshTimerSignal,     this, &GraphicsInspectorWidget::runningRefreshTimer);
+    connect(m_pTargetModel,  &TargetModel::symbolTableChangedSignal,      this, &GraphicsInspectorWidget::symbolTableChanged);
 
     connect(m_pBitmapAddressLineEdit,       &QLineEdit::returnPressed,    this, &GraphicsInspectorWidget::bitmapAddressChanged);
     connect(m_pPaletteAddressLineEdit,      &QLineEdit::returnPressed,    this, &GraphicsInspectorWidget::paletteAddressChanged);
@@ -581,6 +582,11 @@ void GraphicsInspectorWidget::otherMemoryChanged(uint32_t address, uint32_t size
         m_requestBitmap.Dirty();
         UpdateMemoryRequests();
     }
+}
+
+void GraphicsInspectorWidget::symbolTableChanged(uint64_t /*requestId*/)
+{
+    m_pSymbolTableModel->emitChanged();
 }
 
 void GraphicsInspectorWidget::runningRefreshTimer()

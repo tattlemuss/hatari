@@ -1217,6 +1217,7 @@ DisasmWindow::DisasmWindow(QWidget *parent, Session* pSession, int windowIndex) 
     connect(m_pShowHex,     &QCheckBox::stateChanged,                 this, &DisasmWindow::showHexClickedSlot);
     connect(m_pSession,     &Session::addressRequested,               this, &DisasmWindow::requestAddress);
     connect(m_pTargetModel, &TargetModel::searchResultsChangedSignal, this, &DisasmWindow::searchResultsSlot);
+    connect(m_pTargetModel, &TargetModel::symbolTableChangedSignal,   this, &DisasmWindow::symbolTableChangedSlot);
 
     this->resizeEvent(nullptr);
 }
@@ -1409,5 +1410,10 @@ void DisasmWindow::searchResultsSlot(uint64_t responseId)
         }
         m_searchRequestId = 0;
     }
+}
+
+void DisasmWindow::symbolTableChangedSlot(uint64_t /*responseId*/)
+{
+    m_pSymbolTableModel->emitChanged();
 }
 

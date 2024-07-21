@@ -16,6 +16,7 @@ class Dispatcher;
 class QCheckBox;
 class QPaintEvent;
 class QSettings;
+class SymbolTableModel;
 
 class DisasmWidget : public QWidget
 {
@@ -248,6 +249,7 @@ protected slots:
     void gotoClickedSlot();
     void lockClickedSlot();
     void searchResultsSlot(uint64_t responseId);
+    void symbolTableChangedSlot(uint64_t responseId);
 private:
 
     void UpdateTextBox();
@@ -259,7 +261,7 @@ private:
     DisasmWidget*   m_pDisasmWidget;
     TargetModel*    m_pTargetModel;
     Dispatcher*     m_pDispatcher;
-    QAbstractItemModel* m_pSymbolTableModel;        // used for autocomplete
+    SymbolTableModel* m_pSymbolTableModel;        // used for autocomplete
 
     int             m_windowIndex;
 

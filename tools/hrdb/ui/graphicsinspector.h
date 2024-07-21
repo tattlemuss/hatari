@@ -12,7 +12,6 @@
 
 class QLabel;
 class QLineEdit;
-class QAbstractItemModel;
 class QSpinBox;
 class QCheckBox;
 class QComboBox;
@@ -20,6 +19,7 @@ class QToolButton;
 class ElidedLabel;
 
 class TargetModel;
+class SymbolTableModel;
 class Dispatcher;
 
 class GraphicsInspectorWidget : public QDockWidget
@@ -41,6 +41,8 @@ private:
     void startStopDelayedChanged();
     void memoryChanged(int memorySlot, uint64_t commandId);
     void otherMemoryChanged(uint32_t address, uint32_t size);
+    void symbolTableChanged(uint64_t requestId);
+
     void runningRefreshTimer();
     void bitmapAddressChanged();
     void paletteAddressChanged();
@@ -155,7 +157,7 @@ private:
     TargetModel*        m_pTargetModel;
     Dispatcher*         m_pDispatcher;
 
-    QAbstractItemModel* m_pSymbolTableModel;
+    SymbolTableModel*   m_pSymbolTableModel;
 
     // logical UI state shadowing widgets
     Mode            m_mode;
