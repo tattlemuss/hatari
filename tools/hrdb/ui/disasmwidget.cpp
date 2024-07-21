@@ -1231,8 +1231,6 @@ void DisasmWindow::requestAddress(Session::WindowType type, int windowIndex, uin
         return;
 
     m_pDisasmWidget->SetAddress(std::to_string(address));
-    m_pDisasmWidget->SetFollowPC(false);
-    m_pFollowPC->setChecked(false);
     setVisible(true);
     raise();
     this->keyFocus();
@@ -1296,7 +1294,6 @@ void DisasmWindow::returnPressedSlot()
     Colouring::SetErrorState(m_pAddressEdit, success);
     if (success)
     {
-        m_pFollowPC->setChecked(false);
         m_pDisasmWidget->setFocus();
     }
 }
@@ -1392,8 +1389,6 @@ void DisasmWindow::searchResultsSlot(uint64_t responseId)
         if (results.addresses.size() > 0)
         {
             uint32_t addr = results.addresses[0];
-            m_pDisasmWidget->SetFollowPC(false);
-            m_pFollowPC->setChecked(false);
             m_pDisasmWidget->SetSearchResultAddress(addr);
 
             // Allow the "next" operation to work

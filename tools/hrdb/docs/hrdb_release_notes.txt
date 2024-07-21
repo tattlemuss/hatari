@@ -32,6 +32,8 @@ v0.009 (July 2024)
   - Added "Write to File..." context menu option to save binary data.
 
 - Disassembly Window
+  - Behaviour change: typing in an address does not cancel the "Follow PC"
+      option. "Follow PC" must be cancelled by the user.
   - Added "Search..." as context menu option.
   - Added annotation of trap calls.
       i.e. names of GemDOS/Xbios/Bios calls will be displayed as a comment.
