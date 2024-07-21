@@ -1,7 +1,7 @@
 hrdb Release Notes
 ==================
 
-v0.009 (June 2024)
+v0.009 (July 2024)
 
 - Hatari
   - Update code to Hatari version 2.5.0
@@ -11,13 +11,20 @@ v0.009 (June 2024)
   - Added a "Run to RAM" command. Makes it easier to exit TOS calls. Requested by @troed.
   - Added Ctrl+U <key> sequences for all the Run To... options.
 	 e.g. "Ctrl+U V" performs "run to next VBL"
+         - Added "Cold Reset" menu option.
   - Added a protocol check between hrdb and Hatari, to prevent accidental user mismatches.
   - Switched Breakpoints and Profile windows to use QTreeView.
       This looks much nicer and more compact.
+  - Fixed auto-complete of symbols when active program is changed multiple times.
 
 - Graphics inspector
   - Added support for STE line-padding register.
-  - Correctly use black & white palette in mono resolution. Reported by @troed.
+  - Switched the width of the view to be a number of bytes, rather than "blocks
+      plus padding" approach.
+  - "Use Register" option for formatting is now part of the Format combo box,
+      rather than a separate tickbox.
+  - Add 1BPP (byte-per-pixel) format support, useful for visualising buffer data.
+  - Fix: Correctly use black & white palette in mono resolution. Reported by @troed.
 
 - Memory Window
   - Added binary values in tooltips. Request from TheNameOfTheGame.
