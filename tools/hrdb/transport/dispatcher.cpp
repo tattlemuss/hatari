@@ -695,7 +695,7 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
         m_pTargetModel->SetStatus(running != 0, pc, ffwd);
         this->InsertFlush();
     }
-    if (type == "!config")
+    else if (type == "!config")
     {
         std::string machineTypeStr = s.Split(SEP_CHAR);
         std::string cpuLevelStr = s.Split(SEP_CHAR);
@@ -750,6 +750,12 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
             ++numDeltas;
         }
         m_pTargetModel->ProfileDeltaComplete(static_cast<int>(enabled));
+    }  
+    else if (type == "!symbols")
+    {
+        std::string path = s.Split(SEP_CHAR);
+        std::cout << "New program for symbol table: '" << path << "'" << std::endl;
+        m_pTargetModel->NotifySymbolProgramChanged();
     }
 }
 

@@ -56,6 +56,8 @@ static bool SymbolsAreForProgram;
 /* prevent repeated failing on every debugger invocation */
 static bool AutoLoadFailed;
 
+/* Remote debug code: debugging callback to inform of symbol table change */
+static Symbols_ChangedCallback CpuSymbolsChangedCallback = NULL;
 
 /**
  * Load symbols of given type and the symbol address addresses from
@@ -778,6 +780,8 @@ void Symbols_RemoveCurrentProgram(void)
 			Symbols_Free(CpuSymbolsList);
 			fprintf(stderr, "Program exit, removing its symbols.\n");
 			CpuSymbolsList = NULL;
+			if (CpuSymbolsChangedCallback)
+				CpuSymbolsChangedCallback();
 		}
 	}
 	AutoLoadFailed = false;
@@ -861,6 +865,8 @@ void Symbols_LoadCurrentProgram(void)
 	}
 	SymbolsAreForProgram = true;
 	CpuSymbolsList = symbols;
+	if (CpuSymbolsChangedCallback)
+		CpuSymbolsChangedCallback();
 }
 
 /* ---------------- command parsing ------------------ */
@@ -998,6 +1004,8 @@ int Symbols_Command(int nArgc, char *psArgs[])
 		} else {
 			Symbols_Free(CpuSymbolsList);
 			CpuSymbolsList = NULL;
+			if (CpuSymbolsChangedCallback)
+				CpuSymbolsChangedCallback();
 		}
 		return DEBUGGER_CMDDONE;
 	}
@@ -1029,6 +1037,8 @@ int Symbols_Command(int nArgc, char *psArgs[])
 		if (listtype == TYPE_CPU) {
 			Symbols_Free(CpuSymbolsList);
 			CpuSymbolsList = list;
+			if (CpuSymbolsChangedCallback)
+				CpuSymbolsChangedCallback();
 		} else {
 			Symbols_Free(DspSymbolsList);
 			DspSymbolsList = list;
@@ -1056,4 +1066,15 @@ bool Symbols_GetCpuSymbol(int index, rdb_symbol_t* result)
 	result->address = entry->address;
 	result->type = symbol_char(entry->type);
 	return true;
+}
+
+/* Function callback to inform when the symbol table has changed */
+void Symbols_RegisterCpuChangedCallback(Symbols_ChangedCallback callback)
+{
+	CpuSymbolsChangedCallback = callback;
+}
+
+const char* Symbols_CpuGetCurrentPath(void)
+{
+	return CurrentProgramPath;
 }
