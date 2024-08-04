@@ -677,7 +677,7 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
     else
     {
         // For debugging
-        std::cout << "UNKNOWN REPONSE:" << cmd.m_cmd << "//" << cmd.m_response << std::endl;
+        //std::cout << "UNKNOWN REPONSE:" << cmd.m_cmd << "//" << cmd.m_response << std::endl;
     }
 }
 
