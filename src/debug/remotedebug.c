@@ -344,7 +344,7 @@ static void RemoteDebug_NotifyProfile(RemoteDebugState* state)
 {
 	int index;
 	ProfileLine result;
-	Uint32 lastaddr;
+	uint32_t lastaddr;
 
 	send_str(state, "!profile");
 	send_sep(state);
@@ -516,7 +516,7 @@ static int RemoteDebug_run(int nArgc, char *psArgs[], RemoteDebugState* state)
 static int RemoteDebug_regs(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	int regIdx;
-	Uint32 varIndex;
+	uint32_t varIndex;
 	varIndex = 0;
 	const var_addr_t* var;
 
@@ -544,7 +544,7 @@ static int RemoteDebug_regs(int nArgc, char *psArgs[], RemoteDebugState* state)
 	// Variables
 	while (Vars_QueryVariable(varIndex, &var))
 	{
-		Uint32 value;
+		uint32_t value;
 		value = Vars_GetValue(var);
 		send_key_value(state, var->name, value);
 		++varIndex;
@@ -573,8 +573,8 @@ static int RemoteDebug_regs(int nArgc, char *psArgs[], RemoteDebugState* state)
 static int RemoteDebug_mem(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	int arg;
-	Uint32 memdump_addr = 0;
-	Uint32 memdump_count = 0;
+	uint32_t memdump_addr = 0;
+	uint32_t memdump_count = 0;
 
 	/* For remote debug, only "address" "count" is supported */
 	arg = 1;
@@ -608,9 +608,9 @@ static int RemoteDebug_mem(int nArgc, char *psArgs[], RemoteDebugState* state)
 	const uint32_t buffer_size = RDB_MEM_BLOCK_SIZE*4;
 	char* buffer = malloc(buffer_size);
 
-	Uint32 read_pos = 0;
-	Uint32 write_pos = 0;
-	Uint32 accum;
+	uint32_t read_pos = 0;
+	uint32_t write_pos = 0;
+	uint32_t accum;
 	while (read_pos < memdump_count)
 	{
 		// Accumulate 3 bytes into 24 bits of a u32
@@ -656,9 +656,9 @@ static int RemoteDebug_mem(int nArgc, char *psArgs[], RemoteDebugState* state)
 static int RemoteDebug_memset(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	int arg;
-	Uint32 memset_addr = 0;
-	Uint32 memset_end = 0;
-	Uint32 memset_count = 0;
+	uint32_t memset_addr = 0;
+	uint32_t memset_end = 0;
+	uint32_t memset_count = 0;
 	uint8_t valHi;
 	uint8_t valLo;
 
@@ -762,7 +762,7 @@ static int RemoteDebug_bplist(int nArgc, char *psArgs[], RemoteDebugState* state
 static int RemoteDebug_bpdel(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	int arg = 1;
-	Uint32 bp_position;
+	uint32_t bp_position;
 	if (nArgc >= arg + 1)
 	{
 		if (read_hex32_value(psArgs[arg], &bp_position))
@@ -813,7 +813,7 @@ static int RemoteDebug_symlist(int nArgc, char *psArgs[], RemoteDebugState* stat
 static int RemoteDebug_exmask(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	int arg = 1;
-	Uint32 mask;
+	uint32_t mask;
 
 	if (nArgc == 2)
 	{
@@ -969,14 +969,14 @@ static int RemoteDebug_ffwd(int nArgc, char *psArgs[], RemoteDebugState* state)
 /* returns "OK <addr>" where addr is the next address found if successful */
 static int RemoteDebug_memfind(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
-	Uint32 find_addr = 0;
-	Uint32 find_count = 0;
-	Uint32 find_end = 0;
+	uint32_t find_addr = 0;
+	uint32_t find_count = 0;
+	uint32_t find_end = 0;
 	int readPos = 0;
 	RemoteDebugBuffer searchBuffer;
 	size_t stringSize;
-	Uint8 valHi;
-	Uint8 valLo;
+	uint8_t valHi;
+	uint8_t valLo;
 	int arg;
 
 	/* For remote debug, only "address" "count" is supported */
@@ -1028,9 +1028,9 @@ static int RemoteDebug_memfind(int nArgc, char *psArgs[], RemoteDebugState* stat
 		bool found = true;
 		for (size_t i = 0; i < stringSize; ++i)
 		{
-			Uint8 mem = STMemory_ReadByte(find_addr + i);
-			Uint8 mask = searchBuffer.data[i * 2];
-			Uint8 val = searchBuffer.data[i * 2 + 1];
+			uint8_t mem = STMemory_ReadByte(find_addr + i);
+			uint8_t mask = searchBuffer.data[i * 2];
+			uint8_t val = searchBuffer.data[i * 2 + 1];
 
 			if ((mem & mask) != val)
 			{
@@ -1062,8 +1062,8 @@ static int RemoteDebug_savebin(int nArgc, char *psArgs[], RemoteDebugState* stat
 {
 	FILE *fp;
 	unsigned char c;
-	Uint32 address;
-	Uint32 bytes, i = 0;
+	uint32_t address;
+	uint32_t bytes, i = 0;
 
 	if (nArgc != 4)
 		return 2;
