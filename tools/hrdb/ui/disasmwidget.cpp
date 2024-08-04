@@ -29,7 +29,7 @@
 
 DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex, QAction* pSearchAction):
     QWidget(parent),
-    m_memory(0, 0),
+    m_memory(Memory::kCpu, 0, 0),
     m_rowCount(25),
     m_requestedAddress(0),
     m_logicalAddr(0),

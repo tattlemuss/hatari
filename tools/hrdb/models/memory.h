@@ -41,7 +41,14 @@ bool Overlaps(uint32_t addr1, uint32_t size1, uint32_t addr2, uint32_t size);
 class Memory
 {
 public:
-    Memory(uint32_t addr, uint32_t size);
+    enum Space
+    {
+        kCpu,
+        kDspP,
+        kDspX,
+        kDspY
+    };
+    Memory(Space space, uint32_t addr, uint32_t sizeInBytes);
 
     ~Memory();
 
@@ -49,13 +56,13 @@ public:
 
     void Set(uint32_t offset, uint8_t val)
     {
-        assert(offset < m_size);
+        assert(offset < m_sizeInBytes);
         m_pData[offset] = val;
     }
 
     uint8_t Get(uint32_t offset) const
     {
-        assert(offset < m_size);
+        assert(offset < m_sizeInBytes);
         return m_pData[offset];
     }
 
@@ -76,11 +83,11 @@ public:
         // This logic should also work for memory addresses which wrap
         // around, for whatever reason.
         uint32_t offset = address - m_addr;
-        if (offset >= m_size)
+        if (offset >= m_sizeInBytes)
             return false;       // start address is too low
 
         // This check is ">" since ">=" matches the range fitting exactly.
-        if (offset + numBytes > m_size)
+        if (offset + numBytes > m_sizeInBytes)
             return false;       // end address is too high
 
         return true;
@@ -101,7 +108,7 @@ public:
 
     uint32_t GetSize() const
     {
-        return m_size;
+        return m_sizeInBytes;
     }
 
     const uint8_t* GetData() const
@@ -115,8 +122,9 @@ public:
 private:
     Memory(const Memory& other);	// hide to prevent accidental use
 
+    Space       m_space;
     uint32_t	m_addr;
-    uint32_t	m_size;		// size in bytes
+    uint32_t	m_sizeInBytes;		// size in bytes
     uint8_t*	m_pData;
 };
 

@@ -2,11 +2,12 @@
 
 #include <string.h>
 
-Memory::Memory(uint32_t addr, uint32_t size) :
+Memory::Memory(Memory::Space space, uint32_t addr, uint32_t sizeInBytes) :
+    m_space(space),
     m_addr(addr),
-    m_size(size)
+    m_sizeInBytes(sizeInBytes)
 {
-    m_pData = new uint8_t[size];
+    m_pData = new uint8_t[sizeInBytes];
 }
 
 Memory::~Memory()
@@ -19,7 +20,7 @@ void Memory::Clear()
     delete [] m_pData;
     m_pData = nullptr;
     m_addr = 0;
-    m_size = 0;
+    m_sizeInBytes = 0;
 }
 
 bool Memory::ReadAddressMulti(uint32_t address, uint32_t numBytes, uint32_t& value) const
@@ -31,7 +32,7 @@ bool Memory::ReadAddressMulti(uint32_t address, uint32_t numBytes, uint32_t& val
     // Check that all the bytes are available in this block.
     // Shift "offset" into the realms of this memory block
     uint32_t offset = address - m_addr;
-    assert(offset + numBytes <= m_size);
+    assert(offset + numBytes <= m_sizeInBytes);
     uint32_t longContents = 0;
     for (uint32_t i = 0; i < numBytes; ++i)
     {
@@ -44,12 +45,13 @@ bool Memory::ReadAddressMulti(uint32_t address, uint32_t numBytes, uint32_t& val
 
 Memory& Memory::operator=(const Memory &other)
 {
-    this->m_size = other.m_size;
+    this->m_space = other.m_space;
+    this->m_sizeInBytes = other.m_sizeInBytes;
     this->m_addr = other.m_addr;
     delete [] this->m_pData;
 
-    this->m_pData = new uint8_t[other.m_size];
-    memcpy(this->m_pData, other.m_pData, other.m_size);
+    this->m_pData = new uint8_t[other.m_sizeInBytes];
+    memcpy(this->m_pData, other.m_pData, other.m_sizeInBytes);
     return *this;
 }
 

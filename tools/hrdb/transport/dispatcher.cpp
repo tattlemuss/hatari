@@ -460,7 +460,7 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
             return;
 
         // Create a new memory block to pass to the data model
-        Memory* pMem = new Memory(addr, size);
+        Memory* pMem = new Memory(Memory::kCpu, addr, size);
 
         // Now parse the uuencoded data
         // Each "group" encodes 3 bytes
@@ -502,9 +502,18 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
         uint32_t sizeInWords;
         if (!StringParsers::ParseHexString(sizeStr.c_str(), sizeInWords))
             return;
+        Memory::Space space;
+        switch (memspace[0])
+        {
+            case 'P' : space = Memory::kDspP; break;
+            case 'X' : space = Memory::kDspX; break;
+            case 'Y' : space = Memory::kDspY; break;
+        default:
+            return;
+        }
 
         // Create a new memory block to pass to the data model
-        Memory* pMem = new Memory(addr, sizeInWords * 3);
+        Memory* pMem = new Memory(space, addr, sizeInWords * 3);
 
         // Now parse the uuencoded data
         // Each "group" encodes 3 bytes

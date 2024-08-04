@@ -100,8 +100,8 @@ MemoryWidget::MemoryWidget(QWidget *parent, Session* pSession,
     m_requestId(0),
     m_requestCursorMode(kNoMoveCursor),
     m_windowIndex(windowIndex),
-    m_currentMemory(0, 0),
-    m_previousMemory(0, 0),
+    m_currentMemory(Memory::kCpu, 0, 0),
+    m_previousMemory(Memory::kCpu, 0, 0),
     m_pSearchAction(pSearchAction),
     m_pSaveAction(pSaveAction),
     m_wheelAngleDelta(0)
@@ -615,7 +615,7 @@ void MemoryWidget::startStopChanged()
         if (pMem)
             m_previousMemory = *pMem;
         else {
-            m_previousMemory = Memory(0, 0);
+            m_previousMemory = Memory(Memory::kCpu, 0, 0);
         }
     }
 }
@@ -901,7 +901,7 @@ void MemoryWidget::RequestMemory(MemoryWidget::CursorMode moveCursor)
     uint32_t size = static_cast<uint32_t>(m_rowCount * m_bytesPerRow);
     if (m_pTargetModel->IsConnected())
     {
-        m_requestId = m_pDispatcher->ReadMemory(m_memSlot, m_address, size);
+        m_requestId = m_pDispatcher->ReadDspMemory(m_memSlot, 'P', m_address, size);
         m_requestCursorMode = moveCursor;
     }
 }

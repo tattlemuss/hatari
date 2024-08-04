@@ -924,8 +924,8 @@ HardwareWindow::HardwareWindow(QWidget *parent, Session* pSession) :
     m_pSession(pSession),
     m_pTargetModel(pSession->m_pTargetModel),
     m_pDispatcher(pSession->m_pDispatcher),
-    m_videoMem(0, 0),
-    m_mfpMem(0, 0)
+    m_videoMem(Memory::kCpu, 0, 0),
+    m_mfpMem(Memory::kCpu, 0, 0)
 {
     this->setWindowTitle("Hardware");
     setObjectName("Hardware");
