@@ -22,6 +22,7 @@ public:
     // Request a specific memory block.
     // Allows strings so expressions can evaluate
     uint64_t ReadMemory(MemorySlot slot, uint32_t address, uint32_t size);
+    uint64_t ReadDspMemory(MemorySlot slot, char space, uint32_t address, uint32_t size);
     uint64_t ReadRegisters();
     uint64_t ReadInfoYm();
     uint64_t ReadBreakpoints();

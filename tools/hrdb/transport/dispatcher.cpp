@@ -12,7 +12,7 @@
 //#define DISPATCHER_DEBUG
 
 // Protocol ID which needs to match the Hatari target
-#define REMOTEDEBUG_PROTOCOL_ID	(0x1007)
+#define REMOTEDEBUG_PROTOCOL_ID	(0x1008)
 
 //-----------------------------------------------------------------------------
 // Character value for the separator in responses/notifications from the target
@@ -66,6 +66,12 @@ uint64_t Dispatcher::InsertFlush()
 uint64_t Dispatcher::ReadMemory(MemorySlot slot, uint32_t address, uint32_t size)
 {
     QString tmp = QString::asprintf("mem %x %x", address, size);
+    return SendCommandShared(slot, tmp.toStdString());
+}
+
+uint64_t Dispatcher::ReadDspMemory(MemorySlot slot, char space, uint32_t address, uint32_t size)
+{
+    QString tmp = QString::asprintf("dmem %c %x %x", space, address, size);
     return SendCommandShared(slot, tmp.toStdString());
 }
 
@@ -485,6 +491,48 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
 
         m_pTargetModel->SetMemory(cmd.m_memorySlot, pMem, cmd.m_uid);
     }
+    else if (type == "dmem")
+    {
+        std::string memspace = splitResp.Split(SEP_CHAR);
+        std::string addrStr = splitResp.Split(SEP_CHAR);
+        std::string sizeStr = splitResp.Split(SEP_CHAR);
+        uint32_t addr;
+        if (!StringParsers::ParseHexString(addrStr.c_str(), addr))
+            return;
+        uint32_t sizeInWords;
+        if (!StringParsers::ParseHexString(sizeStr.c_str(), sizeInWords))
+            return;
+
+        // Create a new memory block to pass to the data model
+        Memory* pMem = new Memory(addr, sizeInWords * 3);
+
+        // Now parse the uuencoded data
+        // Each "group" encodes 3 bytes
+        uint32_t numGroups = sizeInWords;        // round up to next block
+
+        uint32_t writePos = 0;
+        uint32_t readPos = splitResp.GetPos();
+        for (uint32_t group = 0; group < numGroups; ++group)
+        {
+            uint32_t accum = 0;
+            for (int i = 0; i < 4; ++i)
+            {
+                accum <<= 6;
+                uint32_t value = cmd.m_response[readPos++];
+                assert(value >= 32 && value < 32+64);
+                accum |= (value - 32u);
+            }
+
+            // Now output 3 chars
+            for (int i = 0; i < 3; ++i)
+            {
+                pMem->Set(writePos++, (accum >> 16) & 0xff);
+                accum <<= 8;
+            }
+        }
+
+        m_pTargetModel->SetMemory(cmd.m_memorySlot, pMem, cmd.m_uid);
+    }
     else if (type == "bplist")
     {
         // Breakpoints
@@ -629,7 +677,7 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
     else
     {
         // For debugging
-        //std::cout << "UNKNOWN REPONSE:" << cmd.m_cmd << "//" << cmd.m_response << std::endl;
+        std::cout << "UNKNOWN REPONSE:" << cmd.m_cmd << "//" << cmd.m_response << std::endl;
     }
 }
 

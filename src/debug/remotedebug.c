@@ -43,6 +43,7 @@
 #include "psg.h"
 #include "dmaSnd.h"
 #include "blitter.h"
+#include "dsp.h"
 #include "profile.h"
 // For status bar updates
 #include "screen.h"
@@ -81,7 +82,8 @@ static bool bRemoteBreakIsActive = false;
 /* 0x1005    add memfind command, add stramsize to $config notification */
 /* 0x1006    use hex only for address/size in mem[*], bpdel, exmask commands */
 /* 0x1007    add savebin */
-#define REMOTEDEBUG_PROTOCOL_ID	(0x1007)
+/* 0x1008    add dmem, DSP support in NotifyConfig */
+#define REMOTEDEBUG_PROTOCOL_ID	(0x1008)
 
 /* Char ID to denote terminator of a token. This is under the ASCII "normal"
 	character value range so that 32-255 can be used */
@@ -335,6 +337,8 @@ static int RemoteDebug_NotifyConfig(RemoteDebugState* state)
 	send_hex(state, system->nCpuLevel);
 	send_sep(state);
 	send_hex(state, STRamEnd);
+	send_sep(state);
+	send_hex(state, system->nDSPType == DSP_TYPE_EMU);
 
 	send_term(state);
 	return 0;
@@ -1088,6 +1092,77 @@ static int RemoteDebug_savebin(int nArgc, char *psArgs[], RemoteDebugState* stat
 	return 0;
 }
 
+/**
+ * Dump the requested area of DSP memory.
+ *
+ * Input: "mem <space:char> <start addr:hex> <size in DSP-words:hex>\n"
+ *
+ * Output: "mem <address:hex> <size:hexr> <memory as base16 string>\n"
+ */
+
+static int RemoteDebug_dmem(int nArgc, char *psArgs[], RemoteDebugState* state)
+{
+	int arg;
+	uint32_t result = 0;
+	char memspace = 0;
+	Uint32 memdump_addr = 0;
+	Uint32 memdump_count = 0;
+	const char* mem_str = NULL;
+
+	/* For remote debug, only "space" "address" "count" is supported */
+	arg = 1;
+	if (nArgc >= arg + 3)
+	{
+		memspace = psArgs[arg][0];
+		printf("DMEM: %c\n", memspace);
+		if (memspace != 'X' && memspace != 'Y' && memspace != 'P')
+			return 1;
+		++arg;
+
+		printf("%s\n", psArgs[arg]);
+		if (!read_hex32_value(psArgs[arg], &memdump_addr))
+			return 1;
+		++arg;
+		printf("%s\n", psArgs[arg]);
+		if (!read_hex32_value(psArgs[arg], &memdump_count))
+			return 1;
+		++arg;
+	}
+	else
+	{
+		// Not enough args
+		return 1;
+	}
+
+	memdump_addr &= 0xffff;
+
+	flush_data(state);
+	send_str(state, "OK");
+	send_sep(state);
+	send_char(state, memspace);
+	send_sep(state);
+	send_hex(state, memdump_addr);
+	send_sep(state);
+	send_hex(state, memdump_count);
+	send_sep(state);
+
+	// Send data in blocks of "buffer_size" memory bytes
+	// (We don't need a terminator when sending)
+	while (memdump_count)
+	{
+		result = DSP_ReadMemory(memdump_addr, memspace, &mem_str);
+
+		// Now write 3 bytes to 4 chars as ASCII uuencode
+		send_char(state, 32 + ((result >> 18) & 0x3f));
+		send_char(state, 32 + ((result >> 12) & 0x3f));
+		send_char(state, 32 + ((result >>  6) & 0x3f));
+		send_char(state, 32 + ((result      ) & 0x3f));
+		++memdump_addr;
+		--memdump_count;
+	}
+	return 0;
+}
+
 // -----------------------------------------------------------------------------
 /* DebugUI command structure */
 typedef struct
@@ -1120,6 +1195,7 @@ static const rdbcommand_t remoteDebugCommandList[] = {
 	{ RemoteDebug_ffwd,		"ffwd"		, true		},
 	{ RemoteDebug_memfind,	"memfind"	, true		},
 	{ RemoteDebug_savebin,	"savebin"	, true		},
+	{ RemoteDebug_dmem,		"dmem"		, true		},
 
 	/* Terminator */
 	{ NULL, NULL }
