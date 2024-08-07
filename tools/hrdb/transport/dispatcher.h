@@ -8,6 +8,7 @@
 
 class QTcpSocket;
 class TargetModel;
+class StringSplitter;
 
 // Keeps track of messages between target and host, and matches up commands to responses,
 // then passes them to the model.
@@ -81,6 +82,18 @@ private:
     void ReceivePacket(const char* response);
 
     void DeletePending();
+
+    // Response parsers for each command
+    void ParseRegs(StringSplitter& splitResp, const RemoteCommand& cmd);
+    void ParseMem(StringSplitter& splitResp, const RemoteCommand& cmd);
+    void ParseDmem(StringSplitter& splitResp, const RemoteCommand& cmd);
+    void ParseBplist(StringSplitter& splitResp, const RemoteCommand& cmd);
+    void ParseSymlist(StringSplitter& splitResp, const RemoteCommand& cmd);
+    void ParseExmask(StringSplitter& splitResp, const RemoteCommand& cmd);
+    void ParseMemset(StringSplitter& splitResp, const RemoteCommand& cmd);
+    void ParseInfoym(StringSplitter& splitResp, const RemoteCommand& cmd);
+    void ParseProfile(StringSplitter& splitResp, const RemoteCommand& cmd);
+    void ParseMemfind(StringSplitter& splitResp, const RemoteCommand& cmd);
 
     std::deque<RemoteCommand*>      m_sentCommands;
     QTcpSocket*                     m_pTcpSocket;

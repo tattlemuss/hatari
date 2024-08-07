@@ -111,6 +111,9 @@ public:
     // emits otherMemoryChangedSignal()
     void NotifyMemoryChanged(uint32_t address, uint32_t size);
 
+    // Called when "new symbols" notification is received.
+    void NotifySymbolProgramChanged();
+
     // emits searchResultsChangedSignal()
     void SetSearchResults(uint64_t commmandId, const SearchResults& results);
 
@@ -199,6 +202,9 @@ signals:
 
     // When symbol table is updated
     void symbolTableChangedSignal(uint64_t commandId);
+
+    // When symbol table program changed
+    void symbolProgramChangedSignal();
 
     // When search results returned. Use GetSearchResults()
     void searchResultsChangedSignal(uint64_t commandId);

@@ -69,4 +69,12 @@ typedef struct {
 extern int Symbols_CpuSymbolCount(void);
 extern bool Symbols_GetCpuSymbol(int index, rdb_symbol_t* result);
 
+/* Function callback to inform when the symbol table has changed.
+	The loaded program can be retrieved with  */
+typedef void (*Symbols_ChangedCallback)(void);
+extern void Symbols_RegisterCpuChangedCallback(Symbols_ChangedCallback callback);
+
+/* Retrieve the path for currently-loaded program (may be NULL) */
+extern const char* Symbols_CpuGetCurrentPath(void);
+
 #endif

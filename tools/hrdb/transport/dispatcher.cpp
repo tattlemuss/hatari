@@ -426,263 +426,40 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
         return;
     }
 
+    // Handle responses with arguments first, and pass to a parser
     if (type == "regs")
-    {
-        Registers regs;
-        while (true)
-        {
-            std::string reg = splitResp.Split(SEP_CHAR);
-            if (reg.size() == 0)
-                break;
-            std::string valueStr = splitResp.Split(SEP_CHAR);
-            uint32_t value;
-            if (!StringParsers::ParseHexString(valueStr.c_str(), value))
-                return;
-
-            // Write this value into register structure
-            // NOTE: this is tolerant to not matching the name
-            // since we use "Vars"
-            int reg_id = RegNameToEnum(reg.c_str());
-            if (reg_id != Registers::REG_COUNT)
-                regs.m_value[reg_id] = value;
-        }
-        m_pTargetModel->SetRegisters(regs, cmd.m_uid);
-    }
+        ParseRegs(splitResp, cmd);
     else if (type == "mem")
-    {
-        std::string addrStr = splitResp.Split(SEP_CHAR);
-        std::string sizeStr = splitResp.Split(SEP_CHAR);
-        uint32_t addr;
-        if (!StringParsers::ParseHexString(addrStr.c_str(), addr))
-            return;
-        uint32_t size;
-        if (!StringParsers::ParseHexString(sizeStr.c_str(), size))
-            return;
-
-        // Create a new memory block to pass to the data model
-        Memory* pMem = new Memory(Memory::kCpu, addr, size);
-
-        // Now parse the uuencoded data
-        // Each "group" encodes 3 bytes
-        uint32_t numGroups = (size + 2) / 3;        // round up to next block
-
-        uint32_t writePos = 0;
-        uint32_t readPos = splitResp.GetPos();
-        for (uint32_t group = 0; group < numGroups; ++group)
-        {
-            uint32_t accum = 0;
-            for (int i = 0; i < 4; ++i)
-            {
-                accum <<= 6;
-                uint32_t value = cmd.m_response[readPos++];
-                assert(value >= 32 && value < 32+64);
-                accum |= (value - 32u);
-            }
-
-            // Now output 3 chars
-            for (int i = 0; i < 3; ++i)
-            {
-                if (writePos == size)
-                    break;
-                pMem->Set(writePos++, (accum >> 16) & 0xff);
-                accum <<= 8;
-            }
-        }
-
-        m_pTargetModel->SetMemory(cmd.m_memorySlot, pMem, cmd.m_uid);
-    }
+        ParseMem(splitResp, cmd);
     else if (type == "dmem")
-    {
-        std::string memspace = splitResp.Split(SEP_CHAR);
-        std::string addrStr = splitResp.Split(SEP_CHAR);
-        std::string sizeStr = splitResp.Split(SEP_CHAR);
-        uint32_t addr;
-        if (!StringParsers::ParseHexString(addrStr.c_str(), addr))
-            return;
-        uint32_t sizeInWords;
-        if (!StringParsers::ParseHexString(sizeStr.c_str(), sizeInWords))
-            return;
-        Memory::Space space;
-        switch (memspace[0])
-        {
-            case 'P' : space = Memory::kDspP; break;
-            case 'X' : space = Memory::kDspX; break;
-            case 'Y' : space = Memory::kDspY; break;
-        default:
-            return;
-        }
-
-        // Create a new memory block to pass to the data model
-        Memory* pMem = new Memory(space, addr, sizeInWords * 3);
-
-        // Now parse the uuencoded data
-        // Each "group" encodes 3 bytes
-        uint32_t numGroups = sizeInWords;        // round up to next block
-
-        uint32_t writePos = 0;
-        uint32_t readPos = splitResp.GetPos();
-        for (uint32_t group = 0; group < numGroups; ++group)
-        {
-            uint32_t accum = 0;
-            for (int i = 0; i < 4; ++i)
-            {
-                accum <<= 6;
-                uint32_t value = cmd.m_response[readPos++];
-                assert(value >= 32 && value < 32+64);
-                accum |= (value - 32u);
-            }
-
-            // Now output 3 chars
-            for (int i = 0; i < 3; ++i)
-            {
-                pMem->Set(writePos++, (accum >> 16) & 0xff);
-                accum <<= 8;
-            }
-        }
-
-        m_pTargetModel->SetMemory(cmd.m_memorySlot, pMem, cmd.m_uid);
-    }
+        ParseDmem(splitResp, cmd);
     else if (type == "bplist")
-    {
-        // Breakpoints
-        std::string countStr = splitResp.Split(SEP_CHAR);
-        uint32_t count;
-        if (!StringParsers::ParseHexString(countStr.c_str(), count))
-            return;
-
-        Breakpoints bps;
-        for (uint32_t i = 0; i < count; ++i)
-        {
-            Breakpoint bp;
-            bp.m_id = i + 1;        // IDs in Hatari start at 1 :(
-            bp.SetExpression(splitResp.Split(SEP_CHAR));
-            std::string ccountStr = splitResp.Split(SEP_CHAR);
-            std::string hitsStr = splitResp.Split(SEP_CHAR);
-            std::string onceStr = splitResp.Split(SEP_CHAR);
-            std::string quietStr = splitResp.Split(SEP_CHAR);
-            std::string traceStr = splitResp.Split(SEP_CHAR);
-            if (!StringParsers::ParseHexString(ccountStr.c_str(), bp.m_conditionCount))
-                return;
-            if (!StringParsers::ParseHexString(hitsStr.c_str(), bp.m_hitCount))
-                return;
-            if (!StringParsers::ParseHexString(onceStr.c_str(), bp.m_once))
-                return;
-            if (!StringParsers::ParseHexString(quietStr.c_str(), bp.m_quiet))
-                return;
-            if (!StringParsers::ParseHexString(traceStr.c_str(), bp.m_trace))
-                return;
-            bps.m_breakpoints.push_back(bp);
-        }
-
-        m_pTargetModel->SetBreakpoints(bps, cmd.m_uid);
-    }
+        ParseBplist(splitResp, cmd);
     else if (type == "symlist")
-    {
-        // Symbols
-        std::string countStr = splitResp.Split(SEP_CHAR);
-        uint32_t count;
-        if (!StringParsers::ParseHexString(countStr.c_str(), count))
-            return;
-
-        const std::string absType("A");
-        SymbolSubTable syms;
-        for (uint32_t i = 0; i < count; ++i)
-        {
-            std::string name = splitResp.Split(SEP_CHAR);
-            std::string addrStr = splitResp.Split(SEP_CHAR);
-            uint32_t address;
-            if (!StringParsers::ParseHexString(addrStr.c_str(), address))
-                return;
-            std::string type = splitResp.Split(SEP_CHAR);
-            if (type == absType)
-                continue;
-            uint32_t size = 0;
-            syms.AddSymbol(name, address, size, type, std::string());
-        }
-        m_pTargetModel->SetSymbolTable(syms, cmd.m_uid);
-    }
+        ParseSymlist(splitResp, cmd);
     else if (type == "exmask")
-    {
-        std::string maskStr = splitResp.Split(SEP_CHAR);
-        uint32_t mask;
-        if (!StringParsers::ParseHexString(maskStr.c_str(), mask))
-            return;
-
-        ExceptionMask maskObj;
-        maskObj.m_mask = (uint16_t)mask;
-        m_pTargetModel->SetExceptionMask(maskObj);
-    }
+        ParseExmask(splitResp, cmd);
     else if (type == "memset")
+        ParseMemset(splitResp, cmd);
+    else if (type == "infoym")
+        ParseInfoym(splitResp, cmd);
+    else if (type == "profile")
+        ParseProfile(splitResp, cmd);
+    else if (type == "memfind")
+        ParseMemfind(splitResp, cmd);
+    else if (type == "resetwarm")
     {
-        // check the affected range
-        std::string addrStr = splitResp.Split(SEP_CHAR);
-        std::string sizeStr = splitResp.Split(SEP_CHAR);
-        uint32_t addr;
-        if (!StringParsers::ParseHexString(addrStr.c_str(), addr))
-            return;
-        uint32_t size;
-        if (!StringParsers::ParseHexString(sizeStr.c_str(), size))
-            return;
-
-        m_pTargetModel->NotifyMemoryChanged(addr, size);
+        // Nothing to do now, since the !symbol notifier will clean up for us
     }
     else if (type == "flush")
     {
         Q_ASSERT(0);
     }
     else if (type == "console")
-    {
         // Anything could have happened here!
         m_pTargetModel->ConsoleCommand();
-    }
-    else if (type == "infoym")
-    {
-        YmState state;
-        for (int i = 0; i < YmState::kNumRegs; ++i)
-        {
-            std::string valueStr = splitResp.Split(SEP_CHAR);
-            if (valueStr.size() == 0)
-                return;
-            uint32_t value;
-            if (!StringParsers::ParseHexString(valueStr.c_str(), value))
-                return;
-            state.m_regs[i] = static_cast<uint8_t>(value);
-        }
-        m_pTargetModel->SetYm(state);
-    }
-    else if (type == "profile")
-    {
-        uint32_t enabled = 0;
-        std::string enabledStr = splitResp.Split(SEP_CHAR);
-        if (!StringParsers::ParseHexString(enabledStr.c_str(), enabled))
-            return;
-        m_pTargetModel->ProfileDeltaComplete(static_cast<int>(enabled));
-    }
-    else if (type == "resetwarm")
-    {
-        // Set up an empty symbol table on reset so that we re-request it
-        SymbolSubTable syms;
-        m_pTargetModel->SetSymbolTable(syms, cmd.m_uid);
-    }
-    else if (type == "memfind")
-    {
-        SearchResults results;
-        while (true)
-        {
-            std::string addrStr = splitResp.Split(SEP_CHAR);
-            if (addrStr.size() == 0)
-                break;
-            uint32_t value;
-            if (!StringParsers::ParseHexString(addrStr.c_str(), value))
-                break;
-            results.addresses.push_back(value);
-        }
-        m_pTargetModel->SetSearchResults(cmd.m_uid, results);
-    }
     else if (type == "savebin")
-    {
        m_pTargetModel->SaveBinComplete(cmd.m_uid, 0U);
-    }
     else
     {
         // For debugging
@@ -752,7 +529,7 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
         m_pTargetModel->SetStatus(running != 0, pc, ffwd);
         this->InsertFlush();
     }
-    if (type == "!config")
+    else if (type == "!config")
     {
         std::string machineTypeStr = s.Split(SEP_CHAR);
         std::string cpuLevelStr = s.Split(SEP_CHAR);
@@ -807,6 +584,260 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
             ++numDeltas;
         }
         m_pTargetModel->ProfileDeltaComplete(static_cast<int>(enabled));
+    }  
+    else if (type == "!symbols")
+    {
+        std::string path = s.Split(SEP_CHAR);
+        std::cout << "New program for symbol table: '" << path << "'" << std::endl;
+        m_pTargetModel->NotifySymbolProgramChanged();
     }
 }
 
+void Dispatcher::ParseRegs(StringSplitter& splitResp, const RemoteCommand& cmd)
+{
+    Registers regs;
+    while (true)
+    {
+        std::string reg = splitResp.Split(SEP_CHAR);
+        if (reg.size() == 0)
+            break;
+        std::string valueStr = splitResp.Split(SEP_CHAR);
+        uint32_t value;
+        if (!StringParsers::ParseHexString(valueStr.c_str(), value))
+            return;
+
+        // Write this value into register structure
+        // NOTE: this is tolerant to not matching the name
+        // since we use "Vars"
+        int reg_id = RegNameToEnum(reg.c_str());
+        if (reg_id != Registers::REG_COUNT)
+            regs.m_value[reg_id] = value;
+    }
+    m_pTargetModel->SetRegisters(regs, cmd.m_uid);
+}
+
+void Dispatcher::ParseMem(StringSplitter& splitResp, const RemoteCommand& cmd)
+{
+    std::string addrStr = splitResp.Split(SEP_CHAR);
+    std::string sizeStr = splitResp.Split(SEP_CHAR);
+    uint32_t addr;
+    if (!StringParsers::ParseHexString(addrStr.c_str(), addr))
+        return;
+    uint32_t size;
+    if (!StringParsers::ParseHexString(sizeStr.c_str(), size))
+        return;
+
+    // Create a new memory block to pass to the data model
+    Memory* pMem = new Memory(Memory::kCpu, addr, size);
+
+    // Now parse the uuencoded data
+    // Each "group" encodes 3 bytes
+    uint32_t numGroups = (size + 2) / 3;        // round up to next block
+
+    uint32_t writePos = 0;
+    for (uint32_t group = 0; group < numGroups; ++group)
+    {
+        uint32_t accum = 0;
+        for (int i = 0; i < 4; ++i)
+        {
+            accum <<= 6;
+            uint32_t value = splitResp.GetNext();
+            assert(value >= 32 && value < 32+64);
+            accum |= (value - 32u);
+        }
+
+        // Now output 3 chars
+        for (int i = 0; i < 3; ++i)
+        {
+            if (writePos == size)
+                break;
+            pMem->Set(writePos++, (accum >> 16) & 0xff);
+            accum <<= 8;
+        }
+    }
+    m_pTargetModel->SetMemory(cmd.m_memorySlot, pMem, cmd.m_uid);
+}
+
+void Dispatcher::ParseDmem(StringSplitter &splitResp, const RemoteCommand &cmd)
+{
+    std::string memspace = splitResp.Split(SEP_CHAR);
+    std::string addrStr = splitResp.Split(SEP_CHAR);
+    std::string sizeStr = splitResp.Split(SEP_CHAR);
+    uint32_t addr;
+    if (!StringParsers::ParseHexString(addrStr.c_str(), addr))
+        return;
+    uint32_t sizeInWords;
+    if (!StringParsers::ParseHexString(sizeStr.c_str(), sizeInWords))
+        return;
+    Memory::Space space;
+    switch (memspace[0])
+    {
+        case 'P' : space = Memory::kDspP; break;
+        case 'X' : space = Memory::kDspX; break;
+        case 'Y' : space = Memory::kDspY; break;
+    default:
+        return;
+    }
+
+    // Create a new memory block to pass to the data model
+    Memory* pMem = new Memory(space, addr, sizeInWords * 3);
+
+    // Now parse the uuencoded data
+    // Each "group" encodes 3 bytes
+    uint32_t numGroups = sizeInWords;        // round up to next block
+
+    uint32_t writePos = 0;
+    uint32_t readPos = splitResp.GetPos();
+    for (uint32_t group = 0; group < numGroups; ++group)
+    {
+        uint32_t accum = 0;
+        for (int i = 0; i < 4; ++i)
+        {
+            accum <<= 6;
+            uint32_t value = cmd.m_response[readPos++];
+            assert(value >= 32 && value < 32+64);
+            accum |= (value - 32u);
+        }
+
+        // Now output 3 chars
+        for (int i = 0; i < 3; ++i)
+        {
+            pMem->Set(writePos++, (accum >> 16) & 0xff);
+            accum <<= 8;
+        }
+    }
+
+    m_pTargetModel->SetMemory(cmd.m_memorySlot, pMem, cmd.m_uid);
+}
+
+void Dispatcher::ParseBplist(StringSplitter& splitResp, const RemoteCommand& cmd)
+{
+    // Breakpoints
+    std::string countStr = splitResp.Split(SEP_CHAR);
+    uint32_t count;
+    if (!StringParsers::ParseHexString(countStr.c_str(), count))
+        return;
+
+    Breakpoints bps;
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        Breakpoint bp;
+        bp.m_id = i + 1;        // IDs in Hatari start at 1 :(
+        bp.SetExpression(splitResp.Split(SEP_CHAR));
+        std::string ccountStr = splitResp.Split(SEP_CHAR);
+        std::string hitsStr = splitResp.Split(SEP_CHAR);
+        std::string onceStr = splitResp.Split(SEP_CHAR);
+        std::string quietStr = splitResp.Split(SEP_CHAR);
+        std::string traceStr = splitResp.Split(SEP_CHAR);
+        if (!StringParsers::ParseHexString(ccountStr.c_str(), bp.m_conditionCount))
+            return;
+        if (!StringParsers::ParseHexString(hitsStr.c_str(), bp.m_hitCount))
+            return;
+        if (!StringParsers::ParseHexString(onceStr.c_str(), bp.m_once))
+            return;
+        if (!StringParsers::ParseHexString(quietStr.c_str(), bp.m_quiet))
+            return;
+        if (!StringParsers::ParseHexString(traceStr.c_str(), bp.m_trace))
+            return;
+        bps.m_breakpoints.push_back(bp);
+    }
+    m_pTargetModel->SetBreakpoints(bps, cmd.m_uid);
+}
+
+void Dispatcher::ParseSymlist(StringSplitter& splitResp, const RemoteCommand& cmd)
+{
+    // Symbols
+    std::string countStr = splitResp.Split(SEP_CHAR);
+    uint32_t count;
+    if (!StringParsers::ParseHexString(countStr.c_str(), count))
+        return;
+
+    const std::string absType("A");
+    SymbolSubTable syms;
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        std::string name = splitResp.Split(SEP_CHAR);
+        std::string addrStr = splitResp.Split(SEP_CHAR);
+        uint32_t address;
+        if (!StringParsers::ParseHexString(addrStr.c_str(), address))
+            return;
+        std::string type = splitResp.Split(SEP_CHAR);
+        if (type == absType)
+            continue;
+        uint32_t size = 0;
+        syms.AddSymbol(name, address, size, type, std::string());
+    }
+    m_pTargetModel->SetSymbolTable(syms, cmd.m_uid);
+}
+
+void Dispatcher::ParseExmask(StringSplitter &splitResp, const RemoteCommand &cmd)
+{
+    (void)cmd;
+    std::string maskStr = splitResp.Split(SEP_CHAR);
+    uint32_t mask;
+    if (!StringParsers::ParseHexString(maskStr.c_str(), mask))
+        return;
+
+    ExceptionMask maskObj;
+    maskObj.m_mask = (uint16_t)mask;
+    m_pTargetModel->SetExceptionMask(maskObj);
+}
+
+void Dispatcher::ParseMemset(StringSplitter &splitResp, const RemoteCommand &cmd)
+{
+    (void)cmd;
+    // check the affected range
+    std::string addrStr = splitResp.Split(SEP_CHAR);
+    std::string sizeStr = splitResp.Split(SEP_CHAR);
+    uint32_t addr;
+    if (!StringParsers::ParseHexString(addrStr.c_str(), addr))
+        return;
+    uint32_t size;
+    if (!StringParsers::ParseHexString(sizeStr.c_str(), size))
+        return;
+
+    m_pTargetModel->NotifyMemoryChanged(addr, size);
+}
+
+void Dispatcher::ParseInfoym(StringSplitter &splitResp, const RemoteCommand &cmd)
+{
+    (void)cmd;
+    YmState state;
+    for (int i = 0; i < YmState::kNumRegs; ++i)
+    {
+        std::string valueStr = splitResp.Split(SEP_CHAR);
+        if (valueStr.size() == 0)
+            return;
+        uint32_t value;
+        if (!StringParsers::ParseHexString(valueStr.c_str(), value))
+            return;
+        state.m_regs[i] = static_cast<uint8_t>(value);
+    }
+    m_pTargetModel->SetYm(state);
+}
+
+void Dispatcher::ParseProfile(StringSplitter &splitResp, const RemoteCommand &cmd)
+{
+    (void)cmd;
+    uint32_t enabled = 0;
+    std::string enabledStr = splitResp.Split(SEP_CHAR);
+    if (!StringParsers::ParseHexString(enabledStr.c_str(), enabled))
+        return;
+    m_pTargetModel->ProfileDeltaComplete(static_cast<int>(enabled));
+}
+
+void Dispatcher::ParseMemfind(StringSplitter &splitResp, const RemoteCommand &cmd)
+{
+    SearchResults results;
+    while (true)
+    {
+        std::string addrStr = splitResp.Split(SEP_CHAR);
+        if (addrStr.size() == 0)
+            break;
+        uint32_t value;
+        if (!StringParsers::ParseHexString(addrStr.c_str(), value))
+            break;
+        results.addresses.push_back(value);
+    }
+    m_pTargetModel->SetSearchResults(cmd.m_uid, results);
+}

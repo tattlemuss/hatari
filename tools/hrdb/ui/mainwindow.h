@@ -78,6 +78,7 @@ private:
     void flush(const TargetChangedFlags& flags, uint64_t commandId);
     void protocolMismatch(uint32_t hatariProtocol, uint32_t hrdbProtocol);
     void saveBinComplete(uint64_t commandId, uint32_t errorCode);
+    void symbolProgramChanged();
 
     // Button callbacks
     void addBreakpointPressed();

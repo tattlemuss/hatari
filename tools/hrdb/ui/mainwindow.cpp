@@ -173,6 +173,7 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     connect(m_pTargetModel, &TargetModel::flushSignal,               this, &MainWindow::flush);
     connect(m_pTargetModel, &TargetModel::protocolMismatchSignal,    this, &MainWindow::protocolMismatch);
     connect(m_pTargetModel, &TargetModel::saveBinCompleteSignal,     this, &MainWindow::saveBinComplete);
+    connect(m_pTargetModel, &TargetModel::symbolProgramChangedSignal,this, &MainWindow::symbolProgramChanged);
 
     // Wire up buttons to actions
     connect(m_pStartStopButton, &QAbstractButton::clicked, this, &MainWindow::startStopClickedSlot);
@@ -317,6 +318,11 @@ void MainWindow::saveBinComplete(uint64_t /*commandId*/, uint32_t errorCode)
         messageSet("File saved.");
     else
         messageSet(QString::asprintf("Unable to save file (error %d)", errorCode));
+}
+
+void MainWindow::symbolProgramChanged()
+{
+    m_pDispatcher->ReadSymbols();
 }
 
 void MainWindow::startStopClickedSlot()
@@ -710,11 +716,6 @@ void MainWindow::requestMainState(uint32_t pc)
 
     // Basepage makes things much easier
     m_pDispatcher->ReadMemory(MemorySlot::kBasePage, 0, 0x200);
-
-    // Only re-request symbols if we didn't find any the first time
-    if (m_pTargetModel->GetSymbolTable().GetHatariSubTable().Count() == 0)
-        m_pDispatcher->ReadSymbols();
-
     m_mainStateUpdateRequest = m_pDispatcher->InsertFlush();
 }
 

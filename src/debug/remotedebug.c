@@ -89,6 +89,9 @@ static bool bRemoteBreakIsActive = false;
 	character value range so that 32-255 can be used */
 #define SEPARATOR_VAL	0x1
 
+/* Forward declaration of callback */
+void RemoteDebug_SymbolsChanged(void);
+
 // -----------------------------------------------------------------------------
 // Structure managing a resizeable buffer of uint8_t
 // This can be used to accumulate input commands, or sections of it
@@ -374,6 +377,26 @@ static void RemoteDebug_NotifyProfile(RemoteDebugState* state)
 		}
 		++index;
 	}
+	send_term(state);
+}
+
+// -----------------------------------------------------------------------------
+// Send the out-of-band status to flag that symbols have changed
+// because a program was loaded or unloaded.
+static void RemoteDebug_NotifySymbols(RemoteDebugState* state)
+{
+	const char* path;
+	// This can be called with no active connection, so skip if necessary.
+	if (state->AcceptedFD == -1)
+		return;
+
+	path = Symbols_CpuGetCurrentPath();
+	if (!path)
+		path = "";
+
+	send_str(state, "!symbols");
+	send_sep(state);
+	send_str(state, path);
 	send_term(state);
 }
 
@@ -1378,6 +1401,7 @@ static int RemoteDebugState_TryAccept(RemoteDebugState* state, bool blocking)
 		// New connection, so do an initial report.
 		RemoteDebug_NotifyConfig(state);
 		RemoteDebug_NotifyState(state);
+		RemoteDebug_NotifySymbols(state);
 		flush_data(state);
 	}
 	return state->AcceptedFD;
@@ -1731,11 +1755,13 @@ void RemoteDebug_Init(void)
 		// Socket created, so use our break loop
 		DebugUI_RegisterRemoteDebug(RemoteDebug_BreakLoop);
 	}
+	Symbols_RegisterCpuChangedCallback(RemoteDebug_SymbolsChanged);
 }
 
 void RemoteDebug_UnInit()
 {
 	printf("Stopping remote debug\n");
+	Symbols_RegisterCpuChangedCallback(NULL);
 	DebugUI_RegisterRemoteDebug(NULL);
 
 	RemoteDebugState_UnInit(&g_rdbState);
@@ -1767,4 +1793,9 @@ void RemoteDebug_CheckRemoteBreak(void)
 		// Stop and wait for inputs from the control socket
 		DebugUI(REASON_USER);
 	}
+}
+
+void RemoteDebug_SymbolsChanged()
+{
+	RemoteDebug_NotifySymbols(&g_rdbState);
 }

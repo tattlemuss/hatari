@@ -175,6 +175,12 @@ void TargetModel::NotifyMemoryChanged(uint32_t address, uint32_t size)
     emit otherMemoryChangedSignal(address, size);
 }
 
+void TargetModel::NotifySymbolProgramChanged()
+{
+    // When symbol table is updated
+    emit symbolProgramChangedSignal();
+}
+
 void TargetModel::SetSearchResults(uint64_t commmandId, const SearchResults& results)
 {
     m_searchResults = results;
@@ -209,7 +215,6 @@ void TargetModel::ConsoleCommand()
 {
     emit otherMemoryChangedSignal(0, 0xffffff);
     emit breakpointsChangedSignal(0);
-    emit symbolTableChangedSignal(0);
     emit exceptionMaskChanged();
 }
 
