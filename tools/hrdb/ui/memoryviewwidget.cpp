@@ -901,7 +901,7 @@ void MemoryWidget::RequestMemory(MemoryWidget::CursorMode moveCursor)
     uint32_t size = static_cast<uint32_t>(m_rowCount * m_bytesPerRow);
     if (m_pTargetModel->IsConnected())
     {
-        m_requestId = m_pDispatcher->ReadDspMemory(m_memSlot, 'P', m_address, size);
+        m_requestId = m_pDispatcher->ReadMemory(m_memSlot, m_address, size);
         m_requestCursorMode = moveCursor;
     }
 }
