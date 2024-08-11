@@ -173,7 +173,7 @@ public:
     const ProfileData& GetRawProfileData() const;
 
     // CPU info for disassembly
-    const decode_settings& GetDisasmSettings() const;
+    const hopper68::decode_settings& GetDisasmSettings() const;
 
 public slots:
 
@@ -240,7 +240,9 @@ private:
     uint32_t        m_cpuLevel;		// CPU 0=000, 1=010, 2=020, 3=030, 4=040, 5=060
     uint32_t        m_stRamSize;    // Size of available ST Ram
     uint32_t        m_isDspActive;  // 1 == DSP available and emulated
-    decode_settings m_decodeSettings;
+
+    // TODO: why is this in target settings? Can't remember
+    hopper68::decode_settings m_decodeSettings;
 
     int             m_bConnected;       // 0 == disconnected, 1 == connected
     int             m_bRunning;         // 0 == stopped, 1 == running

@@ -256,21 +256,34 @@ void MainWindow::startStopChanged()
 
 void MainWindow::memoryChanged(int slot, uint64_t /*commandId*/)
 {
-    if (slot != MemorySlot::kMainPC)
-        return;
+    if (slot == MemorySlot::kMainPC)
+    {
+        // Disassemble the first instruction
+        m_disasm.lines.clear();
+        const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kMainPC);
+        if (pMem)
+        {
+            // Fetch data and decode the next instruction.
+            hopper68::buffer_reader disasmBuf(pMem->GetData(), pMem->GetSize(), pMem->GetAddress());
+            Disassembler::decode_buf(disasmBuf, m_disasm, m_pTargetModel->GetDisasmSettings(), pMem->GetAddress(), 1);
+        }
+    }
+    if (slot == MemorySlot::kMainDspPC)
+    {
+        // Disassemble the first instruction
+        m_disasm.lines.clear();
+        const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kMainDspPC);
+        if (pMem)
+        {
+            // Fetch data and decode the next instruction.
+            //hopper56::buffer_reader disasmBuf(pMem->GetData(), pMem->GetSize(), pMem->GetAddress());
+            //Disassembler::decode_buf(disasmBuf, m_disasm, m_pTargetModel->GetDisasmSettings(), pMem->GetAddress(), 1);
+        }
+    }
 
     // This is the last part of the main state update, so flag it
-    emit m_session.mainStateUpdated();
-
-    // Disassemble the first instruction
-    m_disasm.lines.clear();
-    const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kMainPC);
-    if (!pMem)
-        return;
-
-    // Fetch data and decode the next instruction.
-    buffer_reader disasmBuf(pMem->GetData(), pMem->GetSize(), pMem->GetAddress());
-    Disassembler::decode_buf(disasmBuf, m_disasm, m_pTargetModel->GetDisasmSettings(), pMem->GetAddress(), 1);
+    if (slot == MemorySlot::kBasePage)
+        emit m_session.mainStateUpdated();
 }
 
 void MainWindow::runningRefreshTimer()

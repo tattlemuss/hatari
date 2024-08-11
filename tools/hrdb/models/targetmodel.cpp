@@ -46,7 +46,7 @@ TargetModel::TargetModel() :
     m_pDelayedUpdateTimer = new QTimer(this);
     m_pRunningRefreshTimer = new QTimer(this);
 
-    m_decodeSettings.cpu_type = CPU_TYPE_68000;
+    m_decodeSettings.cpu_type = hopper68::CPU_TYPE_68000;
 
     connect(m_pDelayedUpdateTimer,  &QTimer::timeout, this, &TargetModel::delayedTimer);
     connect(m_pRunningRefreshTimer, &QTimer::timeout, this, &TargetModel::runningRefreshTimerSignal);
@@ -115,13 +115,13 @@ void TargetModel::SetConfig(uint32_t machineType, uint32_t cpuLevel, uint32_t st
     m_isDspActive = dspActive;
     static int cpu_types[] =
     {
-        CPU_TYPE_68000,
-        CPU_TYPE_68010,
-        CPU_TYPE_68020,
-        CPU_TYPE_68030,
-        CPU_TYPE_68030,  // 040 Not supported fully yet
-        CPU_TYPE_68030,  // 050 Not supported fully yet
-        CPU_TYPE_68030,  // 060 Not supported fully yet
+        hopper68::CPU_TYPE_68000,
+        hopper68::CPU_TYPE_68010,
+        hopper68::CPU_TYPE_68020,
+        hopper68::CPU_TYPE_68030,
+        hopper68::CPU_TYPE_68030,  // 040 Not supported fully yet
+        hopper68::CPU_TYPE_68030,  // 050 Not supported fully yet
+        hopper68::CPU_TYPE_68030,  // 060 Not supported fully yet
     };
     if (cpuLevel < sizeof(cpu_types) / sizeof(cpu_types[0]))
         m_decodeSettings.cpu_type = cpu_types[cpuLevel];
@@ -242,7 +242,7 @@ const ProfileData& TargetModel::GetRawProfileData() const
     return *m_pProfileData;
 }
 
-const decode_settings& TargetModel::GetDisasmSettings() const
+const hopper68::decode_settings& TargetModel::GetDisasmSettings() const
 {
     return m_decodeSettings;
 }

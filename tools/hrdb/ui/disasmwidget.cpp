@@ -195,10 +195,10 @@ void DisasmWidget::MoveUp()
             // Get memory buffer for this range
             uint32_t offset = targetAddr - m_memory.GetAddress();
             uint32_t size = m_memory.GetSize() - offset;
-            buffer_reader disasmBuf(m_memory.GetData() + offset, size, m_memory.GetAddress() + offset);
-            instruction inst;
+            hopper68::buffer_reader disasmBuf(m_memory.GetData() + offset, size, m_memory.GetAddress() + offset);
+            hopper68::instruction inst;
             Disassembler::decode_inst(disasmBuf, inst, m_pTargetModel->GetDisasmSettings());
-            if (inst.opcode != Opcode::NONE)
+            if (inst.opcode != hopper68::Opcode::NONE)
             {
                 SetAddress(targetAddr);
                 return;
@@ -675,7 +675,7 @@ void DisasmWidget::CalcDisasm()
     // Work out where we need to start disassembling from
     uint32_t offset = m_logicalAddr - m_memory.GetAddress();
     uint32_t size = m_memory.GetSize() - offset;
-    buffer_reader disasmBuf(m_memory.GetData() + offset, size, m_memory.GetAddress() + offset);
+    hopper68::buffer_reader disasmBuf(m_memory.GetData() + offset, size, m_memory.GetAddress() + offset);
     m_disasm.lines.clear();
     Disassembler::decode_buf(disasmBuf, m_disasm, m_pTargetModel->GetDisasmSettings(), m_logicalAddr, m_rowCount);
 
@@ -876,7 +876,7 @@ void DisasmWidget::CalcOpAddresses()
     for (int i = 0; i < m_disasm.lines.size(); ++i)
     {
         const Disassembler::line& line = m_disasm.lines[i];
-        const instruction& inst = line.inst;
+        const hopper68::instruction& inst = line.inst;
         OpAddresses& addrs = m_opAddresses[i];
         bool useRegs = inst.address == pc;
         addrs.valid[0] = Disassembler::calc_fixed_ea(inst.op0, useRegs, regs, m_disasm.lines[i].address, addrs.address[0]);
@@ -979,7 +979,7 @@ void DisasmWidget::SetFollowPC(bool bFollow)
     update();
 }
 
-void DisasmWidget::printEA(const operand& op, const Registers& regs, uint32_t address, QTextStream& ref) const
+void DisasmWidget::printEA(const hopper68::operand& op, const Registers& regs, uint32_t address, QTextStream& ref) const
 {
     uint32_t ea;
 

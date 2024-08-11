@@ -1,5 +1,8 @@
 #include "instruction.h"
 
+namespace hopper68
+{
+
 const char* g_opcode_names[Opcode::COUNT] =
 {
 	"none",
@@ -287,4 +290,6 @@ void instruction::reset()
 	op2.type = OpType::INVALID;
 	bf0.valid = 0;
 	bf1.valid = 0;
+}
+
 }

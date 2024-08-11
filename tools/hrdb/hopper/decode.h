@@ -1,6 +1,8 @@
 #ifndef DECODE_H
 #define DECODE_H
 
+namespace hopper68
+{
 class buffer_reader;
 struct instruction;
 
@@ -21,4 +23,5 @@ struct decode_settings
 // size of 2, if no match was found.
 extern void decode(instruction& inst, buffer_reader& buffer, const decode_settings& dsettings);
 
+}
 #endif

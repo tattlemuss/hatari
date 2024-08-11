@@ -324,11 +324,11 @@ void RegisterWidget::mainStateUpdated()
     // Disassemble the first instruction
     m_disasm.lines.clear();
     const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kMainPC);
-    if (!pMem)
-        return;
-
-    buffer_reader disasmBuf(pMem->GetData(), pMem->GetSize(), pMem->GetAddress());
-    Disassembler::decode_buf(disasmBuf, m_disasm, m_pTargetModel->GetDisasmSettings(), pMem->GetAddress(), 2);
+    if (pMem)
+    {
+        hopper68::buffer_reader disasmBuf(pMem->GetData(), pMem->GetSize(), pMem->GetAddress());
+        Disassembler::decode_buf(disasmBuf, m_disasm, m_pTargetModel->GetDisasmSettings(), pMem->GetAddress(), 2);
+    }
 
     PopulateRegisters();
     update();
@@ -423,7 +423,7 @@ void RegisterWidget::PopulateRegisters()
             QString disasmText = ">> ";
             QTextStream ref(&disasmText);
 
-            const instruction& inst = m_disasm.lines[0].inst;
+            const hopper68::instruction& inst = m_disasm.lines[0].inst;
             Disassembler::print_terse(inst, m_disasm.lines[0].address, ref,m_pSession->GetSettings().m_bDisassHexNumerics);
 
             bool branchTaken;
@@ -441,12 +441,12 @@ void RegisterWidget::PopulateRegisters()
             if (m_disasm.lines.size() != 0)
             {
                 int i = 0;
-                const instruction& inst = m_disasm.lines[i].inst;
+                const hopper68::instruction& inst = m_disasm.lines[i].inst;
                 bool prevValid = false;
                 for (int opIndex = 0; opIndex < 2; ++opIndex)
                 {
-                    const operand& op = opIndex == 0 ? inst.op0 : inst.op1;
-                    if (op.type != OpType::INVALID)
+                    const hopper68::operand& op = opIndex == 0 ? inst.op0 : inst.op1;
+                    if (op.type != hopper68::OpType::INVALID)
                     {
                         QString eaText = "";
                         QTextStream eaRef(&eaText);
@@ -459,27 +459,27 @@ void RegisterWidget::PopulateRegisters()
                         prevValid = false;
                         switch (op.type)
                         {
-                        case OpType::D_DIRECT:
+                        case hopper68::OpType::D_DIRECT:
                             eaRef << QString::asprintf("D%d=$%x", op.d_register.reg, regs.GetDReg(op.d_register.reg));
                             col = AddToken(col, row, eaText, TokenType::kRegister, Registers::D0 + op.d_register.reg, TokenColour::kCode) + 1;
                             prevValid = true;
                             break;
-                        case OpType::A_DIRECT:
+                        case hopper68::OpType::A_DIRECT:
                             eaRef << QString::asprintf("A%d=$%x", op.a_register.reg, regs.GetAReg(op.a_register.reg));
                             col = AddToken(col, row, eaText, TokenType::kRegister, Registers::A0 + op.a_register.reg, TokenColour::kCode) + 1;
                             prevValid = true;
                             break;
-                        case OpType::SR:
+                        case hopper68::OpType::SR:
                             eaRef << QString::asprintf("SR=$%x", regs.Get(Registers::SR));
                             col = AddToken(col, row, eaText, TokenType::kRegister, Registers::SR, TokenColour::kCode) + 1;
                             prevValid = true;
                             break;
-                        case OpType::USP:
+                        case hopper68::OpType::USP:
                             eaRef << QString::asprintf("USP=$%x", regs.Get(Registers::USP));
                             col = AddToken(col, row, eaText, TokenType::kRegister, Registers::USP, TokenColour::kCode) + 1;
                             prevValid = true;
                             break;
-                        case OpType::CCR:
+                        case hopper68::OpType::CCR:
                             eaRef << QString::asprintf("CCR=$%x", regs.Get(Registers::SR));
                             // Todo: can we fix this?
                             col = AddToken(col, row, eaText, TokenType::kRegister, Registers::SR, TokenColour::kCode) + 1;
