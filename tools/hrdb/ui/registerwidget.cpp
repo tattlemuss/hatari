@@ -335,6 +335,7 @@ void RegisterWidget::mainStateUpdated()
         Disassembler::decode_buf(disasmBuf, m_disasm, m_pTargetModel->GetDisasmSettings(), pMem->GetAddress(), 2);
     }
 
+    m_disasmDsp.lines.clear();
     pMem = m_pTargetModel->GetMemory(MemorySlot::kMainDspPC);
     if (pMem)
     {
@@ -579,6 +580,18 @@ void RegisterWidget::PopulateRegisters()
         col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kV, "V");
         col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kC, "C");
 
+        // Row 1 -- instruction and analysis
+        if (m_disasmDsp.lines.size() > 0)
+        {
+            row += 2;
+            QString disasmText = ">> ";
+            QTextStream ref(&disasmText);
+
+            const hop56::instruction& inst = m_disasmDsp.lines[0].inst;
+            Disassembler56::print_terse(inst, m_disasmDsp.lines[0].address, ref, m_pSession->GetSettings().m_bDisassHexNumerics);
+            AddToken(2, row, disasmText, TokenType::kNone, 0, TokenColour::kCode);
+            ++row;
+        }
         ++row;
         AddDspReg56(2,  row, DspRegisters::A2, m_prevDspRegs, m_currDspRegs);
         ++row;

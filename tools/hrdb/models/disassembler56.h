@@ -45,7 +45,7 @@ public:
     static int decode_buf(hop56::buffer_reader& buf, disassembly& disasm, const hop56::decode_settings& settings, uint32_t address, int32_t maxLines);
 
     // Format a single instruction and its arguments
-    static void print(const hop56::instruction& inst, /*const symbols& symbols, */ uint32_t inst_address, QTextStream& ref, bool bDisassHexNumerics );
+    static int print_terse(const hop56::instruction& inst, /*const symbols& symbols, */ uint32_t inst_address, QTextStream& ref, bool bDisassHexNumerics);
 };
 
 #endif // DISASSEMBLER56_H
