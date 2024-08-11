@@ -14,6 +14,8 @@
 #include <QStatusBar>
 #include <QToolBar>
 
+#include "hopper/buffer.h"
+
 #include "../transport/dispatcher.h"
 #include "../models/targetmodel.h"
 #include "../models/session.h"

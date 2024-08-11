@@ -5,11 +5,14 @@
 #include <QTextStream>
 
 #include "hopper/instruction.h"
-#include "hopper/buffer.h"
 #include "hopper/decode.h"
 
 class SymbolTable;
 class Registers;
+namespace hopper68
+{
+    class buffer_reader;
+}
 
 class Disassembler
 {

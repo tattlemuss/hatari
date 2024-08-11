@@ -8,9 +8,13 @@
 #include <QSettings>
 #include <QToolTip>
 
+#include "hopper/buffer.h"
+#include "hopper56/buffer.h"
+
 #include "../models/session.h"
 #include "../hardware/tos.h"
 #include "symboltext.h"
+#include "hopper56/buffer.h"
 
 static QString CreateNumberTooltip(uint32_t value, uint32_t prevValue)
 {
@@ -323,11 +327,20 @@ void RegisterWidget::mainStateUpdated()
 {
     // Disassemble the first instruction
     m_disasm.lines.clear();
-    const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kMainPC);
+    const Memory* pMem;
+    pMem = m_pTargetModel->GetMemory(MemorySlot::kMainPC);
     if (pMem)
     {
         hopper68::buffer_reader disasmBuf(pMem->GetData(), pMem->GetSize(), pMem->GetAddress());
         Disassembler::decode_buf(disasmBuf, m_disasm, m_pTargetModel->GetDisasmSettings(), pMem->GetAddress(), 2);
+    }
+
+    pMem = m_pTargetModel->GetMemory(MemorySlot::kMainDspPC);
+    if (pMem)
+    {
+        hop56::buffer_reader disasmBuf(pMem->GetData(), pMem->GetSize(), pMem->GetAddress());
+        hop56::decode_settings dummy;
+        Disassembler56::decode_buf(disasmBuf, m_disasmDsp, dummy, pMem->GetAddress(), 1);
     }
 
     PopulateRegisters();

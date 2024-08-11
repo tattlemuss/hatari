@@ -29,6 +29,7 @@ SOURCES += \
     main.cpp \
     models/breakpoint.cpp \
     models/disassembler.cpp \
+    models/disassembler56.cpp \
     models/exceptionmask.cpp \
     models/launcher.cpp \
     models/memory.cpp \
@@ -76,6 +77,7 @@ HEADERS += \
     hrdbapplication.h \
     models/breakpoint.h \
     models/disassembler.h \
+    models/disassembler56.h \
     models/exceptionmask.h \
     models/launcher.h \
     models/memory.h \

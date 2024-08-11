@@ -15,6 +15,8 @@
 #include <QSettings>
 #include <QGuiApplication>
 
+#include "hopper/buffer.h"
+
 #include "../hardware/tos.h"
 #include "../transport/dispatcher.h"
 #include "../models/targetmodel.h"

@@ -4,6 +4,7 @@
 
 #include "../models/targetmodel.h"
 #include "../models/disassembler.h"
+#include "../models/disassembler56.h"
 #include "showaddressactions.h"
 
 class Dispatcher;
@@ -112,10 +113,12 @@ private:
 
     // Shown data
     Registers                   m_currRegs;     // current regs
-    DspRegisters                m_currDspRegs;
     Registers                   m_prevRegs;     // regs when PC started
-    DspRegisters                m_prevDspRegs;
     Disassembler::disassembly   m_disasm;
+
+    DspRegisters                m_currDspRegs;
+    DspRegisters                m_prevDspRegs;
+    Disassembler56::disassembly m_disasmDsp;
 
     QVector<Token>              m_tokens;
     QVector<int>                m_rulers;

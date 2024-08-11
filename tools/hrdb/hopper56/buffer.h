@@ -1,5 +1,5 @@
-#ifndef BUFFER_H
-#define BUFFER_H
+#ifndef HOPPER56_BUFFER_H
+#define HOPPER56_BUFFER_H
 
 #include <cstdint>
 
