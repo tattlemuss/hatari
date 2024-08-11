@@ -5,6 +5,7 @@
 #include <QFontDatabase>
 #include <QMouseEvent>
 #include <QHelpEvent>
+#include <QSettings>
 #include <QToolTip>
 
 #include "../models/session.h"
@@ -88,6 +89,16 @@ RegisterWidget::RegisterWidget(QWidget *parent, Session* pSession) :
     // resizing, if the user changes the chosen register items.
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
+    m_showCpu = true;
+    m_showDsp = true;
+    m_pShowCpuAction = new QAction("Show CPU", this);
+    m_pShowCpuAction->setCheckable(true);
+    m_pShowDspAction = new QAction("Show DSP", this);
+    m_pShowDspAction->setCheckable(true);
+    m_pFilterMenu = new QMenu("Filters", this);
+    m_pFilterMenu->addAction(m_pShowCpuAction);
+    m_pFilterMenu->addAction(m_pShowDspAction);
+
     // Listen for target changes
     connect(m_pTargetModel, &TargetModel::startStopChangedSignal,        this, &RegisterWidget::startStopChanged);
     connect(m_pTargetModel, &TargetModel::registersChangedSignal,        this, &RegisterWidget::registersChanged);
@@ -96,11 +107,18 @@ RegisterWidget::RegisterWidget(QWidget *parent, Session* pSession) :
     connect(m_pTargetModel, &TargetModel::symbolTableChangedSignal,      this, &RegisterWidget::symbolTableChanged);
     connect(m_pTargetModel, &TargetModel::startStopChangedSignalDelayed, this, &RegisterWidget::startStopDelayed);
 
+    // Context menus
+    connect(m_pShowCpuAction,   &QAction::triggered,                     this, &RegisterWidget::showCpuTriggered);
+    connect(m_pShowDspAction,   &QAction::triggered,                     this, &RegisterWidget::showDspTriggered);
+
     connect(m_pSession, &Session::settingsChanged,  this, &RegisterWidget::settingsChanged);
     connect(m_pSession, &Session::mainStateUpdated, this, &RegisterWidget::mainStateUpdated);
+
     setFocusPolicy(Qt::FocusPolicy::StrongFocus);
     setMouseTracking(true);
 
+    // This updates checkboxes
+    loadSettings();
     UpdateFont();
     // Handle non-connection at start
     PopulateRegisters();
@@ -108,6 +126,28 @@ RegisterWidget::RegisterWidget(QWidget *parent, Session* pSession) :
 
 RegisterWidget::~RegisterWidget()
 {
+}
+
+void RegisterWidget::loadSettings()
+{
+    QSettings settings;
+    settings.beginGroup("RegisterWidget");
+
+    m_showCpu = settings.value("showCpu", QVariant(true)).toBool();
+    m_showDsp = settings.value("showDsp", QVariant(true)).toBool();
+    m_pShowCpuAction->setChecked(m_showCpu);
+    m_pShowDspAction->setChecked(m_showDsp);
+    settings.endGroup();
+}
+
+void RegisterWidget::saveSettings()
+{
+    QSettings settings;
+    settings.beginGroup("RegisterWidget");
+
+    settings.setValue("showCpu", m_showCpu);
+    settings.setValue("showDsp", m_showDsp);
+    settings.endGroup();
 }
 
 void RegisterWidget::paintEvent(QPaintEvent * ev)
@@ -172,12 +212,11 @@ void RegisterWidget::mouseMoveEvent(QMouseEvent *event)
 
 void RegisterWidget::contextMenuEvent(QContextMenuEvent *event)
 {
-    if (m_tokenUnderMouseIndex == -1)
-        return;
-
     // Right click menus are instantiated on demand, so we can
     // dynamically add to them
     QMenu menu(this);
+
+    menu.addMenu(m_pFilterMenu);
 
     // Add the default actions
     QMenu* pAddressMenu = nullptr;
@@ -199,10 +238,9 @@ void RegisterWidget::contextMenuEvent(QContextMenuEvent *event)
         m_showAddressActions.addActionsToMenu(pAddressMenu);
         m_showAddressActions.setAddress(m_pSession, m_addressUnderMouse);
         menu.addMenu(pAddressMenu);
-
-        // Run it
-        menu.exec(event->globalPos());
     }
+    // Run it
+    menu.exec(event->globalPos());
 }
 
 bool RegisterWidget::event(QEvent *event)
@@ -296,6 +334,18 @@ void RegisterWidget::mainStateUpdated()
     update();
 }
 
+void RegisterWidget::showCpuTriggered()
+{
+    m_showCpu = m_pShowCpuAction->isChecked();
+    PopulateRegisters();
+}
+
+void RegisterWidget::showDspTriggered()
+{
+    m_showDsp = m_pShowDspAction->isChecked();
+    PopulateRegisters();
+}
+
 void RegisterWidget::settingsChanged()
 {
     UpdateFont();
@@ -344,155 +394,157 @@ void RegisterWidget::PopulateRegisters()
     // Row 0 -- PC, and symbol if applicable
     int row = 0;
 
-    AddReg32(2, row, Registers::PC, m_prevRegs, m_currRegs);
-    QString sym = FindSymbol(GET_REG(m_currRegs, PC) & 0xffffff);
-    if (sym.size() != 0)
-        AddToken(16, row, MakeBracket(sym), TokenType::kSymbol, GET_REG(m_currRegs, PC));
-
-    // Status register
-    ++row;
-    AddReg16(2, row, Registers::SR, m_prevRegs, m_currRegs);
-    AddSRBit(11, row, m_prevRegs, m_currRegs, Registers::SRBits::kTrace1, "T");
-    AddSRBit(15, row, m_prevRegs, m_currRegs, Registers::SRBits::kSupervisor, "S");
-
-    AddSRBit(20, row, m_prevRegs, m_currRegs, Registers::SRBits::kX, "X");
-    AddSRBit(24, row, m_prevRegs, m_currRegs, Registers::SRBits::kN, "N");
-    AddSRBit(28, row, m_prevRegs, m_currRegs, Registers::SRBits::kZ, "Z");
-    AddSRBit(32, row, m_prevRegs, m_currRegs, Registers::SRBits::kV, "V");
-    AddSRBit(36, row, m_prevRegs, m_currRegs, Registers::SRBits::kC, "C");
-    QString iplLevel = QString::asprintf("IPL=%u", (m_currRegs.m_value[Registers::SR] >> 8 & 0x7));
-    AddToken(40, row, iplLevel, TokenType::kNone);
-
-    row += 2;
-
-    // Row 1 -- instruction and analysis
-    if (m_disasm.lines.size() > 0)
+    if (m_showCpu)
     {
-        QString disasmText = ">> ";
-        QTextStream ref(&disasmText);
+        AddReg32(2, row, Registers::PC, m_prevRegs, m_currRegs);
+        QString sym = FindSymbol(GET_REG(m_currRegs, PC) & 0xffffff);
+        if (sym.size() != 0)
+            AddToken(16, row, MakeBracket(sym), TokenType::kSymbol, GET_REG(m_currRegs, PC));
 
-        const instruction& inst = m_disasm.lines[0].inst;
-        Disassembler::print_terse(inst, m_disasm.lines[0].address, ref,m_pSession->GetSettings().m_bDisassHexNumerics);
+        // Status register
+        ++row;
+        AddReg16(2, row, Registers::SR, m_prevRegs, m_currRegs);
+        AddSRBit(11, row, m_prevRegs, m_currRegs, Registers::SRBits::kTrace1, "T");
+        AddSRBit(15, row, m_prevRegs, m_currRegs, Registers::SRBits::kSupervisor, "S");
 
-        bool branchTaken;
-        if (DisAnalyse::isBranch(inst, m_currRegs, branchTaken))
+        AddSRBit(20, row, m_prevRegs, m_currRegs, Registers::SRBits::kX, "X");
+        AddSRBit(24, row, m_prevRegs, m_currRegs, Registers::SRBits::kN, "N");
+        AddSRBit(28, row, m_prevRegs, m_currRegs, Registers::SRBits::kZ, "Z");
+        AddSRBit(32, row, m_prevRegs, m_currRegs, Registers::SRBits::kV, "V");
+        AddSRBit(36, row, m_prevRegs, m_currRegs, Registers::SRBits::kC, "C");
+        QString iplLevel = QString::asprintf("IPL=%u", (m_currRegs.m_value[Registers::SR] >> 8 & 0x7));
+        AddToken(40, row, iplLevel, TokenType::kNone);
+
+        row += 2;
+
+        // Row 1 -- instruction and analysis
+        if (m_disasm.lines.size() > 0)
         {
-            if (branchTaken)
-                ref << " [TAKEN]";
-            else
-                ref << " [NOT TAKEN]";
-        }
+            QString disasmText = ">> ";
+            QTextStream ref(&disasmText);
 
-        int col = AddToken(2, row, disasmText, TokenType::kNone, 0, TokenColour::kCode) + 5;
+            const instruction& inst = m_disasm.lines[0].inst;
+            Disassembler::print_terse(inst, m_disasm.lines[0].address, ref,m_pSession->GetSettings().m_bDisassHexNumerics);
 
-        // Comments
-        if (m_disasm.lines.size() != 0)
-        {
-            int i = 0;
-            const instruction& inst = m_disasm.lines[i].inst;
-            bool prevValid = false;
-            for (int opIndex = 0; opIndex < 2; ++opIndex)
+            bool branchTaken;
+            if (DisAnalyse::isBranch(inst, m_currRegs, branchTaken))
             {
-                const operand& op = opIndex == 0 ? inst.op0 : inst.op1;
-                if (op.type != OpType::INVALID)
+                if (branchTaken)
+                    ref << " [TAKEN]";
+                else
+                    ref << " [NOT TAKEN]";
+            }
+
+            int col = AddToken(2, row, disasmText, TokenType::kNone, 0, TokenColour::kCode) + 5;
+
+            // Comments
+            if (m_disasm.lines.size() != 0)
+            {
+                int i = 0;
+                const instruction& inst = m_disasm.lines[i].inst;
+                bool prevValid = false;
+                for (int opIndex = 0; opIndex < 2; ++opIndex)
                 {
-                    QString eaText = "";
-                    QTextStream eaRef(&eaText);
-
-                    // Separate info
-                    if (prevValid)
-                        col = AddToken(col, row, " | ", TokenType::kNone, 0, TokenColour::kNormal) + 1;
-
-                    // Operand values
-                    prevValid = false;
-                    switch (op.type)
+                    const operand& op = opIndex == 0 ? inst.op0 : inst.op1;
+                    if (op.type != OpType::INVALID)
                     {
-                    case OpType::D_DIRECT:
-                        eaRef << QString::asprintf("D%d=$%x", op.d_register.reg, regs.GetDReg(op.d_register.reg));
-                        col = AddToken(col, row, eaText, TokenType::kRegister, Registers::D0 + op.d_register.reg, TokenColour::kCode) + 1;
-                        prevValid = true;
-                        break;
-                    case OpType::A_DIRECT:
-                        eaRef << QString::asprintf("A%d=$%x", op.a_register.reg, regs.GetAReg(op.a_register.reg));
-                        col = AddToken(col, row, eaText, TokenType::kRegister, Registers::A0 + op.a_register.reg, TokenColour::kCode) + 1;
-                        prevValid = true;
-                        break;
-                    case OpType::SR:
-                        eaRef << QString::asprintf("SR=$%x", regs.Get(Registers::SR));
-                        col = AddToken(col, row, eaText, TokenType::kRegister, Registers::SR, TokenColour::kCode) + 1;
-                        prevValid = true;
-                        break;
-                    case OpType::USP:
-                        eaRef << QString::asprintf("USP=$%x", regs.Get(Registers::USP));
-                        col = AddToken(col, row, eaText, TokenType::kRegister, Registers::USP, TokenColour::kCode) + 1;
-                        prevValid = true;
-                        break;
-                    case OpType::CCR:
-                        eaRef << QString::asprintf("CCR=$%x", regs.Get(Registers::SR));
-                        // Todo: can we fix this?
-                        col = AddToken(col, row, eaText, TokenType::kRegister, Registers::SR, TokenColour::kCode) + 1;
-                        prevValid = true;
-                        break;
-                    default:
-                        break;
-                    }
+                        QString eaText = "";
+                        QTextStream eaRef(&eaText);
 
-                    uint32_t finalEA;
-                    bool valid = Disassembler::calc_fixed_ea(op, true, regs, m_disasm.lines[i].address, finalEA);
-                    if (valid)
-                    {
-                        // Show the calculated EA
-                        QString eaAddrText = QString::asprintf("$%x", finalEA);
-                        QString sym = FindSymbol(finalEA & 0xffffff);
-                        if (sym.size() != 0)
-                            eaAddrText = eaAddrText + " (" + sym + ")";
-                        col = AddToken(col, row, eaAddrText, TokenType::kSymbol, finalEA, TokenColour::kCode) + 1;
-                        prevValid = true;
+                        // Separate info
+                        if (prevValid)
+                            col = AddToken(col, row, " | ", TokenType::kNone, 0, TokenColour::kNormal) + 1;
+
+                        // Operand values
+                        prevValid = false;
+                        switch (op.type)
+                        {
+                        case OpType::D_DIRECT:
+                            eaRef << QString::asprintf("D%d=$%x", op.d_register.reg, regs.GetDReg(op.d_register.reg));
+                            col = AddToken(col, row, eaText, TokenType::kRegister, Registers::D0 + op.d_register.reg, TokenColour::kCode) + 1;
+                            prevValid = true;
+                            break;
+                        case OpType::A_DIRECT:
+                            eaRef << QString::asprintf("A%d=$%x", op.a_register.reg, regs.GetAReg(op.a_register.reg));
+                            col = AddToken(col, row, eaText, TokenType::kRegister, Registers::A0 + op.a_register.reg, TokenColour::kCode) + 1;
+                            prevValid = true;
+                            break;
+                        case OpType::SR:
+                            eaRef << QString::asprintf("SR=$%x", regs.Get(Registers::SR));
+                            col = AddToken(col, row, eaText, TokenType::kRegister, Registers::SR, TokenColour::kCode) + 1;
+                            prevValid = true;
+                            break;
+                        case OpType::USP:
+                            eaRef << QString::asprintf("USP=$%x", regs.Get(Registers::USP));
+                            col = AddToken(col, row, eaText, TokenType::kRegister, Registers::USP, TokenColour::kCode) + 1;
+                            prevValid = true;
+                            break;
+                        case OpType::CCR:
+                            eaRef << QString::asprintf("CCR=$%x", regs.Get(Registers::SR));
+                            // Todo: can we fix this?
+                            col = AddToken(col, row, eaText, TokenType::kRegister, Registers::SR, TokenColour::kCode) + 1;
+                            prevValid = true;
+                            break;
+                        default:
+                            break;
+                        }
+
+                        uint32_t finalEA;
+                        bool valid = Disassembler::calc_fixed_ea(op, true, regs, m_disasm.lines[i].address, finalEA);
+                        if (valid)
+                        {
+                            // Show the calculated EA
+                            QString eaAddrText = QString::asprintf("$%x", finalEA);
+                            QString sym = FindSymbol(finalEA & 0xffffff);
+                            if (sym.size() != 0)
+                                eaAddrText = eaAddrText + " (" + sym + ")";
+                            col = AddToken(col, row, eaAddrText, TokenType::kSymbol, finalEA, TokenColour::kCode) + 1;
+                            prevValid = true;
+                        }
                     }
                 }
+                // TOS calls
+                if (regs.m_value[Registers::GemdosOpcode] != 0xffff)
+                    col = AddToken(col, row, GetTrapAnnotation(1, regs.m_value[Registers::GemdosOpcode]), TokenType::kNone, 0, TokenColour::kChanged);
+                else if (regs.m_value[Registers::BiosOpcode] != 0xffff)
+                    col = AddToken(col, row, GetTrapAnnotation(13, regs.m_value[Registers::BiosOpcode]), TokenType::kNone, 0, TokenColour::kChanged);
+                else if (regs.m_value[Registers::XbiosOpcode] != 0xffff)
+                    col = AddToken(col, row, GetTrapAnnotation(14, regs.m_value[Registers::XbiosOpcode]), TokenType::kNone, 0, TokenColour::kChanged);
             }
-            // TOS calls
-            if (regs.m_value[Registers::GemdosOpcode] != 0xffff)
-                col = AddToken(col, row, GetTrapAnnotation(1, regs.m_value[Registers::GemdosOpcode]), TokenType::kNone, 0, TokenColour::kChanged);
-            else if (regs.m_value[Registers::BiosOpcode] != 0xffff)
-                col = AddToken(col, row, GetTrapAnnotation(13, regs.m_value[Registers::BiosOpcode]), TokenType::kNone, 0, TokenColour::kChanged);
-            else if (regs.m_value[Registers::XbiosOpcode] != 0xffff)
-                col = AddToken(col, row, GetTrapAnnotation(14, regs.m_value[Registers::XbiosOpcode]), TokenType::kNone, 0, TokenColour::kChanged);
+
+            // Add EA analysis
+    //        ref << "   " << eaText;
         }
 
-        // Add EA analysis
-//        ref << "   " << eaText;
-    }
+        ++row;
+        uint32_t ex = GET_REG(m_currRegs, EX);
+        if (ex != 0)
+            AddToken(4, row, QString::asprintf("EXCEPTION: %s", ExceptionMask::GetName(ex)), TokenType::kNone, 0, TokenColour::kChanged);
 
-    ++row;
-    uint32_t ex = GET_REG(m_currRegs, EX);
-    if (ex != 0)
-        AddToken(4, row, QString::asprintf("EXCEPTION: %s", ExceptionMask::GetName(ex)), TokenType::kNone, 0, TokenColour::kChanged);
-
-    // D-regs // A-regs
-    row++;
-    for (uint32_t reg = 0; reg < 8; ++reg)
-    {
-        AddReg32(2, row, Registers::D0 + reg, m_prevRegs, m_currRegs);
-
-        AddReg32(17, row, Registers::A0 + reg, m_prevRegs, m_currRegs); AddSymbol(30, row, m_currRegs.m_value[Registers::A0 + reg]);
+        // D-regs // A-regs
         row++;
-    }
-    AddReg32(16, row, Registers::ISP, m_prevRegs, m_currRegs); AddSymbol(30, row, m_currRegs.m_value[Registers::ISP]);
-    row++;
-    AddReg32(16, row, Registers::USP, m_prevRegs, m_currRegs); AddSymbol(30, row, m_currRegs.m_value[Registers::USP]);
-    row++;
+        for (uint32_t reg = 0; reg < 8; ++reg)
+        {
+            AddReg32(2, row, Registers::D0 + reg, m_prevRegs, m_currRegs);
 
-    if (m_pTargetModel->GetCpuLevel() >= TargetModel::CpuLevel::kCpuLevel68020)
-    {
-        AddReg32(16, row, Registers::MSP, m_prevRegs, m_currRegs); AddSymbol(30, row, m_currRegs.m_value[Registers::MSP]);
+            AddReg32(17, row, Registers::A0 + reg, m_prevRegs, m_currRegs); AddSymbol(30, row, m_currRegs.m_value[Registers::A0 + reg]);
+            row++;
+        }
+        AddReg32(16, row, Registers::ISP, m_prevRegs, m_currRegs); AddSymbol(30, row, m_currRegs.m_value[Registers::ISP]);
         row++;
+        AddReg32(16, row, Registers::USP, m_prevRegs, m_currRegs); AddSymbol(30, row, m_currRegs.m_value[Registers::USP]);
+        row++;
+
+        if (m_pTargetModel->GetCpuLevel() >= TargetModel::CpuLevel::kCpuLevel68020)
+        {
+            AddReg32(16, row, Registers::MSP, m_prevRegs, m_currRegs); AddSymbol(30, row, m_currRegs.m_value[Registers::MSP]);
+            row++;
+        }
+
+        m_rulers.push_back(row);
     }
-
-    m_rulers.push_back(row);
-
     // DSP registers
-    if (m_pTargetModel->GetMachineType() == MACHINE_FALCON)
+    if (m_showDsp && m_pTargetModel->GetMachineType() == MACHINE_FALCON)
     {
         AddDspReg16(2,  row, DspRegisters::PC, m_prevDspRegs, m_currDspRegs);
         ++row;
@@ -534,31 +586,34 @@ void RegisterWidget::PopulateRegisters()
         }
     }
 
-    // More sundry non-stack registers
-    m_rulers.push_back(row);
-    if (m_pTargetModel->GetCpuLevel() >= TargetModel::CpuLevel::kCpuLevel68010)
+    if (m_showCpu)
     {
-        AddReg32(1, row, Registers::DFC, m_prevRegs, m_currRegs); AddReg32(16, row, Registers::SFC, m_prevRegs, m_currRegs);
-        row++;
-    }
-    if (m_pTargetModel->GetCpuLevel() >= TargetModel::CpuLevel::kCpuLevel68020)
-    {
-        // 68020
-        AddReg32(0, row, Registers::CAAR, m_prevRegs, m_currRegs);
-        AddReg16(15, row, Registers::CACR, m_prevRegs, m_currRegs);
-        const int x = 28;
-        AddCACRBit(x+0, row, m_prevRegs, m_currRegs, Registers::CACRBits::WA, "WA");
-        AddCACRBit(x+7, row, m_prevRegs, m_currRegs, Registers::CACRBits::DBE, "DBE");
-        AddCACRBit(x+13, row, m_prevRegs, m_currRegs, Registers::CACRBits::CD, "CD");
-        AddCACRBit(x+18, row, m_prevRegs, m_currRegs, Registers::CACRBits::FD, "FD");
-        AddCACRBit(x+23, row, m_prevRegs, m_currRegs, Registers::CACRBits::ED, "ED");
+        // More sundry non-stack registers
+        m_rulers.push_back(row);
+        if (m_pTargetModel->GetCpuLevel() >= TargetModel::CpuLevel::kCpuLevel68010)
+        {
+            AddReg32(1, row, Registers::DFC, m_prevRegs, m_currRegs); AddReg32(16, row, Registers::SFC, m_prevRegs, m_currRegs);
+            row++;
+        }
+        if (m_pTargetModel->GetCpuLevel() >= TargetModel::CpuLevel::kCpuLevel68020)
+        {
+            // 68020
+            AddReg32(0, row, Registers::CAAR, m_prevRegs, m_currRegs);
+            AddReg16(15, row, Registers::CACR, m_prevRegs, m_currRegs);
+            const int x = 28;
+            AddCACRBit(x+0, row, m_prevRegs, m_currRegs, Registers::CACRBits::WA, "WA");
+            AddCACRBit(x+7, row, m_prevRegs, m_currRegs, Registers::CACRBits::DBE, "DBE");
+            AddCACRBit(x+13, row, m_prevRegs, m_currRegs, Registers::CACRBits::CD, "CD");
+            AddCACRBit(x+18, row, m_prevRegs, m_currRegs, Registers::CACRBits::FD, "FD");
+            AddCACRBit(x+23, row, m_prevRegs, m_currRegs, Registers::CACRBits::ED, "ED");
 
-        AddCACRBit(x+30, row, m_prevRegs, m_currRegs, Registers::CACRBits::IBE, "IBE");
-        AddCACRBit(x+36, row, m_prevRegs, m_currRegs, Registers::CACRBits::CI, "CI");
-        AddCACRBit(x+41, row, m_prevRegs, m_currRegs, Registers::CACRBits::FI, "FI");
-        AddCACRBit(x+46, row, m_prevRegs, m_currRegs, Registers::CACRBits::EI, "EI");
-        row++;
-        row++;
+            AddCACRBit(x+30, row, m_prevRegs, m_currRegs, Registers::CACRBits::IBE, "IBE");
+            AddCACRBit(x+36, row, m_prevRegs, m_currRegs, Registers::CACRBits::CI, "CI");
+            AddCACRBit(x+41, row, m_prevRegs, m_currRegs, Registers::CACRBits::FI, "FI");
+            AddCACRBit(x+46, row, m_prevRegs, m_currRegs, Registers::CACRBits::EI, "EI");
+            row++;
+            row++;
+        }
     }
 
     // Variables
@@ -570,9 +625,7 @@ void RegisterWidget::PopulateRegisters()
 
     // Tokens have moved, so check again
     UpdateTokenUnderMouse();
-
-    setMinimumSize(800, GetPixelFromRow(row));
-
+    this->resize(800, GetPixelFromRow(row));
     update();
 }
 
@@ -755,4 +808,3 @@ int RegisterWidget::GetRowFromPixel(int y) const
         return 0;
     return (y - Session::kWidgetBorderY) / m_lineHeight;
 }
-

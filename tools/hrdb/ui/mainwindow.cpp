@@ -631,6 +631,7 @@ void MainWindow::saveSettings()
     m_pConsoleWindow->saveSettings();
     m_pHardwareWindow->saveSettings();
     m_pProfileWindow->saveSettings();
+    m_pRegisterWidget->saveSettings();
 }
 
 void MainWindow::runTo(MainWindow::RunToMode mode)

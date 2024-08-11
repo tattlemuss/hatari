@@ -16,6 +16,9 @@ public:
     RegisterWidget(QWidget* parent, Session* pSession);
     virtual ~RegisterWidget() override;
 
+    void saveSettings();
+    void loadSettings();
+
 protected:
     virtual void paintEvent(QPaintEvent*) override;
     virtual void mouseMoveEvent(QMouseEvent *event) override;
@@ -30,6 +33,10 @@ private:
     void symbolTableChanged(uint64_t commandId);
     void startStopDelayed(int running);
     void mainStateUpdated();
+
+    void showCpuTriggered();
+    void showDspTriggered();
+
     void settingsChanged();
 
     void PopulateRegisters();
@@ -93,6 +100,11 @@ private:
 
     // UI Elements
     ShowAddressActions          m_showAddressActions;
+    QMenu*                      m_pFilterMenu;
+    QAction*                    m_pShowCpuAction;
+    QAction*                    m_pShowDspAction;
+    bool                        m_showCpu;
+    bool                        m_showDsp;
 
     Session*                    m_pSession;
     Dispatcher*             	m_pDispatcher;
