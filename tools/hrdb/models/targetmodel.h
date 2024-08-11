@@ -81,8 +81,8 @@ public:
 
     // These are called by the Dispatcher when notifications/events arrive
     void SetConnected(int running);
-    void SetStatus(bool running, uint32_t pc, bool ffwd);
-    void SetConfig(uint32_t machineType, uint32_t cpuLevel, uint32_t stRamSize);
+    void SetStatus(bool running, uint32_t pc, uint32_t dsp_pc, bool ffwd);
+    void SetConfig(uint32_t machineType, uint32_t cpuLevel, uint32_t stRamSize, uint32_t dspActive);
 
     void SetProtocolMismatch(uint32_t hatariProtocol, uint32_t hrdbProtocol);
 
@@ -144,6 +144,7 @@ public:
 
     // Get RAM size in bytes
     uint32_t GetSTRamSize() const { return m_stRamSize; }
+    int IsDspActive() const { return m_isDspActive; }
 
     int IsConnected() const { return m_bConnected; }
     int IsRunning() const { return m_bRunning; }
@@ -153,7 +154,8 @@ public:
     // This is the PC from start/stop notifications, so it's not valid when
     // running
     uint32_t GetStartStopPC() const { return m_startStopPc; }
-	Registers GetRegs() const { return m_regs; }
+    uint32_t GetStartStopDspPC() const { return m_startStopDspPc; }
+    Registers GetRegs() const { return m_regs; }
     DspRegisters GetDspRegs() const { return m_dspRegs; }
 
     const Memory* GetMemory(MemorySlot slot) const
@@ -237,17 +239,19 @@ private:
     MACHINETYPE     m_machineType;	// Hatari MACHINETYPE enum
     uint32_t        m_cpuLevel;		// CPU 0=000, 1=010, 2=020, 3=030, 4=040, 5=060
     uint32_t        m_stRamSize;    // Size of available ST Ram
+    uint32_t        m_isDspActive;  // 1 == DSP available and emulated
     decode_settings m_decodeSettings;
 
-    int             m_bConnected;   // 0 == disconnected, 1 == connected
-    int             m_bRunning;		// 0 == stopped, 1 == running
-    int             m_bProfileEnabled; // 0 == off, 1 == collecting
-    uint32_t        m_startStopPc;	// PC register (for next instruction)
-    int             m_ffwd;         // 0 == normal, 1 == fast forward mode
+    int             m_bConnected;       // 0 == disconnected, 1 == connected
+    int             m_bRunning;         // 0 == stopped, 1 == running
+    int             m_bProfileEnabled;  // 0 == off, 1 == collecting
+    uint32_t        m_startStopPc;      // PC register (for next instruction)
+    uint32_t        m_startStopDspPc;   //  DSPPC register (for next instruction)
+    int             m_ffwd;             // 0 == normal, 1 == fast forward mode
 
-    Registers       m_regs;			// Current register values
+    Registers       m_regs;             // Current register values
     DspRegisters    m_dspRegs;
-    Breakpoints     m_breakpoints;  // Current breakpoint list
+    Breakpoints     m_breakpoints;      // Current breakpoint list
     SymbolTable     m_symbolTable;
     ExceptionMask   m_exceptionMask;
     YmState         m_ymState;

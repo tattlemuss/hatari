@@ -528,19 +528,23 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
     {
         std::string runningStr = s.Split(SEP_CHAR);
         std::string pcStr = s.Split(SEP_CHAR);
+        std::string dspPcStr = s.Split(SEP_CHAR);
         std::string ffwdStr = s.Split(SEP_CHAR);
         uint32_t running;
         uint32_t pc;
+        uint32_t dsp_pc;
         uint32_t ffwd;
         if (!StringParsers::ParseHexString(runningStr.c_str(), running))
             return;
         if (!StringParsers::ParseHexString(pcStr.c_str(), pc))
             return;
+        if (!StringParsers::ParseHexString(dspPcStr.c_str(), dsp_pc))
+            return;
         if (!StringParsers::ParseHexString(ffwdStr.c_str(), ffwd))
             return;
 
         // This call goes off and lots of views insert requests here, so add a flush into the queue
-        m_pTargetModel->SetStatus(running != 0, pc, ffwd);
+        m_pTargetModel->SetStatus(running != 0, pc, dsp_pc, ffwd);
         this->InsertFlush();
     }
     else if (type == "!config")
@@ -548,16 +552,20 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
         std::string machineTypeStr = s.Split(SEP_CHAR);
         std::string cpuLevelStr = s.Split(SEP_CHAR);
         std::string stRamSizeStr = s.Split(SEP_CHAR);
+        std::string dspActiveStr = s.Split(SEP_CHAR);
         uint32_t machineType;
         uint32_t cpuLevel;
         uint32_t stRamSize;
+        uint32_t dspActive;
         if (!StringParsers::ParseHexString(machineTypeStr.c_str(), machineType))
             return;
         if (!StringParsers::ParseHexString(cpuLevelStr.c_str(), cpuLevel))
             return;
         if (!StringParsers::ParseHexString(stRamSizeStr.c_str(), stRamSize))
             return;
-        m_pTargetModel->SetConfig(machineType, cpuLevel, stRamSize);
+        if (!StringParsers::ParseHexString(dspActiveStr.c_str(), dspActive))
+            return;
+        m_pTargetModel->SetConfig(machineType, cpuLevel, stRamSize, dspActive);
         this->InsertFlush();
     }
     else if (type == "!profile")

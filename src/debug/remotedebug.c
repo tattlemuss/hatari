@@ -321,14 +321,17 @@ static bool read_hex32_value(const char* c, uint32_t* result)
 
 // -----------------------------------------------------------------------------
 // Send the out-of-band status to flag start/stop
-// Format: "!status <break active> <pc> <ffwd>"
+// Format: "!status <break active> <pc> <dsp-pc> <ffwd>"
 static int RemoteDebug_NotifyState(RemoteDebugState* state)
 {
 	send_str(state, "!status");
 	send_sep(state);
 	send_hex(state, bRemoteBreakIsActive ? 0 : 1);
 	send_sep(state);
+	// PC values are to help fetch disassembly of next instruction quickly.
 	send_hex(state, M68000_GetPC());
+	send_sep(state);
+	send_hex(state, DSP_GetPC());
 	send_sep(state);
 	send_hex(state, ConfigureParams.System.bFastForward ? 1 : 0);
 	send_term(state);

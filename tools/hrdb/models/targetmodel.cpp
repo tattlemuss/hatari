@@ -26,9 +26,15 @@ void TargetChangedFlags::Clear()
 
 TargetModel::TargetModel() :
     QObject(),
+    m_machineType(MACHINE_ST),
+    m_cpuLevel(0U),
+    m_stRamSize(512 * 1024),
+    m_isDspActive(0),
     m_bConnected(false),
     m_bRunning(true),
     m_bProfileEnabled(0),
+    m_startStopPc(0),
+    m_startStopDspPc(0),
     m_ffwd(false)
 {
     for (int i = 0; i < MemorySlot::kMemorySlotCount; ++i)
@@ -78,10 +84,11 @@ void TargetModel::SetConnected(int connected)
     emit connectChangedSignal();
 }
 
-void TargetModel::SetStatus(bool running, uint32_t pc, bool ffwd)
+void TargetModel::SetStatus(bool running, uint32_t pc, uint32_t dsp_pc, bool ffwd)
 {
     m_bRunning = running;
     m_startStopPc = pc;
+    m_startStopDspPc = dsp_pc;
     m_ffwd = ffwd;
     m_changedFlags.SetChanged(TargetChangedFlags::kPC);
     emit startStopChangedSignal();      // This should really be statusChanged or something
@@ -100,12 +107,12 @@ void TargetModel::SetStatus(bool running, uint32_t pc, bool ffwd)
     }
 }
 
-void TargetModel::SetConfig(uint32_t machineType, uint32_t cpuLevel, uint32_t stRamSize)
+void TargetModel::SetConfig(uint32_t machineType, uint32_t cpuLevel, uint32_t stRamSize, uint32_t dspActive)
 {
     m_machineType = (MACHINETYPE) machineType;
     m_cpuLevel = cpuLevel;
     m_stRamSize = stRamSize;
-
+    m_isDspActive = dspActive;
     static int cpu_types[] =
     {
         CPU_TYPE_68000,

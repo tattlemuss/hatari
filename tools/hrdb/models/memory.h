@@ -11,6 +11,7 @@ enum MemorySlot : int
 {
     kNone,          // e.g. regs
     kMainPC,        // Memory around the stopped PC for the main view (to allow stepping etc)
+    kMainDspPC,     // Memory around the stopped PC for the main view (DSP version)
 
     kDisasm0,       // general disassembly view memory (K slots)
 
