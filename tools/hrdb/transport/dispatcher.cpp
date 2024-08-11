@@ -635,7 +635,6 @@ void Dispatcher::ParseRegs(StringSplitter& splitResp, const RemoteCommand& cmd)
         if (reg.find("D_", 0) == 0)
         {
             int reg_id = DspRegNameToEnum(reg.c_str() + 2);
-            std::cout << reg << "  " << std::hex << value << std::endl;
             if (reg_id != DspRegisters::REG_COUNT)
                 dspRegs.Set(reg_id, value);
         }
