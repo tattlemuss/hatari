@@ -4,6 +4,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++11
 CONFIG -= embed_manifest_exe
+CONFIG += object_parallel_to_source
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
@@ -22,6 +23,8 @@ SOURCES += \
     hardware/tos.cpp \
     hopper/decode.cpp \
     hopper/instruction.cpp \
+    hopper56/decode.cpp \
+    hopper56/instruction.cpp \
     hrdbapplication.cpp \
     main.cpp \
     models/breakpoint.cpp \
@@ -66,6 +69,10 @@ HEADERS += \
     hopper/buffer.h \
     hopper/decode.h \
     hopper/instruction.h \
+    hopper56/buffer.h \
+    hopper56/decode.h \
+    hopper56/instruction.h \
+    hopper56/opcode.h \
     hrdbapplication.h \
     models/breakpoint.h \
     models/disassembler.h \
