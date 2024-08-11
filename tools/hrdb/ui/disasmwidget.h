@@ -80,7 +80,7 @@ private:
     void RequestMemory();
     void CalcDisasm();
     void CalcOpAddresses();
-    void printEA(const hopper68::operand &op, const Registers &regs, uint32_t address, QTextStream &ref) const;
+    void printEA(const hop68::operand &op, const Registers &regs, uint32_t address, QTextStream &ref) const;
 
     // Cached data when the up-to-date request comes through
     Memory       m_memory;

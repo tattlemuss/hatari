@@ -5,7 +5,7 @@
 #include "instruction.h"
 #include "buffer.h"
 
-namespace hopper68
+namespace hop68
 {
 
 // ----------------------------------------------------------------------------

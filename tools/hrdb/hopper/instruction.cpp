@@ -1,6 +1,6 @@
 #include "instruction.h"
 
-namespace hopper68
+namespace hop68
 {
 
 const char* g_opcode_names[Opcode::COUNT] =

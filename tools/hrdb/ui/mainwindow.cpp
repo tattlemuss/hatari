@@ -266,7 +266,7 @@ void MainWindow::memoryChanged(int slot, uint64_t /*commandId*/)
         if (pMem)
         {
             // Fetch data and decode the next instruction.
-            hopper68::buffer_reader disasmBuf(pMem->GetData(), pMem->GetSize(), pMem->GetAddress());
+            hop68::buffer_reader disasmBuf(pMem->GetData(), pMem->GetSize(), pMem->GetAddress());
             Disassembler::decode_buf(disasmBuf, m_disasm, m_pTargetModel->GetDisasmSettings(), pMem->GetAddress(), 1);
         }
     }

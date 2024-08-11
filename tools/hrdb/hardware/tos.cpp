@@ -390,10 +390,10 @@ QString GetTrapAnnotation(uint8_t trapNum, uint16_t callId)
     return "Unknown trap #";
 }
 
-QString GetTOSAnnotation(const Memory& mem, uint32_t address, const hopper68::instruction& inst)
+QString GetTOSAnnotation(const Memory& mem, uint32_t address, const hop68::instruction& inst)
 {
     uint32_t prevInst;
-    if (inst.opcode == hopper68::TRAP && mem.ReadAddressMulti(address - 4, 4, prevInst))
+    if (inst.opcode == hop68::TRAP && mem.ReadAddressMulti(address - 4, 4, prevInst))
     {
         if ((prevInst >> 16) == 0x3f3c) // "move.w #xx,-(a7)
         {
@@ -402,7 +402,7 @@ QString GetTOSAnnotation(const Memory& mem, uint32_t address, const hopper68::in
             return GetTrapAnnotation(trapNum, callId);
         }
     }
-    else if (inst.opcode == hopper68::NONE && (inst.header >> 12) == 0xa)
+    else if (inst.opcode == hop68::NONE && (inst.header >> 12) == 0xa)
     {
         // Line A opcode
         return QString::asprintf("Line-A %s", GetLineAName(inst.header));
