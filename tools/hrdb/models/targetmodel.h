@@ -88,7 +88,7 @@ public:
 
     // These are called by the Dispatcher when responses arrive
     // emits registersChangedSignal()
-    void SetRegisters(const Registers& regs, uint64_t commandId);
+    void SetRegisters(const Registers& regs, const DspRegisters& dspRegs, uint64_t commandId);
 
     // emits memoryChangedSignal()
     void SetMemory(MemorySlot slot, const Memory* pMem, uint64_t commandId);
@@ -154,6 +154,8 @@ public:
     // running
     uint32_t GetStartStopPC() const { return m_startStopPc; }
 	Registers GetRegs() const { return m_regs; }
+    DspRegisters GetDspRegs() const { return m_dspRegs; }
+
     const Memory* GetMemory(MemorySlot slot) const
     {
         return m_pMemory[slot];
@@ -244,6 +246,7 @@ private:
     int             m_ffwd;         // 0 == normal, 1 == fast forward mode
 
     Registers       m_regs;			// Current register values
+    DspRegisters    m_dspRegs;
     Breakpoints     m_breakpoints;  // Current breakpoint list
     SymbolTable     m_symbolTable;
     ExceptionMask   m_exceptionMask;

@@ -39,8 +39,10 @@ private:
     enum TokenType
     {
         kRegister,
-        kSymbol,                // aka an arbitray "address"
+        kDspRegister,
+        kSymbol,                // aka an arbitrary "address"
         kStatusRegisterBit,
+        kDspStatusRegisterBit,
         kCACRBit,
         kNone,
     };
@@ -71,8 +73,12 @@ private:
     int AddToken(int x, int y, QString text, TokenType type, uint32_t subIndex = 0, TokenColour colour = TokenColour::kNormal);
     int AddReg16(int x, int y, uint32_t regIndex, const Registers &prevRegs, const Registers &m_currRegs);
     int AddReg32(int x, int y, uint32_t regIndex, const Registers &prevRegs, const Registers &m_currRegs);
+    int AddDspReg24(int x, int y, uint32_t regIndex, const DspRegisters &prevRegs, const DspRegisters &regs);
+    int AddDspReg16(int x, int y, uint32_t regIndex, const DspRegisters &prevRegs, const DspRegisters &regs);
+    int AddDspReg56(int x, int y, uint32_t regIndex, const DspRegisters &prevRegs, const DspRegisters &regs);
 
     int AddSRBit(int x, int y, const Registers &prevRegs, const Registers &m_currRegs, uint32_t bit, const char *pName);
+    int AddDspSRBit(int x, int y, const DspRegisters &prevRegs, const DspRegisters &regs, uint32_t bit, const char *pName);
     int AddCACRBit(int x, int y, const Registers &prevRegs, const Registers &m_currRegs, uint32_t bit, const char *pName);
     int AddSymbol(int x, int y, uint32_t address);
 
@@ -94,10 +100,13 @@ private:
 
     // Shown data
     Registers                   m_currRegs;     // current regs
+    DspRegisters                m_currDspRegs;
     Registers                   m_prevRegs;     // regs when PC started
+    DspRegisters                m_prevDspRegs;
     Disassembler::disassembly   m_disasm;
 
     QVector<Token>              m_tokens;
+    QVector<int>                m_rulers;
 
     // Mouse data
     QPointF                     m_mousePos;                  // last updated position

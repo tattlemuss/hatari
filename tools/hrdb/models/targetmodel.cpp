@@ -125,9 +125,10 @@ void TargetModel::SetProtocolMismatch(uint32_t hatariProtocol, uint32_t hrdbProt
     emit protocolMismatchSignal(hatariProtocol, hrdbProtocol);
 }
 
-void TargetModel::SetRegisters(const Registers& regs, uint64_t commandId)
+void TargetModel::SetRegisters(const Registers& regs, const DspRegisters& dspRegs, uint64_t commandId)
 {
     m_regs = regs;
+    m_dspRegs = dspRegs;
     m_changedFlags.SetChanged(TargetChangedFlags::kRegs);
     emit registersChangedSignal(commandId);
 }

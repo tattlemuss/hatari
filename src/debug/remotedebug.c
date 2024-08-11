@@ -44,6 +44,7 @@
 #include "dmaSnd.h"
 #include "blitter.h"
 #include "dsp.h"
+#include "dsp_cpu.h"
 #include "profile.h"
 // For status bar updates
 #include "screen.h"
@@ -91,6 +92,12 @@ static bool bRemoteBreakIsActive = false;
 
 /* Forward declaration of callback */
 void RemoteDebug_SymbolsChanged(void);
+
+// -----------------------------------------------------------------------------
+static bool IsDspActive(void)
+{
+	return ConfigureParams.System.nDSPType == DSP_TYPE_EMU;
+}
 
 // -----------------------------------------------------------------------------
 // Structure managing a resizeable buffer of uint8_t
@@ -341,7 +348,7 @@ static int RemoteDebug_NotifyConfig(RemoteDebugState* state)
 	send_sep(state);
 	send_hex(state, STRamEnd);
 	send_sep(state);
-	send_hex(state, system->nDSPType == DSP_TYPE_EMU);
+	send_hex(state, IsDspActive());
 
 	send_term(state);
 	return 0;
@@ -532,6 +539,40 @@ static int RemoteDebug_run(int nArgc, char *psArgs[], RemoteDebugState* state)
 	return 0;
 }
 
+// -----------------------------------------------------------------------------
+// Register names and IDs for DSP
+typedef struct RemoteDebugDspReg
+{
+	uint8_t		regId;
+	const char*	regName;
+}  RemoteDebugDspReg;
+
+#define STRINGIFY(x) #x
+#define DSP_REG(id)  { DSP_REG_##id	, "D_" STRINGIFY(id) }
+
+static const RemoteDebugDspReg g_remoteDebugDspRegs[] =
+{
+	DSP_REG(X0), DSP_REG(X1),
+	DSP_REG(Y0), DSP_REG(Y1),
+	DSP_REG(A0), DSP_REG(B0),
+	DSP_REG(A2), DSP_REG(B2),
+	DSP_REG(A1), DSP_REG(B1),
+
+	DSP_REG(R0), DSP_REG(R1), DSP_REG(R2), DSP_REG(R3),
+	DSP_REG(R4), DSP_REG(R5), DSP_REG(R6), DSP_REG(R7),
+
+	DSP_REG(N0), DSP_REG(N1), DSP_REG(N2), DSP_REG(N3),
+	DSP_REG(N4), DSP_REG(N5), DSP_REG(N6), DSP_REG(N7),
+
+	DSP_REG(M0), DSP_REG(M1), DSP_REG(M2), DSP_REG(M3),
+	DSP_REG(M4), DSP_REG(M5), DSP_REG(M6), DSP_REG(M7),
+
+	DSP_REG(SR), DSP_REG(OMR), DSP_REG(SP),
+	DSP_REG(SSH), DSP_REG(SSL),
+	DSP_REG(LA), DSP_REG(LC),
+	{ 0xff, NULL}
+};
+
 /**
  * Dump register contents. 
  * This also includes Hatari variables, which we treat as a subset of regs.
@@ -560,7 +601,18 @@ static int RemoteDebug_regs(int nArgc, char *psArgs[], RemoteDebugState* state)
 	// Normal regs
 	for (regIdx = 0; regIdx < ARRAY_SIZE(regIds); ++regIdx)
 		send_key_value(state, regNames[regIdx], Regs[regIds[regIdx]]);
-		
+
+	if (IsDspActive())
+	{
+		const RemoteDebugDspReg* pCurrReg = g_remoteDebugDspRegs;
+		while (pCurrReg->regName)
+		{
+			send_key_value(state, pCurrReg->regName, dsp_core.registers[pCurrReg->regId]);
+			++pCurrReg;
+		}
+		send_key_value(state, "D_PC", dsp_core.pc);
+	}
+
 	// Special regs
 	send_key_value(state, "PC", M68000_GetPC());
 	send_key_value(state, "USP", regs.usp);

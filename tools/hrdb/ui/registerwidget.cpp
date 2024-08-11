@@ -81,7 +81,12 @@ RegisterWidget::RegisterWidget(QWidget *parent, Session* pSession) :
     m_pTargetModel(pSession->m_pTargetModel),
     m_tokenUnderMouseIndex(-1)
 {
-    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    // The widget is now of fixed size (determined by layout).
+    // This is because the scrollarea containing it controls the
+    // visible UI araa.
+    // TODO: I'll need to make sure the scrollarea knows about
+    // resizing, if the user changes the chosen register items.
+    setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
     // Listen for target changes
     connect(m_pTargetModel, &TargetModel::startStopChangedSignal,        this, &RegisterWidget::startStopChanged);
@@ -118,6 +123,13 @@ void RegisterWidget::paintEvent(QPaintEvent * ev)
     painter.fillRect(this->rect(), br);
     painter.setPen(QPen(pal.dark(), hasFocus() ? 6 : 2));
     painter.drawRect(this->rect());
+
+    painter.setPen(QPen(pal.dark(), 2));
+    for (int i = 0; i < m_rulers.size(); ++i)
+    {
+        int y = GetPixelFromRow(m_rulers[i]);
+        painter.drawLine(0, y, this->rect().width(), y);
+    }
 
     for (int i = 0; i < m_tokens.size(); ++i)
     {
@@ -244,6 +256,7 @@ void RegisterWidget::startStopChanged()
         // are timing issues. In future, parcel up the stopping updates so
         // that widget refreshes happen as one.
         m_prevRegs = m_pTargetModel->GetRegs();
+        m_prevDspRegs = m_pTargetModel->GetDspRegs();
 
         // Don't populate display here, since it causes colours to flash
     }
@@ -261,6 +274,7 @@ void RegisterWidget::startStopDelayed(int running)
             !m_pSession->GetSettings().m_liveRefresh)
     {
         m_tokens.clear();
+        m_rulers.clear();
         m_tokenUnderMouseIndex = -1;
         AddToken(1, 1, tr("Running, Ctrl+R to break..."), TokenType::kNone, 0);
         update();
@@ -312,6 +326,7 @@ void RegisterWidget::symbolTableChanged(uint64_t /*commandId*/)
 void RegisterWidget::PopulateRegisters()
 {
     m_tokens.clear();
+    m_rulers.clear();
     if (!m_pTargetModel->IsConnected())
     {
         m_tokenUnderMouseIndex = -1;
@@ -324,14 +339,29 @@ void RegisterWidget::PopulateRegisters()
     const Registers& regs = m_pTargetModel->GetRegs();
     // Build up the text area
     m_currRegs = m_pTargetModel->GetRegs();
+    m_currDspRegs = m_pTargetModel->GetDspRegs();
 
     // Row 0 -- PC, and symbol if applicable
     int row = 0;
 
-    AddReg32(0, row, Registers::PC, m_prevRegs, m_currRegs);
+    AddReg32(2, row, Registers::PC, m_prevRegs, m_currRegs);
     QString sym = FindSymbol(GET_REG(m_currRegs, PC) & 0xffffff);
     if (sym.size() != 0)
-        AddToken(14, row, MakeBracket(sym), TokenType::kSymbol, GET_REG(m_currRegs, PC));
+        AddToken(16, row, MakeBracket(sym), TokenType::kSymbol, GET_REG(m_currRegs, PC));
+
+    // Status register
+    ++row;
+    AddReg16(2, row, Registers::SR, m_prevRegs, m_currRegs);
+    AddSRBit(11, row, m_prevRegs, m_currRegs, Registers::SRBits::kTrace1, "T");
+    AddSRBit(15, row, m_prevRegs, m_currRegs, Registers::SRBits::kSupervisor, "S");
+
+    AddSRBit(20, row, m_prevRegs, m_currRegs, Registers::SRBits::kX, "X");
+    AddSRBit(24, row, m_prevRegs, m_currRegs, Registers::SRBits::kN, "N");
+    AddSRBit(28, row, m_prevRegs, m_currRegs, Registers::SRBits::kZ, "Z");
+    AddSRBit(32, row, m_prevRegs, m_currRegs, Registers::SRBits::kV, "V");
+    AddSRBit(36, row, m_prevRegs, m_currRegs, Registers::SRBits::kC, "C");
+    QString iplLevel = QString::asprintf("IPL=%u", (m_currRegs.m_value[Registers::SR] >> 8 & 0x7));
+    AddToken(40, row, iplLevel, TokenType::kNone);
 
     row += 2;
 
@@ -353,7 +383,7 @@ void RegisterWidget::PopulateRegisters()
                 ref << " [NOT TAKEN]";
         }
 
-        int col = AddToken(0, row, disasmText, TokenType::kNone, 0, TokenColour::kCode) + 5;
+        int col = AddToken(2, row, disasmText, TokenType::kNone, 0, TokenColour::kCode) + 5;
 
         // Comments
         if (m_disasm.lines.size() != 0)
@@ -435,21 +465,6 @@ void RegisterWidget::PopulateRegisters()
     }
 
     ++row;
-
-    ++row;
-    AddReg16(1, row, Registers::SR, m_prevRegs, m_currRegs);
-    AddSRBit(10, row, m_prevRegs, m_currRegs, Registers::SRBits::kTrace1, "T");
-    AddSRBit(14, row, m_prevRegs, m_currRegs, Registers::SRBits::kSupervisor, "S");
-
-    AddSRBit(19, row, m_prevRegs, m_currRegs, Registers::SRBits::kX, "X");
-    AddSRBit(23, row, m_prevRegs, m_currRegs, Registers::SRBits::kN, "N");
-    AddSRBit(27, row, m_prevRegs, m_currRegs, Registers::SRBits::kZ, "Z");
-    AddSRBit(31, row, m_prevRegs, m_currRegs, Registers::SRBits::kV, "V");
-    AddSRBit(35, row, m_prevRegs, m_currRegs, Registers::SRBits::kC, "C");
-    QString iplLevel = QString::asprintf("IPL=%u", (m_currRegs.m_value[Registers::SR] >> 8 & 0x7));
-    AddToken(39, row, iplLevel, TokenType::kNone);
-    row += 1;
-
     uint32_t ex = GET_REG(m_currRegs, EX);
     if (ex != 0)
         AddToken(4, row, QString::asprintf("EXCEPTION: %s", ExceptionMask::GetName(ex)), TokenType::kNone, 0, TokenColour::kChanged);
@@ -466,16 +481,61 @@ void RegisterWidget::PopulateRegisters()
     AddReg32(16, row, Registers::ISP, m_prevRegs, m_currRegs); AddSymbol(30, row, m_currRegs.m_value[Registers::ISP]);
     row++;
     AddReg32(16, row, Registers::USP, m_prevRegs, m_currRegs); AddSymbol(30, row, m_currRegs.m_value[Registers::USP]);
+    row++;
+
     if (m_pTargetModel->GetCpuLevel() >= TargetModel::CpuLevel::kCpuLevel68020)
     {
-        row++;
         AddReg32(16, row, Registers::MSP, m_prevRegs, m_currRegs); AddSymbol(30, row, m_currRegs.m_value[Registers::MSP]);
+        row++;
     }
-    row++;
-    row++;
+
+    m_rulers.push_back(row);
+
+    // DSP registers
+    if (m_pTargetModel->GetMachineType() == MACHINE_FALCON)
+    {
+        AddDspReg16(2,  row, DspRegisters::PC, m_prevDspRegs, m_currDspRegs);
+        ++row;
+        int col;
+        col = 1 + AddDspReg16(2, row, DspRegisters::SR, m_prevDspRegs, m_currDspRegs);
+        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kLF, "LF");
+        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kDM, "DM");
+        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kT, "T");
+        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kS1, "S1");
+        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kS0, "S0");
+        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kI1, "I1");
+        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kI0, "I0");
+        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kS, "S");
+        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kL, "L");
+        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kE, "E");
+        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kU, "U");
+        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kN, "N");
+        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kZ, "Z");
+        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kV, "V");
+        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kC, "C");
+
+        ++row;
+        AddDspReg56(2,  row, DspRegisters::A2, m_prevDspRegs, m_currDspRegs);
+        ++row;
+        AddDspReg56(2, row, DspRegisters::B2, m_prevDspRegs, m_currDspRegs);
+        ++row;
+        AddDspReg24(2,  row, DspRegisters::X1, m_prevDspRegs, m_currDspRegs);
+        AddDspReg24(17, row, DspRegisters::X0, m_prevDspRegs, m_currDspRegs);
+        ++row;
+        AddDspReg24(2,  row, DspRegisters::Y1, m_prevDspRegs, m_currDspRegs);
+        AddDspReg24(17, row, DspRegisters::Y0, m_prevDspRegs, m_currDspRegs);
+        ++row;
+        for (uint32_t reg = 0; reg < 8; ++reg)
+        {
+            AddDspReg16( 2, row, DspRegisters::R0 + reg, m_prevDspRegs, m_currDspRegs);
+            AddDspReg16(17, row, DspRegisters::N0 + reg, m_prevDspRegs, m_currDspRegs);
+            AddDspReg16(32, row, DspRegisters::M0 + reg, m_prevDspRegs, m_currDspRegs);
+            row++;
+        }
+    }
 
     // More sundry non-stack registers
-
+    m_rulers.push_back(row);
     if (m_pTargetModel->GetCpuLevel() >= TargetModel::CpuLevel::kCpuLevel68010)
     {
         AddReg32(1, row, Registers::DFC, m_prevRegs, m_currRegs); AddReg32(16, row, Registers::SFC, m_prevRegs, m_currRegs);
@@ -501,6 +561,7 @@ void RegisterWidget::PopulateRegisters()
         row++;
     }
 
+    // Variables
     // Sundry info
     AddToken(0, row, QString::asprintf("VBL: %10u Frame Cycles: %6u", GET_REG(m_currRegs, VBL), GET_REG(m_currRegs, FrameCycles)), TokenType::kNone);
     row++;
@@ -509,6 +570,9 @@ void RegisterWidget::PopulateRegisters()
 
     // Tokens have moved, so check again
     UpdateTokenUnderMouse();
+
+    setMinimumSize(800, GetPixelFromRow(row));
+
     update();
 }
 
@@ -560,6 +624,46 @@ int RegisterWidget::AddReg32(int x, int y, uint32_t regIndex, const Registers& p
     return AddToken(x + label.size() + 1, y, value, TokenType::kRegister, regIndex, highlight);
 }
 
+int RegisterWidget::AddDspReg24(int x, int y, uint32_t regIndex, const DspRegisters& prevRegs, const DspRegisters& regs)
+{
+    TokenColour highlight = (regs.Get(regIndex) != prevRegs.Get(regIndex)) ? kChanged : kNormal;
+
+    QString label = QString::asprintf("%s:",  DspRegisters::s_names[regIndex]);
+    QString value = QString::asprintf("%06lx", regs.Get(regIndex));
+    AddToken(x, y, label, TokenType::kDspRegister, regIndex, TokenColour::kNormal);
+    return AddToken(x + label.size() + 1, y, value, TokenType::kDspRegister, regIndex, highlight);
+}
+
+int RegisterWidget::AddDspReg16(int x, int y, uint32_t regIndex, const DspRegisters& prevRegs, const DspRegisters& regs)
+{
+    TokenColour highlight = (regs.Get(regIndex) != prevRegs.Get(regIndex)) ? kChanged : kNormal;
+
+    QString label = QString::asprintf("%s:",  DspRegisters::s_names[regIndex]);
+    QString value = QString::asprintf("%04lx", regs.Get(regIndex));
+    AddToken(x, y, label, TokenType::kDspRegister, regIndex, TokenColour::kNormal);
+    return AddToken(x + label.size() + 1, y, value, TokenType::kDspRegister, regIndex, highlight);
+}
+
+int RegisterWidget::AddDspReg56(int x, int y, uint32_t regIndex, const DspRegisters& prevRegs, const DspRegisters& regs)
+{
+
+    QString label = QString::asprintf("%s:",  DspRegisters::s_names[regIndex]);
+    x = AddToken(x, y, label, TokenType::kDspRegister, regIndex, TokenColour::kNormal);
+
+    QString value2 = QString::asprintf("%02lx", regs.Get(regIndex));
+    QString value1 = QString::asprintf("%06lx", regs.Get(regIndex + 1));
+    QString value0 = QString::asprintf("%06lx", regs.Get(regIndex + 2));
+
+    TokenColour highlight2 = (regs.Get(regIndex + 0) != prevRegs.Get(regIndex + 0)) ? kChanged : kNormal;
+    TokenColour highlight1 = (regs.Get(regIndex + 1) != prevRegs.Get(regIndex + 1)) ? kChanged : kNormal;
+    TokenColour highlight0 = (regs.Get(regIndex + 2) != prevRegs.Get(regIndex + 2)) ? kChanged : kNormal;
+
+    x = AddToken(x + 1, y, value2, TokenType::kDspRegister, regIndex + 0, highlight2);
+    x = AddToken(x + 1, y, value1, TokenType::kDspRegister, regIndex + 1, highlight1);
+    x = AddToken(x + 1, y, value0, TokenType::kDspRegister, regIndex + 2, highlight0);
+    return x;
+}
+
 int RegisterWidget::AddSRBit(int x, int y, const Registers& prevRegs, const Registers& regs, uint32_t bit, const char* pName)
 {
     uint32_t valNew = (regs.m_value[Registers::SR] >> bit) & 1;
@@ -568,6 +672,16 @@ int RegisterWidget::AddSRBit(int x, int y, const Registers& prevRegs, const Regi
     TokenColour highlight = (valNew != valOld) ? kChanged : kNormal;
     QString text = QString::asprintf("%s=%x", pName, valNew);
     return AddToken(x, y, QString(text), TokenType::kStatusRegisterBit, bit, highlight);
+}
+
+int RegisterWidget::AddDspSRBit(int x, int y, const DspRegisters& prevRegs, const DspRegisters& regs, uint32_t bit, const char* pName)
+{
+    uint32_t valNew = (regs.Get(DspRegisters::SR) >> bit) & 1;
+    uint32_t valOld = (prevRegs.Get(DspRegisters::SR) >> bit) & 1;
+
+    TokenColour highlight = (valNew != valOld) ? kChanged : kNormal;
+    QString text = QString::asprintf("%s=%x", pName, valNew);
+    return AddToken(x, y, QString(text), TokenType::kDspStatusRegisterBit, bit, highlight);
 }
 
 int RegisterWidget::AddCACRBit(int x, int y, const Registers& prevRegs, const Registers& regs, uint32_t bit, const char* pName)

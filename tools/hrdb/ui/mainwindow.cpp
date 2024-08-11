@@ -8,6 +8,7 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QScrollArea>
 #include <QSettings>
 #include <QShortcut>
 #include <QStatusBar>
@@ -57,6 +58,10 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     // Creation - done in Tab order
     // Register/status window
     m_pRegisterWidget = new RegisterWidget(this, &m_session);
+
+    QScrollArea* pScrollArea = new QScrollArea(this);
+    pScrollArea->setWidget(m_pRegisterWidget);
+    pScrollArea->setWidgetResizable(false);
 
     // Top row of buttons
     m_pRunningSquare = new QWidget(this);
@@ -140,7 +145,7 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
 
     SetMargins(vlayout);
     vlayout->addWidget(pTopGroupBox);
-    vlayout->addWidget(m_pRegisterWidget);
+    vlayout->addWidget(pScrollArea);
     vlayout->setAlignment(Qt::Alignment(Qt::AlignTop));
     pMainGroupBox->setFlat(true);
     pMainGroupBox->setLayout(vlayout);

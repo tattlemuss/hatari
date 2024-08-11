@@ -33,6 +33,20 @@ int RegNameToEnum(const char* name)
     return Registers::REG_COUNT;
 }
 
+int DspRegNameToEnum(const char* name)
+{
+    const char** pCurrName = DspRegisters::s_names;
+    int i = 0;
+    while (*pCurrName)
+    {
+        if (strcmp(name, *pCurrName) == 0)
+            return i;
+        ++pCurrName;
+        ++i;
+    }
+    return DspRegisters::REG_COUNT;
+}
+
 //-----------------------------------------------------------------------------
 Dispatcher::Dispatcher(QTcpSocket* tcpSocket, TargetModel* pTargetModel) :
     m_pTcpSocket(tcpSocket),
@@ -596,6 +610,7 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
 void Dispatcher::ParseRegs(StringSplitter& splitResp, const RemoteCommand& cmd)
 {
     Registers regs;
+    DspRegisters dspRegs;
     while (true)
     {
         std::string reg = splitResp.Split(SEP_CHAR);
@@ -609,11 +624,21 @@ void Dispatcher::ParseRegs(StringSplitter& splitResp, const RemoteCommand& cmd)
         // Write this value into register structure
         // NOTE: this is tolerant to not matching the name
         // since we use "Vars"
-        int reg_id = RegNameToEnum(reg.c_str());
-        if (reg_id != Registers::REG_COUNT)
-            regs.m_value[reg_id] = value;
+        if (reg.find("D_", 0) == 0)
+        {
+            int reg_id = DspRegNameToEnum(reg.c_str() + 2);
+            std::cout << reg << "  " << std::hex << value << std::endl;
+            if (reg_id != DspRegisters::REG_COUNT)
+                dspRegs.Set(reg_id, value);
+        }
+        else
+        {
+            int reg_id = RegNameToEnum(reg.c_str());
+            if (reg_id != Registers::REG_COUNT)
+                regs.m_value[reg_id] = value;
+        }
     }
-    m_pTargetModel->SetRegisters(regs, cmd.m_uid);
+    m_pTargetModel->SetRegisters(regs, dspRegs, cmd.m_uid);
 }
 
 void Dispatcher::ParseMem(StringSplitter& splitResp, const RemoteCommand& cmd)
