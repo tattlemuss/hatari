@@ -372,6 +372,9 @@ void MainWindow::nextClickedSlot()
     if (!m_pTargetModel->IsConnected())
         return;
 
+    m_pDispatcher->SendSaveBin(0x0, 0x1000, std::string("/tmp/saved.bin"));
+
+
     if (m_pTargetModel->IsRunning())
         return;
 
