@@ -1,19 +1,15 @@
 #include "disasmwidget.h"
 
 #include <iostream>
-#include <QGroupBox>
 #include <QLineEdit>
 #include <QVBoxLayout>
-#include <QHeaderView>
 #include <QShortcut>
-#include <QFontDatabase>
 #include <QMenu>
 #include <QContextMenuEvent>
 #include <QCheckBox>
 #include <QCompleter>
 #include <QPainter>
 #include <QSettings>
-#include <QGuiApplication>
 
 #include "hopper/buffer.h"
 
@@ -1171,10 +1167,6 @@ DisasmWindow::DisasmWindow(QWidget *parent, Session* pSession, int windowIndex) 
     m_pShowHex = new QCheckBox("Show hex", this);
     m_pShowHex->setTristate(false);
     m_pShowHex->setChecked(m_pDisasmWidget->GetShowHex());
-
-    const QFont monoFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-    //m_pTableView->setFont(monoFont);
-    QFontMetrics fm(monoFont);
 
     // Layouts
     QVBoxLayout* pMainLayout = new QVBoxLayout;
