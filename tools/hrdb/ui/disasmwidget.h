@@ -6,6 +6,7 @@
 #include <QMenu>
 #include "../models/breakpoint.h"
 #include "../models/disassembler.h"
+#include "../models/disassembler56.h"
 #include "../models/memory.h"
 #include "../models/session.h"
 #include "showaddressactions.h"
@@ -24,6 +25,12 @@ class DisasmWidget : public QWidget
 public:
     DisasmWidget(QWidget * parent, Session* m_pSession, int windowIndex, QAction* pSearchAction);
     virtual ~DisasmWidget() override;
+
+    enum Mode
+    {
+        CPU_MODE,
+        DSP_MODE
+    };
 
     uint32_t GetAddress() const { return m_logicalAddr; }
     bool GetAddressAtCursor(uint32_t& addr) const;
@@ -78,22 +85,68 @@ private:
 
     void SetAddress(uint32_t addr);
     void RequestMemory();
+
+    // Disassmbly/row generation
     void CalcDisasm();
-    void CalcOpAddresses();
+    void CalcDisasm68();
+    void CalcDisasm56();
+
+    int AddDisasmBranch(int row, uint32_t target);
+    void LayOutBranches();
+
+    void CalcAnnotations68();
     void printEA(const hop68::operand &op, const Registers &regs, uint32_t address, QTextStream &ref) const;
 
-    // Cached data when the up-to-date request comes through
-    Memory       m_memory;
-
-    struct OpAddresses
+    // Disassembly line supporting both 68k and 56K.
+    struct Line
     {
-        bool valid[2];
-        uint32_t address[2];
-        QString annotationText;     // Extra info like trap call name, line-A in future?
-    };
+        // effective-addresses of operands in the instruction.
+        struct Annotations
+        {
+            void Reset()
+            {
+                valid[0] = valid[1] = false;
+                osComments.clear();
+            }
+            // Effective addresses for operands
+            bool valid[2];
+            uint32_t address[2];
 
-    Disassembler::disassembly m_disasm;
-    QVector<OpAddresses> m_opAddresses;
+            QString  osComments;    // Extra info like trap call name, line-A in future?
+        };
+
+        void Reset();
+        Mode                 mode;
+        uint32_t             address;
+
+        // Ideally this would be a union, but the instruction classes
+        // have non-POD constructors
+        hop56::instruction   inst56;
+        hop68::instruction   inst68;
+
+        uint8_t              mem[32];           // Copy of instruction memory, up to a max
+        Annotations          annotations;       // Effective Address data annotations, OS commments
+
+        uint32_t    GetByteSize() const
+        {
+            if (mode == CPU_MODE)
+                return inst68.byte_count;
+            else
+                return inst56.word_count * 3;
+        }
+
+        uint32_t    GetEndAddr() const
+        {
+            if (mode == CPU_MODE)
+                return address + inst68.byte_count;
+            else
+                return address + inst56.word_count;
+        }
+    };
+    QVector<Line>           m_disasm;
+
+    // The text that goes in each row,
+    // a 1:1 pairing with the Line data.
     struct RowText
     {
         QString     symbol;
@@ -106,31 +159,35 @@ private:
         QString     cycles;
         QString     disasm;
         QString     comments;
-
-        int         branchTargetLine;       // -1 for no branch, or the ID of the target line
     };
     QVector<RowText>    m_rowTexts;
 
+    // Describes a branch from one row of the disasm to another,
+    // or off the top/bottom of the disassembly area.
     struct Branch
     {
         int top() const { return std::min(start, stop);}
         int bottom() const { return std::max(start, stop);}
-        int start;
-        int stop;
-        int depth;
-        int type; // 0=normal, 1=top, 2=bottom
+        int start;      // row number
+        int stop;       // row number
+        int depth;      // X-position of the vertical part of the connection arrow
+        int type;       // 0=normal, 1=top, 2=bottom
     };
     QVector<Branch>     m_branches;
 
     Breakpoints m_breakpoints;
     int         m_rowCount;
 
-    // Address of the top line of text that was requested
-    uint32_t m_requestedAddress;    // Most recent address requested
+    Mode        m_mode;
 
-    uint32_t m_logicalAddr;         // Most recent address that can be shown
-    uint64_t m_requestId;           // Most recent memory request
-    bool     m_bFollowPC;
+    // Cached data when the up-to-date request comes through
+    Memory      m_memory;
+
+    uint32_t    m_logicalAddr;         // Logical address for the top line of the disasm view
+                                       // Memory is requested around this address (above and below)
+
+    uint64_t    m_requestId;           // Most recent memory request, or "0" when complete
+    bool        m_bFollowPC;
 
     int         m_windowIndex;
     MemorySlot  m_memSlot;
@@ -146,13 +203,12 @@ private:
     void toggleBreakpointRightClick();
     void setPCRightClick();
     void nopRightClick();
-
     void settingsChangedSlot();
 
     // Layout functions
     void RecalcRowCount();
     void UpdateFont();
-    void RecalcColums();
+    void RecalcColumnWidths();
 
     // Convert from row ID to a pixel Y (top pixel in the drawn row)
     int GetPixelFromRow(int row) const;
@@ -254,16 +310,16 @@ private:
 
     void UpdateTextBox();
 
-    QLineEdit*      m_pAddressEdit;
-    QCheckBox*      m_pShowHex;
-    QCheckBox*      m_pFollowPC;
-    Session*        m_pSession;
-    DisasmWidget*   m_pDisasmWidget;
-    TargetModel*    m_pTargetModel;
-    Dispatcher*     m_pDispatcher;
-    SymbolTableModel* m_pSymbolTableModel;        // used for autocomplete
+    QLineEdit*          m_pAddressEdit;
+    QCheckBox*          m_pShowHex;
+    QCheckBox*          m_pFollowPC;
+    Session*            m_pSession;
+    DisasmWidget*       m_pDisasmWidget;
+    TargetModel*        m_pTargetModel;
+    Dispatcher*         m_pDispatcher;
+    SymbolTableModel*   m_pSymbolTableModel;        // used for autocomplete
 
-    int             m_windowIndex;
+    int                 m_windowIndex;
 
     SearchSettings      m_searchSettings;
     uint64_t            m_searchRequestId;

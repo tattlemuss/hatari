@@ -20,7 +20,7 @@ public:
     struct line
     {
         uint32_t                address;
-        hop68::instruction   inst;
+        hop68::instruction      inst;
         uint8_t                 mem[32];            // Copy of instruction memory
 
         uint32_t    GetEnd() const

@@ -12,6 +12,7 @@
 #include <QSettings>
 
 #include "hopper/buffer.h"
+#include "hopper56/buffer.h"
 
 #include "../hardware/tos.h"
 #include "../transport/dispatcher.h"
@@ -29,7 +30,7 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex, 
     QWidget(parent),
     m_memory(Memory::kCpu, 0, 0),
     m_rowCount(25),
-    m_requestedAddress(0),
+    m_mode(DSP_MODE),
     m_logicalAddr(0),
     m_requestId(0),
     m_bFollowPC(true),
@@ -44,7 +45,8 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex, 
     m_mouseRow(-1),
     m_wheelAngleDelta(0)
 {
-    RecalcColums();
+    if (windowIndex == 1)
+        m_mode = CPU_MODE;  // NO CHECK
     UpdateFont();
 
     SetRowCount(8);
@@ -66,13 +68,15 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex, 
     m_pEditMenu = new QMenu("Edit", this);
     m_pEditMenu->addAction(m_pNopAction);
 
+    RecalcColumnWidths();
+
     // Target connects
     connect(m_pTargetModel, &TargetModel::startStopChangedSignal,   this, &DisasmWidget::startStopChanged);
     connect(m_pTargetModel, &TargetModel::memoryChangedSignal,      this, &DisasmWidget::memoryChanged);
     connect(m_pTargetModel, &TargetModel::breakpointsChangedSignal, this, &DisasmWidget::breakpointsChanged);
     connect(m_pTargetModel, &TargetModel::symbolTableChangedSignal, this, &DisasmWidget::symbolTableChanged);
     connect(m_pTargetModel, &TargetModel::connectChangedSignal,     this, &DisasmWidget::connectChanged);
-    connect(m_pTargetModel, &TargetModel::registersChangedSignal,   this, &DisasmWidget::CalcOpAddresses);
+    connect(m_pTargetModel, &TargetModel::registersChangedSignal,   this, &DisasmWidget::CalcAnnotations68);
     connect(m_pTargetModel, &TargetModel::otherMemoryChangedSignal, this, &DisasmWidget::otherMemoryChanged);
     connect(m_pTargetModel, &TargetModel::profileChangedSignal,     this, &DisasmWidget::profileChanged);
 
@@ -120,27 +124,30 @@ void DisasmWidget::RequestMemory()
     uint32_t size = highAddr - lowAddr;
     if (m_pTargetModel->IsConnected())
     {
-        m_requestId = m_pDispatcher->ReadMemory(m_memSlot, lowAddr, size);
+        if (m_mode == CPU_MODE)
+            m_requestId = m_pDispatcher->ReadMemory(m_memSlot, lowAddr, size);
+        else
+            m_requestId = m_pDispatcher->ReadDspMemory(m_memSlot, 'P', lowAddr, size);
     }
 }
 
 bool DisasmWidget::GetEA(int row, int operandIndex, uint32_t &addr)
 {
-    if (row >= m_opAddresses.size())
+    if (row >= m_disasm.size())
         return false;
 
     if (operandIndex >= 2)
         return false;
 
-    addr = m_opAddresses[row].address[operandIndex];
-    return m_opAddresses[row].valid[operandIndex];
+    addr = m_disasm[row].annotations.address[operandIndex];
+    return m_disasm[row].annotations.valid[operandIndex];
 }
 
 bool DisasmWidget::GetInstructionAddr(int row, uint32_t &addr) const
 {
-    if (row >= m_disasm.lines.size())
+    if (row >= m_disasm.size())
         return false;
-    addr = m_disasm.lines[row].address;
+    addr = m_disasm[row].address;
     return true;
 }
 
@@ -222,20 +229,20 @@ void DisasmWidget::MoveDown()
         return;
     }
 
-    if (m_disasm.lines.size() > 0)
+    if (m_disasm.size() > 0)
     {
         // Find our current line in disassembly
-        for (int i = 0; i < m_disasm.lines.size(); ++i)
+        for (int i = 0; i < m_disasm.size(); ++i)
         {
-            if (m_disasm.lines[i].address == m_logicalAddr)
+            if (m_disasm[i].address == m_logicalAddr)
             {
                 // This will go off and request the memory itself
-                SetAddress(m_disasm.lines[i].GetEnd());
+                SetAddress(m_disasm[i].GetEndAddr());
                 return;
             }
         }
         // Default to line 1
-        SetAddress(m_disasm.lines[0].GetEnd());
+        SetAddress(m_disasm[0].GetEndAddr());
     }
 }
 
@@ -272,10 +279,10 @@ void DisasmWidget::PageDown()
     if (m_requestId != 0)
         return; // not up to date
 
-    if (m_disasm.lines.size() > 0)
+    if (m_disasm.size() > 0)
     {
         // This will go off and request the memory itself
-        SetAddress(m_disasm.lines.back().GetEnd());
+        SetAddress(m_disasm.back().GetEndAddr());
     }
 }
 
@@ -304,9 +311,9 @@ void DisasmWidget::MouseScrollDown()
 
 void DisasmWidget::RunToRow(int row)
 {
-    if (row >= 0 && row < m_disasm.lines.size())
+    if (row >= 0 && row < m_disasm.size())
     {
-        Disassembler::line& line = m_disasm.lines[row];
+        Line& line = m_disasm[row];
         m_pDispatcher->RunToPC(line.address);
     }
 }
@@ -320,16 +327,18 @@ void DisasmWidget::startStopChanged()
         if (m_bFollowPC)
         {
             // Decide if the new PC is covered by the existing view range. If so, don't move
-            uint32_t pc = m_pTargetModel->GetStartStopPC();
+            uint32_t pc = m_mode == CPU_MODE ?
+                    m_pTargetModel->GetStartStopPC() :
+                    m_pTargetModel->GetStartStopDspPC();
 
-            if (m_disasm.lines.size() == 0)
+            if (m_disasm.size() == 0)
             {
                 SetAddress(pc);
                 return;
             }
 
-            if (m_disasm.lines[0].address > pc ||
-                m_disasm.lines.back().address < pc + 10)
+            if (m_disasm[0].address > pc ||
+                m_disasm.back().address < pc + 10)
             {
                 // Update to PC position
                 SetAddress(pc);
@@ -345,7 +354,7 @@ void DisasmWidget::connectChanged()
 {
     if (!m_pTargetModel->IsConnected())
     {
-        m_disasm.lines.clear();
+        m_disasm.clear();
         m_branches.clear();
         m_rowCount = 0;
         m_rowTexts.clear();
@@ -408,7 +417,7 @@ void DisasmWidget::otherMemoryChanged(uint32_t address, uint32_t size)
 
 void DisasmWidget::profileChanged()
 {
-    RecalcColums();
+    RecalcColumnWidths();
     CalcDisasm();
     update();
 }
@@ -430,7 +439,7 @@ void DisasmWidget::paintEvent(QPaintEvent* ev)
     const int y_midLine = y_ascent - info.strikeOutPos();
 
     // Anything to show?
-    if (m_disasm.lines.size())
+    if (m_disasm.size())
     {
         // Highlight the mouse row with a lighter fill
         if (m_mouseRow != -1)
@@ -664,6 +673,14 @@ bool DisasmWidget::event(QEvent* ev)
 
 void DisasmWidget::CalcDisasm()
 {
+    if (m_mode == CPU_MODE)
+        CalcDisasm68();
+    else
+        CalcDisasm56();
+}
+
+void DisasmWidget::CalcDisasm68()
+{
     // Make sure the data we get back matches our expectations...
     if (m_logicalAddr < m_memory.GetAddress())
         return;
@@ -674,38 +691,41 @@ void DisasmWidget::CalcDisasm()
     uint32_t offset = m_logicalAddr - m_memory.GetAddress();
     uint32_t size = m_memory.GetSize() - offset;
     hop68::buffer_reader disasmBuf(m_memory.GetData() + offset, size, m_memory.GetAddress() + offset);
-    m_disasm.lines.clear();
-    Disassembler::decode_buf(disasmBuf, m_disasm, m_pTargetModel->GetDisasmSettings(), m_logicalAddr, m_rowCount);
+
+    Disassembler::disassembly tmp;
+    Disassembler::decode_buf(disasmBuf, tmp, m_pTargetModel->GetDisasmSettings(), m_logicalAddr, m_rowCount);
+
+    // Convert to shared format
+    size_t rowCount = tmp.lines.size();
+    m_disasm.resize(rowCount);
+    for (size_t i = 0; i < rowCount; ++i)
+    {
+        m_disasm[i].Reset();
+        m_disasm[i].address = tmp.lines[i].address;
+        m_disasm[i].inst68 = tmp.lines[i].inst;
+        m_disasm[i].inst56.reset();
+        m_disasm[i].mode = CPU_MODE;
+        memcpy(m_disasm[i].mem, tmp.lines[i].mem, 32);
+    }
 
     // Annotate traps
-    CalcOpAddresses();
+    CalcAnnotations68();
 
     // Recalc Text (which depends on e.g. symbols
     m_rowTexts.clear();
     m_branches.clear();
-    if (m_disasm.lines.size() == 0)
+    if (m_disasm.size() == 0)
         return;
 
-    uint32_t topAddr = m_disasm.lines[0].address;
-    uint32_t lastAddr = m_disasm.lines.back().address;
-
-    // Organise branches
-
-    // These store the number of branch lines going in, and coming out of,
-    // each instruction.
-    QVector<int> starts(m_disasm.lines.size());
-    QVector<int> stops(m_disasm.lines.size());
-    // NOTE: do not use m_rowCount here, it can be stale!
-
-    for (int row = 0; row < m_disasm.lines.size(); ++row)
+     // NOTE: do not use m_rowCount here, it can be stale!
+    for (int row = 0; row < m_disasm.size(); ++row)
     {
         RowText t;
-        Disassembler::line& line = m_disasm.lines[row];
+        Line& line = m_disasm[row];
 
         // Address
         uint32_t addr = line.address;
         t.address = QString::asprintf("%08x", addr);
-        t.branchTargetLine = -1;
         t.isPc = line.address == m_pTargetModel->GetStartStopPC();
         t.isBreakpoint = false;
 
@@ -725,7 +745,7 @@ void DisasmWidget::CalcDisasm()
         }
 
         // Hex
-        for (uint32_t i = 0; i < line.inst.byte_count; ++i)
+        for (uint32_t i = 0; i < line.GetByteSize(); ++i)
             t.hex += QString::asprintf("%02x", line.mem[i]);
 
         // Cycles
@@ -744,17 +764,17 @@ void DisasmWidget::CalcDisasm()
 
         // Disassembly
         QTextStream ref(&t.disasm);
-        Disassembler::print(line.inst, line.address, ref, m_pSession->GetSettings().m_bDisassHexNumerics);
+        Disassembler::print(line.inst68, line.address, ref, m_pSession->GetSettings().m_bDisassHexNumerics);
 
         // Comments
         QTextStream refC(&t.comments);
         Registers regs = m_pTargetModel->GetRegs();
-        printEA(line.inst.op0, regs, line.address, refC);
+        printEA(line.inst68.op0, regs, line.address, refC);
         if (t.comments.size() != 0)
             refC << "  ";
-        printEA(line.inst.op1, regs, line.address, refC);
+        printEA(line.inst68.op1, regs, line.address, refC);
 
-        refC << m_opAddresses[row].annotationText;
+        refC << line.annotations.osComments;
 
         // Breakpoint/PC
         for (size_t i = 0; i < m_breakpoints.m_breakpoints.size(); ++i)
@@ -768,51 +788,192 @@ void DisasmWidget::CalcDisasm()
 
         // Branch info
         uint32_t target;
-        if (DisAnalyse::getBranchTarget(line.address, line.inst, target))
-        {
-            for (int i = 0; i < m_disasm.lines.count(); ++i)
-            {
-                if (m_disasm.lines[i].address == target)
-                {
-                    t.branchTargetLine = i;
-                    break;
-                }
-            }
-
-            Branch b;
-            b.start = row;
-            b.stop = t.branchTargetLine;
-            b.depth = 0;
-            b.type = 0;
-
-            // We didn't find a target, so it's somewhere else
-            // Fake up a target which should be off-screen
-            if (t.branchTargetLine == -1)
-            {
-                if (target < topAddr)
-                {
-                    b.stop = 0;
-                    b.type = 1; // top
-                }
-                else if (target > lastAddr)
-                {
-                    b.stop = m_disasm.lines.size() - 1;
-                    b.type = 2; // bttom
-                }
-            }
-
-            if (b.stop != -1)
-            {
-                m_branches.push_back(b);
-
-                // Record where "edges" are
-                starts[b.start]++;
-                stops[b.stop]++;
-            }
-        }
+        if (DisAnalyse::getBranchTarget(line.address, line.inst68, target))
+            (void)AddDisasmBranch(row, target);
         m_rowTexts.push_back(t);
     }
 
+    LayOutBranches();
+}
+
+void DisasmWidget::CalcDisasm56()
+{
+    // Make sure the data we get back matches our expectations...
+    if (m_logicalAddr < m_memory.GetAddress())
+        return;
+    if (m_logicalAddr >= m_memory.GetAddress() + m_memory.GetSize() / 3)
+        return;
+
+    // Work out where we need to start disassembling from
+    uint32_t addrOffset = (m_logicalAddr - m_memory.GetAddress());
+    uint32_t size = m_memory.GetSize() - addrOffset * 3;
+    hop56::buffer_reader disasmBuf(m_memory.GetData() + addrOffset * 3, size, m_memory.GetAddress() + addrOffset);
+
+    Disassembler56::disassembly tmp;
+    hop56::decode_settings dummy;
+    Disassembler56::decode_buf(disasmBuf, tmp, dummy, m_logicalAddr, m_rowCount);
+
+    // Convert to shared format
+    int rowCount = tmp.lines.size();
+    m_disasm.resize(rowCount);
+    for (int i = 0; i < rowCount; ++i)
+    {
+        m_disasm[i].Reset();
+        m_disasm[i].address = tmp.lines[i].address;
+        m_disasm[i].inst68.reset();
+        m_disasm[i].inst56 = tmp.lines[i].inst;
+        m_disasm[i].mode = DSP_MODE;
+        memcpy(m_disasm[i].mem, tmp.lines[i].mem, sizeof(tmp.lines[i].mem));
+    }
+
+    m_rowTexts.clear();
+    m_branches.clear();
+
+    if (m_disasm.size() == 0)
+        return;
+
+    // Organise branches
+    // These store the number of branch lines going in, and coming out of,
+    // each instruction.
+    // NOTE: do not use m_rowCount here, it can be stale!
+    for (int row = 0; row < m_disasm.size(); ++row)
+    {
+        RowText t;
+        Line& line = m_disasm[row];
+
+        // Address
+        uint32_t addr = line.address;
+        t.address = QString::asprintf("P:$%04x", addr);
+        t.isPc = line.address == m_pTargetModel->GetStartStopDspPC();
+        t.isBreakpoint = false;
+        t.hex.clear();
+        t.symbol.clear();
+        t.cycles.clear();
+
+        // Hex
+        for (uint32_t i = 0; i < line.GetByteSize(); ++i)
+            t.hex += QString::asprintf("%02x", line.mem[i]);
+
+        // Symbol
+#if 0
+        QString addrText;
+        Symbol sym;
+        if (row == 0)
+        {
+            // show symbol + offset if necessary for the top line
+            t.symbol = DescribeSymbol(m_pTargetModel->GetSymbolTable(), addr);
+            if (!t.symbol.isEmpty())
+                t.symbol += ":";
+        }
+        else {
+            if (m_pTargetModel->GetSymbolTable().Find(addr, sym))
+                t.symbol = QString::fromStdString(sym.name) + ":";
+        }
+
+        // Cycles
+        if (m_pTargetModel->IsProfileEnabled())
+        {
+            uint32_t count, cycles;
+            m_pTargetModel->GetProfileData(addr, count, cycles);
+            if (count)
+            {
+                 if (m_pSession->GetSettings().m_profileDisplayMode == Session::Settings::kTotal)
+                     t.cycles = QString::asprintf("%d/%d", count, cycles);
+                 else if (m_pSession->GetSettings().m_profileDisplayMode == Session::Settings::kMean)
+                     t.cycles = QString::asprintf("%d*%d", count, cycles/count);
+            }
+        }
+#endif
+
+        // Disassembly
+        QTextStream ref(&t.disasm);
+        Disassembler56::print_inst(line.inst56, line.address, ref, m_pSession->GetSettings().m_bDisassHexNumerics);
+
+#if 0
+        // Comments
+        QTextStream refC(&t.comments);
+        Registers regs = m_pTargetModel->GetRegs();
+        printEA(line.inst68.op0, regs, line.address, refC);
+        if (t.comments.size() != 0)
+            refC << "  ";
+        printEA(line.inst68.op1, regs, line.address, refC);
+        refC << line.annotationText;
+
+        // Breakpoint/PC
+        for (size_t i = 0; i < m_breakpoints.m_breakpoints.size(); ++i)
+        {
+            if (m_breakpoints.m_breakpoints[i].m_pcHack == line.address)
+            {
+                t.isBreakpoint = true;
+                break;
+            }
+        }
+#endif
+        // Branch info
+        uint32_t target;
+        if (DisAnalyse56::getBranchTarget(line.inst56, target))
+            (void) AddDisasmBranch(row, target);
+        m_rowTexts.push_back(t);
+    }
+    LayOutBranches();
+}
+
+// Add a branch to m_branches. We try to match the target address
+// to existing row addresses in the disassembly
+int DisasmWidget::AddDisasmBranch(int row, uint32_t target)
+{
+    int targetLine = -1;
+
+    uint32_t topAddr = m_disasm[0].address;
+    uint32_t lastAddr = m_disasm.back().address;
+    Branch b;
+    b.depth = 0;
+    b.type = 0;
+    b.start = row;
+    b.stop = -1;
+
+    // Try to find the existing line
+    if (target < topAddr)
+    {
+        b.stop = 0;
+        b.type = 1; // top
+        targetLine = -1;
+    }
+    else if (target > lastAddr)
+    {
+        b.stop = m_disasm.size() - 1;
+        b.type = 2; // bottom
+        targetLine = -1;
+    }
+    else
+    {
+        // Search the rows for a match
+        for (int i = 0; i < m_disasm.count(); ++i)
+        {
+            if (m_disasm[i].address == target)
+            {
+                targetLine = i;
+                b.stop = targetLine;
+                b.type = 0;
+                break;
+            }
+        }
+        // Note that we might have a branch target in the disasm
+        // range, but not one of the rows!
+    }
+
+    if (b.stop != -1)
+    {
+        assert(b.start != -1);
+        m_branches.push_back(b);
+    }
+    return targetLine;
+}
+
+// Calculate the X-offsets of where each branch is drawn.
+// This tries to minimize the "crossing" of branch lines.
+void DisasmWidget::LayOutBranches()
+{
     // Branch layout:
     // Method is simple but seems to work OK: iteratively choose the branch that
     // crosses as few other branch start/stops as possible.
@@ -821,8 +982,22 @@ void DisasmWidget::CalcDisasm()
     // This might need tweaking for branches that go off the top/bottom, but seems OK
     // so far.
 
+    // Count the start/stopping lines.
+    // Previously we tracked start and stop separately, but we
+    // only ever use them added together
+    QVector<int> startsAndStops(m_disasm.size());
+    for (int i = 0; i < m_branches.size(); ++i)
+    {
+        const Branch& b = m_branches[i];
+        if (b.stop != -1)
+        {
+            startsAndStops[b.start]++;
+            startsAndStops[b.stop]++;
+        }
+    }
+
     // This stores the minimum distance for each row in the disassembly
-    QVector<int> depths(m_disasm.lines.size());
+    QVector<int> depths(m_disasm.size());
     for (int write = 0; write < m_branches.size(); ++write)
     {
         // Choose the remaining branch with the lowest "score", where "score" is
@@ -836,7 +1011,7 @@ void DisasmWidget::CalcDisasm()
             const Branch& b = m_branches[i];
             int score = 0;
             for (int r = b.top(); r <= b.bottom(); ++r)
-                score += starts[r] + stops[r];
+                score += startsAndStops[r];
 
             if (score < lowestScore)
             {
@@ -864,33 +1039,32 @@ void DisasmWidget::CalcDisasm()
     }
 }
 
-void DisasmWidget::CalcOpAddresses()
+// Generate the Effective Addresses for the row,
+// and any annotation text like traps etc.
+void DisasmWidget::CalcAnnotations68()
 {
     // Precalc EAs
-    m_opAddresses.clear();
-    m_opAddresses.resize(m_disasm.lines.size());
     const Registers& regs = m_pTargetModel->GetRegs();
     uint32_t pc = regs.Get(Registers::PC);
-    for (int i = 0; i < m_disasm.lines.size(); ++i)
+    for (int i = 0; i < m_disasm.size(); ++i)
     {
-        const Disassembler::line& line = m_disasm.lines[i];
-        const hop68::instruction& inst = line.inst;
-        OpAddresses& addrs = m_opAddresses[i];
+        Line& line = m_disasm[i];
+        const hop68::instruction& inst = line.inst68;
+        Line::Annotations& annots = line.annotations;
         bool useRegs = inst.address == pc;
-        addrs.valid[0] = Disassembler::calc_fixed_ea(inst.op0, useRegs, regs, m_disasm.lines[i].address, addrs.address[0]);
-        addrs.valid[1] = Disassembler::calc_fixed_ea(inst.op1, useRegs, regs, m_disasm.lines[i].address, addrs.address[1]);
-
-        addrs.annotationText = GetTOSAnnotation(m_memory, line.address, inst);
+        annots.valid[0] = Disassembler::calc_fixed_ea(inst.op0, useRegs, regs, m_disasm[i].address, annots.address[0]);
+        annots.valid[1] = Disassembler::calc_fixed_ea(inst.op1, useRegs, regs, m_disasm[i].address, annots.address[1]);
+        annots.osComments = GetTOSAnnotation(m_memory, line.address, inst);
     }
 }
 
 void DisasmWidget::ToggleBreakpoint(int row)
 {
     // set a breakpoint
-    if (row < 0 || row >= m_disasm.lines.size())
+    if (row < 0 || row >= m_disasm.size())
         return;
 
-    Disassembler::line& line = m_disasm.lines[row];
+    Line& line = m_disasm[row];
     uint32_t addr = line.address;
     bool removed = false;
 
@@ -912,10 +1086,10 @@ void DisasmWidget::ToggleBreakpoint(int row)
 
 void DisasmWidget::SetPC(int row)
 {
-    if (row < 0 || row >= m_disasm.lines.size())
+    if (row < 0 || row >= m_disasm.size())
         return;
 
-    Disassembler::line& line = m_disasm.lines[row];
+    Line& line = m_disasm[row];
     uint32_t addr = line.address;
     m_pDispatcher->SetRegister(Registers::PC, addr);
 
@@ -925,15 +1099,15 @@ void DisasmWidget::SetPC(int row)
 
 void DisasmWidget::NopRow(int row)
 {
-    if (row >= m_disasm.lines.size())
+    if (row >= m_disasm.size())
         return;
 
-    Disassembler::line& line = m_disasm.lines[row];
+    Line& line = m_disasm[row];
     uint32_t addr = line.address;
 
     QVector<uint8_t> data;
 
-    for (int i = 0; i <  line.inst.byte_count / 2; ++i)
+    for (int i = 0; i <  line.inst68.byte_count / 2; ++i)
     {
         data.push_back(0x4e);
         data.push_back(0x71);
@@ -951,7 +1125,7 @@ void DisasmWidget::SetRowCount(int count)
 
         // Do we need more data?
         CalcDisasm();
-        if (m_disasm.lines.size() < m_rowCount)
+        if (m_disasm.size() < m_rowCount)
         {
             // We need more memory
             RequestMemory();
@@ -962,7 +1136,7 @@ void DisasmWidget::SetRowCount(int count)
 void DisasmWidget::SetShowHex(bool show)
 {
     m_bShowHex = show;
-    RecalcColums();
+    RecalcColumnWidths();
     update();
 }
 
@@ -1065,7 +1239,7 @@ void DisasmWidget::UpdateFont()
     m_charWidth = info.horizontalAdvance("0");
 }
 
-void DisasmWidget::RecalcColums()
+void DisasmWidget::RecalcColumnWidths()
 {
     int pos = 1;
     m_columnLeft[kSymbol] = pos; pos += 19;
@@ -1075,7 +1249,13 @@ void DisasmWidget::RecalcColums()
     m_columnLeft[kHex] = pos; pos += (m_bShowHex) ? 10 * 2 + 1 : 0;
     m_columnLeft[kCycles] = pos;
     pos += (m_pTargetModel->IsProfileEnabled()) ? 20 : 0;
-    m_columnLeft[kDisasm] = pos; pos += 8+18+9+1; // movea.l $12345678(pc,d0.w),$12345678
+
+    m_columnLeft[kDisasm] = pos;
+    if (m_mode == CPU_MODE)
+        pos += 8+18+9+1; // movea.l $12345678(pc,d0.w),$12345678
+    else
+        pos += 50;
+
     m_columnLeft[kComments] = pos; pos += 80;
     m_columnLeft[kNumColumns] = pos;
 }
@@ -1403,6 +1583,16 @@ void DisasmWindow::searchResultsSlot(uint64_t responseId)
 
 void DisasmWindow::symbolTableChangedSlot(uint64_t /*responseId*/)
 {
+    // This is for our autocomplete
     m_pSymbolTableModel->emitChanged();
 }
 
+void DisasmWidget::Line::Reset()
+{
+    mode = CPU_MODE;
+    address = 0;
+    inst56.reset();
+    inst68.reset();
+    memset(mem, 0, sizeof(mem));
+    annotations.Reset();
+}
