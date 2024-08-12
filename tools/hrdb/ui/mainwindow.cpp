@@ -15,6 +15,7 @@
 #include <QToolBar>
 
 #include "hopper/buffer.h"
+#include "hopper56/buffer.h"
 
 #include "../transport/dispatcher.h"
 #include "../models/targetmodel.h"
@@ -273,13 +274,14 @@ void MainWindow::memoryChanged(int slot, uint64_t /*commandId*/)
     if (slot == MemorySlot::kMainDspPC)
     {
         // Disassemble the first instruction
-        m_disasm.lines.clear();
+        m_disasm56.lines.clear();
         const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kMainDspPC);
         if (pMem)
         {
             // Fetch data and decode the next instruction.
-            //hopper56::buffer_reader disasmBuf(pMem->GetData(), pMem->GetSize(), pMem->GetAddress());
-            //Disassembler::decode_buf(disasmBuf, m_disasm, m_pTargetModel->GetDisasmSettings(), pMem->GetAddress(), 1);
+            hop56::buffer_reader disasmBuf(pMem->GetData(), pMem->GetSize(), pMem->GetAddress());
+            hop56::decode_settings dummy;
+            Disassembler56::decode_buf(disasmBuf, m_disasm56, dummy, pMem->GetAddress(), 1);
         }
     }
 
@@ -371,9 +373,6 @@ void MainWindow::nextClickedSlot()
 {
     if (!m_pTargetModel->IsConnected())
         return;
-
-    m_pDispatcher->SendSaveBin(0x0, 0x1000, std::string("/tmp/saved.bin"));
-
 
     if (m_pTargetModel->IsRunning())
         return;

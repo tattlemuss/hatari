@@ -10,6 +10,7 @@
 #include <QMainWindow>
 #include "../models/memory.h"
 #include "../models/disassembler.h"
+#include "../models/disassembler56.h"
 #include "../models/targetmodel.h"
 
 class QPushButton;
@@ -160,6 +161,7 @@ private:
 
     // Target data -- used for single-stepping
     Disassembler::disassembly   m_disasm;
+    Disassembler56::disassembly m_disasm56;
 
     // Flush request made after all main state is fetched
     uint64_t                    m_mainStateUpdateRequest;
