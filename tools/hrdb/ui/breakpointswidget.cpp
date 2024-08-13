@@ -54,7 +54,9 @@ QVariant BreakpointsTableModel::data(const QModelIndex &index, int role) const
 
     if (role == Qt::DisplayRole)
     {
-        if (index.column() == kColExpression)
+        if (index.column() == kColProc)
+            return bp.m_proc == kProcCpu ? "CPU" : "DSP";
+        else if (index.column() == kColExpression)
             return QString(bp.m_expression.c_str());
         else if (index.column() == kColHitCount)
             return QString::number(bp.m_hitCount);
@@ -67,10 +69,9 @@ QVariant BreakpointsTableModel::data(const QModelIndex &index, int role) const
     }
     if (role == Qt::TextAlignmentRole)
     {
-        if (index.column() == kColExpression)
-            return Qt::AlignLeft;
-        return Qt::AlignRight;
-
+        if (index.column() == kColHitCount)
+            return Qt::AlignRight;
+        return Qt::AlignLeft;
     }
     return QVariant(); // invalid item
 }
@@ -83,6 +84,7 @@ QVariant BreakpointsTableModel::headerData(int section, Qt::Orientation orientat
         {
             switch (section)
             {
+            case kColProc:           return QString(tr("Proc"));
             case kColExpression:     return QString(tr("Expression"));
             case kColHitCount:       return QString(tr("Hit Count"));
             case kColOnce:           return QString(tr("Once?"));
@@ -92,9 +94,9 @@ QVariant BreakpointsTableModel::headerData(int section, Qt::Orientation orientat
         }
         if (role == Qt::TextAlignmentRole)
         {
-            if (section == kColExpression)
-                return Qt::AlignLeft;
-            return Qt::AlignRight;
+            if (section == kColHitCount)
+                return Qt::AlignRight;
+            return Qt::AlignLeft;
         }
     }
     return QVariant();
@@ -150,6 +152,7 @@ BreakpointsWindow::BreakpointsWindow(QWidget *parent, Session* pSession) :
     m_pTreeView->setSelectionBehavior(QAbstractItemView::SelectionBehavior::SelectRows);
     m_pTreeView->setSelectionMode(QAbstractItemView::SelectionMode::SingleSelection);
     m_pTreeView->header()->setSectionResizeMode(BreakpointsTableModel::kColExpression, QHeaderView::ResizeToContents);
+    m_pTreeView->header()->setSectionResizeMode(BreakpointsTableModel::kColProc, QHeaderView::ResizeToContents);
     m_pTreeView->header()->setStretchLastSection(false);
 
     // Layouts

@@ -19,6 +19,7 @@ class BreakpointsTableModel : public QAbstractTableModel
 public:
     enum Column
     {
+        kColProc,
         kColExpression,
         kColHitCount,
         kColOnce,
