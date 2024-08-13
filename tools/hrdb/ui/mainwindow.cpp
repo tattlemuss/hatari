@@ -482,7 +482,7 @@ void MainWindow::skipPressedSlot()
         return;
 
     const Disassembler::line& nextInst = m_disasm.lines[0];
-    m_pDispatcher->SetRegister(Registers::PC, nextInst.GetEnd());
+    m_pDispatcher->SetRegister(kProcCpu, Registers::PC, nextInst.GetEnd());
 }
 
 void MainWindow::runToClickedSlot()

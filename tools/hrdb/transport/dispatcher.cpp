@@ -181,11 +181,20 @@ uint64_t Dispatcher::DeleteBreakpoint(Processor proc, uint32_t breakpointId)
 }
 
 
-uint64_t Dispatcher::SetRegister(int reg, uint32_t val)
+uint64_t Dispatcher::SetRegister(Processor proc, int reg, uint32_t val)
 {
-    const char* pRegName = Registers::s_names[reg];
-    QString cmd = QString::asprintf("console r %s=$%x", pRegName, val);
-    return SendCommandPacket(cmd.toStdString().c_str());
+    if (proc == kProcCpu)
+    {
+        const char* pRegName = Registers::s_names[reg];
+        QString cmd = QString::asprintf("console r %s=$%x", pRegName, val);
+        return SendCommandPacket(cmd.toStdString().c_str());
+    }
+    else
+    {
+        const char* pRegName = DspRegisters::s_names[reg];
+        QString cmd = QString::asprintf("console dr %s=$%x", pRegName, val);
+        return SendCommandPacket(cmd.toStdString().c_str());
+    }
 }
 
 uint64_t Dispatcher::SetExceptionMask(uint32_t mask)

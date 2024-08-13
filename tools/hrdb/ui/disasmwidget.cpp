@@ -1151,7 +1151,10 @@ void DisasmWidget::SetPC(int row)
 
     Line& line = m_disasm[row];
     uint32_t addr = line.address;
-    m_pDispatcher->SetRegister(Registers::PC, addr);
+    if (m_proc == kProcCpu)
+        m_pDispatcher->SetRegister(kProcCpu, Registers::PC, addr);
+    else
+        m_pDispatcher->SetRegister(kProcDsp, DspRegisters::PC, addr);
 
     // Re-request values so that main window is updated
     m_pDispatcher->ReadRegisters();
