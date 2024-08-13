@@ -11,6 +11,7 @@
 #include "symboltable.h"
 #include "registers.h"
 #include "exceptionmask.h"
+#include "processor.h"
 #include "../hardware/hardware_st.h"
 #include "../hopper/decode.h"
 
@@ -59,15 +60,6 @@ class SearchResults
 {
 public:
     QVector<uint32_t> addresses;
-};
-
-// Identifies processor
-// WARNING: this is serialized in settings
-enum Processor
-{
-    kProcCpu = 0,
-    kProcDsp = 1,
-    kProcCount = 2
 };
 
 /*

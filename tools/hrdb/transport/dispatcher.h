@@ -4,6 +4,7 @@
 #include <string>
 #include <deque>
 #include "remotecommand.h"
+#include "../models/processor.h"
 #include <QObject>
 
 class QTcpSocket;
@@ -39,7 +40,7 @@ public:
     // CPU control
     uint64_t Break();
     uint64_t Run();
-    uint64_t Step();
+    uint64_t Step(Processor proc);
     uint64_t RunToPC(uint32_t pc);
 
     enum BreakpointFlags

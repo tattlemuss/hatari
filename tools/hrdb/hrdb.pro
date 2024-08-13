@@ -81,6 +81,7 @@ HEADERS += \
     models/exceptionmask.h \
     models/launcher.h \
     models/memory.h \
+    models/processor.h \
     models/profiledata.h \
     models/registers.h \
     models/session.h \

@@ -138,9 +138,12 @@ uint64_t Dispatcher::Run()
     return SendCommandPacket("run");
 }
 
-uint64_t Dispatcher::Step()
+uint64_t Dispatcher::Step(Processor proc)
 {
-    return SendCommandPacket("step");
+    if (proc == kProcCpu)
+        return SendCommandPacket("step");
+    else
+        return SendCommandPacket("dstep");
 }
 
 uint64_t Dispatcher::ReadRegisters()

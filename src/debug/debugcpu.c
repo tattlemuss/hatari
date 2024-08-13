@@ -1087,6 +1087,9 @@ void DebugCpu_InitSession(void)
 	Profile_CpuStop();
 }
 
+/**
+ * Set number of CPU instruction steps to be run before debug-break
+ */
 void DebugCpu_SetSteps(int steps)
 {
 	nCpuSteps = steps;

@@ -366,7 +366,7 @@ void MainWindow::singleStepClickedSlot()
     if (m_pTargetModel->IsRunning())
         return;
 
-    m_pDispatcher->Step();
+    m_pDispatcher->Step(kProcCpu);
 }
 
 void MainWindow::nextClickedSlot()
@@ -400,7 +400,7 @@ void MainWindow::nextClickedSlot()
     }
     else
     {
-        m_pDispatcher->Step();
+        m_pDispatcher->Step(kProcCpu);
     }
 }
 

@@ -667,3 +667,11 @@ void DebugDsp_InitSession(void)
 	dsp_disasm_addr = (uint16_t)History_DisasmAddr(DSP_GetPC(), MAX_DSP_DISASM_OFFSET, true);
 	Profile_DspStop();
 }
+
+/**
+ * Set number of CPU instruction steps to be run before debug-break
+ */
+void DebugDsp_SetSteps(int steps)
+{
+	nDspSteps = steps;
+}

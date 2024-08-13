@@ -33,6 +33,7 @@
 #include "debugui.h"	/* For DebugUI_RegisterRemoteDebug */
 #include "debug_priv.h"	/* For debugOutput control */
 #include "debugcpu.h"	/* For stepping */
+#include "debugdsp.h"	/* For stepping */
 #include "stMemory.h"
 #include "breakcond.h"
 #include "symbols.h"
@@ -527,6 +528,18 @@ static int RemoteDebug_break(int nArgc, char *psArgs[], RemoteDebugState* state)
 static int RemoteDebug_step(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	DebugCpu_SetSteps(1);
+	send_str(state, "OK");
+
+	// Restart
+	bRemoteBreakIsActive = false;
+	return 0;
+}
+
+// -----------------------------------------------------------------------------
+/* Step next instruction. This is currently a passthrough to the normal debugui code. */
+static int RemoteDebug_dstep(int nArgc, char *psArgs[], RemoteDebugState* state)
+{
+	DebugDsp_SetSteps(1);
 	send_str(state, "OK");
 
 	// Restart
@@ -1255,6 +1268,7 @@ static const rdbcommand_t remoteDebugCommandList[] = {
 	{ RemoteDebug_status,	"status"	, true		},
 	{ RemoteDebug_break,	"break"		, true		},
 	{ RemoteDebug_step,		"step"		, true		},
+	{ RemoteDebug_dstep,	"dstep"		, true		},
 	{ RemoteDebug_run,		"run"		, true		},
 	{ RemoteDebug_regs,		"regs"		, true		},
 	{ RemoteDebug_mem,		"mem"		, true		},
