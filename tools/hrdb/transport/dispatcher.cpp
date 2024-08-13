@@ -608,7 +608,9 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
             lastaddr = newaddr;
             ++numDeltas;
         }
-        m_pTargetModel->ProfileDeltaComplete(static_cast<int>(enabled));
+        // Don't send a signal if no deltas happened...
+        if (numDeltas)
+            m_pTargetModel->ProfileDeltaComplete(static_cast<int>(enabled));
     }  
     else if (type == "!symbols")
     {
