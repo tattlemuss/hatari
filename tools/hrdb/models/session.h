@@ -100,10 +100,6 @@ signals:
     // Qt seems to have no central message dispatch, so use signals/slots
     void addressRequested(WindowType windowType, int windowId, uint32_t address);
 
-    // Called by the main window when all data such as regs, breakpoints, symbols
-    // are updated.
-    void mainStateUpdated();
-
     // Called by UI elements to flag a shared message
     void messageSet(const QString& msg);
 

@@ -51,7 +51,8 @@ static int ShowResetWarning()
 MainWindow::MainWindow(Session& session, QWidget *parent)
     : QMainWindow(parent),
       m_session(session),
-      m_mainStateUpdateRequest(0),
+      m_mainStateStartedRequest(0),
+      m_mainStateCompleteRequest(0),
       m_liveRegisterReadRequest(0)
 {
     setObjectName("MainWindow");
@@ -284,11 +285,8 @@ void MainWindow::memoryChanged(int slot, uint64_t /*commandId*/)
             Disassembler56::decode_buf(disasmBuf, m_disasm56, dummy, pMem->GetAddress(), 1);
         }
     }
-
-    // This is the last part of the main state update, so flag it
-    if (slot == MemorySlot::kBasePage)
-        emit m_session.mainStateUpdated();
-}
+    // Flagging main state update end is now handled by Flush()
+ }
 
 void MainWindow::runningRefreshTimer()
 {
@@ -312,11 +310,16 @@ void MainWindow::flush(const TargetChangedFlags& /*flags*/, uint64_t commandId)
         requestMainState(m_pTargetModel->GetRegs().Get(Registers::PC));
         m_liveRegisterReadRequest = 0;
     }
-    else if (commandId == m_mainStateUpdateRequest)
+    else if (commandId == m_mainStateStartedRequest)
     {
-        // This is where we should
-        emit m_session.mainStateUpdated();
-        m_mainStateUpdateRequest = 0;
+        m_pTargetModel->SetMainUpdate(true);
+        m_mainStateStartedRequest = 0;
+    }
+    else if (commandId == m_mainStateCompleteRequest)
+    {
+        // This is where we should flag completion
+        m_pTargetModel->SetMainUpdate(false);
+        m_mainStateCompleteRequest = 0;
     }
 }
 
@@ -724,6 +727,9 @@ void MainWindow::messageSet(const QString &msg)
 
 void MainWindow::requestMainState(uint32_t pc)
 {
+    // Insert flag for the start of main state updating
+    m_mainStateStartedRequest = m_pDispatcher->InsertFlush();
+
     // Do all the "essentials" straight away.
     m_pDispatcher->ReadRegisters();
 
@@ -740,7 +746,7 @@ void MainWindow::requestMainState(uint32_t pc)
 
     // Basepage makes things much easier
     m_pDispatcher->ReadMemory(MemorySlot::kBasePage, 0, 0x200);
-    m_mainStateUpdateRequest = m_pDispatcher->InsertFlush();
+    m_mainStateCompleteRequest = m_pDispatcher->InsertFlush();
 }
 
 void MainWindow::createActions()

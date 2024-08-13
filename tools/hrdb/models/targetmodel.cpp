@@ -33,6 +33,7 @@ TargetModel::TargetModel() :
     m_bConnected(false),
     m_bRunning(true),
     m_bProfileEnabled(0),
+    m_mainUpdateActive(false),
     m_startStopPc(0),
     m_startStopDspPc(0),
     m_ffwd(false)
@@ -81,6 +82,7 @@ void TargetModel::SetConnected(int connected)
         m_pRunningRefreshTimer->stop();
     }
 
+    m_mainUpdateActive = false;
     emit connectChangedSignal();
 }
 

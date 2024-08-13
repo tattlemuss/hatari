@@ -110,13 +110,13 @@ RegisterWidget::RegisterWidget(QWidget *parent, Session* pSession) :
     connect(m_pTargetModel, &TargetModel::memoryChangedSignal,           this, &RegisterWidget::memoryChanged);
     connect(m_pTargetModel, &TargetModel::symbolTableChangedSignal,      this, &RegisterWidget::symbolTableChanged);
     connect(m_pTargetModel, &TargetModel::startStopChangedSignalDelayed, this, &RegisterWidget::startStopDelayed);
+    connect(m_pTargetModel, &TargetModel::mainStateCompletedSignal,      this, &RegisterWidget::mainStateUpdated);
 
     // Context menus
     connect(m_pShowCpuAction,   &QAction::triggered,                     this, &RegisterWidget::showCpuTriggered);
     connect(m_pShowDspAction,   &QAction::triggered,                     this, &RegisterWidget::showDspTriggered);
 
     connect(m_pSession, &Session::settingsChanged,  this, &RegisterWidget::settingsChanged);
-    connect(m_pSession, &Session::mainStateUpdated, this, &RegisterWidget::mainStateUpdated);
 
     setFocusPolicy(Qt::FocusPolicy::StrongFocus);
     setMouseTracking(true);
@@ -384,6 +384,8 @@ void RegisterWidget::memoryChanged(int slot, uint64_t /*commandId*/)
 
 void RegisterWidget::symbolTableChanged(uint64_t /*commandId*/)
 {
+    if (m_pTargetModel->IsMainStateUpdating())
+        return;
     PopulateRegisters();
 }
 

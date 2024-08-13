@@ -138,6 +138,14 @@ public:
     // emits flushSignal()
     void Flush(uint64_t commmandId);
 
+    void SetMainUpdate(bool active)
+    {
+        assert(active != m_mainUpdateActive);
+        m_mainUpdateActive = active;
+        if (!active)
+            emit mainStateCompletedSignal();
+    }
+
     // =========================== DATA ACCESS =================================
 	// NOTE: all these return copies to avoid data contention
     MACHINETYPE	GetMachineType() const { return m_machineType; }
@@ -151,6 +159,7 @@ public:
     int IsRunning() const { return m_bRunning; }
     int IsFastForward() const { return m_ffwd; }
     int IsProfileEnabled() const { return m_bProfileEnabled; }
+    bool IsMainStateUpdating() const { return m_mainUpdateActive; }
 
     // This is the PC from start/stop notifications, so it's not valid when
     // running
@@ -228,6 +237,9 @@ signals:
 
     // Profile data changed
     void profileChangedSignal();
+
+    // The full main state is now available after start/stop.
+    void mainStateCompletedSignal();
 private slots:
 
     // Called shortly after stop notification received
@@ -248,6 +260,8 @@ private:
     int             m_bConnected;       // 0 == disconnected, 1 == connected
     int             m_bRunning;         // 0 == stopped, 1 == running
     int             m_bProfileEnabled;  // 0 == off, 1 == collecting
+
+    bool            m_mainUpdateActive; // Whether the big Main Window update is active
     uint32_t        m_startStopPc;      // PC register (for next instruction)
     uint32_t        m_startStopDspPc;   //  DSPPC register (for next instruction)
     int             m_ffwd;             // 0 == normal, 1 == fast forward mode

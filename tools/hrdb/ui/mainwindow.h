@@ -163,8 +163,11 @@ private:
     Disassembler::disassembly   m_disasm;
     Disassembler56::disassembly m_disasm56;
 
+    // Flush request made before main state is fetched
+    uint64_t                    m_mainStateStartedRequest;
+
     // Flush request made after all main state is fetched
-    uint64_t                    m_mainStateUpdateRequest;
+    uint64_t                    m_mainStateCompleteRequest;
 
     // Flush request made by live update (fetching registers)
     uint64_t                    m_liveRegisterReadRequest;

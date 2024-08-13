@@ -84,6 +84,7 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex, 
     connect(m_pTargetModel, &TargetModel::registersChangedSignal,   this, &DisasmWidget::CalcAnnotations68);
     connect(m_pTargetModel, &TargetModel::otherMemoryChangedSignal, this, &DisasmWidget::otherMemoryChanged);
     connect(m_pTargetModel, &TargetModel::profileChangedSignal,     this, &DisasmWidget::profileChanged);
+    connect(m_pTargetModel, &TargetModel::mainStateCompletedSignal, this, &DisasmWidget::mainStateCompleted);
 
     // UI connects
     connect(m_pRunUntilAction,       &QAction::triggered, this, &DisasmWidget::runToCursorRightClick);
@@ -412,10 +413,13 @@ void DisasmWidget::memoryChanged(int memorySlot, uint64_t commandId)
 
     // Cache it for later
     m_memory = *pMemOrig;
-    CalcDisasm();
-
     // Clear the request, to say we are up to date
     m_requestId = 0;
+
+    if (m_pTargetModel->IsMainStateUpdating())
+        return;     // will be done later
+    CalcDisasm();
+
     update();
 }
 
@@ -423,6 +427,8 @@ void DisasmWidget::breakpointsChanged(uint64_t /*commandId*/)
 {
     // Cache data
     m_breakpoints = m_pTargetModel->GetBreakpoints();
+    if (m_pTargetModel->IsMainStateUpdating())
+        return;     // update will be done later
     CalcDisasm();
     update();
 }
@@ -431,6 +437,8 @@ void DisasmWidget::symbolTableChanged(uint64_t /*commandId*/)
 {
     // Don't copy here, just force a re-read
 //    emit dataChanged(this->createIndex(0, 0), this->createIndex(m_rowCount - 1, kColCount));
+    if (m_pTargetModel->IsMainStateUpdating())
+        return;     // update will be done later
     CalcDisasm();
     update();
 }
@@ -445,6 +453,15 @@ void DisasmWidget::otherMemoryChanged(uint32_t address, uint32_t size)
 }
 
 void DisasmWidget::profileChanged()
+{
+    if (m_pTargetModel->IsMainStateUpdating())
+        return;     // update will be done later
+    RecalcColumnWidths();
+    CalcDisasm();
+    update();
+}
+
+void DisasmWidget::mainStateCompleted()
 {
     RecalcColumnWidths();
     CalcDisasm();

@@ -66,6 +66,7 @@ private:
     void symbolTableChanged(uint64_t commandId);
     void otherMemoryChanged(uint32_t address, uint32_t size);
     void profileChanged();
+    void mainStateCompleted();
 
     // From keyPressEvent
     void runToCursor();
