@@ -144,6 +144,8 @@ public:
         return m_value[reg];
     }
 
+    static const char* GetSRBitName(uint32_t bit);
+
     void Set(uint32_t reg, uint64_t val);
 
     enum

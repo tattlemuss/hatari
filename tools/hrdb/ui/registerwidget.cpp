@@ -67,6 +67,13 @@ static QString CreateSRTooltip(uint32_t srRegValue, uint32_t registerBit)
                              valSet ? "TRUE" : "False");
 }
 
+static QString CreateDspSRTooltip(uint32_t srRegValue, uint32_t registerBit)
+{
+    uint32_t valSet = (srRegValue >> registerBit) & 1;
+    return QString::asprintf("%s = %s", DspRegisters::GetSRBitName(registerBit),
+                             valSet ? "TRUE" : "False");
+}
+
 static QString CreateCACRTooltip(uint32_t cacrRegValue, uint32_t registerBit)
 {
     uint32_t valSet = (cacrRegValue >> registerBit) & 1;
@@ -420,16 +427,16 @@ void RegisterWidget::PopulateRegisters()
         // Status register
         ++row;
         AddReg16(2, row, Registers::SR, m_prevRegs, m_currRegs);
-        AddSRBit(11, row, m_prevRegs, m_currRegs, Registers::SRBits::kTrace1, "T");
-        AddSRBit(15, row, m_prevRegs, m_currRegs, Registers::SRBits::kSupervisor, "S");
-
-        AddSRBit(20, row, m_prevRegs, m_currRegs, Registers::SRBits::kX, "X");
-        AddSRBit(24, row, m_prevRegs, m_currRegs, Registers::SRBits::kN, "N");
-        AddSRBit(28, row, m_prevRegs, m_currRegs, Registers::SRBits::kZ, "Z");
-        AddSRBit(32, row, m_prevRegs, m_currRegs, Registers::SRBits::kV, "V");
-        AddSRBit(36, row, m_prevRegs, m_currRegs, Registers::SRBits::kC, "C");
+        int col = 11;
+        col = AddSRBit(col, row, m_prevRegs, m_currRegs, Registers::SRBits::kTrace1, "T");
+        col = AddSRBit(col, row, m_prevRegs, m_currRegs, Registers::SRBits::kSupervisor, "S");
+        col = AddSRBit(col, row, m_prevRegs, m_currRegs, Registers::SRBits::kX, "X");
+        col = AddSRBit(col, row, m_prevRegs, m_currRegs, Registers::SRBits::kN, "N");
+        col = AddSRBit(col, row, m_prevRegs, m_currRegs, Registers::SRBits::kZ, "Z");
+        col = AddSRBit(col, row, m_prevRegs, m_currRegs, Registers::SRBits::kV, "V");
+        col = AddSRBit(col, row, m_prevRegs, m_currRegs, Registers::SRBits::kC, "C");
         QString iplLevel = QString::asprintf("IPL=%u", (m_currRegs.m_value[Registers::SR] >> 8 & 0x7));
-        AddToken(40, row, iplLevel, TokenType::kNone);
+        col = AddToken(col + 2, row, iplLevel, TokenType::kNone);
 
         row += 2;
 
@@ -451,7 +458,7 @@ void RegisterWidget::PopulateRegisters()
                     ref << " [NOT TAKEN]";
             }
 
-            int col = AddToken(2, row, disasmText, TokenType::kNone, 0, TokenColour::kCode) + 5;
+            col = AddToken(2, row, disasmText, TokenType::kNone, 0, TokenColour::kCode) + 5;
 
             // Comments
             if (m_disasm.lines.size() != 0)
@@ -573,14 +580,14 @@ void RegisterWidget::PopulateRegisters()
         col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kS0, "S0");
         col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kI1, "I1");
         col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kI0, "I0");
-        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kS, "S");
-        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kL, "L");
-        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kE, "E");
-        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kU, "U");
-        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kN, "N");
-        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kZ, "Z");
-        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kV, "V");
-        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kC, "C");
+        col = 0 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kS, "S");
+        col = 0 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kL, "L");
+        col = 0 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kE, "E");
+        col = 0 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kU, "U");
+        col = 0 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kN, "N");
+        col = 0 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kZ, "Z");
+        col = 0 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kV, "V");
+        col = 0 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kC, "C");
 
         // Row 1 -- instruction and analysis
         if (m_disasmDsp.lines.size() > 0)
@@ -751,8 +758,13 @@ int RegisterWidget::AddSRBit(int x, int y, const Registers& prevRegs, const Regi
     uint32_t valOld = (prevRegs.m_value[Registers::SR] >> bit) & 1;
 
     TokenColour highlight = (valNew != valOld) ? kChanged : kNormal;
-    QString text = QString::asprintf("%s=%x", pName, valNew);
-    return AddToken(x, y, QString(text), TokenType::kStatusRegisterBit, bit, highlight);
+    QString text;
+    if (valNew)
+        text = pName;
+    else
+        text = QString("-").repeated(strlen(pName));
+    //QString text = QString::asprintf("%s=%x", pName, valNew);
+    return AddToken(x, y, text, TokenType::kStatusRegisterBit, bit, highlight);
 }
 
 int RegisterWidget::AddDspSRBit(int x, int y, const DspRegisters& prevRegs, const DspRegisters& regs, uint32_t bit, const char* pName)
@@ -761,7 +773,11 @@ int RegisterWidget::AddDspSRBit(int x, int y, const DspRegisters& prevRegs, cons
     uint32_t valOld = (prevRegs.Get(DspRegisters::SR) >> bit) & 1;
 
     TokenColour highlight = (valNew != valOld) ? kChanged : kNormal;
-    QString text = QString::asprintf("%s=%x", pName, valNew);
+    QString text;
+    if (valNew)
+        text = pName;
+    else
+        text = QString("-").repeated(strlen(pName));
     return AddToken(x, y, QString(text), TokenType::kDspStatusRegisterBit, bit, highlight);
 }
 
@@ -801,6 +817,8 @@ QString RegisterWidget::GetTooltipText(const RegisterWidget::Token& token)
         return QString::asprintf("Original address: $%08x", token.subIndex);
     case TokenType::kStatusRegisterBit:
          return CreateSRTooltip(m_currRegs.Get(Registers::SR), token.subIndex);
+    case TokenType::kDspStatusRegisterBit:
+         return CreateDspSRTooltip(m_currDspRegs.Get(DspRegisters::SR), token.subIndex);
     case TokenType::kCACRBit:
          return CreateCACRTooltip(m_currRegs.Get(Registers::CACR), token.subIndex);
     default:

@@ -137,3 +137,26 @@ void DspRegisters::Set(uint32_t reg, uint64_t val)
         m_value[Y] = (m_value[Y1] << 24) | m_value[Y0]; break;
     }
 }
+
+const char* DspRegisters::GetSRBitName(uint32_t bit)
+{
+    switch (bit)
+    {
+    case kLF: return "Loop Flag";   // Loop
+    case kDM: return "Double-Precision Multiply";
+    case kT : return "Trace";
+    case kS1: return "Scaling 1";
+    case kS0: return "Scaling 0";
+    case kI1: return "Interrupt Level 1";
+    case kI0: return "Interrupt Level 0";
+    case kS : return "Scaling";     // Scaling
+    case kL : return "Limit";
+    case kE : return "Extension";
+    case kU : return "Unnormalized";
+    case kN : return "Negative";
+    case kZ : return "Zero";
+    case kV : return "oVerflow";
+    case kC : return "Carry";
+    }
+    return "";
+}
