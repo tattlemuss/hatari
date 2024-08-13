@@ -1182,13 +1182,8 @@ void DisasmWidget::SetMode(Mode mode)
     // Remember address before we switch out of the mode.
     m_lastAddress[m_mode] = m_logicalAddr;
 
+    // Set up per-mode settings before requesting the memory address.
     m_mode = mode;
-    uint32_t newAddr = m_lastAddress[mode];
-    if (m_bFollowPC)
-        SetAddress(GetPC());
-    else
-        SetAddress(newAddr);
-
     if (mode == CPU_MODE)
     {
         m_minInstSize = 2;
@@ -1199,6 +1194,12 @@ void DisasmWidget::SetMode(Mode mode)
         m_minInstSize = 1;
         m_maxInstSize = 2;
     }
+
+    uint32_t newAddr = m_lastAddress[mode];
+    if (m_bFollowPC)
+        SetAddress(GetPC());
+    else
+        SetAddress(newAddr);
 }
 
 void DisasmWidget::printEA(const hop68::operand& op, const Registers& regs, uint32_t address, QTextStream& ref) const
