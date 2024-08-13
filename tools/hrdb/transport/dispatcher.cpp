@@ -151,9 +151,10 @@ uint64_t Dispatcher::ReadRegisters()
     return SendCommandPacket("regs");
 }
 
-uint64_t Dispatcher::RunToPC(uint32_t next_pc)
+uint64_t Dispatcher::RunToPC(Processor proc, uint32_t next_pc)
 {
-    QString str = QString::asprintf("bp pc = $%x : once", next_pc);
+    const char* cmd = (proc == kProcCpu) ? "bp" : "dbp";
+    QString str = QString::asprintf("%s pc = $%x : once", cmd, next_pc);
     SendCommandPacket(str.toStdString().c_str());
     return SendCommandPacket("run");
 }

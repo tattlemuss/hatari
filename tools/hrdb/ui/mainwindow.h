@@ -65,7 +65,9 @@ private:
 private slots:
     void startStopClickedSlot();
     void singleStepClickedSlot();
+    void singleStepDspClickedSlot();
     void nextClickedSlot();
+    void nextDspClickedSlot();
     void skipPressedSlot();
     void runToClickedSlot();
     void cycleRunToSlot();

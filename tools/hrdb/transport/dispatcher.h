@@ -41,7 +41,7 @@ public:
     uint64_t Break();
     uint64_t Run();
     uint64_t Step(Processor proc);
-    uint64_t RunToPC(uint32_t pc);
+    uint64_t RunToPC(Processor proc, uint32_t pc);
 
     enum BreakpointFlags
     {

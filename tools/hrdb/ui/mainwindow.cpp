@@ -78,7 +78,7 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     m_pStartStopButton->setToolTip("Ctrl+R: Run/Stop, Esc: Stop");
     m_pStepIntoButton->setToolTip("S: Execute one instruction.\n"
             "Jumps into subroutines.\n"
-            "Shift+S: skip instruction.");
+            "Ctrl+S: skip instruction.");
     m_pStepOverButton->setToolTip("N: Stop at next instruction in memory.\n"
             "Jumps over subroutines and through backwards loops.");
 
@@ -200,8 +200,10 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     new QShortcut(QKeySequence("Ctrl+R"),         this, SLOT(startStopClickedSlot()));
     new QShortcut(QKeySequence("Esc"),            this, SLOT(breakPressedSlot()));
     new QShortcut(QKeySequence("S"),              this, SLOT(singleStepClickedSlot()));
+    new QShortcut(QKeySequence("Shift+S"),        this, SLOT(singleStepDspClickedSlot()));
     new QShortcut(QKeySequence("Ctrl+S"),         this, SLOT(skipPressedSlot()));
     new QShortcut(QKeySequence("N"),              this, SLOT(nextClickedSlot()));
+    new QShortcut(QKeySequence("Shift+N"),        this, SLOT(nextDspClickedSlot()));
     new QShortcut(QKeySequence("U"),              this, SLOT(runToClickedSlot()));
     new QShortcut(QKeySequence("Ctrl+Shift+U"),   this, SLOT(cycleRunToSlot()));
     // Specific "Run until" modes
@@ -252,7 +254,7 @@ void MainWindow::startStopChanged()
         // The Main Window does this and other windows feed from it.
         // NOTE: we assume here that PC is already updated (normally this
         // is done with a notification at the stop)
-        requestMainState(m_pTargetModel->GetStartStopPC());
+        requestMainState(m_pTargetModel->GetStartStopPC(kProcCpu));
     }
     PopulateRunningSquare();
     updateButtonEnable();
@@ -372,6 +374,17 @@ void MainWindow::singleStepClickedSlot()
     m_pDispatcher->Step(kProcCpu);
 }
 
+void MainWindow::singleStepDspClickedSlot()
+{
+    if (!m_pTargetModel->IsConnected())
+        return;
+
+    if (m_pTargetModel->IsRunning())
+        return;
+
+    m_pDispatcher->Step(kProcDsp);
+}
+
 void MainWindow::nextClickedSlot()
 {
     if (!m_pTargetModel->IsConnected())
@@ -388,7 +401,7 @@ void MainWindow::nextClickedSlot()
     // the PC we are stepping from. This slows down stepping a little (since there is
     // a round-trip). In theory we could send the next instruction opcode as part of
     // the "status" notification if we want it to be faster.
-    if(m_disasm.lines[0].address != m_pTargetModel->GetStartStopPC())
+    if(m_disasm.lines[0].address != m_pTargetModel->GetStartStopPC(kProcCpu))
         return;
 
     const Disassembler::line& nextInst = m_disasm.lines[0];
@@ -399,11 +412,53 @@ void MainWindow::nextClickedSlot()
     if (shouldStepOver)
     {
         uint32_t next_pc = nextInst.inst.byte_count + nextInst.address;
-        m_pDispatcher->RunToPC(next_pc);
+        m_pDispatcher->RunToPC(kProcCpu, next_pc);
     }
     else
     {
         m_pDispatcher->Step(kProcCpu);
+    }
+}
+
+void MainWindow::nextDspClickedSlot()
+{
+    if (!m_pTargetModel->IsConnected())
+        return;
+
+    if (m_pTargetModel->IsRunning())
+        return;
+
+    // Work out where the next PC is
+    if (m_disasm56.lines.size() == 0)
+        return;
+
+    // Bug fix: we can't decide on how to step until the available disassembly matches
+    // the PC we are stepping from. This slows down stepping a little (since there is
+    // a round-trip). In theory we could send the next instruction opcode as part of
+    // the "status" notification if we want it to be faster.
+
+    uint32_t pc = m_pTargetModel->GetStartStopPC(kProcDsp);
+    if(m_disasm56.lines[0].address != pc)
+        return;
+
+    const Disassembler56::line& currLine = m_disasm56.lines[0];
+    // Either "next" or set breakpoint to following instruction
+    bool shouldStepOver = DisAnalyse56::isSubroutine(currLine.inst);
+
+    // Step over branches-to-self too
+    uint32_t targetAddr = -1;
+    bool isBranch = DisAnalyse56::getBranchTarget(currLine.inst, targetAddr);
+    if (isBranch && targetAddr == currLine.address)
+        shouldStepOver = true;
+
+    if (shouldStepOver)
+    {
+        uint32_t next_pc = currLine.inst.word_count + currLine.address;
+        m_pDispatcher->RunToPC(kProcDsp, next_pc);
+    }
+    else
+    {
+        m_pDispatcher->Step(kProcDsp);
     }
 }
 
@@ -423,7 +478,7 @@ void MainWindow::skipPressedSlot()
     // the PC we are stepping from. This slows down stepping a little (since there is
     // a round-trip). In theory we could send the next instruction opcode as part of
     // the "status" notification if we want it to be faster.
-    if(m_disasm.lines[0].address != m_pTargetModel->GetStartStopPC())
+    if(m_disasm.lines[0].address != m_pTargetModel->GetStartStopPC(kProcCpu))
         return;
 
     const Disassembler::line& nextInst = m_disasm.lines[0];
@@ -742,7 +797,7 @@ void MainWindow::requestMainState(uint32_t pc)
 
     // TODO need a better "has DSP" check here
     if (m_pTargetModel->IsDspActive())
-        m_pDispatcher->ReadDspMemory(MemorySlot::kMainDspPC, 'P', m_pTargetModel->GetStartStopDspPC(), 2);
+        m_pDispatcher->ReadDspMemory(MemorySlot::kMainDspPC, 'P', m_pTargetModel->GetStartStopPC(kProcDsp), 2);
 
     // Basepage makes things much easier
     m_pDispatcher->ReadMemory(MemorySlot::kBasePage, 0, 0x200);

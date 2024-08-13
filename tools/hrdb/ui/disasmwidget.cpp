@@ -347,7 +347,7 @@ void DisasmWidget::RunToRow(int row)
     if (row >= 0 && row < m_disasm.size())
     {
         Line& line = m_disasm[row];
-        m_pDispatcher->RunToPC(line.address);
+        m_pDispatcher->RunToPC(m_proc, line.address);
     }
 }
 
@@ -890,7 +890,7 @@ void DisasmWidget::CalcDisasm56()
         // Address
         uint32_t addr = line.address;
         t.address = QString::asprintf("P:$%04x", addr);
-        t.isPc = line.address == m_pTargetModel->GetStartStopDspPC();
+        t.isPc = line.address == m_pTargetModel->GetStartStopPC(kProcDsp);
         t.isBreakpoint = false;
         t.hex.clear();
         t.symbol.clear();
@@ -1224,7 +1224,7 @@ void DisasmWidget::printEA(const hop68::operand& op, const Registers& regs, uint
     uint32_t ea;
 
     // Only do a full analysis if this is the PC and therefore the registers are valid...
-    if (Disassembler::calc_fixed_ea(op, address == m_pTargetModel->GetStartStopPC(), regs, address, ea))
+    if (Disassembler::calc_fixed_ea(op, address == m_pTargetModel->GetStartStopPC(kProcCpu), regs, address, ea))
     {
         ea &= 0xffffff; // mask for ST hardware range
         ref << "$" << QString::asprintf("%x", ea);
@@ -1389,9 +1389,7 @@ void DisasmWidget::ContextMenu(int row, QPoint globalPos)
 
 uint32_t DisasmWidget::GetPC() const
 {
-    return m_proc == kProcCpu ?
-                m_pTargetModel->GetStartStopPC() :
-                m_pTargetModel->GetStartStopDspPC();
+    return m_pTargetModel->GetStartStopPC(m_proc);
 }
 
 //-----------------------------------------------------------------------------

@@ -800,7 +800,7 @@ static int RemoteDebug_memset(int nArgc, char *psArgs[], RemoteDebugState* state
 }
 
 // -----------------------------------------------------------------------------
-/* Set a breakpoint at an address. */
+/* Set a CPU breakpoint at an address. */
 static int RemoteDebug_bp(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	int arg = 1;
@@ -808,6 +808,23 @@ static int RemoteDebug_bp(int nArgc, char *psArgs[], RemoteDebugState* state)
 	{
 		// Pass to standard simple function
 		if (BreakCond_Command(psArgs[arg], false))
+		{
+			send_str(state, "OK");
+			return 0;
+		}
+	}
+	return 1;
+}
+
+// -----------------------------------------------------------------------------
+/* Set a DSP breakpoint at an address. */
+static int RemoteDebug_dbp(int nArgc, char *psArgs[], RemoteDebugState* state)
+{
+	int arg = 1;
+	if (nArgc >= arg + 1)
+	{
+		// Pass to standard simple function
+		if (BreakCond_Command(psArgs[arg], true))
 		{
 			send_str(state, "OK");
 			return 0;
@@ -1274,6 +1291,7 @@ static const rdbcommand_t remoteDebugCommandList[] = {
 	{ RemoteDebug_mem,		"mem"		, true		},
 	{ RemoteDebug_memset,	"memset"	, true		},
 	{ RemoteDebug_bp,		"bp"		, false		},
+	{ RemoteDebug_dbp,		"dbp"		, false		},
 	{ RemoteDebug_bplist,	"bplist"	, true		},
 	{ RemoteDebug_bpdel,	"bpdel"		, true		},
 	{ RemoteDebug_symlist,	"symlist"	, true		},

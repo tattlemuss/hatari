@@ -163,8 +163,7 @@ public:
 
     // This is the PC from start/stop notifications, so it's not valid when
     // running
-    uint32_t GetStartStopPC() const { return m_startStopPc; }
-    uint32_t GetStartStopDspPC() const { return m_startStopDspPc; }
+    uint32_t GetStartStopPC(Processor proc) const;
     Registers GetRegs() const { return m_regs; }
     DspRegisters GetDspRegs() const { return m_dspRegs; }
 

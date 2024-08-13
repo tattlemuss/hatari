@@ -234,6 +234,14 @@ void TargetModel::Flush(uint64_t commmandId)
     m_changedFlags.Clear();
 }
 
+uint32_t TargetModel::GetStartStopPC(Processor proc) const
+{
+    if (proc == kProcCpu)
+        return m_startStopPc;
+    else
+        return m_startStopDspPc;
+}
+
 void TargetModel::GetProfileData(uint32_t addr, uint32_t& count, uint32_t& cycles) const
 {
     m_pProfileData->Get(addr, count, cycles);
