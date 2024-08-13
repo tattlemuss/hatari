@@ -51,7 +51,7 @@ public:
         kBpFlagTrace = 1 << 1
     };
 
-    uint64_t SetBreakpoint(std::string expression, uint64_t optionFlags);
+    uint64_t SetBreakpoint(Processor proc, std::string expression, uint64_t optionFlags);
     uint64_t DeleteBreakpoint(uint32_t breakpointId);
 
     uint64_t SetRegister(int reg, uint32_t val);

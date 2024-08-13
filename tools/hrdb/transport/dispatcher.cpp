@@ -159,16 +159,17 @@ uint64_t Dispatcher::RunToPC(Processor proc, uint32_t next_pc)
     return SendCommandPacket("run");
 }
 
-uint64_t Dispatcher::SetBreakpoint(std::string expression, uint64_t optionFlags)
+uint64_t Dispatcher::SetBreakpoint(Processor proc, std::string expression, uint64_t optionFlags)
 {
-    std::string command = std::string("bp " + expression);
+    const char* cmd = (proc == kProcCpu) ? "bp" : "dbp";
+    QString command = QString::asprintf("%s %s", cmd, expression.c_str());
 
     // Add extra options
     if (optionFlags & kBpFlagOnce)
         command += ": once";
     if (optionFlags & kBpFlagTrace)
         command += ": trace";
-    SendCommandShared(MemorySlot::kNone, command);
+    SendCommandShared(MemorySlot::kNone, command.toStdString().c_str());
     return SendCommandShared(MemorySlot::kNone, "bplist"); // update state
 }
 

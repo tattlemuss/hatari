@@ -115,7 +115,7 @@ void AddBreakpointDialog::okClicked()
         if (m_pTraceCheckBox->isChecked())
             flags |= Dispatcher::kBpFlagTrace;
 
-        m_pDispatcher->SetBreakpoint(m_pExpressionEdit->text().toStdString(), flags);
+        m_pDispatcher->SetBreakpoint(kProcCpu, m_pExpressionEdit->text().toStdString(), flags);
     }
 }
 

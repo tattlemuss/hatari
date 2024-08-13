@@ -714,15 +714,15 @@ void MainWindow::runTo(MainWindow::RunToMode mode)
         return;
 
     if (mode == kRunToRts)
-        m_pDispatcher->SetBreakpoint("(pc).w = $4e75", Dispatcher::kBpFlagOnce);   // RTS
+        m_pDispatcher->SetBreakpoint(kProcCpu, "(pc).w = $4e75", Dispatcher::kBpFlagOnce);   // RTS
     else if (mode == kRunToRte)
-        m_pDispatcher->SetBreakpoint("(pc).w = $4e73", Dispatcher::kBpFlagOnce);   // RTE
+        m_pDispatcher->SetBreakpoint(kProcCpu, "(pc).w = $4e73", Dispatcher::kBpFlagOnce);   // RTE
     else if (mode == kRunToVbl)
-        m_pDispatcher->SetBreakpoint("VBL ! VBL", Dispatcher::kBpFlagOnce);        // VBL
+        m_pDispatcher->SetBreakpoint(kProcCpu, "VBL ! VBL", Dispatcher::kBpFlagOnce);        // VBL
     else if (mode == kRunToHbl)
-        m_pDispatcher->SetBreakpoint("HBL ! HBL", Dispatcher::kBpFlagOnce);        // VBL
+        m_pDispatcher->SetBreakpoint(kProcCpu, "HBL ! HBL", Dispatcher::kBpFlagOnce);        // VBL
     else if (mode == kRunToRam)
-        m_pDispatcher->SetBreakpoint("PC < $e00000", Dispatcher::kBpFlagOnce);     // Not in TOS
+        m_pDispatcher->SetBreakpoint(kProcCpu, "PC < $e00000", Dispatcher::kBpFlagOnce);     // Not in TOS
     else
         return;
     // start execution again

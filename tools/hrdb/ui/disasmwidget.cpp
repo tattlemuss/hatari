@@ -1117,6 +1117,7 @@ void DisasmWidget::ToggleBreakpoint(int row)
     const Breakpoints& bp = m_pTargetModel->GetBreakpoints();
     for (size_t i = 0; i < bp.m_breakpoints.size(); ++i)
     {
+        // NO CHECK test CPU type
         if (bp.m_breakpoints[i].m_pcHack == addr)
         {
             m_pDispatcher->DeleteBreakpoint(bp.m_breakpoints[i].m_id);
@@ -1126,7 +1127,7 @@ void DisasmWidget::ToggleBreakpoint(int row)
     if (!removed)
     {
         QString cmd = QString::asprintf("pc = $%x", addr);
-        m_pDispatcher->SetBreakpoint(cmd.toStdString().c_str(), Dispatcher::kBpFlagNone);
+        m_pDispatcher->SetBreakpoint(m_proc, cmd.toStdString().c_str(), Dispatcher::kBpFlagNone);
     }
 }
 
