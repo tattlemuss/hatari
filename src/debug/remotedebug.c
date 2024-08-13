@@ -1222,16 +1222,13 @@ static int RemoteDebug_dmem(int nArgc, char *psArgs[], RemoteDebugState* state)
 	if (nArgc >= arg + 3)
 	{
 		memspace = psArgs[arg][0];
-		printf("DMEM: %c\n", memspace);
 		if (memspace != 'X' && memspace != 'Y' && memspace != 'P')
 			return 1;
 		++arg;
 
-		printf("%s\n", psArgs[arg]);
 		if (!read_hex32_value(psArgs[arg], &memdump_addr))
 			return 1;
 		++arg;
-		printf("%s\n", psArgs[arg]);
 		if (!read_hex32_value(psArgs[arg], &memdump_count))
 			return 1;
 		++arg;
