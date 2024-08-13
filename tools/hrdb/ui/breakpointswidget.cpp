@@ -208,7 +208,7 @@ void BreakpointsWindow::deleteBreakpointClicked()
     Breakpoint bp;
     if (m_pTableModel->GetBreakpoint(m_pTreeView->currentIndex().row(), bp))
     {
-        m_pDispatcher->DeleteBreakpoint(bp.m_id);
+        m_pDispatcher->DeleteBreakpoint(bp.m_proc, bp.m_id);
     }
 }
 

@@ -173,9 +173,9 @@ uint64_t Dispatcher::SetBreakpoint(Processor proc, std::string expression, uint6
     return SendCommandShared(MemorySlot::kNone, "bplist"); // update state
 }
 
-uint64_t Dispatcher::DeleteBreakpoint(uint32_t breakpointId)
+uint64_t Dispatcher::DeleteBreakpoint(Processor proc, uint32_t breakpointId)
 {
-    QString cmd = QString::asprintf("bpdel %x", breakpointId);
+    QString cmd = QString::asprintf("bpdel %x %x", proc, breakpointId);
     SendCommandPacket(cmd.toStdString().c_str());
     return SendCommandPacket("bplist");
 }
@@ -761,13 +761,23 @@ void Dispatcher::ParseBplist(StringSplitter& splitResp, const RemoteCommand& cmd
     for (uint32_t i = 0; i < count; ++i)
     {
         Breakpoint bp;
-        bp.m_id = i + 1;        // IDs in Hatari start at 1 :(
+
+        std::string procStr = splitResp.Split(SEP_CHAR);
+        std::string idStr = splitResp.Split(SEP_CHAR);
         bp.SetExpression(splitResp.Split(SEP_CHAR));
         std::string ccountStr = splitResp.Split(SEP_CHAR);
         std::string hitsStr = splitResp.Split(SEP_CHAR);
         std::string onceStr = splitResp.Split(SEP_CHAR);
         std::string quietStr = splitResp.Split(SEP_CHAR);
         std::string traceStr = splitResp.Split(SEP_CHAR);
+
+        uint32_t proc;
+        if (!StringParsers::ParseHexString(procStr.c_str(), proc))
+            return;
+        bp.m_proc = proc != 0 ? kProcDsp : kProcCpu;
+
+        if (!StringParsers::ParseHexString(idStr.c_str(), bp.m_id))
+            return;
         if (!StringParsers::ParseHexString(ccountStr.c_str(), bp.m_conditionCount))
             return;
         if (!StringParsers::ParseHexString(hitsStr.c_str(), bp.m_hitCount))

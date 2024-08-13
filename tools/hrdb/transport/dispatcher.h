@@ -52,7 +52,7 @@ public:
     };
 
     uint64_t SetBreakpoint(Processor proc, std::string expression, uint64_t optionFlags);
-    uint64_t DeleteBreakpoint(uint32_t breakpointId);
+    uint64_t DeleteBreakpoint(Processor proc, uint32_t breakpointId);
 
     uint64_t SetRegister(int reg, uint32_t val);
     uint64_t SetExceptionMask(uint32_t mask);

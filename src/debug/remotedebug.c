@@ -834,32 +834,49 @@ static int RemoteDebug_dbp(int nArgc, char *psArgs[], RemoteDebugState* state)
 }
 
 // -----------------------------------------------------------------------------
-/* List all breakpoints */
+/* List all breakpoints, CPU and DSP */
 static int RemoteDebug_bplist(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
-	int i, count;
+	int proc, i, count, proc_count;
 
-	count = BreakCond_CpuBreakPointCount();
+	count = BreakCond_CpuBreakPointCount() + BreakCond_DspBreakPointCount();
 	send_str(state, "OK");
 	send_sep(state);
 	send_hex(state, count);
 	send_sep(state);
 
 	/* NOTE breakpoint query indices start at 1 */
-	for (i = 1; i <= count; ++i)
+	for (proc = 0; proc < 2; ++proc)
 	{
-		bc_breakpoint_query_t query;
-		BreakCond_GetCpuBreakpointInfo(i, &query);
+		if (proc == 0)
+			proc_count = BreakCond_CpuBreakPointCount();
+		else
+			proc_count = BreakCond_DspBreakPointCount();
 
-		send_str(state, query.expression);
-		/* Note this has the ` character to flag the expression end,
-		since the expression can contain spaces */
-		send_sep(state);
-		send_hex(state, query.ccount); send_sep(state);
-		send_hex(state, query.hits); send_sep(state);
-		send_bool(state, query.once); send_sep(state);
-		send_bool(state, query.quiet); send_sep(state);
-		send_bool(state, query.trace); send_sep(state);
+		for (i = 1; i <= proc_count; ++i)
+		{
+			bc_breakpoint_query_t query;
+			if (proc == 0)
+				BreakCond_GetCpuBreakpointInfo(i, &query);
+			else
+				BreakCond_GetDspBreakpointInfo(i, &query);
+
+			/* Send processor type and ID for breakpoint */
+			send_hex(state, proc);
+			send_sep(state);
+			send_hex(state, i);
+			send_sep(state);
+
+			send_str(state, query.expression);
+			/* Note this has the ` character to flag the expression end,
+			since the expression can contain spaces */
+			send_sep(state);
+			send_hex(state, query.ccount); send_sep(state);
+			send_hex(state, query.hits); send_sep(state);
+			send_bool(state, query.once); send_sep(state);
+			send_bool(state, query.quiet); send_sep(state);
+			send_bool(state, query.trace); send_sep(state);
+		}
 	}
 	return 0;
 }
@@ -867,19 +884,32 @@ static int RemoteDebug_bplist(int nArgc, char *psArgs[], RemoteDebugState* state
 // -----------------------------------------------------------------------------
 /* Remove breakpoint number N.
  *
- * Input: "bpdel <breakpoint_index:hex>
- * 
+ * Input: "bpdel <proc:hex> <breakpoint_index:hex>
+ *
  * NOTE breakpoint IDs start at 1!
 */
 static int RemoteDebug_bpdel(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	int arg = 1;
-	uint32_t bp_position;
-	if (nArgc >= arg + 1)
+	uint32_t proc, bp_position;
+	bool res = false;
+	if (nArgc >= arg + 2)
 	{
+		// Address
+		if (!read_hex32_value(psArgs[arg], &proc))
+			return 1;
+
+		if ((proc != 0) && (proc != 1))
+			return 1;
+
 		if (read_hex32_value(psArgs[arg], &bp_position))
 		{
-			if (BreakCond_RemoveCpuBreakpoint(bp_position))
+			if (proc == 0)
+				res = BreakCond_RemoveCpuBreakpoint(bp_position);
+			else
+				res = BreakCond_RemoveDspBreakpoint(bp_position);
+
+			if (res)
 			{
 				send_str(state, "OK");
 				return 0;

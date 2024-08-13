@@ -825,7 +825,8 @@ void DisasmWidget::CalcDisasm68()
         // Breakpoint/PC
         for (size_t i = 0; i < m_breakpoints.m_breakpoints.size(); ++i)
         {
-            if (m_breakpoints.m_breakpoints[i].m_pcHack == line.address)
+            const Breakpoint& bp = m_breakpoints.m_breakpoints[i];
+            if (bp.m_proc == 0 && bp.m_pcHack == line.address)
             {
                 t.isBreakpoint = true;
                 break;
@@ -899,6 +900,17 @@ void DisasmWidget::CalcDisasm56()
         // Hex
         for (uint32_t i = 0; i < line.GetByteSize(); ++i)
             t.hex += QString::asprintf("%02x", line.mem[i]);
+
+        // Breakpoint/PC
+        for (size_t i = 0; i < m_breakpoints.m_breakpoints.size(); ++i)
+        {
+            const Breakpoint& bp = m_breakpoints.m_breakpoints[i];
+            if (bp.m_proc == 1 && bp.m_pcHack == line.address)
+            {
+                t.isBreakpoint = true;
+                break;
+            }
+        }
 
         // Symbol
 #if 0
@@ -1114,13 +1126,14 @@ void DisasmWidget::ToggleBreakpoint(int row)
     uint32_t addr = line.address;
     bool removed = false;
 
-    const Breakpoints& bp = m_pTargetModel->GetBreakpoints();
-    for (size_t i = 0; i < bp.m_breakpoints.size(); ++i)
+    const Breakpoints& bps = m_pTargetModel->GetBreakpoints();
+    for (size_t i = 0; i < bps.m_breakpoints.size(); ++i)
     {
         // NO CHECK test CPU type
-        if (bp.m_breakpoints[i].m_pcHack == addr)
+        const Breakpoint& bp = bps.m_breakpoints[i];
+        if (bp.m_proc == m_proc && bp.m_pcHack == addr)
         {
-            m_pDispatcher->DeleteBreakpoint(bp.m_breakpoints[i].m_id);
+            m_pDispatcher->DeleteBreakpoint(bp.m_proc, bp.m_id);
             removed = true;
         }
     }
