@@ -26,10 +26,12 @@ public:
     DisasmWidget(QWidget * parent, Session* m_pSession, int windowIndex, QAction* pSearchAction);
     virtual ~DisasmWidget() override;
 
+    // WARNING: this is serialized in settings
     enum Mode
     {
         CPU_MODE,
-        DSP_MODE
+        DSP_MODE,
+        MAX_MODE
     };
 
     uint32_t GetAddress() const { return m_logicalAddr; }
@@ -38,6 +40,7 @@ public:
     int GetRowCount() const     { return m_rowCount; }
     bool GetFollowPC() const    { return m_bFollowPC; }
     bool GetShowHex() const     { return m_bShowHex; }
+    Mode GetMode() const        { return m_mode; }
     bool GetInstructionAddr(int row, uint32_t& addr) const;
     bool GetEA(int row, int operandIndex, uint32_t &addr);
 
@@ -59,6 +62,7 @@ public:
     void SetRowCount(int count);
     void SetShowHex(bool show);
     void SetFollowPC(bool follow);
+    void SetMode(Mode mode);
 signals:
     void addressChanged(uint64_t addr);
 
@@ -179,6 +183,7 @@ private:
     int         m_rowCount;
 
     Mode        m_mode;
+    uint32_t    m_lastAddress[MAX_MODE];
 
     // Cached data when the up-to-date request comes through
     Memory      m_memory;
@@ -218,6 +223,8 @@ private:
 
     void KeyboardContextMenu();
     void ContextMenu(int row, QPoint globalPos);
+
+    uint32_t GetPC() const;
 
     Session*              m_pSession;
     TargetModel*          m_pTargetModel;   // for inter-window comms
@@ -294,6 +301,8 @@ protected slots:
     void keyUpPressed();
     void keyPageDownPressed();
     void keyPageUpPressed();
+
+    void modeChangedSlot();
     void returnPressedSlot();
     void textChangedSlot();
 
@@ -308,8 +317,10 @@ protected slots:
     void symbolTableChangedSlot(uint64_t responseId);
 private:
 
+    void SetMode(DisasmWidget::Mode mode);
     void UpdateTextBox();
 
+    QPushButton*        m_pModeButton;
     QLineEdit*          m_pAddressEdit;
     QCheckBox*          m_pShowHex;
     QCheckBox*          m_pFollowPC;

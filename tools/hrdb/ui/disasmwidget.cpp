@@ -9,6 +9,7 @@
 #include <QCheckBox>
 #include <QCompleter>
 #include <QPainter>
+#include <QPushButton>
 #include <QSettings>
 
 #include "hopper/buffer.h"
@@ -45,8 +46,9 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex, 
     m_mouseRow(-1),
     m_wheelAngleDelta(0)
 {
-    if (windowIndex == 1)
-        m_mode = CPU_MODE;  // NO CHECK
+    m_lastAddress[CPU_MODE] = 0;
+    m_lastAddress[DSP_MODE] = 0;
+
     UpdateFont();
 
     SetRowCount(8);
@@ -327,10 +329,7 @@ void DisasmWidget::startStopChanged()
         if (m_bFollowPC)
         {
             // Decide if the new PC is covered by the existing view range. If so, don't move
-            uint32_t pc = m_mode == CPU_MODE ?
-                    m_pTargetModel->GetStartStopPC() :
-                    m_pTargetModel->GetStartStopDspPC();
-
+            uint32_t pc = GetPC();
             if (m_disasm.size() == 0)
             {
                 SetAddress(pc);
@@ -726,7 +725,7 @@ void DisasmWidget::CalcDisasm68()
         // Address
         uint32_t addr = line.address;
         t.address = QString::asprintf("%08x", addr);
-        t.isPc = line.address == m_pTargetModel->GetStartStopPC();
+        t.isPc = line.address == GetPC();
         t.isBreakpoint = false;
 
         // Symbol
@@ -1144,11 +1143,21 @@ void DisasmWidget::SetFollowPC(bool bFollow)
 {
     m_bFollowPC = bFollow;
     if (bFollow)
-    {
-        uint32_t pc = m_pTargetModel->GetStartStopPC();
-        SetAddress(pc);
-    }
+        SetAddress(GetPC());
     update();
+}
+
+void DisasmWidget::SetMode(Mode mode)
+{
+    // Remember address before we switch out of the mode.
+    m_lastAddress[m_mode] = m_logicalAddr;
+
+    m_mode = mode;
+    uint32_t newAddr = m_lastAddress[mode];
+    if (m_bFollowPC)
+        SetAddress(GetPC());
+    else
+        SetAddress(newAddr);
 }
 
 void DisasmWidget::printEA(const hop68::operand& op, const Registers& regs, uint32_t address, QTextStream& ref) const
@@ -1319,6 +1328,13 @@ void DisasmWidget::ContextMenu(int row, QPoint globalPos)
     menu.exec(globalPos);
 }
 
+uint32_t DisasmWidget::GetPC() const
+{
+    return m_mode == CPU_MODE ?
+                m_pTargetModel->GetStartStopPC() :
+                m_pTargetModel->GetStartStopDspPC();
+}
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
@@ -1340,6 +1356,10 @@ DisasmWindow::DisasmWindow(QWidget *parent, Session* pSession, int windowIndex) 
     // Construction. Do in order of tabbing
     m_pDisasmWidget = new DisasmWidget(this, pSession, windowIndex, pMenuSearchAction);
     m_pDisasmWidget->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
+
+    // TODO: reduce footprint of this button
+    m_pModeButton = new QPushButton(this);
+
     m_pAddressEdit = new QLineEdit(this);
     m_pFollowPC = new QCheckBox("Follow PC", this);
     m_pFollowPC->setTristate(false);
@@ -1356,6 +1376,7 @@ DisasmWindow::DisasmWindow(QWidget *parent, Session* pSession, int windowIndex) 
     //pMainGroupBox->setFlat(true);
 
     SetMargins(pTopLayout);
+    pTopLayout->addWidget(m_pModeButton);
     pTopLayout->addWidget(m_pAddressEdit);
     pTopLayout->addWidget(m_pFollowPC);
     pTopLayout->addWidget(m_pShowHex);
@@ -1385,6 +1406,7 @@ DisasmWindow::DisasmWindow(QWidget *parent, Session* pSession, int windowIndex) 
 
     // Listen for start/stop, so we can update our memory request
     connect(m_pDisasmWidget,&DisasmWidget::addressChanged,            this, &DisasmWindow::UpdateTextBox);
+    connect(m_pModeButton,  &QPushButton::clicked,                    this, &DisasmWindow::modeChangedSlot);
     connect(m_pAddressEdit, &QLineEdit::returnPressed,                this, &DisasmWindow::returnPressedSlot);
     connect(m_pAddressEdit, &QLineEdit::textEdited,                   this, &DisasmWindow::textChangedSlot);
     connect(m_pFollowPC,    &QCheckBox::stateChanged,                 this, &DisasmWindow::followPCClickedSlot);
@@ -1425,6 +1447,9 @@ void DisasmWindow::loadSettings()
     //restoreGeometry(settings.value("geometry").toByteArray());
     m_pDisasmWidget->SetShowHex(settings.value("showHex", QVariant(true)).toBool());
     m_pDisasmWidget->SetFollowPC(settings.value("followPC", QVariant(true)).toBool());
+    DisasmWidget::Mode mode = static_cast< DisasmWidget::Mode>(settings.value("processor", QVariant(DisasmWidget::CPU_MODE)).toInt());
+    SetMode(mode);
+
     m_pShowHex->setChecked(m_pDisasmWidget->GetShowHex());
     m_pFollowPC->setChecked(m_pDisasmWidget->GetFollowPC());
     settings.endGroup();
@@ -1439,6 +1464,7 @@ void DisasmWindow::saveSettings()
     //settings.setValue("geometry", saveGeometry());
     settings.setValue("showHex", m_pDisasmWidget->GetShowHex());
     settings.setValue("followPC", m_pDisasmWidget->GetFollowPC());
+    settings.setValue("processor", m_pDisasmWidget->GetMode());
     settings.endGroup();
 }
 
@@ -1460,6 +1486,15 @@ void DisasmWindow::keyPageDownPressed()
 void DisasmWindow::keyPageUpPressed()
 {
     m_pDisasmWidget->PageUp();
+}
+
+void DisasmWindow::modeChangedSlot()
+{
+    DisasmWidget::Mode mode = m_pDisasmWidget->GetMode();
+    if (mode == DisasmWidget::CPU_MODE)
+        SetMode(DisasmWidget::DSP_MODE);
+    else
+        SetMode(DisasmWidget::CPU_MODE);
 }
 
 void DisasmWindow::returnPressedSlot()
@@ -1585,6 +1620,14 @@ void DisasmWindow::symbolTableChangedSlot(uint64_t /*responseId*/)
 {
     // This is for our autocomplete
     m_pSymbolTableModel->emitChanged();
+}
+
+void DisasmWindow::SetMode(DisasmWidget::Mode mode)
+{
+    m_pDisasmWidget->SetMode(mode);
+    // Update UI to match
+    m_pModeButton->setText(mode == DisasmWidget::CPU_MODE ?
+                               "CPU" : "DSP");
 }
 
 void DisasmWidget::Line::Reset()
