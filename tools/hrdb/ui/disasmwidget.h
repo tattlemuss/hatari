@@ -183,6 +183,10 @@ private:
     int         m_rowCount;
 
     Mode        m_mode;
+    // Data linked to current mode
+    uint32_t    m_minInstSize;
+    uint32_t    m_maxInstSize;
+
     uint32_t    m_lastAddress[MAX_MODE];
 
     // Cached data when the up-to-date request comes through

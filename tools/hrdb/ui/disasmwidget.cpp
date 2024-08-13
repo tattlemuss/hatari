@@ -31,7 +31,9 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex, 
     QWidget(parent),
     m_memory(Memory::kCpu, 0, 0),
     m_rowCount(25),
-    m_mode(DSP_MODE),
+    m_mode(CPU_MODE),
+    m_minInstSize(2U),
+    m_maxInstSize(32U),
     m_logicalAddr(0),
     m_requestId(0),
     m_bFollowPC(true),
@@ -49,6 +51,7 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex, 
     m_lastAddress[CPU_MODE] = 0;
     m_lastAddress[DSP_MODE] = 0;
 
+    SetMode(CPU_MODE);
     UpdateFont();
 
     SetRowCount(8);
@@ -119,7 +122,7 @@ void DisasmWidget::RequestMemory()
 {
     uint32_t addr = m_logicalAddr;
 
-    uint32_t pageSize = static_cast<uint32_t>(m_rowCount) * 10U;  // Maximum disassem size for the page "above"
+    uint32_t pageSize = static_cast<uint32_t>(m_rowCount) * m_maxInstSize;  // Maximum disassem size for the page "above"
     uint32_t lowAddr = (addr > pageSize) ? addr - pageSize : 0;
     uint32_t highAddr = addr + pageSize;
 
@@ -187,34 +190,61 @@ void DisasmWidget::MoveUp()
 
     // Disassemble upwards to see if something sensible appears.
     // Stop at the first valid instruction opcode.
-    // Max instruction size is 10 bytes.
     if (m_requestId == 0)
     {
-        for (uint32_t off = 2; off <= 10; off += 2)
+        for (uint32_t off = m_minInstSize; off <= m_maxInstSize; off += m_minInstSize)
         {
             uint32_t targetAddr = m_logicalAddr - off;
-            // Check valid memory
-            if (m_memory.GetAddress() > targetAddr ||
-                m_memory.GetAddress() + m_memory.GetSize() <= targetAddr)
+
+            // TODO: this is rather ugly.
+            if (m_mode == CPU_MODE)
             {
-                continue;
+                // Check valid memory
+                if (m_memory.GetAddress() > targetAddr ||
+                    m_memory.GetAddress() + m_memory.GetSize() <= targetAddr)
+                {
+                    continue;
+                }
+                // Get memory buffer for this range
+                uint32_t offset = targetAddr - m_memory.GetAddress();
+                uint32_t size = m_memory.GetSize() - offset;
+
+                hop68::buffer_reader disasmBuf(m_memory.GetData() + offset, size, m_memory.GetAddress() + offset);
+                hop68::instruction inst;
+                Disassembler::decode_inst(disasmBuf, inst, m_pTargetModel->GetDisasmSettings());
+                if (inst.opcode != hop68::Opcode::NONE)
+                {
+                    SetAddress(targetAddr);
+                    return;
+                }
             }
-            // Get memory buffer for this range
-            uint32_t offset = targetAddr - m_memory.GetAddress();
-            uint32_t size = m_memory.GetSize() - offset;
-            hop68::buffer_reader disasmBuf(m_memory.GetData() + offset, size, m_memory.GetAddress() + offset);
-            hop68::instruction inst;
-            Disassembler::decode_inst(disasmBuf, inst, m_pTargetModel->GetDisasmSettings());
-            if (inst.opcode != hop68::Opcode::NONE)
+            else
             {
-                SetAddress(targetAddr);
-                return;
+                // Check valid memory
+                if (m_memory.GetAddress() > targetAddr ||
+                    m_memory.GetAddress() + m_memory.GetSize() / 3 <= targetAddr)
+                {
+                    continue;
+                }
+                // Get memory buffer for this range
+                uint32_t offset = targetAddr - m_memory.GetAddress();
+                uint32_t size = m_memory.GetSize() - offset * 3;
+
+                hop56::buffer_reader disasmBuf(m_memory.GetData() + offset * 3, size, m_memory.GetAddress() + offset);
+                hop56::instruction inst;
+                hop56::decode_settings dummy;
+                Disassembler56::decode_inst(disasmBuf, inst, dummy);
+                if (inst.opcode != hop56::Opcode::INVALID)
+                {
+                    SetAddress(targetAddr);
+                    return;
+                }
             }
         }
     }
 
-    if (m_logicalAddr > 2)
-        SetAddress(m_logicalAddr - 2);
+    if (m_logicalAddr > m_minInstSize)
+        SetAddress(m_logicalAddr - m_minInstSize);
     else
         SetAddress(0);
 }
@@ -261,7 +291,7 @@ void DisasmWidget::PageUp()
         return; // not up to date
 
     // TODO we should actually disassemble upwards to see if something sensible appears
-    uint32_t moveSize = 2U * static_cast<uint32_t>(m_rowCount);
+    uint32_t moveSize = m_minInstSize * static_cast<uint32_t>(m_rowCount);
     if (m_logicalAddr > moveSize)
         SetAddress(m_logicalAddr - moveSize);
     else
@@ -294,7 +324,7 @@ void DisasmWidget::MouseScrollUp()
         return; // not up to date
 
     // Mouse wheel moves a fixed number of bytes so up/down comes back to the same place
-    uint32_t moveSize = 2U * static_cast<uint32_t>(m_rowCount);
+    uint32_t moveSize = m_minInstSize * static_cast<uint32_t>(m_rowCount);
     if (m_logicalAddr > moveSize)
         SetAddress(m_logicalAddr - moveSize);
     else
@@ -307,7 +337,7 @@ void DisasmWidget::MouseScrollDown()
         return; // not up to date
 
     // Mouse wheel moves a fixed number of bytes so up/down comes back to the same place
-    uint32_t moveSize = 2U * static_cast<uint32_t>(m_rowCount);
+    uint32_t moveSize = m_minInstSize * static_cast<uint32_t>(m_rowCount);
     SetAddress(m_logicalAddr + moveSize);
 }
 
@@ -409,7 +439,7 @@ void DisasmWidget::otherMemoryChanged(uint32_t address, uint32_t size)
 {
     // Do a re-request if our memory is touched
     uint32_t ourAddr = m_logicalAddr;
-    uint32_t ourSize = static_cast<uint32_t>((m_rowCount * 10) + 100);
+    uint32_t ourSize = static_cast<uint32_t>((m_rowCount * m_maxInstSize) + 100);
     if (Overlaps(ourAddr, ourSize, address, size))
         RequestMemory();
 }
@@ -1158,6 +1188,17 @@ void DisasmWidget::SetMode(Mode mode)
         SetAddress(GetPC());
     else
         SetAddress(newAddr);
+
+    if (mode == CPU_MODE)
+    {
+        m_minInstSize = 2;
+        m_maxInstSize = 32;
+    }
+    else
+    {
+        m_minInstSize = 1;
+        m_maxInstSize = 2;
+    }
 }
 
 void DisasmWidget::printEA(const hop68::operand& op, const Registers& regs, uint32_t address, QTextStream& ref) const
