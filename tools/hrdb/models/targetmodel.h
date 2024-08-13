@@ -61,6 +61,15 @@ public:
     QVector<uint32_t> addresses;
 };
 
+// Identifies processor
+// WARNING: this is serialized in settings
+enum Processor
+{
+    kProcCpu = 0,
+    kProcDsp = 1,
+    kProcCount = 2
+};
+
 /*
     Core central data model reflecting the state of the target.
 */

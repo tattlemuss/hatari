@@ -29,11 +29,11 @@
 
 DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex, QAction* pSearchAction):
     QWidget(parent),
-    m_memory(Memory::kCpu, 0, 0),
     m_rowCount(25),
-    m_mode(CPU_MODE),
+    m_proc(kProcCpu),
     m_minInstSize(2U),
     m_maxInstSize(32U),
+    m_memory(Memory::kCpu, 0, 0),
     m_logicalAddr(0),
     m_requestId(0),
     m_bFollowPC(true),
@@ -48,10 +48,10 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex, 
     m_mouseRow(-1),
     m_wheelAngleDelta(0)
 {
-    m_lastAddress[CPU_MODE] = 0;
-    m_lastAddress[DSP_MODE] = 0;
+    m_lastAddress[kProcCpu] = 0;
+    m_lastAddress[kProcDsp] = 0;
 
-    SetMode(CPU_MODE);
+    SetProc(kProcCpu);
     UpdateFont();
 
     SetRowCount(8);
@@ -129,7 +129,7 @@ void DisasmWidget::RequestMemory()
     uint32_t size = highAddr - lowAddr;
     if (m_pTargetModel->IsConnected())
     {
-        if (m_mode == CPU_MODE)
+        if (m_proc == kProcCpu)
             m_requestId = m_pDispatcher->ReadMemory(m_memSlot, lowAddr, size);
         else
             m_requestId = m_pDispatcher->ReadDspMemory(m_memSlot, 'P', lowAddr, size);
@@ -197,7 +197,7 @@ void DisasmWidget::MoveUp()
             uint32_t targetAddr = m_logicalAddr - off;
 
             // TODO: this is rather ugly.
-            if (m_mode == CPU_MODE)
+            if (m_proc == kProcCpu)
             {
                 // Check valid memory
                 if (m_memory.GetAddress() > targetAddr ||
@@ -702,7 +702,7 @@ bool DisasmWidget::event(QEvent* ev)
 
 void DisasmWidget::CalcDisasm()
 {
-    if (m_mode == CPU_MODE)
+    if (m_proc == kProcCpu)
         CalcDisasm68();
     else
         CalcDisasm56();
@@ -733,7 +733,7 @@ void DisasmWidget::CalcDisasm68()
         m_disasm[i].address = tmp.lines[i].address;
         m_disasm[i].inst68 = tmp.lines[i].inst;
         m_disasm[i].inst56.reset();
-        m_disasm[i].mode = CPU_MODE;
+        m_disasm[i].proc = kProcCpu;
         memcpy(m_disasm[i].mem, tmp.lines[i].mem, 32);
     }
 
@@ -851,7 +851,7 @@ void DisasmWidget::CalcDisasm56()
         m_disasm[i].address = tmp.lines[i].address;
         m_disasm[i].inst68.reset();
         m_disasm[i].inst56 = tmp.lines[i].inst;
-        m_disasm[i].mode = DSP_MODE;
+        m_disasm[i].proc = kProcDsp;
         memcpy(m_disasm[i].mem, tmp.lines[i].mem, sizeof(tmp.lines[i].mem));
     }
 
@@ -1177,14 +1177,14 @@ void DisasmWidget::SetFollowPC(bool bFollow)
     update();
 }
 
-void DisasmWidget::SetMode(Mode mode)
+void DisasmWidget::SetProc(Processor mode)
 {
     // Remember address before we switch out of the mode.
-    m_lastAddress[m_mode] = m_logicalAddr;
+    m_lastAddress[m_proc] = m_logicalAddr;
 
     // Set up per-mode settings before requesting the memory address.
-    m_mode = mode;
-    if (mode == CPU_MODE)
+    m_proc = mode;
+    if (mode == kProcCpu)
     {
         m_minInstSize = 2;
         m_maxInstSize = 32;
@@ -1302,7 +1302,7 @@ void DisasmWidget::RecalcColumnWidths()
     pos += (m_pTargetModel->IsProfileEnabled()) ? 20 : 0;
 
     m_columnLeft[kDisasm] = pos;
-    if (m_mode == CPU_MODE)
+    if (m_proc == kProcCpu)
         pos += 8+18+9+1; // movea.l $12345678(pc,d0.w),$12345678
     else
         pos += 50;
@@ -1372,7 +1372,7 @@ void DisasmWidget::ContextMenu(int row, QPoint globalPos)
 
 uint32_t DisasmWidget::GetPC() const
 {
-    return m_mode == CPU_MODE ?
+    return m_proc == kProcCpu ?
                 m_pTargetModel->GetStartStopPC() :
                 m_pTargetModel->GetStartStopDspPC();
 }
@@ -1400,7 +1400,7 @@ DisasmWindow::DisasmWindow(QWidget *parent, Session* pSession, int windowIndex) 
     m_pDisasmWidget->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
 
     // TODO: reduce footprint of this button
-    m_pModeButton = new QPushButton(this);
+    m_pProcButton = new QPushButton(this);
 
     m_pAddressEdit = new QLineEdit(this);
     m_pFollowPC = new QCheckBox("Follow PC", this);
@@ -1418,7 +1418,7 @@ DisasmWindow::DisasmWindow(QWidget *parent, Session* pSession, int windowIndex) 
     //pMainGroupBox->setFlat(true);
 
     SetMargins(pTopLayout);
-    pTopLayout->addWidget(m_pModeButton);
+    pTopLayout->addWidget(m_pProcButton);
     pTopLayout->addWidget(m_pAddressEdit);
     pTopLayout->addWidget(m_pFollowPC);
     pTopLayout->addWidget(m_pShowHex);
@@ -1448,7 +1448,7 @@ DisasmWindow::DisasmWindow(QWidget *parent, Session* pSession, int windowIndex) 
 
     // Listen for start/stop, so we can update our memory request
     connect(m_pDisasmWidget,&DisasmWidget::addressChanged,            this, &DisasmWindow::UpdateTextBox);
-    connect(m_pModeButton,  &QPushButton::clicked,                    this, &DisasmWindow::modeChangedSlot);
+    connect(m_pProcButton,  &QPushButton::clicked,                    this, &DisasmWindow::procChangedSlot);
     connect(m_pAddressEdit, &QLineEdit::returnPressed,                this, &DisasmWindow::returnPressedSlot);
     connect(m_pAddressEdit, &QLineEdit::textEdited,                   this, &DisasmWindow::textChangedSlot);
     connect(m_pFollowPC,    &QCheckBox::stateChanged,                 this, &DisasmWindow::followPCClickedSlot);
@@ -1489,8 +1489,8 @@ void DisasmWindow::loadSettings()
     //restoreGeometry(settings.value("geometry").toByteArray());
     m_pDisasmWidget->SetShowHex(settings.value("showHex", QVariant(true)).toBool());
     m_pDisasmWidget->SetFollowPC(settings.value("followPC", QVariant(true)).toBool());
-    DisasmWidget::Mode mode = static_cast< DisasmWidget::Mode>(settings.value("processor", QVariant(DisasmWidget::CPU_MODE)).toInt());
-    SetMode(mode);
+    Processor mode = static_cast<Processor>(settings.value("processor", QVariant(kProcCpu)).toInt());
+    SetProc(mode);
 
     m_pShowHex->setChecked(m_pDisasmWidget->GetShowHex());
     m_pFollowPC->setChecked(m_pDisasmWidget->GetFollowPC());
@@ -1506,7 +1506,7 @@ void DisasmWindow::saveSettings()
     //settings.setValue("geometry", saveGeometry());
     settings.setValue("showHex", m_pDisasmWidget->GetShowHex());
     settings.setValue("followPC", m_pDisasmWidget->GetFollowPC());
-    settings.setValue("processor", m_pDisasmWidget->GetMode());
+    settings.setValue("processor", m_pDisasmWidget->GetProc());
     settings.endGroup();
 }
 
@@ -1530,13 +1530,13 @@ void DisasmWindow::keyPageUpPressed()
     m_pDisasmWidget->PageUp();
 }
 
-void DisasmWindow::modeChangedSlot()
+void DisasmWindow::procChangedSlot()
 {
-    DisasmWidget::Mode mode = m_pDisasmWidget->GetMode();
-    if (mode == DisasmWidget::CPU_MODE)
-        SetMode(DisasmWidget::DSP_MODE);
+    Processor mode = m_pDisasmWidget->GetProc();
+    if (mode == kProcCpu)
+        SetProc(kProcDsp);
     else
-        SetMode(DisasmWidget::CPU_MODE);
+        SetProc(kProcCpu);
 }
 
 void DisasmWindow::returnPressedSlot()
@@ -1664,17 +1664,16 @@ void DisasmWindow::symbolTableChangedSlot(uint64_t /*responseId*/)
     m_pSymbolTableModel->emitChanged();
 }
 
-void DisasmWindow::SetMode(DisasmWidget::Mode mode)
+void DisasmWindow::SetProc(Processor mode)
 {
-    m_pDisasmWidget->SetMode(mode);
+    m_pDisasmWidget->SetProc(mode);
     // Update UI to match
-    m_pModeButton->setText(mode == DisasmWidget::CPU_MODE ?
-                               "CPU" : "DSP");
+    m_pProcButton->setText(mode == kProcCpu ? "CPU" : "DSP");
 }
 
 void DisasmWidget::Line::Reset()
 {
-    mode = CPU_MODE;
+    proc = kProcCpu;
     address = 0;
     inst56.reset();
     inst68.reset();

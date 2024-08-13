@@ -9,10 +9,10 @@
 #include "../models/disassembler56.h"
 #include "../models/memory.h"
 #include "../models/session.h"
+#include "../models/targetmodel.h"
 #include "showaddressactions.h"
 #include "searchdialog.h"
 
-class TargetModel;
 class Dispatcher;
 class QCheckBox;
 class QPaintEvent;
@@ -26,21 +26,13 @@ public:
     DisasmWidget(QWidget * parent, Session* m_pSession, int windowIndex, QAction* pSearchAction);
     virtual ~DisasmWidget() override;
 
-    // WARNING: this is serialized in settings
-    enum Mode
-    {
-        CPU_MODE,
-        DSP_MODE,
-        MAX_MODE
-    };
-
     uint32_t GetAddress() const { return m_logicalAddr; }
     bool GetAddressAtCursor(uint32_t& addr) const;
 
     int GetRowCount() const     { return m_rowCount; }
     bool GetFollowPC() const    { return m_bFollowPC; }
     bool GetShowHex() const     { return m_bShowHex; }
-    Mode GetMode() const        { return m_mode; }
+    Processor GetProc() const   { return m_proc; }
     bool GetInstructionAddr(int row, uint32_t& addr) const;
     bool GetEA(int row, int operandIndex, uint32_t &addr);
 
@@ -62,7 +54,7 @@ public:
     void SetRowCount(int count);
     void SetShowHex(bool show);
     void SetFollowPC(bool follow);
-    void SetMode(Mode mode);
+    void SetProc(Processor mode);
 signals:
     void addressChanged(uint64_t addr);
 
@@ -120,7 +112,7 @@ private:
         };
 
         void Reset();
-        Mode                 mode;
+        Processor            proc;
         uint32_t             address;
 
         // Ideally this would be a union, but the instruction classes
@@ -133,7 +125,7 @@ private:
 
         uint32_t    GetByteSize() const
         {
-            if (mode == CPU_MODE)
+            if (proc == kProcCpu)
                 return inst68.byte_count;
             else
                 return inst56.word_count * 3;
@@ -141,7 +133,7 @@ private:
 
         uint32_t    GetEndAddr() const
         {
-            if (mode == CPU_MODE)
+            if (proc == kProcCpu)
                 return address + inst68.byte_count;
             else
                 return address + inst56.word_count;
@@ -182,12 +174,12 @@ private:
     Breakpoints m_breakpoints;
     int         m_rowCount;
 
-    Mode        m_mode;
-    // Data linked to current mode
+    Processor   m_proc;
+    // Data linked to current proc
     uint32_t    m_minInstSize;
     uint32_t    m_maxInstSize;
 
-    uint32_t    m_lastAddress[MAX_MODE];
+    uint32_t    m_lastAddress[kProcCount];
 
     // Cached data when the up-to-date request comes through
     Memory      m_memory;
@@ -306,7 +298,7 @@ protected slots:
     void keyPageDownPressed();
     void keyPageUpPressed();
 
-    void modeChangedSlot();
+    void procChangedSlot();
     void returnPressedSlot();
     void textChangedSlot();
 
@@ -321,10 +313,10 @@ protected slots:
     void symbolTableChangedSlot(uint64_t responseId);
 private:
 
-    void SetMode(DisasmWidget::Mode mode);
+    void SetProc(Processor mode);
     void UpdateTextBox();
 
-    QPushButton*        m_pModeButton;
+    QPushButton*        m_pProcButton;
     QLineEdit*          m_pAddressEdit;
     QCheckBox*          m_pShowHex;
     QCheckBox*          m_pFollowPC;
