@@ -45,6 +45,14 @@ void ShowAddressActions::setAddress(Session* pSession, int memorySpace, uint32_t
 {
     m_activeAddress = address;
     m_pSession = pSession;
+
+    // Certain window types only accept CPU memory
+    // e.g. Graphics Inspector
+    bool isCpu = (memorySpace == Memory::kCpu);
+    for (int i = 0; i < kNumMemoryViews; ++i)
+        m_pMemoryWindowActions[i]->setVisible(isCpu);
+
+    m_pGraphicsInspectorAction->setVisible(isCpu);
 }
 
 void ShowAddressActions::TriggerDisasmView(int windowIndex)
