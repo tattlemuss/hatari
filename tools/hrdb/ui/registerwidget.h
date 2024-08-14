@@ -82,6 +82,7 @@ private:
     int AddReg16(int x, int y, uint32_t regIndex, const Registers &prevRegs, const Registers &m_currRegs);
     int AddReg32(int x, int y, uint32_t regIndex, const Registers &prevRegs, const Registers &m_currRegs);
     int AddDspReg24(int x, int y, uint32_t regIndex, const DspRegisters &prevRegs, const DspRegisters &regs);
+    int AddDspReg8(int x, int y, uint32_t regIndex, const DspRegisters &prevRegs, const DspRegisters &regs);
     int AddDspReg16(int x, int y, uint32_t regIndex, const DspRegisters &prevRegs, const DspRegisters &regs);
     int AddDspReg56(int x, int y, uint32_t regIndex, const DspRegisters &prevRegs, const DspRegisters &regs);
 

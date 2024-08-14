@@ -602,21 +602,25 @@ void RegisterWidget::PopulateRegisters()
             ++row;
         }
         ++row;
-        AddDspReg56(2,  row, DspRegisters::A2, m_prevDspRegs, m_currDspRegs);
+        AddDspReg8(  2, row, DspRegisters::A2, m_prevDspRegs, m_currDspRegs);
+        AddDspReg24(10, row, DspRegisters::A1, m_prevDspRegs, m_currDspRegs);
+        AddDspReg24(22, row, DspRegisters::A0, m_prevDspRegs, m_currDspRegs);
         ++row;
-        AddDspReg56(2, row, DspRegisters::B2, m_prevDspRegs, m_currDspRegs);
+        AddDspReg8(  2, row, DspRegisters::B2, m_prevDspRegs, m_currDspRegs);
+        AddDspReg24(10, row, DspRegisters::B1, m_prevDspRegs, m_currDspRegs);
+        AddDspReg24(22, row, DspRegisters::B0, m_prevDspRegs, m_currDspRegs);
         ++row;
-        AddDspReg24(2,  row, DspRegisters::X1, m_prevDspRegs, m_currDspRegs);
-        AddDspReg24(17, row, DspRegisters::X0, m_prevDspRegs, m_currDspRegs);
+        AddDspReg24(10,  row, DspRegisters::X1, m_prevDspRegs, m_currDspRegs);
+        AddDspReg24(22, row, DspRegisters::X0, m_prevDspRegs, m_currDspRegs);
         ++row;
-        AddDspReg24(2,  row, DspRegisters::Y1, m_prevDspRegs, m_currDspRegs);
-        AddDspReg24(17, row, DspRegisters::Y0, m_prevDspRegs, m_currDspRegs);
+        AddDspReg24(10,  row, DspRegisters::Y1, m_prevDspRegs, m_currDspRegs);
+        AddDspReg24(22, row, DspRegisters::Y0, m_prevDspRegs, m_currDspRegs);
         ++row;
         for (uint32_t reg = 0; reg < 8; ++reg)
         {
             AddDspReg16( 2, row, DspRegisters::R0 + reg, m_prevDspRegs, m_currDspRegs);
-            AddDspReg16(17, row, DspRegisters::N0 + reg, m_prevDspRegs, m_currDspRegs);
-            AddDspReg16(32, row, DspRegisters::M0 + reg, m_prevDspRegs, m_currDspRegs);
+            AddDspReg16(15, row, DspRegisters::N0 + reg, m_prevDspRegs, m_currDspRegs);
+            AddDspReg16(28, row, DspRegisters::M0 + reg, m_prevDspRegs, m_currDspRegs);
             row++;
         }
     }
@@ -722,6 +726,16 @@ int RegisterWidget::AddDspReg24(int x, int y, uint32_t regIndex, const DspRegist
     return AddToken(x + label.size() + 1, y, value, TokenType::kDspRegister, regIndex, highlight);
 }
 
+int RegisterWidget::AddDspReg8(int x, int y, uint32_t regIndex, const DspRegisters& prevRegs, const DspRegisters& regs)
+{
+    TokenColour highlight = (regs.Get(regIndex) != prevRegs.Get(regIndex)) ? kChanged : kNormal;
+
+    QString label = QString::asprintf("%s:",  DspRegisters::s_names[regIndex]);
+    QString value = QString::asprintf("%02lx", regs.Get(regIndex));
+    AddToken(x, y, label, TokenType::kDspRegister, regIndex, TokenColour::kNormal);
+    return AddToken(x + label.size() + 1, y, value, TokenType::kDspRegister, regIndex, highlight);
+}
+
 int RegisterWidget::AddDspReg16(int x, int y, uint32_t regIndex, const DspRegisters& prevRegs, const DspRegisters& regs)
 {
     TokenColour highlight = (regs.Get(regIndex) != prevRegs.Get(regIndex)) ? kChanged : kNormal;
@@ -734,7 +748,6 @@ int RegisterWidget::AddDspReg16(int x, int y, uint32_t regIndex, const DspRegist
 
 int RegisterWidget::AddDspReg56(int x, int y, uint32_t regIndex, const DspRegisters& prevRegs, const DspRegisters& regs)
 {
-
     QString label = QString::asprintf("%s:",  DspRegisters::s_names[regIndex]);
     x = AddToken(x, y, label, TokenType::kDspRegister, regIndex, TokenColour::kNormal);
 
