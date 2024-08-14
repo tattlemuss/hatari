@@ -44,6 +44,7 @@ void ShowAddressActions::addActionsToMenu(QMenu* pMenu) const
 void ShowAddressActions::setAddress(Session* pSession, int memorySpace, uint32_t address)
 {
     m_activeAddress = address;
+    m_memorySpace = memorySpace;
     m_pSession = pSession;
 
     // Certain window types only accept CPU memory
