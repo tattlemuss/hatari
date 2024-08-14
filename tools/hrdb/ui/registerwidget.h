@@ -97,6 +97,9 @@ private:
     // Convert from row ID to a pixel Y (top pixel in the drawn row)
     int GetPixelFromRow(int row) const;
 
+    // Convert from column ID to a pixel X (left pixel in the drawn col)
+    int GetPixelFromCol(int col) const;
+
     // Convert from pixel Y to a row ID
     int GetRowFromPixel(int y) const;
 

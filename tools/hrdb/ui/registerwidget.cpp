@@ -186,7 +186,7 @@ void RegisterWidget::paintEvent(QPaintEvent * ev)
     {
         Token& tok = m_tokens[i];
 
-        int x = Session::kWidgetBorderX + tok.x * m_charWidth;
+        int x = GetPixelFromCol(tok.x);
         int y = GetPixelFromRow(tok.y);
         int w = info.horizontalAdvance(tok.text);
         int h = m_lineHeight;
@@ -664,7 +664,7 @@ void RegisterWidget::PopulateRegisters()
 
     // Tokens have moved, so check again
     UpdateTokenUnderMouse();
-    this->resize(800, GetPixelFromRow(row));
+    this->resize(GetPixelFromCol(80), GetPixelFromRow(row));
     update();
 }
 
@@ -860,6 +860,12 @@ int RegisterWidget::GetPixelFromRow(int row) const
 {
     return Session::kWidgetBorderY + row * m_lineHeight;
 }
+
+int RegisterWidget::GetPixelFromCol(int col) const
+{
+    return Session::kWidgetBorderX + col * m_charWidth;
+}
+
 
 int RegisterWidget::GetRowFromPixel(int y) const
 {
