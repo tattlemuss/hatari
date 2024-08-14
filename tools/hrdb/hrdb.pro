@@ -36,6 +36,7 @@ SOURCES += \
     models/profiledata.cpp \
     models/registers.cpp \
     models/session.cpp \
+    models/stringformat.cpp \
     models/stringparsers.cpp \
     models/stringsplitter.cpp \
     models/symboltable.cpp \

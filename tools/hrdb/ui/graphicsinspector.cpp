@@ -1279,15 +1279,18 @@ void GraphicsInspectorWidget::ContextMenu(QPoint pos)
     // Add the default actions
     menu.addAction(m_pSaveImageAction);
     menu.addMenu(m_pOverlayMenu);
+    Memory::Space space = Memory::kCpu;
 
-    m_showAddressMenus[0].setAddress(m_pSession, Memory::kCpu, m_bitmapAddress);
-    m_showAddressMenus[0].setTitle(Format::to_hex32(m_bitmapAddress) + QString(" (Bitmap address)"));
+    QString addrText = Format::to_address(space, m_bitmapAddress);
+    m_showAddressMenus[0].setAddress(m_pSession, space, m_bitmapAddress);
+    m_showAddressMenus[0].setTitle(addrText + QString(" (Bitmap address)"));
     menu.addMenu(m_showAddressMenus[0].m_pMenu);
 
     if (m_mouseInfo.isValid && m_addressUnderMouse != ~0U)
     {
-        m_showAddressMenus[1].setAddress(m_pSession, Memory::kCpu, m_addressUnderMouse);
-        m_showAddressMenus[1].setTitle(Format::to_hex32(m_addressUnderMouse) + QString(" (Mouse Cursor address)"));
+        addrText = Format::to_address(space, m_addressUnderMouse);
+        m_showAddressMenus[1].setAddress(m_pSession, space, m_addressUnderMouse);
+        m_showAddressMenus[1].setTitle(addrText + QString(" (Mouse Cursor address)"));
         menu.addMenu(m_showAddressMenus[1].m_pMenu);
     }
 
