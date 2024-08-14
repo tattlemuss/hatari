@@ -127,6 +127,8 @@ void TargetModel::SetConfig(uint32_t machineType, uint32_t cpuLevel, uint32_t st
     };
     if (cpuLevel < sizeof(cpu_types) / sizeof(cpu_types[0]))
         m_decodeSettings.cpu_type = cpu_types[cpuLevel];
+
+    emit configChangedSignal();
 }
 
 void TargetModel::SetProtocolMismatch(uint32_t hatariProtocol, uint32_t hrdbProtocol)

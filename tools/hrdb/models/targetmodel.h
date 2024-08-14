@@ -153,7 +153,7 @@ public:
 
     // Get RAM size in bytes
     uint32_t GetSTRamSize() const { return m_stRamSize; }
-    int IsDspActive() const { return m_isDspActive; }
+    int IsDspActive() const { return m_bConnected && m_isDspActive; }
 
     int IsConnected() const { return m_bConnected; }
     int IsRunning() const { return m_bRunning; }
@@ -189,6 +189,9 @@ public slots:
 signals:
     // connect/disconnect change
     void connectChangedSignal();
+
+    // New machine config
+    void configChangedSignal();
 
     // connection failure
     void protocolMismatchSignal(uint32_t hatariProtocol, uint32_t hrdbProtocol);

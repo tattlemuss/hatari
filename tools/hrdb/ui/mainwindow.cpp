@@ -92,6 +92,13 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     m_pRunToCombo->insertItem(kRunToHbl, "Next HBL");
     m_pRunToCombo->insertItem(kRunToRam, "In RAM");
 
+    m_pDspStepIntoButton = new QPushButton("Step DSP", this);
+    m_pDspStepOverButton = new QPushButton("Next DSP", this);
+    m_pDspStepIntoButton->setToolTip("Shift+S: Execute one DSP instruction.\n"
+            "Jumps into subroutines.\n");
+    m_pDspStepOverButton->setToolTip("Shift+N: Stop at next instruction in memory.\n"
+            "Jumps over subroutines and through loop-to-self.");
+
     for (int i = 0; i < kNumDisasmViews; ++i)
     {
         m_pDisasmWidgets[i] = new DisasmWindow(this, &m_session, i);
@@ -131,24 +138,35 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
 
     // https://doc.qt.io/qt-5/qtwidgets-layouts-basiclayouts-example.html
     QVBoxLayout *vlayout = new QVBoxLayout;
-    QHBoxLayout *hlayout = new QHBoxLayout;
+    QHBoxLayout *hlayoutTop = new QHBoxLayout;
+    QHBoxLayout *hlayoutDsp = new QHBoxLayout;
     auto pTopGroupBox = new QWidget(this);
+    m_pDspTopWidget = new QWidget(this);
+
     auto pMainGroupBox = new QGroupBox(this);
 
-    SetMargins(hlayout);
-    hlayout->setAlignment(Qt::AlignLeft);
-    hlayout->addWidget(m_pRunningSquare);
-    hlayout->addWidget(m_pStartStopButton);
-    hlayout->addWidget(m_pStepIntoButton);
-    hlayout->addWidget(m_pStepOverButton);
-    hlayout->addWidget(m_pRunToButton);
-    hlayout->addWidget(m_pRunToCombo);
-    hlayout->addStretch();
+    SetMargins(hlayoutTop);
+    hlayoutTop->setAlignment(Qt::AlignLeft);
+    hlayoutTop->addWidget(m_pRunningSquare);
+    hlayoutTop->addWidget(m_pStartStopButton);
+    hlayoutTop->addWidget(m_pStepIntoButton);
+    hlayoutTop->addWidget(m_pStepOverButton);
+    hlayoutTop->addWidget(m_pRunToButton);
+    hlayoutTop->addWidget(m_pRunToCombo);
+    hlayoutTop->addStretch();
     //hlayout->setAlignment(m_pRunToCombo, Qt::Align);
-    pTopGroupBox->setLayout(hlayout);
+    pTopGroupBox->setLayout(hlayoutTop);
+
+    SetMargins(hlayoutDsp);
+    hlayoutDsp->setAlignment(Qt::AlignLeft);
+    hlayoutDsp->addWidget(m_pDspStepIntoButton);
+    hlayoutDsp->addWidget(m_pDspStepOverButton);
+    hlayoutDsp->addStretch();
+    m_pDspTopWidget->setLayout(hlayoutDsp);
 
     SetMargins(vlayout);
     vlayout->addWidget(pTopGroupBox);
+    vlayout->addWidget(m_pDspTopWidget);
     vlayout->addWidget(pScrollArea);
     vlayout->setAlignment(Qt::Alignment(Qt::AlignTop));
     pMainGroupBox->setFlat(true);
@@ -176,6 +194,7 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
 
     // Listen for target changes
     connect(m_pTargetModel, &TargetModel::startStopChangedSignal,    this, &MainWindow::startStopChanged);
+    connect(m_pTargetModel, &TargetModel::configChangedSignal,       this, &MainWindow::configChanged);
     connect(m_pTargetModel, &TargetModel::connectChangedSignal,      this, &MainWindow::connectChanged);
     connect(m_pTargetModel, &TargetModel::memoryChangedSignal,       this, &MainWindow::memoryChanged);
     connect(m_pTargetModel, &TargetModel::runningRefreshTimerSignal, this, &MainWindow::runningRefreshTimer);
@@ -185,10 +204,13 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     connect(m_pTargetModel, &TargetModel::symbolProgramChangedSignal,this, &MainWindow::symbolProgramChanged);
 
     // Wire up buttons to actions
-    connect(m_pStartStopButton, &QAbstractButton::clicked, this, &MainWindow::startStopClickedSlot);
-    connect(m_pStepIntoButton,  &QAbstractButton::clicked, this, &MainWindow::singleStepClickedSlot);
-    connect(m_pStepOverButton,  &QAbstractButton::clicked, this, &MainWindow::nextClickedSlot);
-    connect(m_pRunToButton,     &QAbstractButton::clicked, this, &MainWindow::runToClickedSlot);
+    connect(m_pStartStopButton,   &QAbstractButton::clicked, this, &MainWindow::startStopClickedSlot);
+    connect(m_pStepIntoButton,    &QAbstractButton::clicked, this, &MainWindow::singleStepClickedSlot);
+    connect(m_pStepOverButton,    &QAbstractButton::clicked, this, &MainWindow::nextClickedSlot);
+    connect(m_pRunToButton,       &QAbstractButton::clicked, this, &MainWindow::runToClickedSlot);
+
+    connect(m_pDspStepIntoButton, &QAbstractButton::clicked, this, &MainWindow::singleStepDspClickedSlot);
+    connect(m_pDspStepOverButton, &QAbstractButton::clicked, this, &MainWindow::nextDspClickedSlot);
 
     // Wire up menu appearance
     connect(m_pWindowMenu, &QMenu::aboutToShow,            this, &MainWindow::updateWindowMenu);
@@ -220,7 +242,8 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     // Try initial connect
     ConnectTriggered();
 
-    // Update everything
+    // Update everything to ensure UI elements are up-to-date
+    configChanged();
     connectChanged();
     startStopChanged();
 
@@ -240,6 +263,11 @@ void MainWindow::connectChanged()
 
     //if (m_pTargetModel->IsConnected())
     //    m_pDispatcher->SendCommandPacket("profile 1");
+}
+
+void MainWindow::configChanged()
+{
+    m_pDspTopWidget->setVisible(m_pTargetModel->IsDspActive());
 }
 
 void MainWindow::startStopChanged()
@@ -614,6 +642,7 @@ void MainWindow::updateButtonEnable()
 {
     bool isConnected = m_pTargetModel->IsConnected();
     bool isRunning = m_pTargetModel->IsRunning();
+    bool dspActive = m_pTargetModel->IsDspActive();
 
     // Buttons...
     m_pStartStopButton->setEnabled(isConnected);
@@ -621,6 +650,9 @@ void MainWindow::updateButtonEnable()
     m_pStepIntoButton->setEnabled(isConnected && !isRunning);
     m_pStepOverButton->setEnabled(isConnected && !isRunning);
     m_pRunToButton->setEnabled(isConnected && !isRunning);
+
+    m_pDspStepIntoButton->setEnabled(dspActive && isConnected && !isRunning);
+    m_pDspStepOverButton->setEnabled(dspActive && isConnected && !isRunning);
 
     // Menu items...
     m_pConnectAct->setEnabled(!isConnected);

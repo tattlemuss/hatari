@@ -75,6 +75,7 @@ private slots:
 
 private:
     void connectChanged();
+    void configChanged();
     void startStopChanged();
     void memoryChanged(int slot, uint64_t commandId);
     void runningRefreshTimer();
@@ -139,6 +140,10 @@ private:
     QPushButton*    m_pStepOverButton;
     QPushButton*    m_pRunToButton;
     QComboBox*      m_pRunToCombo;
+
+    QPushButton*    m_pDspStepIntoButton;
+    QPushButton*    m_pDspStepOverButton;
+    QWidget*        m_pDspTopWidget;
 
     RegisterWidget* m_pRegisterWidget;
 
