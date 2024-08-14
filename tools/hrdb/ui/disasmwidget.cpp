@@ -1213,6 +1213,10 @@ void DisasmWidget::SetFollowPC(bool bFollow)
 
 void DisasmWidget::SetProc(Processor mode)
 {
+    // Don't do the messy stuff if already in the right mode
+    if (m_proc == mode)
+        return;
+
     // Remember address before we switch out of the mode.
     m_lastAddress[m_proc] = m_logicalAddr;
 
@@ -1377,7 +1381,7 @@ void DisasmWidget::ContextMenu(int row, QPoint globalPos)
     menu.addMenu(m_pEditMenu);
 
     // Set up relevant menu items
-    Memory::Space space = m_proc == kProcCpu ? Memory::kCpu : Memory::kDspP;
+    Memory::Space space = (m_proc == kProcCpu) ? Memory::kCpu : Memory::kDspP;
     uint32_t instAddr;
     bool vis = GetInstructionAddr(m_rightClickRow, instAddr);
     if (vis)
@@ -1501,6 +1505,13 @@ void DisasmWindow::requestAddress(Session::WindowType type, int windowIndex, int
 
     if (windowIndex != m_windowIndex)
         return;
+
+    if (memorySpace == Memory::kCpu)
+        // Requesting CPU memory
+        SetProc(kProcCpu);
+    else
+        // DSP
+        SetProc(kProcDsp);
 
     m_pDisasmWidget->SetAddress(std::to_string(address));
     setVisible(true);
@@ -1700,7 +1711,10 @@ void DisasmWindow::symbolTableChangedSlot(uint64_t /*responseId*/)
 
 void DisasmWindow::SetProc(Processor mode)
 {
-    m_pDisasmWidget->SetProc(mode);
+    // Don't do this pointlessly
+    if (m_pDisasmWidget->GetProc() != mode)
+        m_pDisasmWidget->SetProc(mode);
+
     // Update UI to match
     m_pProcButton->setText(mode == kProcCpu ? "CPU" : "DSP");
 }
