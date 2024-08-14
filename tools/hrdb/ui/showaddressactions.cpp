@@ -5,6 +5,7 @@
 
 ShowAddressActions::ShowAddressActions() :
     m_activeAddress(0),
+    m_memorySpace(Memory::kCpu),
     m_pSession(nullptr)
 {
     for (int i = 0; i < kNumDisasmViews; ++i)
@@ -40,7 +41,7 @@ void ShowAddressActions::addActionsToMenu(QMenu* pMenu) const
     pMenu->addAction(m_pGraphicsInspectorAction);
 }
 
-void ShowAddressActions::setAddress(Session* pSession, uint32_t address)
+void ShowAddressActions::setAddress(Session* pSession, int memorySpace, uint32_t address)
 {
     m_activeAddress = address;
     m_pSession = pSession;
@@ -48,17 +49,17 @@ void ShowAddressActions::setAddress(Session* pSession, uint32_t address)
 
 void ShowAddressActions::TriggerDisasmView(int windowIndex)
 {
-    emit m_pSession->addressRequested(Session::kDisasmWindow, windowIndex, m_activeAddress);
+    emit m_pSession->addressRequested(Session::kDisasmWindow, windowIndex, m_memorySpace, m_activeAddress);
 }
 
 void ShowAddressActions::TriggerMemoryView(int windowIndex)
 {
-    emit m_pSession->addressRequested(Session::kMemoryWindow, windowIndex, m_activeAddress);
+    emit m_pSession->addressRequested(Session::kMemoryWindow, windowIndex, m_memorySpace, m_activeAddress);
 }
 
 void ShowAddressActions::TriggerGraphicsInspector()
 {
-    emit m_pSession->addressRequested(Session::kGraphicsInspector, 0, m_activeAddress);
+    emit m_pSession->addressRequested(Session::kGraphicsInspector, 0, m_memorySpace, m_activeAddress);
 }
 
 
@@ -77,7 +78,7 @@ ShowAddressLabel::ShowAddressLabel(Session *pSession) :
     m_pActions(nullptr)
 {
     m_pActions = new ShowAddressActions();
-    m_pActions->setAddress(pSession, 0);
+    m_pActions->setAddress(pSession, Memory::kCpu, 0);
 }
 
 ShowAddressLabel::~ShowAddressLabel()
@@ -85,11 +86,11 @@ ShowAddressLabel::~ShowAddressLabel()
     delete m_pActions;
 }
 
-void ShowAddressLabel::SetAddress(Session* pSession, uint32_t address)
+void ShowAddressLabel::SetAddress(Session* pSession, int memorySpace, uint32_t address)
 {
     this->setText(QString::asprintf("<a href=\"null\">$%x</a>", address));
     this->setTextFormat(Qt::TextFormat::RichText);
-    m_pActions->setAddress(pSession, address);
+    m_pActions->setAddress(pSession, memorySpace, address);
 }
 
 void ShowAddressLabel::contextMenuEvent(QContextMenuEvent *event)

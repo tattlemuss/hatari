@@ -289,7 +289,7 @@ public:
     void saveSettings();
 
 public slots:
-    void requestAddress(Session::WindowType type, int windowIndex, uint32_t address);
+    void requestAddress(Session::WindowType type, int windowIndex, int memorySpace, uint32_t address);
 
 protected:
 

@@ -908,7 +908,7 @@ void HardwareTreeView::contextMenuEvent(QContextMenuEvent *event)
     if (addr != ~0U)
     {
         m_pShowAddressMenu->setTitle(QString::asprintf("Address: $%x", addr));
-        m_showAddressActions.setAddress(m_pSession, addr);
+        m_showAddressActions.setAddress(m_pSession, Memory::kCpu, addr);
         m_showAddressActions.addActionsToMenu(m_pShowAddressMenu);
 
         // Run it

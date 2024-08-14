@@ -17,7 +17,7 @@ public:
     ShowAddressActions();
     virtual ~ShowAddressActions();
     void addActionsToMenu(QMenu* pMenu) const;
-    void setAddress(Session* pSession, uint32_t address);
+    void setAddress(Session* pSession, int memorySpace, uint32_t address);
 
 private:
     // Functions (invoked via lambdas) when "show in Memory X" etc is selected
@@ -27,6 +27,7 @@ private:
 
     // What address will be set to the Window chosen
     uint32_t     m_activeAddress;
+    int          m_memorySpace;     // see Memory::Space
 
     // Actions to add to the menus
     QAction*     m_pDisasmWindowActions[kNumDisasmViews];
@@ -58,7 +59,7 @@ public:
     ShowAddressLabel(Session* pSession);
     ~ShowAddressLabel();
 
-    void SetAddress(Session* pSession, uint32_t address);
+    void SetAddress(Session* pSession, int memorySpace, uint32_t address);
     void contextMenuEvent(QContextMenuEvent *event);
 
     ShowAddressActions*      m_pActions;

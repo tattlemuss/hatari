@@ -93,7 +93,7 @@ private:
         kUserMemory
     };
 
-    void RequestBitmapAddress(Session::WindowType type, int windowIndex, uint32_t address);
+    void RequestBitmapAddress(Session::WindowType type, int windowIndex, int memorySpace, uint32_t address);
 
     // Looks at dirty requests, and issues them in the correct orders
     void UpdateMemoryRequests();

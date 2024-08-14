@@ -297,7 +297,7 @@ void ProfileTreeView::contextMenuEvent(QContextMenuEvent *event)
         pAddressMenu->setTitle(QString::asprintf("Address $%08x", ent.address));
 
         m_showAddressActions.addActionsToMenu(pAddressMenu);
-        m_showAddressActions.setAddress(m_pSession, ent.address);
+        m_showAddressActions.setAddress(m_pSession, Memory::kCpu, ent.address);
         menu.addMenu(pAddressMenu);
 
         // Run it
@@ -316,7 +316,7 @@ void ProfileTreeView::mouseDoubleClickEvent(QMouseEvent *event)
     if (rowIdx >= 0)
     {
         const ProfileTableModel::Entry& ent = m_pTableModel->GetEntry(rowIdx);
-        emit m_pSession->addressRequested(Session::kDisasmWindow, 0, ent.address);
+        emit m_pSession->addressRequested(Session::kDisasmWindow, 0, Memory::kCpu, ent.address);
     }
 }
 

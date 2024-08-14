@@ -98,7 +98,7 @@ signals:
 
     // Shared signal to request a new address in another window.
     // Qt seems to have no central message dispatch, so use signals/slots
-    void addressRequested(WindowType windowType, int windowId, uint32_t address);
+    void addressRequested(WindowType windowType, int windowId, int memSpace, uint32_t address);
 
     // Called by UI elements to flag a shared message
     void messageSet(const QString& msg);

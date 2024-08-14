@@ -1377,12 +1377,13 @@ void DisasmWidget::ContextMenu(int row, QPoint globalPos)
     menu.addMenu(m_pEditMenu);
 
     // Set up relevant menu items
+    Memory::Space space = m_proc == kProcCpu ? Memory::kCpu : Memory::kDspP;
     uint32_t instAddr;
     bool vis = GetInstructionAddr(m_rightClickRow, instAddr);
     if (vis)
     {
         m_showAddressMenus[0].setTitle(QString::asprintf("$%x (this instruction)", instAddr));
-        m_showAddressMenus[0].setAddress(m_pSession, instAddr);
+        m_showAddressMenus[0].setAddress(m_pSession, space, instAddr);
         menu.addMenu(m_showAddressMenus[0].m_pMenu);
     }
 
@@ -1392,8 +1393,9 @@ void DisasmWidget::ContextMenu(int row, QPoint globalPos)
         uint32_t opAddr;
         if (GetEA(m_rightClickRow, op, opAddr))
         {
+            // TODO: effective addresses on DSP will have different memory spaces...
             m_showAddressMenus[menuIndex].setTitle(QString::asprintf("$%x (Effective address %u)", opAddr, menuIndex));
-            m_showAddressMenus[menuIndex].setAddress(m_pSession, opAddr);
+            m_showAddressMenus[menuIndex].setAddress(m_pSession, space, opAddr);
             menu.addMenu(m_showAddressMenus[menuIndex].m_pMenu);
         }
     }
@@ -1492,7 +1494,7 @@ DisasmWindow::DisasmWindow(QWidget *parent, Session* pSession, int windowIndex) 
     this->resizeEvent(nullptr);
 }
 
-void DisasmWindow::requestAddress(Session::WindowType type, int windowIndex, uint32_t address)
+void DisasmWindow::requestAddress(Session::WindowType type, int windowIndex, int memorySpace, uint32_t address)
 {
     if (type != Session::WindowType::kDisasmWindow)
         return;

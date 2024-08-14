@@ -1086,7 +1086,8 @@ void MemoryWidget::ContextMenu(int row, int col, QPoint globalPos)
 
         menu.addAction(m_pSearchAction);
 
-        m_showAddressMenus[0].setAddress(m_pSession, addr);
+        // TODO different memory spaces
+        m_showAddressMenus[0].setAddress(m_pSession, Memory::kCpu, addr);
         m_showAddressMenus[0].setTitle(QString::asprintf("Data Address: $%x", addr));
         menu.addMenu(m_showAddressMenus[0].m_pMenu);
 
@@ -1097,7 +1098,7 @@ void MemoryWidget::ContextMenu(int row, int col, QPoint globalPos)
             if (mem->ReadAddressMulti(addr, 4, longContents))
             {
                 longContents &= 0xffffff;
-                m_showAddressMenus[1].setAddress(m_pSession, longContents);
+                m_showAddressMenus[1].setAddress(m_pSession, Memory::kCpu, longContents);
                 m_showAddressMenus[1].setTitle(QString::asprintf("Pointer Address: $%x", longContents));
                 menu.addMenu(m_showAddressMenus[1].m_pMenu);
             }
@@ -1261,7 +1262,7 @@ void MemoryWindow::saveSettings()
     settings.endGroup();
 }
 
-void MemoryWindow::requestAddress(Session::WindowType type, int windowIndex, uint32_t address)
+void MemoryWindow::requestAddress(Session::WindowType type, int windowIndex, int memorySpace, uint32_t address)
 {
     if (type != Session::WindowType::kMemoryWindow)
         return;

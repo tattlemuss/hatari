@@ -699,7 +699,7 @@ void GraphicsInspectorWidget::updateInfoLine()
     m_pMouseInfoLabel->setText(str);
 }
 
-void GraphicsInspectorWidget::RequestBitmapAddress(Session::WindowType type, int windowIndex, uint32_t address)
+void GraphicsInspectorWidget::RequestBitmapAddress(Session::WindowType type, int windowIndex, int memorySpace, uint32_t address)
 {
     if (type != Session::WindowType::kGraphicsInspector)
         return;
@@ -1280,13 +1280,13 @@ void GraphicsInspectorWidget::ContextMenu(QPoint pos)
     menu.addAction(m_pSaveImageAction);
     menu.addMenu(m_pOverlayMenu);
 
-    m_showAddressMenus[0].setAddress(m_pSession, m_bitmapAddress);
+    m_showAddressMenus[0].setAddress(m_pSession, Memory::kCpu, m_bitmapAddress);
     m_showAddressMenus[0].setTitle(Format::to_hex32(m_bitmapAddress) + QString(" (Bitmap address)"));
     menu.addMenu(m_showAddressMenus[0].m_pMenu);
 
     if (m_mouseInfo.isValid && m_addressUnderMouse != ~0U)
     {
-        m_showAddressMenus[1].setAddress(m_pSession, m_addressUnderMouse);
+        m_showAddressMenus[1].setAddress(m_pSession, Memory::kCpu, m_addressUnderMouse);
         m_showAddressMenus[1].setTitle(Format::to_hex32(m_addressUnderMouse) + QString(" (Mouse Cursor address)"));
         menu.addMenu(m_showAddressMenus[1].m_pMenu);
     }
