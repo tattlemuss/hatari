@@ -60,6 +60,60 @@ static QString CreateNumberTooltip(uint32_t value, uint32_t prevValue)
     return final;
 }
 
+static QString CreateDspNumberTooltip(uint32_t value, uint32_t prevValue)
+{
+    value &= 0xffffff;
+    prevValue &= 0xffffff;
+    uint16_t word = value & 0xffff;
+    uint16_t byte = value & 0xff;
+
+    QString final;
+    QTextStream ref(&final);
+
+    if (value != prevValue)
+    {
+        ref << QString::asprintf("Previous value: $%x (%d)\n", prevValue, static_cast<int32_t>(prevValue));
+        uint32_t delta = value - prevValue;
+        ref << QString::asprintf("Difference from previous: $%x (%d)\n", delta, static_cast<int32_t>(delta));
+    }
+
+    const uint32_t topBit = 0x800000U;
+    int32_t signedVal = static_cast<int32_t>(value);
+    if (value & topBit)
+        signedVal |= 0xff000000;
+
+    double frac = 1.0 * signedVal / topBit;
+    ref << QString::asprintf("Fractional: %f\n", frac);
+
+    if (value & topBit)
+        ref << QString::asprintf("Long: %u (%d)\n", value, signedVal);
+    else
+        ref << QString::asprintf("Long: %u\n", value);
+    if (value & 0x8000)
+        ref << QString::asprintf("Word: %u (%d)\n", word, static_cast<int16_t>(word));
+    else
+        ref << QString::asprintf("Word: %u\n", word);
+    if (value & 0x80)
+        ref << QString::asprintf("Byte: %u (%d)\n", byte, static_cast<int8_t>(byte));
+    else
+        ref << QString::asprintf("Byte: %u\n", byte);
+
+    ref << "Binary: ";
+    for (int bit = 31; bit >= 0; --bit)
+        ref << ((value & (1U << bit)) ? "1" : "0");
+    ref << "\n";
+
+    ref << "ASCII \"";
+    for (int bit = 3; bit >= 0; --bit)
+    {
+        unsigned char val = static_cast<unsigned char>(value >> (bit * 8));
+        ref << ((val >= 32 && val < 128) ? QString(val) : ".");
+    }
+    ref << "\"\n";
+
+    return final;
+}
+
 static QString CreateSRTooltip(uint32_t srRegValue, uint32_t registerBit)
 {
     uint32_t valSet = (srRegValue >> registerBit) & 1;
@@ -828,6 +882,12 @@ QString RegisterWidget::GetTooltipText(const RegisterWidget::Token& token)
             uint32_t value = m_currRegs.Get(token.subIndex);
             uint32_t prevValue = m_prevRegs.Get(token.subIndex);
             return CreateNumberTooltip(value, prevValue);
+        }
+    case TokenType::kDspRegister:
+        {
+            uint32_t value = m_currDspRegs.Get(token.subIndex);
+            uint32_t prevValue = m_prevDspRegs.Get(token.subIndex);
+            return CreateDspNumberTooltip(value, prevValue);
         }
     case TokenType::kSymbol:
         return QString::asprintf("Original address: $%08x", token.subIndex);
