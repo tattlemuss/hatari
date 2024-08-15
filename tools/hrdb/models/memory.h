@@ -70,6 +70,11 @@ public:
         return maddr(m_space, m_addr);
     }
 
+    MemSpace GetSpace() const
+    {
+        return m_space;
+    }
+
     // Return the base address number.
     uint32_t GetAddress() const
     {

@@ -137,7 +137,7 @@ private:
     void RecalcRowCount();
 
     // Calculate number of bytes to fit current window width
-    void RecalcRowWidth();
+    void RecalcAutoRowWidth();
 
     // Update cursor data and emit cursorChangedSignal
     void RecalcCursorInfo();
@@ -202,7 +202,11 @@ private:
     MemAddr     m_address;
     WidthMode   m_widthMode;
     SizeMode    m_sizeMode;
+
+    // These are calculated from m_widthMode
     int         m_bytesPerRow;
+    int         m_hasAscii;
+
     int         m_rowCount;
     int         m_cursorRow;
     int         m_cursorCol;
