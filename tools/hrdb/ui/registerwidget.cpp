@@ -286,19 +286,19 @@ void RegisterWidget::contextMenuEvent(QContextMenuEvent *event)
 
     // Add the default actions
     QMenu* pAddressMenu = nullptr;
-    Memory::Space spaceUnderMouse = Memory::kCpu;
+    MemSpace spaceUnderMouse = MEM_CPU;
     QString addrText = Format::to_address(spaceUnderMouse, m_addressUnderMouse);
     if (m_tokenUnderMouse.type == TokenType::kRegister)
     {
         m_addressUnderMouse = m_currRegs.Get(m_tokenUnderMouse.subIndex);
-        spaceUnderMouse = Memory::kCpu;
+        spaceUnderMouse = MEM_CPU;
         pAddressMenu = new QMenu("", &menu);
         pAddressMenu->setTitle(QString("Address ") + addrText);
     }
     else if (m_tokenUnderMouse.type == TokenType::kSymbol)
     {
         m_addressUnderMouse = m_tokenUnderMouse.subIndex;
-        spaceUnderMouse = Memory::kCpu;
+        spaceUnderMouse = MEM_CPU;
         pAddressMenu = new QMenu("", &menu);
         pAddressMenu->setTitle(QString("Address ") + addrText);
     }

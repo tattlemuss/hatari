@@ -100,8 +100,8 @@ MemoryWidget::MemoryWidget(QWidget *parent, Session* pSession,
     m_requestId(0),
     m_requestCursorMode(kNoMoveCursor),
     m_windowIndex(windowIndex),
-    m_currentMemory(Memory::kCpu, 0, 0),
-    m_previousMemory(Memory::kCpu, 0, 0),
+    m_currentMemory(MEM_CPU, 0, 0),
+    m_previousMemory(MEM_CPU, 0, 0),
     m_pSearchAction(pSearchAction),
     m_pSaveAction(pSaveAction),
     m_wheelAngleDelta(0)
@@ -615,7 +615,7 @@ void MemoryWidget::startStopChanged()
         if (pMem)
             m_previousMemory = *pMem;
         else {
-            m_previousMemory = Memory(Memory::kCpu, 0, 0);
+            m_previousMemory = Memory(MEM_CPU, 0, 0);
         }
     }
 }
@@ -1087,7 +1087,7 @@ void MemoryWidget::ContextMenu(int row, int col, QPoint globalPos)
         menu.addAction(m_pSearchAction);
 
         // TODO different memory spaces
-        m_showAddressMenus[0].setAddress(m_pSession, Memory::kCpu, addr);
+        m_showAddressMenus[0].setAddress(m_pSession, MEM_CPU, addr);
         m_showAddressMenus[0].setTitle(QString::asprintf("Data Address: $%x", addr));
         menu.addMenu(m_showAddressMenus[0].m_pMenu);
 
@@ -1098,7 +1098,7 @@ void MemoryWidget::ContextMenu(int row, int col, QPoint globalPos)
             if (mem->ReadAddressMulti(addr, 4, longContents))
             {
                 longContents &= 0xffffff;
-                m_showAddressMenus[1].setAddress(m_pSession, Memory::kCpu, longContents);
+                m_showAddressMenus[1].setAddress(m_pSession, MEM_CPU, longContents);
                 m_showAddressMenus[1].setTitle(QString::asprintf("Pointer Address: $%x", longContents));
                 menu.addMenu(m_showAddressMenus[1].m_pMenu);
             }

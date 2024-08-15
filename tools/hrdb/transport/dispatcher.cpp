@@ -676,7 +676,7 @@ void Dispatcher::ParseMem(StringSplitter& splitResp, const RemoteCommand& cmd)
         return;
 
     // Create a new memory block to pass to the data model
-    Memory* pMem = new Memory(Memory::kCpu, addr, size);
+    Memory* pMem = new Memory(MEM_CPU, addr, size);
 
     // Now parse the uuencoded data
     // Each "group" encodes 3 bytes
@@ -717,12 +717,12 @@ void Dispatcher::ParseDmem(StringSplitter &splitResp, const RemoteCommand &cmd)
     uint32_t sizeInWords;
     if (!StringParsers::ParseHexString(sizeStr.c_str(), sizeInWords))
         return;
-    Memory::Space space;
+    MemSpace space;
     switch (memspace[0])
     {
-        case 'P' : space = Memory::kDspP; break;
-        case 'X' : space = Memory::kDspX; break;
-        case 'Y' : space = Memory::kDspY; break;
+        case 'P' : space = MEM_P; break;
+        case 'X' : space = MEM_X; break;
+        case 'Y' : space = MEM_Y; break;
     default:
         return;
     }

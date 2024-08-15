@@ -908,7 +908,7 @@ void HardwareTreeView::contextMenuEvent(QContextMenuEvent *event)
     if (addr != ~0U)
     {
         m_pShowAddressMenu->setTitle(QString::asprintf("Address: $%x", addr));
-        m_showAddressActions.setAddress(m_pSession, Memory::kCpu, addr);
+        m_showAddressActions.setAddress(m_pSession, MEM_CPU, addr);
         m_showAddressActions.addActionsToMenu(m_pShowAddressMenu);
 
         // Run it
@@ -924,8 +924,8 @@ HardwareWindow::HardwareWindow(QWidget *parent, Session* pSession) :
     m_pSession(pSession),
     m_pTargetModel(pSession->m_pTargetModel),
     m_pDispatcher(pSession->m_pDispatcher),
-    m_videoMem(Memory::kCpu, 0, 0),
-    m_mfpMem(Memory::kCpu, 0, 0)
+    m_videoMem(MEM_CPU, 0, 0),
+    m_mfpMem(MEM_CPU, 0, 0)
 {
     this->setWindowTitle("Hardware");
     setObjectName("Hardware");

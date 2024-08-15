@@ -33,7 +33,7 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex, 
     m_proc(kProcCpu),
     m_minInstSize(2U),
     m_maxInstSize(32U),
-    m_memory(Memory::kCpu, 0, 0),
+    m_memory(MEM_CPU, 0, 0),
     m_logicalAddr(0),
     m_requestId(0),
     m_bFollowPC(true),
@@ -1381,7 +1381,7 @@ void DisasmWidget::ContextMenu(int row, QPoint globalPos)
     menu.addMenu(m_pEditMenu);
 
     // Set up relevant menu items
-    Memory::Space space = (m_proc == kProcCpu) ? Memory::kCpu : Memory::kDspP;
+    MemSpace space = (m_proc == kProcCpu) ? MEM_CPU : MEM_P;
     uint32_t instAddr;
     bool vis = GetInstructionAddr(m_rightClickRow, instAddr);
     if (vis)
@@ -1508,7 +1508,7 @@ void DisasmWindow::requestAddress(Session::WindowType type, int windowIndex, int
     if (windowIndex != m_windowIndex)
         return;
 
-    if (memorySpace == Memory::kCpu)
+    if (memorySpace == MEM_CPU)
         // Requesting CPU memory
         SetProc(kProcCpu);
     else

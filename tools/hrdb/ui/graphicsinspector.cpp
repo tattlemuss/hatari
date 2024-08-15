@@ -1279,7 +1279,7 @@ void GraphicsInspectorWidget::ContextMenu(QPoint pos)
     // Add the default actions
     menu.addAction(m_pSaveImageAction);
     menu.addMenu(m_pOverlayMenu);
-    Memory::Space space = Memory::kCpu;
+    MemSpace space = MEM_CPU;
 
     QString addrText = Format::to_address(space, m_bitmapAddress);
     m_showAddressMenus[0].setAddress(m_pSession, space, m_bitmapAddress);

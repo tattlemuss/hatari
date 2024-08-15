@@ -198,6 +198,7 @@ private:
 
     // This block effectively stores the whole current UI state.
     // If anything changes
+    int         m_space;
     uint32_t    m_address;
     WidthMode   m_widthMode;
     SizeMode    m_sizeMode;

@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-Memory::Memory(Memory::Space space, uint32_t addr, uint32_t sizeInBytes) :
+Memory::Memory(MemSpace space, uint32_t addr, uint32_t sizeInBytes) :
     m_space(space),
     m_addr(addr),
     m_sizeInBytes(sizeInBytes)

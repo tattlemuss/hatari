@@ -5,7 +5,7 @@
 
 ShowAddressActions::ShowAddressActions() :
     m_activeAddress(0),
-    m_memorySpace(Memory::kCpu),
+    m_memorySpace(MEM_CPU),
     m_pSession(nullptr)
 {
     for (int i = 0; i < kNumDisasmViews; ++i)
@@ -49,7 +49,7 @@ void ShowAddressActions::setAddress(Session* pSession, int memorySpace, uint32_t
 
     // Certain window types only accept CPU memory
     // e.g. Graphics Inspector
-    bool isCpu = (memorySpace == Memory::kCpu);
+    bool isCpu = (memorySpace == MEM_CPU);
     for (int i = 0; i < kNumMemoryViews; ++i)
         m_pMemoryWindowActions[i]->setVisible(isCpu);
 
@@ -87,7 +87,7 @@ ShowAddressLabel::ShowAddressLabel(Session *pSession) :
     m_pActions(nullptr)
 {
     m_pActions = new ShowAddressActions();
-    m_pActions->setAddress(pSession, Memory::kCpu, 0);
+    m_pActions->setAddress(pSession, MEM_CPU, 0);
 }
 
 ShowAddressLabel::~ShowAddressLabel()

@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <assert.h>
+#include "memaddr.h"
 
 static const int kNumDisasmViews = 2;
 static const int kNumMemoryViews = 4;
@@ -42,14 +43,7 @@ bool Overlaps(uint32_t addr1, uint32_t size1, uint32_t addr2, uint32_t size);
 class Memory
 {
 public:
-    enum Space
-    {
-        kCpu,
-        kDspP,
-        kDspX,
-        kDspY
-    };
-    Memory(Space space, uint32_t addr, uint32_t sizeInBytes);
+    Memory(MemSpace space, uint32_t addr, uint32_t sizeInBytes);
 
     ~Memory();
 
@@ -124,7 +118,7 @@ public:
 private:
     Memory(const Memory& other);	// hide to prevent accidental use
 
-    Space       m_space;
+    MemSpace    m_space;
     uint32_t	m_addr;
     uint32_t	m_sizeInBytes;		// size in bytes
     uint8_t*	m_pData;
