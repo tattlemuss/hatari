@@ -83,9 +83,23 @@ uint64_t Dispatcher::ReadMemory(MemorySlot slot, uint32_t address, uint32_t size
     return SendCommandShared(slot, tmp.toStdString());
 }
 
-uint64_t Dispatcher::ReadDspMemory(MemorySlot slot, char space, uint32_t address, uint32_t size)
+uint64_t Dispatcher::ReadMemory(MemorySlot slot, MemSpace space, uint32_t address, uint32_t size)
 {
-    QString tmp = QString::asprintf("dmem %c %x %x", space, address, size);
+    QString tmp;
+    switch (space)
+    {
+    case MEM_CPU:
+        tmp = QString::asprintf("mem %x %x", address, size); break;
+    case MEM_P:
+        tmp = QString::asprintf("dmem P %x %x", address, size); break;
+    case MEM_X:
+        tmp = QString::asprintf("dmem X %x %x", address, size); break;
+    case MEM_Y:
+        tmp = QString::asprintf("dmem Y %x %x", address, size); break;
+    default:
+        assert(0);
+        return 0;
+    }
     return SendCommandShared(slot, tmp.toStdString());
 }
 

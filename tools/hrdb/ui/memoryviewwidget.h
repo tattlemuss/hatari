@@ -67,7 +67,7 @@ public:
     // Set the text expression used as the address.
     // returns false if expression is invalid
     bool SetExpression(std::string expression);
-    void SetSearchResultAddress(uint32_t addr);
+    void SetSearchResultAddress(MemAddr addr);
 
     void SetLock(bool locked);
     void SetSizeMode(SizeMode mode);
@@ -88,7 +88,7 @@ protected:
 private:
     struct ViewState
     {
-        uint32_t address;
+        MemAddr address;
         int rowCount;
         int bytesPerRow;
         SizeMode sizeMode;
@@ -125,7 +125,7 @@ private:
         kMoveCursor
     };
 
-    void SetAddress(uint32_t address, CursorMode moveCursor);
+    void SetAddress(MemAddr address, CursorMode moveCursor);
     void RequestMemory(CursorMode moveCursor);
 
     // Is we are locked to an expression recalc m_address
@@ -198,8 +198,7 @@ private:
 
     // This block effectively stores the whole current UI state.
     // If anything changes
-    int         m_space;
-    uint32_t    m_address;
+    MemAddr     m_address;
     WidthMode   m_widthMode;
     SizeMode    m_sizeMode;
     int         m_bytesPerRow;

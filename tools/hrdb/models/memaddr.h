@@ -16,12 +16,21 @@ enum MemSpace
 // Describes a unique memory address from the target.
 struct MemAddr
 {
-    int         space;      // one of MemSpace
+    MemSpace    space;      // one of MemSpace
     uint32_t    addr;
+
+    bool operator==(const MemAddr& other)
+    {
+        return space == other.space && addr == other.addr;
+    }
+    bool operator!=(const MemAddr& other)
+    {
+        return space != other.space || addr != other.addr;
+    }
 };
 
 // Create a MemoryAddress
-inline MemAddr maddr(int space, uint32_t addr)
+inline MemAddr maddr(MemSpace space, uint32_t addr)
 {
     MemAddr m;
     m.space = space; m.addr = addr;

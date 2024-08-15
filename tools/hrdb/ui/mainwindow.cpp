@@ -823,13 +823,11 @@ void MainWindow::requestMainState(uint32_t pc)
     // This is the memory for the current instruction.
     // It's used by this and Register windows.
     // *** NOTE this code assumes PC register is already available ***
-    m_pDispatcher->ReadMemory(MemorySlot::kMainPC, pc, 32);
+    m_pDispatcher->ReadMemory(MemorySlot::kMainPC, MEM_CPU, pc, 32);
     m_pDispatcher->ReadBreakpoints();
     m_pDispatcher->ReadExceptionMask();
-
-    // TODO need a better "has DSP" check here
     if (m_pTargetModel->IsDspActive())
-        m_pDispatcher->ReadDspMemory(MemorySlot::kMainDspPC, 'P', m_pTargetModel->GetStartStopPC(kProcDsp), 2);
+        m_pDispatcher->ReadMemory(MemorySlot::kMainDspPC, MEM_P, m_pTargetModel->GetStartStopPC(kProcDsp), 2);
 
     // Basepage makes things much easier
     m_pDispatcher->ReadMemory(MemorySlot::kBasePage, 0, 0x200);

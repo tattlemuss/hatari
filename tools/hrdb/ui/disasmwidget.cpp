@@ -130,10 +130,8 @@ void DisasmWidget::RequestMemory()
     uint32_t size = highAddr - lowAddr;
     if (m_pTargetModel->IsConnected())
     {
-        if (m_proc == kProcCpu)
-            m_requestId = m_pDispatcher->ReadMemory(m_memSlot, lowAddr, size);
-        else
-            m_requestId = m_pDispatcher->ReadDspMemory(m_memSlot, 'P', lowAddr, size);
+        MemSpace space = (m_proc == kProcCpu) ? MEM_CPU : MEM_P;
+        m_requestId = m_pDispatcher->ReadMemory(m_memSlot, space, lowAddr, size);
     }
 }
 

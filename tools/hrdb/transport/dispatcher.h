@@ -21,10 +21,14 @@ public:
 
     uint64_t InsertFlush();
 
-    // Request a specific memory block.
-    // Allows strings so expressions can evaluate
+    // Request a specific CPU memory block.
+    // Sizes are in bytes.
     uint64_t ReadMemory(MemorySlot slot, uint32_t address, uint32_t size);
-    uint64_t ReadDspMemory(MemorySlot slot, char space, uint32_t address, uint32_t size);
+
+    // Request a memory block from any memory space.
+    // Sizes are in bytes.
+    uint64_t ReadMemory(MemorySlot slot, MemSpace space, uint32_t address, uint32_t size);
+
     uint64_t ReadRegisters();
     uint64_t ReadInfoYm();
     uint64_t ReadBreakpoints();

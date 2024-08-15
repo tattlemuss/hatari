@@ -65,6 +65,11 @@ public:
         return m_pData[offset];
     }
 
+    MemAddr GetMemAddr() const
+    {
+        return maddr(m_space, m_addr);
+    }
+
     // Return the base address number.
     uint32_t GetAddress() const
     {

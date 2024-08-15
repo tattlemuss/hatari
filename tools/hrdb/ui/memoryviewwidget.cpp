@@ -90,7 +90,7 @@ MemoryWidget::MemoryWidget(QWidget *parent, Session* pSession,
     m_pTargetModel(pSession->m_pTargetModel),
     m_pDispatcher(pSession->m_pDispatcher),
     m_isLocked(false),
-    m_address(0),
+    m_address(maddr(MEM_CPU, 0)),
     m_widthMode(k16),
     m_sizeMode(kModeByte),
     m_bytesPerRow(16),
@@ -146,17 +146,17 @@ bool MemoryWidget::SetExpression(std::string expression)
     {
         return false;
     }
-    SetAddress(addr, kNoMoveCursor);
+    SetAddress(maddr(MEM_CPU, addr), kNoMoveCursor);
     m_addressExpression = expression;
     return true;
 }
 
-void MemoryWidget::SetSearchResultAddress(uint32_t addr)
+void MemoryWidget::SetSearchResultAddress(MemAddr addr)
 {
     SetAddress(addr, kMoveCursor);
 }
 
-void MemoryWidget::SetAddress(uint32_t address, CursorMode moveCursor)
+void MemoryWidget::SetAddress(MemAddr address, CursorMode moveCursor)
 {
     m_address = address;
     RequestMemory(moveCursor);
@@ -181,7 +181,7 @@ void MemoryWidget::SetRowCount(int32_t rowCount)
 
 uint32_t MemoryWidget::CalcAddress(int row, int col) const
 {
-   uint32_t rowAddress = m_address + row * m_bytesPerRow;
+   uint32_t rowAddress = m_address.addr + row * m_bytesPerRow;
    const ColInfo& info = m_columnMap[col];
    return rowAddress + info.byteOffset;
 }
@@ -318,16 +318,16 @@ void MemoryWidget::MoveRelative(int32_t bytes)
     if (bytes >= 0)
     {
         uint32_t bytesAbs(static_cast<uint32_t>(bytes));
-        SetAddress(m_address + bytesAbs, kNoMoveCursor);
+        SetAddress(maddr(m_address.space, m_address.addr + bytesAbs), kNoMoveCursor);
     }
     else
     {
         // "bytes" is negative, so convert to unsigned for calcs
         uint32_t bytesAbs(static_cast<uint32_t>(-bytes));
-        if (m_address > bytesAbs)
-            SetAddress(m_address - bytesAbs, kNoMoveCursor);
+        if (m_address.addr > bytesAbs)
+            SetAddress(maddr(m_address.space, m_address.addr - bytesAbs), kNoMoveCursor);
         else
-            SetAddress(0, kNoMoveCursor);
+            SetAddress(maddr(m_address.space, 0), kNoMoveCursor);
     }
 }
 
@@ -346,7 +346,7 @@ bool MemoryWidget::EditKey(char key)
     if (info.type == ColumnType::kInvalid)
         return false;
 
-    uint32_t address = m_address + m_cursorRow * m_bytesPerRow + info.byteOffset;
+    uint32_t address = m_address.addr + m_cursorRow * m_bytesPerRow + info.byteOffset;
     uint8_t cursorByte;
     if (!m_currentMemory.ReadCpuByte(address, cursorByte))
         return false;
@@ -444,7 +444,7 @@ void MemoryWidget::memoryChanged(int memorySlot, uint64_t commandId)
     if (!pMem)
         return;
 
-    if (pMem->GetAddress() != m_address)
+    if (pMem->GetMemAddr() != m_address)
         return;
 
     if (m_requestCursorMode == kMoveCursor)
@@ -530,7 +530,7 @@ void MemoryWidget::RecalcText()
         row.m_types.resize(colCount);
         row.m_byteChanged.resize(colCount);
         row.m_symbolId.resize(colCount);
-        uint32_t rowAddress = m_address + r * m_bytesPerRow;
+        uint32_t rowAddress = m_address.addr + r * m_bytesPerRow;
 
         for (int col = 0; col < colCount; ++col)
         {
@@ -623,7 +623,8 @@ void MemoryWidget::startStopChanged()
 void MemoryWidget::connectChanged()
 {
     m_rows.clear();
-    m_address = 0;
+    m_address.space = MEM_CPU;
+    m_address.addr = 0;
     RecalcCursorInfo();
     update();
 }
@@ -641,11 +642,11 @@ void MemoryWidget::registersChanged()
 void MemoryWidget::otherMemoryChanged(uint32_t address, uint32_t size)
 {
     // Do a re-request, only if it affected our view
-    if (address + size <= m_address)
+    if (address + size <= m_address.addr)
         return;
 
     uint32_t ourSize = static_cast<uint32_t>(m_rowCount * m_bytesPerRow);
-    if (m_address + ourSize <= address)
+    if (m_address.addr + ourSize <= address)
         return;
     RequestMemory(kNoMoveCursor);
 }
@@ -702,7 +703,7 @@ void MemoryWidget::paintEvent(QPaintEvent* ev)
             painter.setPen(pal.text().color());
             int topleft_y = GetPixelFromRow(row);
             int text_y = topleft_y + y_ascent;
-            uint32_t rowAddr = m_address + row * m_bytesPerRow;
+            uint32_t rowAddr = m_address.addr + row * m_bytesPerRow;
             QString addr = QString::asprintf("%08x", rowAddr);
             painter.drawText(GetAddrX(), text_y, addr);
 
@@ -901,7 +902,7 @@ void MemoryWidget::RequestMemory(MemoryWidget::CursorMode moveCursor)
     uint32_t size = static_cast<uint32_t>(m_rowCount * m_bytesPerRow);
     if (m_pTargetModel->IsConnected())
     {
-        m_requestId = m_pDispatcher->ReadMemory(m_memSlot, m_address, size);
+        m_requestId = m_pDispatcher->ReadMemory(m_memSlot, m_address.space, m_address.addr, size);
         m_requestCursorMode = moveCursor;
     }
 }
@@ -915,7 +916,7 @@ void MemoryWidget::RecalcLockedExpression()
                                             m_pTargetModel->GetSymbolTable(),
                                             m_pTargetModel->GetRegs()))
         {
-            SetAddress(addr, kNoMoveCursor);
+            SetAddress(maddr(MEM_CPU, addr), kNoMoveCursor);
         }
     }
 }
@@ -1422,7 +1423,7 @@ void MemoryWindow::searchResultsSlot(uint64_t responseId)
             uint32_t addr = results.addresses[0];
             m_pMemoryWidget->SetLock(false);
             m_pLockCheckBox->setChecked(false);
-            m_pMemoryWidget->SetSearchResultAddress(addr);
+            m_pMemoryWidget->SetSearchResultAddress(maddr(MEM_CPU, addr));
 
             // Allow the "next" operation to work
             m_searchSettings.m_startAddress = addr + 1;
