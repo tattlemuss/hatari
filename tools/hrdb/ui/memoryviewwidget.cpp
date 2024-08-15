@@ -82,6 +82,13 @@ static QString CreateTooltip(uint32_t address, const SymbolTable& symTable, uint
     return final;
 }
 
+static int32_t GetDivider(MemSpace space)
+{
+    if (space != MEM_CPU)
+        return 3;
+    return 1;
+}
+
 MemoryWidget::MemoryWidget(QWidget *parent, Session* pSession,
                            int windowIndex,
                            QAction* pSearchAction, QAction* pSaveAction) :
@@ -179,11 +186,17 @@ void MemoryWidget::SetRowCount(int32_t rowCount)
     }
 }
 
-uint32_t MemoryWidget::CalcAddress(int row, int col) const
+uint32_t MemoryWidget::CalcAddrOffset(MemAddr addr, int row, int col) const
 {
-   uint32_t rowAddress = m_address.addr + row * m_bytesPerRow;
-   const ColInfo& info = m_columnMap[col];
-   return rowAddress + info.byteOffset;
+    uint32_t divider = addr.space == MEM_CPU ? 1 : 3;
+    const ColInfo& info = m_columnMap[col];
+    uint32_t charByteOffset = row * m_bytesPerRow + info.byteOffset;
+    return (charByteOffset / divider);
+}
+
+uint32_t MemoryWidget::CalcAddress(MemAddr addr, int row, int col) const
+{
+    return m_address.addr + CalcAddrOffset(m_address, row, col);
 }
 
 void MemoryWidget::SetLock(bool locked)
@@ -315,17 +328,20 @@ void MemoryWidget::MoveRelative(int32_t bytes)
     if (m_requestId != 0)
         return; // not up to date
 
-    if (bytes >= 0)
+    // "Jump" is the change in address, not bytes
+    int32_t jump = bytes / GetDivider(m_address.space);
+
+    if (jump >= 0)
     {
-        uint32_t bytesAbs(static_cast<uint32_t>(bytes));
-        SetAddress(maddr(m_address.space, m_address.addr + bytesAbs), kNoMoveCursor);
+        uint32_t jumpAbs(static_cast<uint32_t>(jump));
+        SetAddress(maddr(m_address.space, m_address.addr + jumpAbs), kNoMoveCursor);
     }
     else
     {
         // "bytes" is negative, so convert to unsigned for calcs
-        uint32_t bytesAbs(static_cast<uint32_t>(-bytes));
-        if (m_address.addr > bytesAbs)
-            SetAddress(maddr(m_address.space, m_address.addr - bytesAbs), kNoMoveCursor);
+        uint32_t jumpAbs(static_cast<uint32_t>(-jump));
+        if (m_address.addr > jumpAbs)
+            SetAddress(maddr(m_address.space, m_address.addr - jumpAbs), kNoMoveCursor);
         else
             SetAddress(maddr(m_address.space, 0), kNoMoveCursor);
     }
@@ -346,7 +362,7 @@ bool MemoryWidget::EditKey(char key)
     if (info.type == ColumnType::kInvalid)
         return false;
 
-    uint32_t address = m_address.addr + m_cursorRow * m_bytesPerRow + info.byteOffset;
+    uint32_t address = CalcAddress(m_address, m_cursorRow, m_cursorCol);
     uint8_t cursorByte;
     if (!m_currentMemory.ReadCpuByte(address, cursorByte))
         return false;
@@ -454,6 +470,13 @@ void MemoryWidget::memoryChanged(int memorySlot, uint64_t commandId)
         RecalcCursorInfo();
     }
 
+    if (m_address.space != MEM_CPU)
+        // Force DSP layout
+        m_bytesPerRow = 3 * 4;
+    else
+        RecalcRowWidth();
+
+    RecalcColumnLayout();
     m_currentMemory = *pMem;
     RecalcText();
 
@@ -467,7 +490,9 @@ void MemoryWidget::RecalcColumnLayout()
     // Calc the screen postions.
     // I need a screen position for each *character* on the grid (i.e. nybble)
     int groupSize = 0;
-    if (m_sizeMode == kModeByte)
+    if (m_address.space != MEM_CPU)
+        groupSize = 3;
+    else if (m_sizeMode == kModeByte)
         groupSize = 1;
     else if (m_sizeMode == kModeWord)
         groupSize = 2;
@@ -511,6 +536,7 @@ void MemoryWidget::RecalcColumnLayout()
     RecalcText();
 }
 
+
 // This reads the current positional state, and updates the matrix
 // of text/hex data in the the UI
 void MemoryWidget::RecalcText()
@@ -535,13 +561,9 @@ void MemoryWidget::RecalcText()
         uint32_t rowAddress;
         uint32_t newRowOffset;         // offset in bytes to m_currentMemory base
         uint32_t oldRowOffset;         // offset in bytes to m_previousMemory base
-        uint32_t addressDivider = 1;
+        uint32_t addressDivider = GetDivider(m_address.space);
 
-        if (m_address.space != MEM_CPU)
-            addressDivider = 3;
-
-        uint32_t byteOffset = r * m_bytesPerRow;
-        rowAddress = m_address.addr + (byteOffset / addressDivider);
+        rowAddress = CalcAddress(m_address, r, 0);
         newRowOffset = (rowAddress - m_currentMemory.GetAddress()) * addressDivider;
         oldRowOffset = (rowAddress - m_previousMemory.GetAddress()) * addressDivider;
 
@@ -553,7 +575,7 @@ void MemoryWidget::RecalcText()
             char outChar = '?';
             ColumnType outType = ColumnType::kInvalid;
             uint32_t newByteOffset = newRowOffset + info.byteOffset;
-            uint32_t charAddress = rowAddress + (info.byteOffset / addressDivider);
+            uint32_t charAddress = CalcAddress(m_address, r, col);
 
             bool hasAddress = newByteOffset < m_currentMemory.GetSize();
             bool changed = false;
@@ -728,7 +750,7 @@ void MemoryWidget::paintEvent(QPaintEvent* ev)
             painter.setPen(pal.text().color());
             int topleft_y = GetPixelFromRow(row);
             int text_y = topleft_y + y_ascent;
-            uint32_t rowAddr = m_address.addr + row * m_bytesPerRow;
+            uint32_t rowAddr = CalcAddress(m_address, row, 0);
             QString addr = QString::asprintf("%08x", rowAddr);
             painter.drawText(GetAddrX(), text_y, addr);
 
@@ -965,7 +987,7 @@ void MemoryWidget::RecalcRowCount()
 }
 
 void MemoryWidget::RecalcRowWidth()
-{
+{   
     int w = this->size().width() - (Session::kWidgetBorderX * 2);
 
     // calc how many chars fit
@@ -1004,7 +1026,7 @@ void MemoryWidget::RecalcCursorInfo()
 {
     m_cursorInfo.m_cursorAddress = 0;
     m_cursorInfo.m_isCursorValid = false;
-    m_cursorInfo.m_startAddress = CalcAddress(0, 0);
+    m_cursorInfo.m_startAddress = CalcAddress(m_address, 0, 0);
     m_cursorInfo.m_sizeInBytes = m_rowCount * m_bytesPerRow;
 
     if (m_cursorRow < m_rows.size())
@@ -1015,7 +1037,7 @@ void MemoryWidget::RecalcCursorInfo()
             const ColInfo& info = m_columnMap[col];
             if (info.type == ColumnType::kSpace)
                 break;
-            m_cursorInfo.m_cursorAddress = CalcAddress(m_cursorRow, m_cursorCol);
+            m_cursorInfo.m_cursorAddress = CalcAddress(m_address, m_cursorRow, m_cursorCol);
             m_cursorInfo.m_isCursorValid = true;
             break;
         }
@@ -1037,7 +1059,10 @@ QString MemoryWidget::CalcMouseoverText(int mouseX, int mouseY)
     if (!mem)
         return QString();
 
-    uint32_t addr = CalcAddress(row, col);
+    if (mem->GetMemAddr().space != MEM_CPU)
+        return QString("DSP");
+
+    uint32_t addr = CalcAddress(m_address, row, col);
     uint8_t byteVal;
     mem->ReadCpuByte(addr, byteVal);
 
@@ -1104,7 +1129,7 @@ void MemoryWidget::ContextMenu(int row, int col, QPoint globalPos)
     {
         // Align the memory location to 2 or 4 bytes, based on context
         // (view address, or word/long mode)
-        uint32_t addr = CalcAddress(row, col);
+        uint32_t addr = CalcAddress(m_address, row, col);
         if (m_sizeMode == SizeMode::kModeLong)
             addr &= ~3U;
         else

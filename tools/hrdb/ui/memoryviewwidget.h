@@ -167,7 +167,8 @@ private:
 
     void SetRowCount(int rowCount);
 
-    uint32_t CalcAddress(int row, int col) const;
+    uint32_t CalcAddrOffset(MemAddr addr, int row, int col) const;
+    uint32_t CalcAddress(MemAddr addr, int row, int col) const;
 
     Session*        m_pSession;
     TargetModel*    m_pTargetModel;
