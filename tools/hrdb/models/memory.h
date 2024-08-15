@@ -40,6 +40,8 @@ enum MemorySlot : int
 bool Overlaps(uint32_t addr1, uint32_t size1, uint32_t addr2, uint32_t size);
 
 // A block of memory pulled from the target.
+// The data is byte-based, so if you are reading from DSP data,
+// you need to factor this in (there is no compensation made)
 class Memory
 {
 public:
@@ -49,26 +51,33 @@ public:
 
     void Clear();
 
+    // Set a single byte.
     void Set(uint32_t offset, uint8_t val)
     {
         assert(offset < m_sizeInBytes);
         m_pData[offset] = val;
     }
 
+    // Fetch from a byte offset
     uint8_t Get(uint32_t offset) const
     {
         assert(offset < m_sizeInBytes);
         return m_pData[offset];
     }
 
+    // Return the base address number.
     uint32_t GetAddress() const
     {
         return m_addr;
     }
 
     // Check if all of a given memory range is contained in this memblock.
-    bool HasAddressRange(uint32_t address, uint32_t numBytes) const
+    bool HasCpuRange(uint32_t address, uint32_t numBytes) const
     {
+        // These calculations only make sense for a CPU block,
+        // since addresses are wrong
+        assert(m_space == MEM_CPU);
+
         // Shift the values in to a range of offsets.
 
         // Since we use unsigned arithmtic, at this point, any
@@ -88,10 +97,11 @@ public:
         return true;
     }
 
-    bool ReadAddressByte(uint32_t address, uint8_t& value) const
+    bool ReadCpuByte(uint32_t address, uint8_t& value) const
     {
+        assert(m_space == MEM_CPU);
         value = 0U;
-        if (!HasAddressRange(address, 1U))
+        if (!HasCpuRange(address, 1U))
             return false;
         uint32_t offset = address - m_addr;
         value = m_pData[offset];
@@ -99,7 +109,7 @@ public:
     }
 
     // Read multiple bytes and put into 32-bit word. So can read byte/word/long
-    bool ReadAddressMulti(uint32_t address, uint32_t numBytes, uint32_t& value) const;
+    bool ReadCpuMulti(uint32_t address, uint32_t numBytes, uint32_t& value) const;
 
     // Returns the size of the memory in bytes (not DSP words!)
     uint32_t GetSize() const
@@ -120,7 +130,7 @@ private:
 
     MemSpace    m_space;
     uint32_t	m_addr;
-    uint32_t	m_sizeInBytes;		// size in bytes
+    uint32_t	m_sizeInBytes;
     uint8_t*	m_pData;
 };
 

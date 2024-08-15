@@ -9,14 +9,14 @@ namespace HardwareST
     bool GetVideoBase(const Memory& mem, MACHINETYPE machineType, uint32_t& address)
     {
         uint32_t hi, mi, lo;
-        if (!mem.ReadAddressMulti(Regs::VID_BASE_HIGH, 1, hi))
+        if (!mem.ReadCpuMulti(Regs::VID_BASE_HIGH, 1, hi))
             return false;
-        if (!mem.ReadAddressMulti(Regs::VID_BASE_MID, 1, mi))
+        if (!mem.ReadCpuMulti(Regs::VID_BASE_MID, 1, mi))
             return false;
         lo = 0;
         if (!IsMachineST(machineType))
         {
-            if (!mem.ReadAddressMulti(Regs::VID_BASE_LOW_STE, 1, lo))
+            if (!mem.ReadCpuMulti(Regs::VID_BASE_LOW_STE, 1, lo))
                 return false;
         }
         address = (hi << 16) | (mi << 8) | lo;
@@ -26,11 +26,11 @@ namespace HardwareST
     bool GetVideoCurrent(const Memory& mem, uint32_t& address)
     {
         uint32_t hi, mi, lo;
-        if (!mem.ReadAddressMulti(Regs::VID_CURR_HIGH, 1, hi))
+        if (!mem.ReadCpuMulti(Regs::VID_CURR_HIGH, 1, hi))
             return false;
-        if (!mem.ReadAddressMulti(Regs::VID_CURR_MID, 1, mi))
+        if (!mem.ReadCpuMulti(Regs::VID_CURR_MID, 1, mi))
             return false;
-        if (!mem.ReadAddressMulti(Regs::VID_CURR_LOW, 1, lo))
+        if (!mem.ReadCpuMulti(Regs::VID_CURR_LOW, 1, lo))
             return false;
         address = (hi << 16) | (mi << 8) | lo;
         return true;
@@ -42,7 +42,7 @@ namespace HardwareST
             return false;
 
         uint32_t val;
-        if (!mem.ReadAddressMulti(Regs::BLT_SRC_ADDR, 4, val))
+        if (!mem.ReadCpuMulti(Regs::BLT_SRC_ADDR, 4, val))
             return false;
         address = val & 0xffffff;
         return true;
@@ -53,7 +53,7 @@ namespace HardwareST
         if (IsMachineST(machineType))
             return false;
         uint32_t val = 0;
-        if (!mem.ReadAddressMulti(Regs::BLT_DST_ADDR, 4, val))
+        if (!mem.ReadCpuMulti(Regs::BLT_DST_ADDR, 4, val))
             return false;
         address = val & 0xffffff;
         return true;
@@ -64,11 +64,11 @@ namespace HardwareST
         if (!IsMachineSTE(machineType))
             return false;
         uint32_t hi, mi, lo;
-        if (!mem.ReadAddressMulti(Regs::DMA_START_HIGH, 1, hi))
+        if (!mem.ReadCpuMulti(Regs::DMA_START_HIGH, 1, hi))
             return false;
-        if (!mem.ReadAddressMulti(Regs::DMA_START_MID, 1, mi))
+        if (!mem.ReadCpuMulti(Regs::DMA_START_MID, 1, mi))
             return false;
-        if (!mem.ReadAddressMulti(Regs::DMA_START_LOW, 1, lo))
+        if (!mem.ReadCpuMulti(Regs::DMA_START_LOW, 1, lo))
             return false;
         address = (hi << 16) | (mi << 8) | lo;
         return true;
@@ -78,11 +78,11 @@ namespace HardwareST
         if (!IsMachineSTE(machineType))
             return false;
         uint32_t hi, mi, lo;
-        if (!mem.ReadAddressMulti(Regs::DMA_CURR_HIGH, 1, hi))
+        if (!mem.ReadCpuMulti(Regs::DMA_CURR_HIGH, 1, hi))
             return false;
-        if (!mem.ReadAddressMulti(Regs::DMA_CURR_MID, 1, mi))
+        if (!mem.ReadCpuMulti(Regs::DMA_CURR_MID, 1, mi))
             return false;
-        if (!mem.ReadAddressMulti(Regs::DMA_CURR_LOW, 1, lo))
+        if (!mem.ReadCpuMulti(Regs::DMA_CURR_LOW, 1, lo))
             return false;
         address = (hi << 16) | (mi << 8) | lo;
         return true;
@@ -92,11 +92,11 @@ namespace HardwareST
         if (!IsMachineSTE(machineType))
             return false;
         uint32_t hi, mi, lo;
-        if (!mem.ReadAddressMulti(Regs::DMA_END_HIGH, 1, hi))
+        if (!mem.ReadCpuMulti(Regs::DMA_END_HIGH, 1, hi))
             return false;
-        if (!mem.ReadAddressMulti(Regs::DMA_END_MID, 1, mi))
+        if (!mem.ReadCpuMulti(Regs::DMA_END_MID, 1, mi))
             return false;
-        if (!mem.ReadAddressMulti(Regs::DMA_END_LOW, 1, lo))
+        if (!mem.ReadCpuMulti(Regs::DMA_END_LOW, 1, lo))
             return false;
         address = (hi << 16) | (mi << 8) | lo;
         return true;

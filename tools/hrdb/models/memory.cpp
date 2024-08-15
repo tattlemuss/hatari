@@ -23,10 +23,11 @@ void Memory::Clear()
     m_sizeInBytes = 0;
 }
 
-bool Memory::ReadAddressMulti(uint32_t address, uint32_t numBytes, uint32_t& value) const
+bool Memory::ReadCpuMulti(uint32_t address, uint32_t numBytes, uint32_t& value) const
 {
+    assert(m_space == MEM_CPU);
     value = 0U;
-    if (!HasAddressRange(address, numBytes))
+    if (!HasCpuRange(address, numBytes))
         return false;
 
     // Check that all the bytes are available in this block.

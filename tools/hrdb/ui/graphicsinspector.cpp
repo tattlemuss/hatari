@@ -441,7 +441,7 @@ void GraphicsInspectorWidget::memoryChanged(int /*memorySlot*/, uint64_t command
         if (pMem)
         {
             uint8_t val = 0;
-            if (pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, val))
+            if (pMem->ReadCpuByte(Regs::VID_SHIFTER_RES, val))
                 m_cachedResolution = Regs::GetField_VID_SHIFTER_RES_RES(val);
         }
 
@@ -864,7 +864,7 @@ void GraphicsInspectorWidget::UpdateImage()
         {
             const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
             uint32_t colour0 = 0;
-            if (pMem && pMem->ReadAddressMulti(Regs::VID_PAL_0, 2, colour0))
+            if (pMem && pMem->ReadCpuMulti(Regs::VID_PAL_0, 2, colour0))
             {
                 int ind = colour0 & 1;
                 m_pImageWidget->m_colours[ind    ] = 0xff000000 | 0x000000;
@@ -1083,7 +1083,7 @@ GraphicsInspectorWidget::Mode GraphicsInspectorWidget::GetEffectiveMode() const
             return Mode::kFormat4Bitplane;
 
         uint8_t val = 0;
-        if (!pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, val))
+        if (!pMem->ReadCpuByte(Regs::VID_SHIFTER_RES, val))
             return Mode::kFormat1Bitplane;
 
         Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(val);
@@ -1111,7 +1111,7 @@ int GraphicsInspectorWidget::GetEffectiveStride() const
         uint8_t tmpReg = 0;
         MACHINETYPE mtype = m_pTargetModel->GetMachineType();
 
-        pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, tmpReg);
+        pMem->ReadCpuByte(Regs::VID_SHIFTER_RES, tmpReg);
         Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(tmpReg);
         switch (modeReg)
         {
@@ -1126,7 +1126,7 @@ int GraphicsInspectorWidget::GetEffectiveStride() const
         if (!IsMachineST(mtype))
         {
             uint8_t modeReg;
-            pMem->ReadAddressByte(Regs::VID_HORIZ_SCROLL_STE, tmpReg);
+            pMem->ReadCpuByte(Regs::VID_HORIZ_SCROLL_STE, tmpReg);
             modeReg = Regs::GetField_VID_HORIZ_SCROLL_STE_PIXELS(tmpReg);
             if (modeReg != 0)
                 bytes += chunkSize;  // extra read for scroll
@@ -1136,7 +1136,7 @@ int GraphicsInspectorWidget::GetEffectiveStride() const
         if (IsMachineSTE(mtype))
         {
             uint8_t lineDelta = 0;
-            pMem->ReadAddressByte(Regs::VID_SCANLINE_OFFSET_STE, lineDelta);
+            pMem->ReadCpuByte(Regs::VID_SCANLINE_OFFSET_STE, lineDelta);
             if (lineDelta)
                 bytes += lineDelta * 2;
         }
@@ -1153,7 +1153,7 @@ int GraphicsInspectorWidget::GetEffectiveHeight() const
         if (!pMem)
             return 0;
         uint8_t tmpReg;
-        pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, tmpReg);
+        pMem->ReadCpuByte(Regs::VID_SHIFTER_RES, tmpReg);
         Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(tmpReg);
         if (modeReg == Regs::RESOLUTION::LOW)
             return 200;

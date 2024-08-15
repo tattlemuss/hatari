@@ -348,7 +348,7 @@ bool MemoryWidget::EditKey(char key)
 
     uint32_t address = m_address + m_cursorRow * m_bytesPerRow + info.byteOffset;
     uint8_t cursorByte;
-    if (!m_currentMemory.ReadAddressByte(address, cursorByte))
+    if (!m_currentMemory.ReadCpuByte(address, cursorByte))
         return false;
 
     uint8_t val;
@@ -541,11 +541,11 @@ void MemoryWidget::RecalcText()
             ColumnType outType = ColumnType::kInvalid;
 
             uint32_t charAddress = rowAddress + info.byteOffset;
-            bool hasAddress = m_currentMemory.ReadAddressByte(charAddress, byteVal);
+            bool hasAddress = m_currentMemory.ReadCpuByte(charAddress, byteVal);
             bool changed = false;
 
             uint8_t oldC;
-            if (hasAddress && m_previousMemory.ReadAddressByte(charAddress, oldC))
+            if (hasAddress && m_previousMemory.ReadCpuByte(charAddress, oldC))
             {
                 if (oldC != byteVal)
                     changed = true;
@@ -1013,10 +1013,10 @@ QString MemoryWidget::CalcMouseoverText(int mouseX, int mouseY)
 
     uint32_t addr = CalcAddress(row, col);
     uint8_t byteVal;
-    mem->ReadAddressByte(addr, byteVal);
+    mem->ReadCpuByte(addr, byteVal);
 
     uint32_t wordVal;
-    if (!mem->ReadAddressMulti(addr & 0xfffffe, 2, wordVal))
+    if (!mem->ReadCpuMulti(addr & 0xfffffe, 2, wordVal))
         return QString();
 
     // Work out what's under the mouse
@@ -1031,7 +1031,7 @@ QString MemoryWidget::CalcMouseoverText(int mouseX, int mouseY)
         addrLong &= ~1U;        // $fe
 
     uint32_t longVal;
-    if (!mem->ReadAddressMulti(addrLong, 4, longVal))
+    if (!mem->ReadCpuMulti(addrLong, 4, longVal))
         return QString();
     return CreateTooltip(addr, m_pTargetModel->GetSymbolTable(), byteVal, wordVal, longVal);
 }
@@ -1095,7 +1095,7 @@ void MemoryWidget::ContextMenu(int row, int col, QPoint globalPos)
         if (mem)
         {
             uint32_t longContents;
-            if (mem->ReadAddressMulti(addr, 4, longContents))
+            if (mem->ReadCpuMulti(addr, 4, longContents))
             {
                 longContents &= 0xffffff;
                 m_showAddressMenus[1].setAddress(m_pSession, MEM_CPU, longContents);

@@ -31,7 +31,7 @@ static bool HasAddressMulti(const TargetModel* pModel, uint32_t address, uint32_
         const Memory* pMem = pModel->GetMemory(static_cast<MemorySlot>(i));
         if (!pMem)
             continue;
-        if (pMem->HasAddressRange(address, numBytes))
+        if (pMem->HasCpuRange(address, numBytes))
             return true;
     }
     return false;
@@ -47,7 +47,7 @@ uint32_t ReadAddressMulti(const TargetModel* pModel, uint32_t address, uint32_t 
         if (!pMem)
             continue;
         uint32_t val;
-        if (!pMem->ReadAddressMulti(address, numBytes, val))
+        if (!pMem->ReadCpuMulti(address, numBytes, val))
             continue;
         return val;
     }
@@ -108,11 +108,11 @@ bool GetRegBinary16(const TargetModel* pModel, uint32_t addr, QString& result)
 //-----------------------------------------------------------------------------
 bool GetFieldVal(const Memory& mem, const Regs::FieldDef& def, uint32_t& result)
 {
-    if (!mem.HasAddressRange(def.regAddr, def.size))
+    if (!mem.HasCpuRange(def.regAddr, def.size))
         return false;
 
     uint32_t regVal;
-    mem.ReadAddressMulti(def.regAddr, def.size, regVal);
+    mem.ReadCpuMulti(def.regAddr, def.size, regVal);
     uint32_t extracted = (regVal >> def.shift) & def.mask;
     result = extracted;
     return true;
@@ -527,7 +527,7 @@ bool HardwareFieldAddr::Update(const TargetModel* pTarget)
     case Type::BasePage:
         if (!memBase)
             break;
-        valid = memBase->ReadAddressMulti(m_address, 4, address);
+        valid = memBase->ReadCpuMulti(m_address, 4, address);
         break;
     case Type::Mfp:
         {
@@ -535,7 +535,7 @@ bool HardwareFieldAddr::Update(const TargetModel* pTarget)
                 break;
             {
                 uint32_t base = memMfp->GetAddress();
-                valid = memMfp->ReadAddressMulti(base + m_address * 4, 4, address);
+                valid = memMfp->ReadCpuMulti(base + m_address * 4, 4, address);
             }
         }
         break;
@@ -665,14 +665,14 @@ bool HardwareBitmapBlitterHalftone::Update(const TargetModel *pTarget)
     const Memory& mem = *pTarget->GetMemory(MemorySlot::kHardwareWindowBlitter);
     uint32_t address = Regs::BLT_HALFTONE_0;
 
-    if (!mem.HasAddressRange(address, 16 * 2U))
+    if (!mem.HasCpuRange(address, 16 * 2U))
         return false;
 
     uint8_t* pData = m_pImage->AllocBitmap(16 * 16);
     for (uint y = 0; y < 16; ++y)
     {
         uint32_t data = 0;
-        mem.ReadAddressMulti(address + 2U * y, 2, data);
+        mem.ReadCpuMulti(address + 2U * y, 2, data);
         for (int pix = 15; pix >= 0; --pix)
         {
             uint8_t val  = (data & 0x8000) ? 1 : 0;
@@ -695,7 +695,7 @@ bool HardwareFieldColourST::Update(const TargetModel *pTarget)
     if (!memVid)
         return false;
     uint32_t val;
-    memVid->ReadAddressMulti(m_memAddress, 2, val);
+    memVid->ReadCpuMulti(m_memAddress, 2, val);
 
     QString str = QString::asprintf("$%04x", val);
     m_changed = m_text != str;

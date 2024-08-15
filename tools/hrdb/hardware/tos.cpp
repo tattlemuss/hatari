@@ -393,7 +393,7 @@ QString GetTrapAnnotation(uint8_t trapNum, uint16_t callId)
 QString GetTOSAnnotation(const Memory& mem, uint32_t address, const hop68::instruction& inst)
 {
     uint32_t prevInst;
-    if (inst.opcode == hop68::TRAP && mem.ReadAddressMulti(address - 4, 4, prevInst))
+    if (inst.opcode == hop68::TRAP && mem.ReadCpuMulti(address - 4, 4, prevInst))
     {
         if ((prevInst >> 16) == 0x3f3c) // "move.w #xx,-(a7)
         {
