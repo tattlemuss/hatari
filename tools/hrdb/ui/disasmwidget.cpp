@@ -157,8 +157,9 @@ bool DisasmWidget::GetInstructionAddr(int row, uint32_t &addr) const
 
 bool DisasmWidget::SetAddress(std::string addrStr)
 {
+    // TODO: how do we handle address modes?
     uint32_t addr;
-    if (!StringParsers::ParseExpression(addrStr.c_str(), addr,
+    if (!StringParsers::ParseCpuExpression(addrStr.c_str(), addr,
                                        m_pTargetModel->GetSymbolTable(), m_pTargetModel->GetRegs()))
     {
         return false;
@@ -1597,7 +1598,7 @@ void DisasmWindow::returnPressedSlot()
 void DisasmWindow::textChangedSlot()
 {
     uint32_t addr;
-    bool success = StringParsers::ParseExpression(m_pAddressEdit->text().toStdString().c_str(), addr,
+    bool success = StringParsers::ParseCpuExpression(m_pAddressEdit->text().toStdString().c_str(), addr,
                                        m_pTargetModel->GetSymbolTable(), m_pTargetModel->GetRegs());
     Colouring::SetErrorState(m_pAddressEdit, success);
 }

@@ -468,7 +468,7 @@ void GraphicsInspectorWidget::bitmapAddressChanged()
 {
     std::string expression = m_pBitmapAddressLineEdit->text().toStdString();
     uint32_t addr;
-    if (!StringParsers::ParseExpression(expression.c_str(), addr,
+    if (!StringParsers::ParseCpuExpression(expression.c_str(), addr,
                                         m_pTargetModel->GetSymbolTable(),
                                         m_pTargetModel->GetRegs()))
     {
@@ -486,7 +486,7 @@ void GraphicsInspectorWidget::paletteAddressChanged()
 {
     std::string expression = m_pPaletteAddressLineEdit->text().toStdString();
     uint32_t addr;
-    if (!StringParsers::ParseExpression(expression.c_str(), addr,
+    if (!StringParsers::ParseCpuExpression(expression.c_str(), addr,
                                         m_pTargetModel->GetSymbolTable(),
                                         m_pTargetModel->GetRegs()))
     {

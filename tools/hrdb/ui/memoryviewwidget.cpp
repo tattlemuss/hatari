@@ -130,8 +130,8 @@ MemoryWidget::~MemoryWidget()
 
 bool MemoryWidget::CanSetExpression(std::string expression) const
 {
-    uint32_t addr;
-    return StringParsers::ParseExpression(expression.c_str(), addr,
+    MemAddr addr;
+    return StringParsers::ParseMemAddrExpression(expression.c_str(), addr,
                                         m_pTargetModel->GetSymbolTable(),
                                         m_pTargetModel->GetRegs());
 }
@@ -139,14 +139,14 @@ bool MemoryWidget::CanSetExpression(std::string expression) const
 bool MemoryWidget::SetExpression(std::string expression)
 {
     // This does a "once only"
-    uint32_t addr;
-    if (!StringParsers::ParseExpression(expression.c_str(), addr,
+    MemAddr addr;
+    if (!StringParsers::ParseMemAddrExpression(expression.c_str(), addr,
                                         m_pTargetModel->GetSymbolTable(),
                                         m_pTargetModel->GetRegs()))
     {
         return false;
     }
-    SetAddress(maddr(MEM_CPU, addr), kNoMoveCursor);
+    SetAddress(addr, kNoMoveCursor);
     m_addressExpression = expression;
     return true;
 }
@@ -530,7 +530,20 @@ void MemoryWidget::RecalcText()
         row.m_types.resize(colCount);
         row.m_byteChanged.resize(colCount);
         row.m_symbolId.resize(colCount);
-        uint32_t rowAddress = m_address.addr + r * m_bytesPerRow;
+
+        // Adjust memory offsets for DSP memory
+        uint32_t rowAddress;
+        uint32_t newRowOffset;         // offset in bytes to m_currentMemory base
+        uint32_t oldRowOffset;         // offset in bytes to m_previousMemory base
+        uint32_t addressDivider = 1;
+
+        if (m_address.space != MEM_CPU)
+            addressDivider = 3;
+
+        uint32_t byteOffset = r * m_bytesPerRow;
+        rowAddress = m_address.addr + (byteOffset / addressDivider);
+        newRowOffset = (rowAddress - m_currentMemory.GetAddress()) * addressDivider;
+        oldRowOffset = (rowAddress - m_previousMemory.GetAddress()) * addressDivider;
 
         for (int col = 0; col < colCount; ++col)
         {
@@ -539,50 +552,62 @@ void MemoryWidget::RecalcText()
 
             char outChar = '?';
             ColumnType outType = ColumnType::kInvalid;
+            uint32_t newByteOffset = newRowOffset + info.byteOffset;
+            uint32_t charAddress = rowAddress + (info.byteOffset / addressDivider);
 
-            uint32_t charAddress = rowAddress + info.byteOffset;
-            bool hasAddress = m_currentMemory.ReadCpuByte(charAddress, byteVal);
+            bool hasAddress = newByteOffset < m_currentMemory.GetSize();
             bool changed = false;
-
-            uint8_t oldC;
-            if (hasAddress && m_previousMemory.ReadCpuByte(charAddress, oldC))
+            if (hasAddress)
             {
-                if (oldC != byteVal)
-                    changed = true;
+                byteVal = m_currentMemory.Get(newByteOffset);
+
+                // Check previous memory version
+                uint32_t oldByteOffset = oldRowOffset + info.byteOffset;
+                bool hadAddress = oldByteOffset < m_previousMemory.GetSize();
+                if (hasAddress && hadAddress)
+                {
+                    uint8_t oldC = m_previousMemory.Get(oldByteOffset);
+                    if (oldC != byteVal)
+                        changed = true;
+                }
+
+                switch (info.type)
+                {
+                case ColumnType::kTopNybble:
+                    if (hasAddress)
+                    {
+                        outChar = toHex[(byteVal >> 4) & 0xf];
+                        outType = info.type;
+                    }
+                    break;
+                case ColumnType::kBottomNybble:
+                    if (hasAddress)
+                    {
+                        outChar = toHex[byteVal & 0xf];
+                        outType = info.type;
+                    }
+                    break;
+                case ColumnType::kASCII:
+                    if (hasAddress)
+                    {
+                        outChar = '.';
+                        if (byteVal >= 32 && byteVal < 128)
+                            outChar = static_cast<char>(byteVal);
+                        outType = info.type;
+                    }
+                    break;
+                case ColumnType::kSpace:
+                    outChar = ' ';
+                    outType = info.type;
+                    break;
+                case ColumnType::kInvalid:
+                    outChar = '?';
+                    break;
+                }
             }
-
-            switch (info.type)
+            else
             {
-            case ColumnType::kTopNybble:
-                if (hasAddress)
-                {
-                    outChar = toHex[(byteVal >> 4) & 0xf];
-                    outType = info.type;
-                }
-                break;
-            case ColumnType::kBottomNybble:
-                if (hasAddress)
-                {
-                    outChar = toHex[byteVal & 0xf];
-                    outType = info.type;
-                }
-                break;
-            case ColumnType::kASCII:
-                if (hasAddress)
-                {
-                    outChar = '.';
-                    if (byteVal >= 32 && byteVal < 128)
-                        outChar = static_cast<char>(byteVal);
-                    outType = info.type;
-                }
-                break;
-            case ColumnType::kSpace:
-                outChar = ' ';
-                outType = info.type;
-                break;
-            case ColumnType::kInvalid:
                 outChar = '?';
-                break;
             }
 
             Symbol sym;
@@ -912,7 +937,7 @@ void MemoryWidget::RecalcLockedExpression()
     if (m_isLocked)
     {
         uint32_t addr;
-        if (StringParsers::ParseExpression(m_addressExpression.c_str(), addr,
+        if (StringParsers::ParseCpuExpression(m_addressExpression.c_str(), addr,
                                             m_pTargetModel->GetSymbolTable(),
                                             m_pTargetModel->GetRegs()))
         {

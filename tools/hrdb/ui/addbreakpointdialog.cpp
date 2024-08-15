@@ -127,7 +127,7 @@ void AddBreakpointDialog::useClicked()
     };
 
     uint32_t result;
-    if (StringParsers::ParseExpression(m_pMemoryAddressEdit->text().toStdString().c_str(),
+    if (StringParsers::ParseCpuExpression(m_pMemoryAddressEdit->text().toStdString().c_str(),
                                        result,
                                        m_pTargetModel->GetSymbolTable(),
                                        m_pTargetModel->GetRegs()))

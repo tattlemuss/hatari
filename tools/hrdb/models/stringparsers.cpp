@@ -337,7 +337,7 @@ static void AddOperator(std::vector<Token>& tokens, Token::Type type)
 }
 
 //-----------------------------------------------------------------------------
-bool StringParsers::ParseExpression(const char *pText, uint32_t &result, const SymbolTable& syms, const Registers& regs)
+bool StringParsers::ParseCpuExpression(const char *pText, uint32_t &result, const SymbolTable& syms, const Registers& regs)
 {
     std::vector<Token> tokens;
     while (*pText != 0)
@@ -480,6 +480,40 @@ bool StringParsers::ParseExpression(const char *pText, uint32_t &result, const S
         }
     }
     return false;
+}
+
+bool StringParsers::ParseMemAddrExpression(const char *pText, MemAddr &result, const SymbolTable &syms, const Registers &regs)
+{
+    result.space = MEM_CPU;
+    result.addr = 0;
+    int len = strlen(pText);
+    if (len >= 2)
+    {
+        // Check for DSP memory spaces using "p:" etc
+        if (pText[1] == ':')
+        {
+            switch (pText[0])
+            {
+            case 'P':
+            case 'p':
+                result.space = MEM_P;
+                pText += 2;
+                return ParseCpuExpression(pText, result.addr, syms, regs);
+            case 'X':
+            case 'x':
+                result.space = MEM_X;
+                pText += 2;
+                return ParseCpuExpression(pText, result.addr, syms, regs);
+            case 'Y':
+            case 'y':
+                result.space = MEM_Y;
+                pText += 2;
+                return ParseCpuExpression(pText, result.addr, syms, regs);
+            }
+
+        }
+    }
+    return ParseCpuExpression(pText, result.addr, syms, regs);
 }
 
 bool StringParsers::ParseHexString(const char *pText, QVector<uint8_t>& result)

@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <QVector>
+#include "memaddr.h"
 
 class SymbolTable;
 class Registers;
@@ -36,7 +37,12 @@ public:
     // Convert an expression string (null-terminated) to a u32.
     // Allows looking up register and symbol values.
     // Returns false if could not parse
-    static bool ParseExpression(const char *pText, uint32_t &result, const SymbolTable& syms, const Registers& regs);
+    static bool ParseCpuExpression(const char *pText, uint32_t &result, const SymbolTable& syms, const Registers& regs);
+
+    // Convert an address expression string (null-terminated) to a u32.
+    // Allows looking up register and symbol values.
+    // Returns false if could not parse
+    static bool ParseMemAddrExpression(const char *pText, MemAddr& result, const SymbolTable& syms, const Registers& regs);
 };
 
 #endif // STRINGPARSERS_H

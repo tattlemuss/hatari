@@ -138,12 +138,12 @@ bool SaveBinDialog::CheckInputs()
 
     uint32_t addr;
     uint32_t size;
-    startValid = StringParsers::ParseExpression(m_pLineEditStart->text().toStdString().c_str(), addr,
+    startValid = StringParsers::ParseCpuExpression(m_pLineEditStart->text().toStdString().c_str(), addr,
                                        m_pTargetModel->GetSymbolTable(), m_pTargetModel->GetRegs());
     if (startValid)
         m_localSettings.m_startAddress = addr;
 
-    sizeValid = StringParsers::ParseExpression(m_pLineEditSize->text().toStdString().c_str(), size,
+    sizeValid = StringParsers::ParseCpuExpression(m_pLineEditSize->text().toStdString().c_str(), size,
                                        m_pTargetModel->GetSymbolTable(), m_pTargetModel->GetRegs());
 
     if (sizeValid)
