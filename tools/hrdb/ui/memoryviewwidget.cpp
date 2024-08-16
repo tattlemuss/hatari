@@ -161,8 +161,8 @@ void MemoryWidget::SetAddress(MemAddr full)
 
     if (m_isLocked)
         SetLock(false);
-    else
-        RequestMemory(CursorMode::kNoMoveCursor); // fallback if no expression}
+
+    RequestMemory(CursorMode::kNoMoveCursor);
 }
 
 // Set an expression. Could be locked, could include a space
