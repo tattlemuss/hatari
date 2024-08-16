@@ -114,6 +114,7 @@ private:
     void otherMemoryChanged(uint32_t address, uint32_t size);
     void symbolTableChanged();
     void settingsChanged();
+    void configChanged();
 
     void CursorUp();
     void CursorDown();
@@ -299,6 +300,7 @@ public slots:
     void lockClickedSlot();
     void searchResultsSlot(uint64_t responseId);
     void symbolTableChangedSlot(uint64_t responseId);
+    void configChangedSlot();
 
 private:
     QLineEdit*          m_pAddressEdit;

@@ -134,6 +134,7 @@ MemoryWidget::MemoryWidget(QWidget *parent, Session* pSession,
     connect(m_pTargetModel, &TargetModel::connectChangedSignal,     this, &MemoryWidget::connectChanged);
     connect(m_pTargetModel, &TargetModel::otherMemoryChangedSignal, this, &MemoryWidget::otherMemoryChanged);
     connect(m_pTargetModel, &TargetModel::symbolTableChangedSignal, this, &MemoryWidget::symbolTableChanged);
+    connect(m_pTargetModel, &TargetModel::configChangedSignal,      this, &MemoryWidget::configChanged);
     connect(m_pSession,     &Session::settingsChanged,              this, &MemoryWidget::settingsChanged);
 }
 
@@ -772,6 +773,13 @@ void MemoryWidget::settingsChanged()
     update();
 }
 
+void MemoryWidget::configChanged()
+{
+    // Force back to CPU if there's no DSP
+    if (!m_pTargetModel->IsDspActive())
+        SetSpace(MEM_CPU);
+}
+
 void MemoryWidget::paintEvent(QPaintEvent* ev)
 {
     QWidget::paintEvent(ev);
@@ -1353,6 +1361,9 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
 
     loadSettings();
 
+    // Ensure UI elements are up to date
+    configChangedSlot();
+
     // The scope here is explained at https://forum.qt.io/topic/67981/qshortcut-multiple-widget-instances/2
     new QShortcut(QKeySequence("Ctrl+F"),         this, SLOT(findClickedSlot()),    nullptr, Qt::WidgetWithChildrenShortcut);
     new QShortcut(QKeySequence("Ctrl+W"),         this, SLOT(saveBinClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
@@ -1367,6 +1378,7 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
     connect(m_pMemoryWidget, &MemoryWidget::cursorChangedSignal,       this, &MemoryWindow::cursorChangedSlot);
     connect(m_pTargetModel,  &TargetModel::searchResultsChangedSignal, this, &MemoryWindow::searchResultsSlot);
     connect(m_pTargetModel,  &TargetModel::symbolTableChangedSignal,   this, &MemoryWindow::symbolTableChangedSlot);
+    connect(m_pTargetModel,  &TargetModel::configChangedSignal,        this, &MemoryWindow::configChangedSlot);
 
     connect(m_pSpaceComboBox,        SIGNAL(currentIndexChanged(int)), SLOT(spaceComboBoxChangedSlot(int)));
     connect(m_pSizeModeComboBox,     SIGNAL(currentIndexChanged(int)), SLOT(sizeModeComboBoxChangedSlot(int)));
@@ -1604,4 +1616,10 @@ void MemoryWindow::searchResultsSlot(uint64_t responseId)
 void MemoryWindow::symbolTableChangedSlot(uint64_t /*responseId*/)
 {
     m_pSymbolTableModel->emitChanged();
+}
+
+void MemoryWindow::configChangedSlot()
+{
+    bool allowSpaceSetting = m_pTargetModel->IsDspActive();
+    m_pSpaceComboBox->setEnabled(allowSpaceSetting);
 }
