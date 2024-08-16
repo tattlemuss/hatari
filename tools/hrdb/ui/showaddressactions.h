@@ -39,7 +39,7 @@ private:
 };
 
 // Contains the ShowAddressActions, plus a menu item
-class ShowAddressMenu : public ShowAddressActions
+class ShowAddressMenu
 {
 public:
     ShowAddressMenu();
@@ -51,7 +51,24 @@ public:
 
     void AddTo(QMenu* pParent);
 private:
-    QMenu*      m_pMenu;
+    QMenu*              m_pMenu;
+    ShowAddressActions  m_actions;
+};
+
+// Wraps up 3 lots of ShowAddressMenu, covering P/X/Y memory spaces.
+class ShowAddressMenuDsp
+{
+public:
+    ShowAddressMenuDsp();
+    ~ShowAddressMenuDsp();
+
+    // Set the label of the whole menu (the address is added automatically),
+    // and set up the sub-actions to point to the correct address.
+    void Set(const QString& title, Session* pSession, uint32_t address);
+    void AddTo(QMenu* pParent);
+
+private:
+    ShowAddressMenu  m_menus[3];
 };
 
 class ShowAddressLabel : public QLabel

@@ -286,24 +286,25 @@ void RegisterWidget::contextMenuEvent(QContextMenuEvent *event)
 
     // Add the default actions
     MemSpace spaceUnderMouse = MEM_CPU;
-    ShowAddressMenu* pAddressMenu = nullptr;
     if (m_tokenUnderMouse.type == TokenType::kRegister)
     {
         m_addressUnderMouse = m_currRegs.Get(m_tokenUnderMouse.subIndex);
         spaceUnderMouse = MEM_CPU;
-        pAddressMenu = &m_showAddressMenu;
+        m_showAddressMenu.Set("Address", m_pSession, spaceUnderMouse, m_addressUnderMouse);
+        m_showAddressMenu.AddTo(&menu);
     }
     else if (m_tokenUnderMouse.type == TokenType::kSymbol)
     {
         m_addressUnderMouse = m_tokenUnderMouse.subIndex;
         spaceUnderMouse = MEM_CPU;
-        pAddressMenu = &m_showAddressMenu;
+        m_showAddressMenu.Set(m_tokenUnderMouse.text, m_pSession, spaceUnderMouse, m_addressUnderMouse);
+        m_showAddressMenu.AddTo(&menu);
     }
-
-    if (pAddressMenu)
+    else if (m_tokenUnderMouse.type == TokenType::kDspRegister)
     {
-        pAddressMenu->Set("Address", m_pSession, spaceUnderMouse, m_addressUnderMouse);
-        pAddressMenu->AddTo(&menu);
+        m_addressUnderMouse = m_currDspRegs.Get(m_tokenUnderMouse.subIndex);
+        m_showAddressMenuDsp.Set("Address", m_pSession, m_addressUnderMouse);
+        m_showAddressMenuDsp.AddTo(&menu);
     }
 
     // Run it

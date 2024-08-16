@@ -105,6 +105,7 @@ private:
 
     // UI Elements
     ShowAddressMenu             m_showAddressMenu;      // When right-clicking a register
+    ShowAddressMenuDsp          m_showAddressMenuDsp;   // When right-clicking a register
 
     QMenu*                      m_pFilterMenu;
     QAction*                    m_pShowCpuAction;

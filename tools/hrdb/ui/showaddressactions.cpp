@@ -76,7 +76,7 @@ void ShowAddressActions::TriggerGraphicsInspector()
 ShowAddressMenu::ShowAddressMenu()
 {
     m_pMenu = new QMenu(nullptr);
-    addActionsToMenu(m_pMenu);
+    m_actions.addActionsToMenu(m_pMenu);
 }
 
 ShowAddressMenu::~ShowAddressMenu()
@@ -88,13 +88,36 @@ void ShowAddressMenu::Set(const QString &title, Session *pSession, int memorySpa
 {
     QString label = title + ": " + Format::to_address(memorySpace, address);
     m_pMenu->setTitle(label);
-    this->setAddress(pSession, memorySpace, address);
+    m_actions.setAddress(pSession, memorySpace, address);
 }
 
 void ShowAddressMenu::AddTo(QMenu *pParent)
 {
     pParent->addMenu(this->m_pMenu);
 }
+
+ShowAddressMenuDsp::ShowAddressMenuDsp()
+{
+}
+
+ShowAddressMenuDsp::~ShowAddressMenuDsp()
+{
+}
+
+void ShowAddressMenuDsp::Set(const QString &title, Session *pSession, uint32_t address)
+{
+    m_menus[0].Set(title, pSession, MEM_P, address);
+    m_menus[1].Set(title, pSession, MEM_X, address);
+    m_menus[2].Set(title, pSession, MEM_Y, address);
+}
+
+void ShowAddressMenuDsp::AddTo(QMenu *pParent)
+{
+    m_menus[0].AddTo(pParent);
+    m_menus[1].AddTo(pParent);
+    m_menus[2].AddTo(pParent);
+}
+
 
 ShowAddressLabel::ShowAddressLabel(Session *pSession) :
     m_pActions(nullptr)
@@ -123,3 +146,4 @@ void ShowAddressLabel::contextMenuEvent(QContextMenuEvent *event)
     m_pActions->addActionsToMenu(&menu);
     menu.exec(event->globalPos());
 }
+
