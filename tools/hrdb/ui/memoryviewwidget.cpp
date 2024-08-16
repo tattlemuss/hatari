@@ -1488,13 +1488,17 @@ void MemoryWindow::cursorChangedSlot()
         QString final;
         QTextStream ref(&final);
         ref << QString("Cursor: ") << Format::to_hex32(info.m_cursorAddress & 0xffffff);
-        QString symText = DescribeSymbol(m_pTargetModel->GetSymbolTable(), info.m_cursorAddress & 0xffffff);
-        if (!symText.isEmpty())
-            ref << " (" + symText + ")";
 
-        QString commentText = DescribeSymbolComment(m_pTargetModel->GetSymbolTable(), info.m_cursorAddress);
-        if (!commentText.isEmpty())
-            ref << " " + commentText;
+        if (m_pMemoryWidget->GetSpace() == MEM_CPU)
+        {
+            QString symText = DescribeSymbol(m_pTargetModel->GetSymbolTable(), info.m_cursorAddress & 0xffffff);
+            if (!symText.isEmpty())
+                ref << " (" + symText + ")";
+
+            QString commentText = DescribeSymbolComment(m_pTargetModel->GetSymbolTable(), info.m_cursorAddress);
+            if (!commentText.isEmpty())
+                ref << " " + commentText;
+        }
 
         m_pCursorInfoLabel->setText(final);
     }
