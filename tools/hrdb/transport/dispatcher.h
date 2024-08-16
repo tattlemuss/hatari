@@ -26,7 +26,8 @@ public:
     uint64_t ReadMemory(MemorySlot slot, uint32_t address, uint32_t size);
 
     // Request a memory block from any memory space.
-    // Sizes are in bytes.
+    // Sizes are NUMBER OF MEMORY LOCATIONS,
+    // so bytes for CPU, and DSP-words for DSP
     uint64_t ReadMemory(MemorySlot slot, MemSpace space, uint32_t address, uint32_t size);
 
     uint64_t ReadRegisters();

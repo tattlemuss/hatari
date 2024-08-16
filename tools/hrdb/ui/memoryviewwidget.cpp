@@ -116,6 +116,11 @@ MemoryWidget::MemoryWidget(QWidget *parent, Session* pSession,
 {
     m_memSlot = static_cast<MemorySlot>(MemorySlot::kMemoryView0 + m_windowIndex);
 
+    m_lastAddresses[MEM_CPU] = 0;
+    m_lastAddresses[MEM_P] = 0;
+    m_lastAddresses[MEM_X] = 0;
+    m_lastAddresses[MEM_Y] = 0;
+
     UpdateFont();
     SetSizeMode(SizeMode::kModeByte);
     setFocus();
@@ -136,17 +141,27 @@ MemoryWidget::~MemoryWidget()
 {
 }
 
-// Set only the new space (via UI combo)
 void MemoryWidget::SetSpace(MemSpace space)
 {
-    SetSpaceInternal(space);
+    // If we use the combo, any locked expression is cancelled
+    // and we revert to the last address known in this space
+    SetAddressInternal(maddr(space, m_lastAddresses[space]));
     if (m_isLocked)
-    {
-        if (!SetExpression(m_addressExpression))
-            RequestMemory(CursorMode::kNoMoveCursor); // fallback if no expression
-    }
+        SetLock(false);     // this won't request memory.
 
     RequestMemory(CursorMode::kNoMoveCursor); // fallback if no expression
+}
+
+void MemoryWidget::SetAddress(MemAddr full)
+{
+    // If we use the combo, any locked expression is cancelled
+    // and we revert to the last address known in this space
+    SetAddressInternal(full);
+
+    if (m_isLocked)
+        SetLock(false);
+    else
+        RequestMemory(CursorMode::kNoMoveCursor); // fallback if no expression}
 }
 
 // Set an expression. Could be locked, could include a space
@@ -171,6 +186,8 @@ void MemoryWidget::SetAddressInternal(MemAddr addr)
 {
     SetSpaceInternal(addr.space);
     m_address.addr = addr.addr;
+    if (addr.space != MEM_CPU)
+        m_address.addr &= 0xffff;       // Mask DSP addresses
 }
 
 
@@ -206,18 +223,6 @@ void MemoryWidget::SetRowCount(int32_t rowCount)
     }
 }
 
-uint32_t MemoryWidget::CalcAddrOffset(MemAddr addr, int row, int col) const
-{
-    uint32_t divider = addr.space == MEM_CPU ? 1 : 3;
-    const ColInfo& info = m_columnMap[col];
-    uint32_t charByteOffset = row * m_bytesPerRow + info.byteOffset;
-    return (charByteOffset / divider);
-}
-
-uint32_t MemoryWidget::CalcAddress(MemAddr addr, int row, int col) const
-{
-    return addr.addr + CalcAddrOffset(addr, row, col);
-}
 
 void MemoryWidget::SetLock(bool locked)
 {
@@ -232,6 +237,7 @@ void MemoryWidget::SetLock(bool locked)
         RecalcLockedExpression();
         RequestMemory(kNoMoveCursor);
     }
+    // Don't clear the expression yet, since it might be reused
 }
 
 void MemoryWidget::SetSizeMode(MemoryWidget::SizeMode mode)
@@ -1009,11 +1015,18 @@ void MemoryWidget::RequestMemory(MemoryWidget::CursorMode moveCursor)
 {
     // Memory size requested is based on the current matrix dimensions
     uint32_t size = static_cast<uint32_t>(m_rowCount * m_bytesPerRow);
+
     if (m_pTargetModel->IsConnected())
     {
+        // Adjust for DSP words...
+        if (m_address.space != MEM_CPU)
+            size = ((size + 2U) / 3U);
+
         m_requestId = m_pDispatcher->ReadMemory(m_memSlot, m_address.space, m_address.addr, size);
         m_requestCursorMode = moveCursor;
     }
+    // Record the last-requested address for this space.
+    m_lastAddresses[m_address.space] = m_address.addr;
 }
 
 void MemoryWidget::RecalcLockedExpression()
@@ -1025,8 +1038,7 @@ void MemoryWidget::RecalcLockedExpression()
                                             m_pTargetModel->GetSymbolTable(),
                                             m_pTargetModel->GetRegs()))
         {
-            SetAddressInternal(maddr(MEM_CPU, addr));
-            RequestMemory(kNoMoveCursor);
+            SetAddressInternal(maddr(m_address.space, addr));
         }
     }
 }
@@ -1246,6 +1258,19 @@ bool MemoryWidget::CalcRowColFromMouse(int x, int y, int& row, int& col)
     return false;
 }
 
+uint32_t MemoryWidget::CalcAddrOffset(MemAddr addr, int row, int col) const
+{
+    uint32_t divider = addr.space == MEM_CPU ? 1 : 3;
+    const ColInfo& info = m_columnMap[col];
+    uint32_t charByteOffset = row * m_bytesPerRow + info.byteOffset;
+    return (charByteOffset / divider);
+}
+
+uint32_t MemoryWidget::CalcAddress(MemAddr addr, int row, int col) const
+{
+    return addr.addr + CalcAddrOffset(addr, row, col);
+}
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) :
@@ -1399,7 +1424,8 @@ void MemoryWindow::requestAddress(Session::WindowType type, int windowIndex, int
     m_pMemoryWidget->SetLock(false);
     m_pMemoryWidget->SetSpace(static_cast<MemSpace>(memorySpace));
     m_pMemoryWidget->SetExpression(std::to_string(address));
-    m_pLockCheckBox->setChecked(false);
+    m_pLockCheckBox->setChecked(m_pMemoryWidget->IsLocked());
+
     setVisible(true);
     this->keyFocus();
     raise();
@@ -1432,6 +1458,7 @@ void MemoryWindow::returnPressedSlot()
 {
     bool valid = m_pMemoryWidget->SetExpression(m_pAddressEdit->text().toStdString());
     Colouring::SetErrorState(m_pAddressEdit, valid);
+    m_pLockCheckBox->setChecked(m_pMemoryWidget->IsLocked());
     if (valid)
         m_pMemoryWidget->setFocus();
 }
@@ -1451,6 +1478,7 @@ void MemoryWindow::spaceComboBoxChangedSlot(int /*index*/)
 {
     int space = m_pSpaceComboBox->currentData().toInt();
     m_pMemoryWidget->SetSpace(static_cast<MemSpace>(space));
+    m_pLockCheckBox->setChecked(m_pMemoryWidget->IsLocked());
 }
 
 void MemoryWindow::sizeModeComboBoxChangedSlot(int index)
@@ -1554,8 +1582,8 @@ void MemoryWindow::searchResultsSlot(uint64_t responseId)
         {
             uint32_t addr = results.addresses[0];
             m_pMemoryWidget->SetLock(false);
-            m_pLockCheckBox->setChecked(false);
             m_pMemoryWidget->SetSearchResultAddress(maddr(MEM_CPU, addr));
+            m_pLockCheckBox->setChecked(m_pMemoryWidget->IsLocked());
 
             // Allow the "next" operation to work
             m_searchSettings.m_startAddress = addr + 1;

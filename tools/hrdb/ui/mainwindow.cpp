@@ -827,7 +827,7 @@ void MainWindow::requestMainState(uint32_t pc)
     m_pDispatcher->ReadBreakpoints();
     m_pDispatcher->ReadExceptionMask();
     if (m_pTargetModel->IsDspActive())
-        m_pDispatcher->ReadMemory(MemorySlot::kMainDspPC, MEM_P, m_pTargetModel->GetStartStopPC(kProcDsp), 2);
+        m_pDispatcher->ReadMemory(MemorySlot::kMainDspPC, MEM_P, m_pTargetModel->GetStartStopPC(kProcDsp), 2U);
 
     // Basepage makes things much easier
     m_pDispatcher->ReadMemory(MemorySlot::kBasePage, 0, 0x200);

@@ -61,14 +61,25 @@ public:
     SizeMode GetSizeMode() const { return m_sizeMode; }
     WidthMode GetWidthMode() const { return m_widthMode; }
     const CursorInfo& GetCursorInfo() const { return m_cursorInfo; }
+    bool IsLocked() const { return m_isLocked; }
 
+    // Set only the new space (via UI combo)
+    // Does re-request memory.
     void SetSpace(MemSpace space);
+    // Set space+address.
+    // Does re-request memory.
+    void SetAddress(MemAddr full);
 
     // Checks expression validity
     bool CanSetExpression(std::string expression) const;
+
     // Set the text expression used as the address.
-    // returns false if expression is invalid
+    // returns false if expression is invalid.
+    // Requests memory.
+
     bool SetExpression(std::string expression);
+
+    // Requests memory.
     void SetSearchResultAddress(MemAddr addr);
 
     void SetLock(bool locked);
@@ -127,12 +138,19 @@ private:
         kMoveCursor
     };
 
-    // Update the space in m_address and change the column layout.
+    // Update the space in m_address and potentially change column layout.
+    // Does not request memory.
     void SetSpaceInternal(MemSpace space);
+
+    // Update space and address, and potentially change column layout
+    // Does not request memory.
     void SetAddressInternal(MemAddr address);
+
+    // Fetch memory in m_address
     void RequestMemory(CursorMode moveCursor);
 
-    // Is we are locked to an expression recalc m_address
+    // Is we are locked to an expression recalc m_address.
+    // Does not request memory.
     void RecalcLockedExpression();
 
     // Rearrange the layout to match width/format decisions
@@ -206,6 +224,8 @@ private:
     MemAddr     m_address;
     WidthMode   m_widthMode;
     SizeMode    m_sizeMode;
+
+    uint32_t    m_lastAddresses[MEM_SPACE_MAX];
 
     // These are calculated from m_widthMode
     int         m_bytesPerRow;
