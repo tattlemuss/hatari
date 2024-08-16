@@ -499,6 +499,8 @@ void MemoryWidget::SetSpaceInternal(MemSpace space)
         // Re-do width calculations
         SetWidthMode(m_widthMode);
         RecalcColumnLayout();
+
+        emit spaceChangedSignal();
     }
 }
 
@@ -1362,7 +1364,7 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
     loadSettings();
 
     // Ensure UI elements are up to date
-    configChangedSlot();
+    syncUiElements();
 
     // The scope here is explained at https://forum.qt.io/topic/67981/qshortcut-multiple-widget-instances/2
     new QShortcut(QKeySequence("Ctrl+F"),         this, SLOT(findClickedSlot()),    nullptr, Qt::WidgetWithChildrenShortcut);
@@ -1376,9 +1378,10 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
     connect(m_pLockCheckBox, &QCheckBox::stateChanged,                 this, &MemoryWindow::lockChangedSlot);
     connect(m_pSession,      &Session::addressRequested,               this, &MemoryWindow::requestAddress);
     connect(m_pMemoryWidget, &MemoryWidget::cursorChangedSignal,       this, &MemoryWindow::cursorChangedSlot);
+    connect(m_pMemoryWidget, &MemoryWidget::spaceChangedSignal,        this, &MemoryWindow::syncUiElements);
     connect(m_pTargetModel,  &TargetModel::searchResultsChangedSignal, this, &MemoryWindow::searchResultsSlot);
     connect(m_pTargetModel,  &TargetModel::symbolTableChangedSignal,   this, &MemoryWindow::symbolTableChangedSlot);
-    connect(m_pTargetModel,  &TargetModel::configChangedSignal,        this, &MemoryWindow::configChangedSlot);
+    connect(m_pTargetModel,  &TargetModel::configChangedSignal,        this, &MemoryWindow::syncUiElements);
 
     connect(m_pSpaceComboBox,        SIGNAL(currentIndexChanged(int)), SLOT(spaceComboBoxChangedSlot(int)));
     connect(m_pSizeModeComboBox,     SIGNAL(currentIndexChanged(int)), SLOT(sizeModeComboBoxChangedSlot(int)));
@@ -1618,8 +1621,12 @@ void MemoryWindow::symbolTableChangedSlot(uint64_t /*responseId*/)
     m_pSymbolTableModel->emitChanged();
 }
 
-void MemoryWindow::configChangedSlot()
+void MemoryWindow::syncUiElements()
 {
     bool allowSpaceSetting = m_pTargetModel->IsDspActive();
     m_pSpaceComboBox->setEnabled(allowSpaceSetting);
+
+    MemSpace space = m_pMemoryWidget->GetSpace();
+    m_pWidthComboBox->setEnabled(space == MEM_CPU);
+    m_pSizeModeComboBox->setEnabled(space == MEM_CPU);
 }

@@ -60,6 +60,8 @@ public:
     uint32_t GetRowCount() const { return m_rowCount; }
     SizeMode GetSizeMode() const { return m_sizeMode; }
     WidthMode GetWidthMode() const { return m_widthMode; }
+    MemSpace GetSpace() const { return m_address.space; }
+
     const CursorInfo& GetCursorInfo() const { return m_cursorInfo; }
     bool IsLocked() const { return m_isLocked; }
 
@@ -89,6 +91,7 @@ public:
 signals:
     // Flagged when cursor position or memory under cursor changes
     void cursorChangedSignal();
+    void spaceChangedSignal();
 protected:
     virtual void paintEvent(QPaintEvent*) override;
     virtual void keyPressEvent(QKeyEvent*) override;
@@ -300,7 +303,7 @@ public slots:
     void lockClickedSlot();
     void searchResultsSlot(uint64_t responseId);
     void symbolTableChangedSlot(uint64_t responseId);
-    void configChangedSlot();
+    void syncUiElements();
 
 private:
     QLineEdit*          m_pAddressEdit;
