@@ -45,10 +45,9 @@ public:
     ShowAddressMenu();
     ~ShowAddressMenu();
 
-    void setTitle(const QString& title)
-    {
-        m_pMenu->setTitle(title);
-    }
+    // Set the label of the whole menu (the address is added automatically),
+    // and set up the sub-actions to point to the correct address.
+    void Set(const QString& title, Session* pSession, int memorySpace, uint32_t address);
 
     QMenu*      m_pMenu;
 };

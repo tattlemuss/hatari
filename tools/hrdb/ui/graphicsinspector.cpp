@@ -1282,15 +1282,16 @@ void GraphicsInspectorWidget::ContextMenu(QPoint pos)
     MemSpace space = MEM_CPU;
 
     QString addrText = Format::to_address(space, m_bitmapAddress);
-    m_showAddressMenus[0].setAddress(m_pSession, space, m_bitmapAddress);
-    m_showAddressMenus[0].setTitle(addrText + QString(" (Bitmap address)"));
+    m_showAddressMenus[0].Set("Bitmap address",
+                                   m_pSession, space, m_bitmapAddress);
     menu.addMenu(m_showAddressMenus[0].m_pMenu);
 
     if (m_mouseInfo.isValid && m_addressUnderMouse != ~0U)
     {
         addrText = Format::to_address(space, m_addressUnderMouse);
-        m_showAddressMenus[1].setAddress(m_pSession, space, m_addressUnderMouse);
-        m_showAddressMenus[1].setTitle(addrText + QString(" (Mouse Cursor address)"));
+        m_showAddressMenus[1].Set("Mouse Cursor address",
+                                       m_pSession, space, m_addressUnderMouse);
+
         menu.addMenu(m_showAddressMenus[1].m_pMenu);
     }
 

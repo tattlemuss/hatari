@@ -1230,8 +1230,8 @@ void MemoryWidget::ContextMenu(int row, int col, QPoint globalPos)
         }
 
         // TODO different memory spaces
-        m_showAddressMenus[0].setAddress(m_pSession, space, addr);
-        m_showAddressMenus[0].setTitle(QString("Data Address: ") + Format::to_address(space, addr));
+        m_showAddressMenus[0].Set("Data Address",
+                                   m_pSession, space, addr);
         menu.addMenu(m_showAddressMenus[0].m_pMenu);
 
         const Memory* mem = m_pTargetModel->GetMemory(m_memSlot);
@@ -1252,8 +1252,8 @@ void MemoryWidget::ContextMenu(int row, int col, QPoint globalPos)
 
             if (valid)
             {
-                m_showAddressMenus[1].setAddress(m_pSession, m_address.space, contents);
-                m_showAddressMenus[1].setTitle(QString("Pointer Address: ") + Format::to_address(space, contents));
+                m_showAddressMenus[1].Set("Pointer Address",
+                                               m_pSession, m_address.space, contents);
                 menu.addMenu(m_showAddressMenus[1].m_pMenu);
             }
         }

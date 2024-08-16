@@ -104,7 +104,8 @@ private:
     int GetRowFromPixel(int y) const;
 
     // UI Elements
-    ShowAddressActions          m_showAddressActions;
+    ShowAddressMenu             m_showAddressMenu;      // When right-clicking a register
+
     QMenu*                      m_pFilterMenu;
     QAction*                    m_pShowCpuAction;
     QAction*                    m_pShowDspAction;

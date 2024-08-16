@@ -1385,9 +1385,8 @@ void DisasmWidget::ContextMenu(int row, QPoint globalPos)
     bool vis = GetInstructionAddr(m_rightClickRow, instAddr);
     if (vis)
     {
-        QString addrText = Format::to_address(space, instAddr);
-        m_showAddressMenus[0].setTitle(addrText + " (this instruction)");
-        m_showAddressMenus[0].setAddress(m_pSession, space, instAddr);
+        m_showAddressMenus[0].Set("This instruction",
+                                       m_pSession, space, instAddr);
         menu.addMenu(m_showAddressMenus[0].m_pMenu);
     }
 
@@ -1399,8 +1398,9 @@ void DisasmWidget::ContextMenu(int row, QPoint globalPos)
         {
             QString addrText = Format::to_address(space, opAddr);
             // TODO: effective addresses on DSP will have different memory spaces...
-            m_showAddressMenus[menuIndex].setTitle(addrText + QString::asprintf(" (effective address %u)", menuIndex));
-            m_showAddressMenus[menuIndex].setAddress(m_pSession, space, opAddr);
+            m_showAddressMenus[menuIndex].Set(
+                        QString::asprintf("Effective address %u", menuIndex),
+                        m_pSession, space, opAddr);
             menu.addMenu(m_showAddressMenus[menuIndex].m_pMenu);
         }
     }

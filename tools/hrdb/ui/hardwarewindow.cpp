@@ -890,8 +890,6 @@ HardwareTreeView::HardwareTreeView(QWidget *parent, Session* pSession) :
     QTreeView(parent),
     m_pSession(pSession)
 {
-    // Right-click menu
-    m_pShowAddressMenu = new QMenu("", this);
 }
 
 //-----------------------------------------------------------------------------
@@ -903,13 +901,11 @@ void HardwareTreeView::contextMenuEvent(QContextMenuEvent *event)
 
     HardwareBase* item = static_cast<HardwareBase*>(ind.internalPointer());
     QMenu menu(this);
-    menu.addMenu(m_pShowAddressMenu);
     uint32_t addr = item->m_memAddress;
     if (addr != ~0U)
     {
-        m_pShowAddressMenu->setTitle(QString::asprintf("Address: $%x", addr));
-        m_showAddressActions.setAddress(m_pSession, MEM_CPU, addr);
-        m_showAddressActions.addActionsToMenu(m_pShowAddressMenu);
+        m_showAddressMenu.Set("Address", m_pSession, MEM_CPU, addr);
+        menu.addMenu(m_showAddressMenu.m_pMenu);
 
         // Run it
         menu.exec(event->globalPos());

@@ -2,6 +2,7 @@
 
 #include <QContextMenuEvent>
 #include "../models/session.h"
+#include "../models/stringformat.h"
 
 ShowAddressActions::ShowAddressActions() :
     m_activeAddress(0),
@@ -81,6 +82,13 @@ ShowAddressMenu::ShowAddressMenu()
 ShowAddressMenu::~ShowAddressMenu()
 {
     delete m_pMenu;
+}
+
+void ShowAddressMenu::Set(const QString &title, Session *pSession, int memorySpace, uint32_t address)
+{
+    QString label = title + ": " + Format::to_address(memorySpace, address);
+    m_pMenu->setTitle(label);
+    this->setAddress(pSession, memorySpace, address);
 }
 
 ShowAddressLabel::ShowAddressLabel(Session *pSession) :
