@@ -1269,7 +1269,7 @@ static int RemoteDebug_dmem(int nArgc, char *psArgs[], RemoteDebugState* state)
 		return 1;
 	}
 
-	memdump_addr &= 0xffff;
+	// Don't need to and with 0xffff here, since DSP_ReadMemory does it
 
 	flush_data(state);
 	send_str(state, "OK");
