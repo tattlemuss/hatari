@@ -1230,9 +1230,9 @@ void MemoryWidget::ContextMenu(int row, int col, QPoint globalPos)
         }
 
         // TODO different memory spaces
-        m_showAddressMenus[0].Set("Data Address",
+        m_showThisAddressMenu.Set("Cursor Address",
                                    m_pSession, space, addr);
-        menu.addMenu(m_showAddressMenus[0].m_pMenu);
+        m_showThisAddressMenu.AddTo(&menu);
 
         const Memory* mem = m_pTargetModel->GetMemory(m_memSlot);
         if (mem)
@@ -1242,19 +1242,32 @@ void MemoryWidget::ContextMenu(int row, int col, QPoint globalPos)
             if (isCpu)
             {
                 valid = mem->ReadCpuMulti(addr, 4, contents);
-                contents &= 0xffffff;
+                if (valid)
+                {
+                    contents &= 0xffffff;
+                    m_showPtrAddressMenu[0].Set("Data Address",
+                                                m_pSession, m_address.space, contents);
+                    m_showPtrAddressMenu[0].AddTo(&menu);
+                }
             }
             else
             {
                 valid = mem->ReadDspWord(addr, contents);
-                contents &= 0xffff;
+                if (valid)
+                {
+                    contents &= 0xffff;
+                    // We don't know which memory space we want, so show all three.
+                    m_showPtrAddressMenu[0].Set("Data Address", m_pSession, MEM_P, contents);
+                    m_showPtrAddressMenu[1].Set("Pointer Address", m_pSession, MEM_X, contents);
+                    m_showPtrAddressMenu[2].Set("Pointer Address", m_pSession, MEM_Y, contents);
+                    m_showPtrAddressMenu[0].AddTo(&menu);
+                    m_showPtrAddressMenu[1].AddTo(&menu);
+                    m_showPtrAddressMenu[2].AddTo(&menu);
+                }
             }
 
             if (valid)
             {
-                m_showAddressMenus[1].Set("Pointer Address",
-                                               m_pSession, m_address.space, contents);
-                menu.addMenu(m_showAddressMenus[1].m_pMenu);
             }
         }
     }

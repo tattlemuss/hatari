@@ -1387,7 +1387,7 @@ void DisasmWidget::ContextMenu(int row, QPoint globalPos)
     {
         m_showAddressMenus[0].Set("This instruction",
                                        m_pSession, space, instAddr);
-        menu.addMenu(m_showAddressMenus[0].m_pMenu);
+        m_showAddressMenus[0].AddTo(&menu);
     }
 
     for (int32_t op = 0; op < 2; ++op)
@@ -1401,7 +1401,7 @@ void DisasmWidget::ContextMenu(int row, QPoint globalPos)
             m_showAddressMenus[menuIndex].Set(
                         QString::asprintf("Effective address %u", menuIndex),
                         m_pSession, space, opAddr);
-            menu.addMenu(m_showAddressMenus[menuIndex].m_pMenu);
+            m_showAddressMenus[menuIndex].AddTo(&menu);
         }
     }
 

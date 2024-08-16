@@ -905,7 +905,7 @@ void HardwareTreeView::contextMenuEvent(QContextMenuEvent *event)
     if (addr != ~0U)
     {
         m_showAddressMenu.Set("Address", m_pSession, MEM_CPU, addr);
-        menu.addMenu(m_showAddressMenu.m_pMenu);
+        m_showAddressMenu.AddTo(&menu);
 
         // Run it
         menu.exec(event->globalPos());

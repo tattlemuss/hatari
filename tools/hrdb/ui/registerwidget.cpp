@@ -303,7 +303,7 @@ void RegisterWidget::contextMenuEvent(QContextMenuEvent *event)
     if (pAddressMenu)
     {
         pAddressMenu->Set("Address", m_pSession, spaceUnderMouse, m_addressUnderMouse);
-        menu.addMenu(pAddressMenu->m_pMenu);
+        pAddressMenu->AddTo(&menu);
     }
 
     // Run it

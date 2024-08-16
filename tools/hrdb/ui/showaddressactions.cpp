@@ -91,6 +91,11 @@ void ShowAddressMenu::Set(const QString &title, Session *pSession, int memorySpa
     this->setAddress(pSession, memorySpace, address);
 }
 
+void ShowAddressMenu::AddTo(QMenu *pParent)
+{
+    pParent->addMenu(this->m_pMenu);
+}
+
 ShowAddressLabel::ShowAddressLabel(Session *pSession) :
     m_pActions(nullptr)
 {

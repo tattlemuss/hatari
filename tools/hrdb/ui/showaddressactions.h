@@ -49,6 +49,8 @@ public:
     // and set up the sub-actions to point to the correct address.
     void Set(const QString& title, Session* pSession, int memorySpace, uint32_t address);
 
+    void AddTo(QMenu* pParent);
+private:
     QMenu*      m_pMenu;
 };
 

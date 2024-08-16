@@ -266,7 +266,8 @@ private:
     QFont       m_monoFont;
 
     // Menu actions
-    ShowAddressMenu     m_showAddressMenus[2];   // 0 == "this address", 1 == "referenced address"
+    ShowAddressMenu     m_showThisAddressMenu;   // 0 == "this address", 1 == "referenced address"
+    ShowAddressMenu     m_showPtrAddressMenu[3];
     QAction*            m_pSearchAction;
     QAction*            m_pSaveAction;
 
