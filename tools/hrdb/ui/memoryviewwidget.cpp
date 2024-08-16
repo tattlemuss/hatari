@@ -1207,7 +1207,11 @@ void MemoryWidget::KeyboardContextMenu()
 void MemoryWidget::ContextMenu(int row, int col, QPoint globalPos)
 {
     QMenu menu(this);
-    menu.addAction(m_pSaveAction);
+    MemSpace space = m_address.space;
+    bool isCpu = (space == MEM_CPU);
+
+    if (isCpu)
+        menu.addAction(m_pSaveAction);
 
     // These actions are optional
     if (row != -1)
@@ -1215,7 +1219,7 @@ void MemoryWidget::ContextMenu(int row, int col, QPoint globalPos)
         // Align the memory location to 2 or 4 bytes, based on context
         // (view address, or word/long mode)
         uint32_t addr = CalcAddress(m_address, row, col);
-        if (m_address.space == MEM_CPU)
+        if (isCpu)
         {
             if (m_sizeMode == SizeMode::kModeLong)
                 addr &= ~3U;
@@ -1226,19 +1230,30 @@ void MemoryWidget::ContextMenu(int row, int col, QPoint globalPos)
         }
 
         // TODO different memory spaces
-        m_showAddressMenus[0].setAddress(m_pSession, m_address.space, addr);
-        m_showAddressMenus[0].setTitle(QString::asprintf("Data Address: $%x", addr));
+        m_showAddressMenus[0].setAddress(m_pSession, space, addr);
+        m_showAddressMenus[0].setTitle(QString("Data Address: ") + Format::to_address(space, addr));
         menu.addMenu(m_showAddressMenus[0].m_pMenu);
 
         const Memory* mem = m_pTargetModel->GetMemory(m_memSlot);
-        if (mem && mem->GetMemAddr().space == MEM_CPU)
+        if (mem)
         {
-            uint32_t longContents;
-            if (mem->ReadCpuMulti(addr, 4, longContents))
+            bool valid = false;
+            uint32_t contents;
+            if (isCpu)
             {
-                longContents &= 0xffffff;
-                m_showAddressMenus[1].setAddress(m_pSession, MEM_CPU, longContents);
-                m_showAddressMenus[1].setTitle(QString::asprintf("Pointer Address: $%x", longContents));
+                valid = mem->ReadCpuMulti(addr, 4, contents);
+                contents &= 0xffffff;
+            }
+            else
+            {
+                valid = mem->ReadDspWord(addr, contents);
+                contents &= 0xffff;
+            }
+
+            if (valid)
+            {
+                m_showAddressMenus[1].setAddress(m_pSession, m_address.space, contents);
+                m_showAddressMenus[1].setTitle(QString("Pointer Address: ") + Format::to_address(space, contents));
                 menu.addMenu(m_showAddressMenus[1].m_pMenu);
             }
         }
@@ -1439,7 +1454,12 @@ void MemoryWindow::requestAddress(Session::WindowType type, int windowIndex, int
     m_pMemoryWidget->SetLock(false);
     m_pMemoryWidget->SetSpace(static_cast<MemSpace>(memorySpace));
     m_pMemoryWidget->SetExpression(std::to_string(address));
+
+    // Update UI from the new address
     m_pLockCheckBox->setChecked(m_pMemoryWidget->IsLocked());
+    int spaceComboIndex = m_pWidthComboBox->findData((int)memorySpace);
+    if (spaceComboIndex != -1)
+        m_pSpaceComboBox->setCurrentIndex(spaceComboIndex);
 
     setVisible(true);
     this->keyFocus();
@@ -1512,6 +1532,9 @@ void MemoryWindow::findClickedSlot()
     if (!m_pTargetModel->IsConnected())
         return;
 
+    if (m_pMemoryWidget->GetSpace() != MEM_CPU)
+        return;
+
     const MemoryWidget::CursorInfo& info = m_pMemoryWidget->GetCursorInfo();
     if (!info.m_isCursorValid)
         return;
@@ -1537,6 +1560,9 @@ void MemoryWindow::findClickedSlot()
 void MemoryWindow::nextClickedSlot()
 {
     if (!m_pTargetModel->IsConnected())
+        return;
+
+    if (m_pMemoryWidget->GetSpace() != MEM_CPU)
         return;
 
     const MemoryWidget::CursorInfo& info = m_pMemoryWidget->GetCursorInfo();

@@ -121,6 +121,8 @@ public:
     // Read multiple bytes and put into 32-bit word. So can read byte/word/long
     bool ReadCpuMulti(uint32_t address, uint32_t numBytes, uint32_t& value) const;
 
+    bool ReadDspWord(uint32_t address, uint32_t& value) const;
+
     // Returns the size of the memory in bytes (not DSP words!)
     uint32_t GetSize() const
     {

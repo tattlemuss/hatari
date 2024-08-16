@@ -44,6 +44,25 @@ bool Memory::ReadCpuMulti(uint32_t address, uint32_t numBytes, uint32_t& value) 
     return true;
 }
 
+bool Memory::ReadDspWord(uint32_t address, uint32_t &value) const
+{
+    assert(m_space != MEM_CPU);
+
+    uint32_t offset = (address - m_addr) * 3;
+    if (offset + 3 > m_sizeInBytes)
+        return false;
+
+    assert(offset + 3 <= m_sizeInBytes);
+    uint32_t longContents = 0;
+    for (uint32_t i = 0; i < 3; ++i)
+    {
+        longContents <<= 8;
+        longContents += m_pData[offset + i];
+    }
+    value = longContents;
+    return true;
+}
+
 Memory& Memory::operator=(const Memory &other)
 {
     this->m_space = other.m_space;

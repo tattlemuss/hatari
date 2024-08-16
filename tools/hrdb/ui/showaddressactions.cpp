@@ -51,7 +51,7 @@ void ShowAddressActions::setAddress(Session* pSession, int memorySpace, uint32_t
     // e.g. Graphics Inspector
     bool isCpu = (memorySpace == MEM_CPU);
     for (int i = 0; i < kNumMemoryViews; ++i)
-        m_pMemoryWindowActions[i]->setVisible(isCpu);
+        m_pMemoryWindowActions[i]->setVisible(true);
 
     m_pGraphicsInspectorAction->setVisible(isCpu);
 }
