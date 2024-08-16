@@ -5,12 +5,14 @@
 // Names are terse since these are common.
 
 // Memory locations that can be queried.
+// NOTE: might be serialised.
 enum MemSpace
 {
-    MEM_CPU,
-    MEM_P,
-    MEM_X,
-    MEM_Y
+    MEM_CPU = 0,
+    MEM_P = 1,
+    MEM_X = 2,
+    MEM_Y = 3,
+    MEM_SPACE_MAX = 4
 };
 
 // Describes a unique memory address from the target.

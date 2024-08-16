@@ -62,6 +62,8 @@ public:
     WidthMode GetWidthMode() const { return m_widthMode; }
     const CursorInfo& GetCursorInfo() const { return m_cursorInfo; }
 
+    void SetSpace(MemSpace space);
+
     // Checks expression validity
     bool CanSetExpression(std::string expression) const;
     // Set the text expression used as the address.
@@ -125,7 +127,9 @@ private:
         kMoveCursor
     };
 
-    void SetAddress(MemAddr address, CursorMode moveCursor);
+    // Update the space in m_address and change the column layout.
+    void SetSpaceInternal(MemSpace space);
+    void SetAddressInternal(MemAddr address);
     void RequestMemory(CursorMode moveCursor);
 
     // Is we are locked to an expression recalc m_address
@@ -265,6 +269,7 @@ public slots:
     void cursorChangedSlot();
     void textEditedSlot();
     void lockChangedSlot();
+    void spaceComboBoxChangedSlot(int index);
     void sizeModeComboBoxChangedSlot(int index);
     void widthComboBoxChangedSlot(int index);
     void findClickedSlot();
@@ -277,6 +282,8 @@ public slots:
 
 private:
     QLineEdit*          m_pAddressEdit;
+    QComboBox*          m_pSpaceComboBox;
+
     QComboBox*          m_pSizeModeComboBox;
     QComboBox*          m_pWidthComboBox;
     QCheckBox*          m_pLockCheckBox;
