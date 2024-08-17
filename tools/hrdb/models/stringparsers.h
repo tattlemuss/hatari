@@ -7,6 +7,7 @@
 
 class SymbolTable;
 class Registers;
+class DspRegisters;
 
 // Utility functions to parse characters and character strings
 class StringParsers
@@ -39,10 +40,13 @@ public:
     // Returns false if could not parse
     static bool ParseCpuExpression(const char *pText, uint32_t &result, const SymbolTable& syms, const Registers& regs);
 
-    // Convert an address expression string (null-terminated) to a u32.
+    // Convert an expression string (null-terminated) to a u32.
     // Allows looking up register and symbol values.
     // Returns false if could not parse
-    static bool ParseMemAddrExpression(const char *pText, MemAddr& result, const SymbolTable& syms, const Registers& regs);
+    static bool ParseDspExpression(const char *pText, uint32_t &result, const SymbolTable& syms, const DspRegisters& regs);
+
+    // TODO unused
+    static bool ParseMemAddrExpression(const char *pText, MemAddr &result, const SymbolTable &syms, const Registers &regs);
 };
 
 #endif // STRINGPARSERS_H

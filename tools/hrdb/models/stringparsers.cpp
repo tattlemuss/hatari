@@ -131,6 +131,26 @@ static bool IsRegisterName(const char* name, int& regId)
 }
 
 //-----------------------------------------------------------------------------
+static bool IsDspRegisterName(const char* name, int& regId)
+{
+    for (int i = 0; i < DspRegisters::REG_COUNT; ++i)
+    {
+        const char* regName = DspRegisters::s_names[i];
+#ifdef WIN32
+        if (_stricmp(name, regName) != 0)
+            continue;
+#else
+        if (strcasecmp(name, regName) != 0)
+            continue;
+#endif
+        regId = i;
+        return true;
+    }
+    regId = Registers::REG_COUNT;
+    return false;
+}
+
+//-----------------------------------------------------------------------------
 static bool IsRegisterNameDotW(const char* name, int& regId)
 {
     static const char* names[] = { "D0.W", "D1.W" ,"D2.W", "D3.W",
@@ -481,6 +501,141 @@ bool StringParsers::ParseCpuExpression(const char *pText, uint32_t &result, cons
     }
     return false;
 }
+
+//-----------------------------------------------------------------------------
+// TODO: this is a cut-and-paste of the above. Is it worth factoring things out,
+// or will there be special cases?
+bool StringParsers::ParseDspExpression(const char *pText, uint32_t &result, const SymbolTable& syms, const DspRegisters& regs)
+{
+    std::vector<Token> tokens;
+    while (*pText != 0)
+    {
+        char head = *pText++;
+        // Decide on next token type
+        if (IsWhitespace(head))
+        {
+            ++pText;
+            continue;
+        }
+
+        if (head == '$')
+        {
+            // Hex constant
+            Token t;
+            t.type = Token::CONSTANT;
+            t.val = 0;
+            uint8_t ch;
+            // First char must exist, else "$" is a valid expression!
+            if (!ParseHexChar(*pText, ch))
+                return false;
+
+            int numChars = 0;
+            while (ParseHexChar(*pText, ch))
+            {
+                t.val <<= 4;
+                t.val |= ch;
+                ++pText;
+                ++numChars;
+                if (numChars > 16)   // overflow
+                    return false;
+            }
+            tokens.push_back(t);
+            continue;
+        }
+        else if (IsDecimalDigit(head))
+        {
+            // Decimal constant
+            Token t;
+            t.type = Token::CONSTANT;
+            t.val = 0;
+            uint8_t ch;
+            --pText;        // go back to the first char
+            while (ParseDecChar(*pText, ch))
+            {
+                t.val *= 10;
+                t.val += ch;
+                ++pText;
+            }
+            tokens.push_back(t);
+            continue;
+        }
+        else if (IsSymbolStart(head))
+        {
+            // Possible symbol
+            std::string name;
+            name += head;
+            while (IsSymbolMain(*pText))
+                name += *pText++;
+
+            // This might be a register name, use in preference to symbols
+            int regId = 0;
+            if (IsDspRegisterName(name.c_str(), regId))
+            {
+                Token t;
+                t.type = Token::CONSTANT;
+                t.val = regs.Get(regId);
+                tokens.push_back(t);
+                continue;
+            }
+
+            // Try to look up symbols by name
+            Symbol s;
+            if (syms.Find(name, s))
+            {
+                Token t;
+                t.type = Token::CONSTANT;
+                t.val = s.address;
+                tokens.push_back(t);
+                continue;
+            }
+        }
+        else if (head == '+')
+        {
+            AddOperator(tokens, Token::ADD);
+            continue;
+        }
+        else if (head == '-')
+        {
+            AddOperator(tokens, Token::SUB);
+            continue;
+        }
+        else if (head == '*')
+        {
+            AddOperator(tokens, Token::MUL);
+            continue;
+        }
+        else if (head == '/')
+        {
+            AddOperator(tokens, Token::DIV);
+            continue;
+        }
+        else if (head == '(')
+        {
+            AddOperator(tokens, Token::LEFT_BRACE);
+            continue;
+        }
+        else if (head == ')')
+        {
+            AddOperator(tokens, Token::RIGHT_BRACE);
+            continue;
+        }
+        // Couldn't match
+        return false;
+    }
+
+    if (tokens.size() != 0)
+    {
+        uint64_t res2;
+        bool success = Evaluate(tokens, res2);
+        if (success)
+        {
+            result = (uint32_t)res2;
+            return success;
+        }
+    }
+    return false;
+}
+
 
 bool StringParsers::ParseMemAddrExpression(const char *pText, MemAddr &result, const SymbolTable &syms, const Registers &regs)
 {

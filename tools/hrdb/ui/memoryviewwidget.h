@@ -157,6 +157,9 @@ private:
     // Does not request memory.
     void RecalcLockedExpression();
 
+    // Parse a CPU or DSP expression, depending on mode
+    bool ParseExpression(bool isCpu, const std::string& expr, uint32_t& result) const;
+
     // Rearrange the layout to match width/format decisions
     void RecalcColumnLayout();
     void RecalcText();
