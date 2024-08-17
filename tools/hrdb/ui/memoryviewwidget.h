@@ -84,14 +84,20 @@ public:
     // Requests memory.
     void SetSearchResultAddress(MemAddr addr);
 
+    // Requests memory if the lock is turned on!
     void SetLock(bool locked);
+
+    // Does not request memory.
     void SetSizeMode(SizeMode mode);
+
+    // Requests memory.
     void SetWidthMode(WidthMode widthMode);
 
 signals:
     // Flagged when cursor position or memory under cursor changes
     void cursorChangedSignal();
     void spaceChangedSignal();
+    void lockChangedSignal();
 protected:
     virtual void paintEvent(QPaintEvent*) override;
     virtual void keyPressEvent(QKeyEvent*) override;

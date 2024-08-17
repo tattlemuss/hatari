@@ -148,8 +148,12 @@ void MemoryWidget::SetSpace(MemSpace space)
     // If we use the combo, any locked expression is cancelled
     // and we revert to the last address known in this space
     SetAddressInternal(maddr(space, m_lastAddresses[space]));
-    if (m_isLocked)
-        SetLock(false);     // this won't request memory.
+
+    // Cancel any lock if we are switch between CPU<->DSP
+    bool wasCpu = m_address.space == MEM_CPU;
+    bool isCpu = space == MEM_CPU;
+    if (m_isLocked && (wasCpu != isCpu))
+        SetLock(false);     // this won't request memory since we are clearing the lock.
 
     RequestMemory(CursorMode::kNoMoveCursor); // fallback if no expression
 }
@@ -237,6 +241,7 @@ void MemoryWidget::SetLock(bool locked)
     }
     // Don't clear the expression yet, since it might be reused
 }
+
 
 void MemoryWidget::SetSizeMode(MemoryWidget::SizeMode mode)
 {
@@ -1045,9 +1050,8 @@ void MemoryWidget::RecalcLockedExpression()
     if (m_isLocked)
     {
         uint32_t addr;
-        if (StringParsers::ParseCpuExpression(m_addressExpression.c_str(), addr,
-                                            m_pTargetModel->GetSymbolTable(),
-                                            m_pTargetModel->GetRegs()))
+        if (ParseExpression(m_address.space == MEM_CPU,
+                            m_addressExpression, addr))
         {
             SetAddressInternal(maddr(m_address.space, addr));
         }
@@ -1414,10 +1418,11 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
 
     connect(m_pAddressEdit,  &QLineEdit::returnPressed,                this, &MemoryWindow::returnPressedSlot);
     connect(m_pAddressEdit,  &QLineEdit::textChanged,                  this, &MemoryWindow::textEditedSlot);
-    connect(m_pLockCheckBox, &QCheckBox::stateChanged,                 this, &MemoryWindow::lockChangedSlot);
+    connect(m_pLockCheckBox, &QCheckBox::stateChanged,                 this, &MemoryWindow::lockClickedSlot);
     connect(m_pSession,      &Session::addressRequested,               this, &MemoryWindow::requestAddress);
     connect(m_pMemoryWidget, &MemoryWidget::cursorChangedSignal,       this, &MemoryWindow::cursorChangedSlot);
     connect(m_pMemoryWidget, &MemoryWidget::spaceChangedSignal,        this, &MemoryWindow::syncUiElements);
+    connect(m_pMemoryWidget, &MemoryWidget::lockChangedSignal,         this, &MemoryWindow::syncUiElements);
     connect(m_pTargetModel,  &TargetModel::searchResultsChangedSignal, this, &MemoryWindow::searchResultsSlot);
     connect(m_pTargetModel,  &TargetModel::symbolTableChangedSignal,   this, &MemoryWindow::symbolTableChangedSlot);
     connect(m_pTargetModel,  &TargetModel::configChangedSignal,        this, &MemoryWindow::syncUiElements);
@@ -1475,7 +1480,6 @@ void MemoryWindow::requestAddress(Session::WindowType type, int windowIndex, int
     if (windowIndex != m_windowIndex)
         return;
 
-    m_pMemoryWidget->SetLock(false);
     m_pMemoryWidget->SetSpace(static_cast<MemSpace>(memorySpace));
     m_pMemoryWidget->SetExpression(std::to_string(address));
 
@@ -1633,7 +1637,7 @@ void MemoryWindow::gotoClickedSlot()
 
 void MemoryWindow::lockClickedSlot()
 {
-    m_pLockCheckBox->toggle();
+    m_pMemoryWidget->SetLock(m_pLockCheckBox->isChecked());
 }
 
 void MemoryWindow::searchResultsSlot(uint64_t responseId)
@@ -1677,6 +1681,8 @@ void MemoryWindow::syncUiElements()
     MemSpace space = m_pMemoryWidget->GetSpace();
     m_pWidthComboBox->setEnabled(space == MEM_CPU);
     m_pSizeModeComboBox->setEnabled(space == MEM_CPU);
+
+    m_pLockCheckBox->setChecked(m_pMemoryWidget->IsLocked());
 
     // Update combo box UI from the new address
     m_pLockCheckBox->setChecked(m_pMemoryWidget->IsLocked());
