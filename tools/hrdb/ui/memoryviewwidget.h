@@ -68,17 +68,17 @@ public:
     // Set only the new space (via UI combo)
     // Does re-request memory.
     void SetSpace(MemSpace space);
-    // Set space+address.
+
+    // Set space+address, usually a request from another window
     // Does re-request memory.
     void SetAddress(MemAddr full);
 
     // Checks expression validity
     bool CanSetExpression(std::string expression) const;
 
-    // Set the text expression used as the address.
+    // Set the text expression used as the address (not including space)
     // returns false if expression is invalid.
     // Requests memory.
-
     bool SetExpression(std::string expression);
 
     // Requests memory.

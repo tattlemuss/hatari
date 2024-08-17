@@ -145,33 +145,31 @@ MemoryWidget::~MemoryWidget()
 
 void MemoryWidget::SetSpace(MemSpace space)
 {
-    // If we use the combo, any locked expression is cancelled
+    bool wasCpu = m_address.space == MEM_CPU;
+    bool isCpu = space == MEM_CPU;
+
+    // If we use the combo,
+    // cancel any lock if we are switch between CPU<->DSP
     // and we revert to the last address known in this space
     SetAddressInternal(maddr(space, m_lastAddresses[space]));
 
-    // Cancel any lock if we are switch between CPU<->DSP
-    bool wasCpu = m_address.space == MEM_CPU;
-    bool isCpu = space == MEM_CPU;
     if (m_isLocked && (wasCpu != isCpu))
         SetLock(false);     // this won't request memory since we are clearing the lock.
 
-    RequestMemory(CursorMode::kNoMoveCursor); // fallback if no expression
+    RequestMemory(CursorMode::kNoMoveCursor);
 }
 
 void MemoryWidget::SetAddress(MemAddr full)
 {
-    // If we use the combo, any locked expression is cancelled
-    // and we revert to the last address known in this space
+    // If we use the full address value, any locked expression is cancelled
     SetAddressInternal(full);
-
     if (m_isLocked)
         SetLock(false);
 
     RequestMemory(CursorMode::kNoMoveCursor);
 }
 
-// Set an expression. Could be locked, could include a space
-// element e.g. "P:" at the start
+
 bool MemoryWidget::SetExpression(std::string expression)
 {
     // This does a "once only"
@@ -1480,8 +1478,7 @@ void MemoryWindow::requestAddress(Session::WindowType type, int windowIndex, int
     if (windowIndex != m_windowIndex)
         return;
 
-    m_pMemoryWidget->SetSpace(static_cast<MemSpace>(memorySpace));
-    m_pMemoryWidget->SetExpression(std::to_string(address));
+    m_pMemoryWidget->SetAddress(maddr((MemSpace)memorySpace, address));
 
     setVisible(true);
     this->keyFocus();
