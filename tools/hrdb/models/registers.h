@@ -201,7 +201,14 @@ public:
     static const char* s_names[];
 private:
     uint64_t	m_value[REG_COUNT];
+};
 
+// Wrapper for all available target registers, handy for passing around.
+class AllRegisters
+{
+public:
+    Registers       cpu;
+    DspRegisters    dsp;
 };
 
 #endif // REGISTERS_H

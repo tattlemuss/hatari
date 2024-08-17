@@ -164,8 +164,13 @@ public:
     // This is the PC from start/stop notifications, so it's not valid when
     // running
     uint32_t GetStartStopPC(Processor proc) const;
-    Registers GetRegs() const { return m_regs; }
-    DspRegisters GetDspRegs() const { return m_dspRegs; }
+
+    // Basic register access.
+    // NOTE: now uses a const reference like everything else --
+    // clients can take a copy if they wish.
+    const AllRegisters& GetAllRegs() const { return m_regs; }
+    const Registers& GetRegs() const       { return m_regs.cpu; }
+    const DspRegisters& GetDspRegs() const { return m_regs.dsp; }
 
     const Memory* GetMemory(MemorySlot slot) const
     {
@@ -268,8 +273,7 @@ private:
     uint32_t        m_startStopDspPc;   //  DSPPC register (for next instruction)
     int             m_ffwd;             // 0 == normal, 1 == fast forward mode
 
-    Registers       m_regs;             // Current register values
-    DspRegisters    m_dspRegs;
+    AllRegisters    m_regs;             // Current register values
     Breakpoints     m_breakpoints;      // Current breakpoint list
     SymbolTable     m_symbolTable;
     ExceptionMask   m_exceptionMask;
