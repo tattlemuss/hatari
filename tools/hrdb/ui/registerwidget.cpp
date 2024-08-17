@@ -290,20 +290,20 @@ void RegisterWidget::contextMenuEvent(QContextMenuEvent *event)
     {
         m_addressUnderMouse = m_currRegs.Get(m_tokenUnderMouse.subIndex);
         spaceUnderMouse = MEM_CPU;
-        m_showAddressMenu.Set("Address", m_pSession, spaceUnderMouse, m_addressUnderMouse);
+        m_showAddressMenu.Set("CPU Reg", m_pSession, spaceUnderMouse, m_addressUnderMouse);
         m_showAddressMenu.AddTo(&menu);
     }
     else if (m_tokenUnderMouse.type == TokenType::kSymbol)
     {
         m_addressUnderMouse = m_tokenUnderMouse.subIndex;
         spaceUnderMouse = MEM_CPU;
-        m_showAddressMenu.Set(m_tokenUnderMouse.text, m_pSession, spaceUnderMouse, m_addressUnderMouse);
+        m_showAddressMenu.Set("Address", m_pSession, spaceUnderMouse, m_addressUnderMouse);
         m_showAddressMenu.AddTo(&menu);
     }
     else if (m_tokenUnderMouse.type == TokenType::kDspRegister)
     {
         m_addressUnderMouse = m_currDspRegs.Get(m_tokenUnderMouse.subIndex);
-        m_showAddressMenuDsp.Set("Address", m_pSession, m_addressUnderMouse);
+        m_showAddressMenuDsp.Set("DSP Reg", m_pSession, m_addressUnderMouse);
         m_showAddressMenuDsp.AddTo(&menu);
     }
 
@@ -919,6 +919,7 @@ void RegisterWidget::UpdateTokenUnderMouse()
 {
     // Update the token
     m_tokenUnderMouseIndex = -1;
+    m_tokenUnderMouse.type = TokenType::kNone;
     for (int i = 0; i < m_tokens.size(); ++i)
     {
         const Token& tok = m_tokens[i];
