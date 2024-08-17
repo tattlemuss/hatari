@@ -984,7 +984,11 @@ void MemoryWidget::resizeEvent(QResizeEvent* event)
     QWidget::resizeEvent(event);
     RecalcRowCount();
     if (m_widthMode == kAuto)
+    {
         RecalcAutoRowWidth();
+        RecalcText();
+        RequestMemory(kNoMoveCursor);
+    }
 }
 
 bool MemoryWidget::event(QEvent *event)
@@ -1111,8 +1115,6 @@ void MemoryWidget::RecalcAutoRowWidth()
     {
         m_bytesPerRow = finalChunkCount * 4;
         RecalcColumnLayout();
-        RecalcText();
-        RequestMemory(kNoMoveCursor);
     }
 }
 

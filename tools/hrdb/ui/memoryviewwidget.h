@@ -160,12 +160,17 @@ private:
     // Parse a CPU or DSP expression, depending on mode
     bool ParseExpression(bool isCpu, const std::string& expr, uint32_t& result) const;
 
-    // Rearrange the layout to match width/format decisions
+    // Rearrange the layout to match width/format decisions.
+    // Recalculates text.
     void RecalcColumnLayout();
     void RecalcText();
+
+    // Fit visible rows.
+    // Recalculates text.
     void RecalcRowCount();
 
-    // Calculate number of bytes to fit current window width
+    // Calculate number of bytes to fit current window width.
+    // Does not request memory.
     void RecalcAutoRowWidth();
 
     // Update cursor data and emit cursorChangedSignal
