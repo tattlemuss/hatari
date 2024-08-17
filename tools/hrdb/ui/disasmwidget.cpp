@@ -85,6 +85,7 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex, 
     connect(m_pTargetModel, &TargetModel::otherMemoryChangedSignal, this, &DisasmWidget::otherMemoryChanged);
     connect(m_pTargetModel, &TargetModel::profileChangedSignal,     this, &DisasmWidget::profileChanged);
     connect(m_pTargetModel, &TargetModel::mainStateCompletedSignal, this, &DisasmWidget::mainStateCompleted);
+    connect(m_pTargetModel, &TargetModel::configChangedSignal,      this, &DisasmWidget::configChanged);
 
     // UI connects
     connect(m_pRunUntilAction,       &QAction::triggered, this, &DisasmWidget::runToCursorRightClick);
@@ -97,6 +98,7 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex, 
     setMouseTracking(true);
 
     this->setFocusPolicy(Qt::FocusPolicy::StrongFocus);
+    configChanged();        // Disallow DSP if necessary
 }
 
 DisasmWidget::~DisasmWidget()
@@ -466,6 +468,14 @@ void DisasmWidget::mainStateCompleted()
     CalcDisasm();
     update();
 }
+
+void DisasmWidget::configChanged()
+{
+    // Force back to CPU if there's no DSP
+    if (!m_pTargetModel->IsDspActive())
+        SetProc(kProcCpu);
+}
+
 
 void DisasmWidget::paintEvent(QPaintEvent* ev)
 {
@@ -1237,6 +1247,8 @@ void DisasmWidget::SetProc(Processor mode)
         SetAddress(GetPC());
     else
         SetAddress(newAddr);
+
+    emit procChangedSignal();
 }
 
 void DisasmWidget::printEA(const hop68::operand& op, const Registers& regs, uint32_t address, QTextStream& ref) const
@@ -1487,7 +1499,8 @@ DisasmWindow::DisasmWindow(QWidget *parent, Session* pSession, int windowIndex) 
 
     // Listen for start/stop, so we can update our memory request
     connect(m_pDisasmWidget,&DisasmWidget::addressChanged,            this, &DisasmWindow::UpdateTextBox);
-    connect(m_pProcButton,  &QPushButton::clicked,                    this, &DisasmWindow::procChangedSlot);
+    connect(m_pDisasmWidget,&DisasmWidget::procChangedSignal,         this, &DisasmWindow::syncUiButtons);
+    connect(m_pProcButton,  &QPushButton::clicked,                    this, &DisasmWindow::procChangedClicked);
     connect(m_pAddressEdit, &QLineEdit::returnPressed,                this, &DisasmWindow::returnPressedSlot);
     connect(m_pAddressEdit, &QLineEdit::textEdited,                   this, &DisasmWindow::textChangedSlot);
     connect(m_pFollowPC,    &QCheckBox::stateChanged,                 this, &DisasmWindow::followPCClickedSlot);
@@ -1495,7 +1508,9 @@ DisasmWindow::DisasmWindow(QWidget *parent, Session* pSession, int windowIndex) 
     connect(m_pSession,     &Session::addressRequested,               this, &DisasmWindow::requestAddress);
     connect(m_pTargetModel, &TargetModel::searchResultsChangedSignal, this, &DisasmWindow::searchResultsSlot);
     connect(m_pTargetModel, &TargetModel::symbolTableChangedSignal,   this, &DisasmWindow::symbolTableChangedSlot);
+    connect(m_pTargetModel, &TargetModel::configChangedSignal,        this, &DisasmWindow::syncUiButtons);
 
+    syncUiButtons();
     this->resizeEvent(nullptr);
 }
 
@@ -1576,7 +1591,7 @@ void DisasmWindow::keyPageUpPressed()
     m_pDisasmWidget->PageUp();
 }
 
-void DisasmWindow::procChangedSlot()
+void DisasmWindow::procChangedClicked()
 {
     Processor mode = m_pDisasmWidget->GetProc();
     if (mode == kProcCpu)
@@ -1710,14 +1725,22 @@ void DisasmWindow::symbolTableChangedSlot(uint64_t /*responseId*/)
     m_pSymbolTableModel->emitChanged();
 }
 
+
+void DisasmWindow::syncUiButtons()
+{
+    // Update UI to match
+    m_pProcButton->setText(m_pDisasmWidget->GetProc() == kProcCpu ? "CPU" : "DSP");
+
+    bool enabled = m_pTargetModel->IsDspActive();
+    m_pProcButton->setEnabled(enabled);
+}
+
+
 void DisasmWindow::SetProc(Processor mode)
 {
     // Don't do this pointlessly
     if (m_pDisasmWidget->GetProc() != mode)
         m_pDisasmWidget->SetProc(mode);
-
-    // Update UI to match
-    m_pProcButton->setText(mode == kProcCpu ? "CPU" : "DSP");
 }
 
 void DisasmWidget::Line::Reset()

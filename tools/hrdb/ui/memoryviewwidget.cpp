@@ -1479,12 +1479,6 @@ void MemoryWindow::requestAddress(Session::WindowType type, int windowIndex, int
     m_pMemoryWidget->SetSpace(static_cast<MemSpace>(memorySpace));
     m_pMemoryWidget->SetExpression(std::to_string(address));
 
-    // Update UI from the new address
-    m_pLockCheckBox->setChecked(m_pMemoryWidget->IsLocked());
-    int spaceComboIndex = m_pWidthComboBox->findData((int)memorySpace);
-    if (spaceComboIndex != -1)
-        m_pSpaceComboBox->setCurrentIndex(spaceComboIndex);
-
     setVisible(true);
     this->keyFocus();
     raise();
@@ -1683,4 +1677,10 @@ void MemoryWindow::syncUiElements()
     MemSpace space = m_pMemoryWidget->GetSpace();
     m_pWidthComboBox->setEnabled(space == MEM_CPU);
     m_pSizeModeComboBox->setEnabled(space == MEM_CPU);
+
+    // Update combo box UI from the new address
+    m_pLockCheckBox->setChecked(m_pMemoryWidget->IsLocked());
+    int spaceComboIndex = m_pWidthComboBox->findData((int)space);
+    if (spaceComboIndex != -1)
+        m_pSpaceComboBox->setCurrentIndex(spaceComboIndex);
 }

@@ -55,8 +55,10 @@ public:
     void SetShowHex(bool show);
     void SetFollowPC(bool follow);
     void SetProc(Processor mode);
+
 signals:
     void addressChanged(uint64_t addr);
+    void procChangedSignal();
 
 private:
     void startStopChanged();
@@ -67,6 +69,7 @@ private:
     void otherMemoryChanged(uint32_t address, uint32_t size);
     void profileChanged();
     void mainStateCompleted();
+    void configChanged();
 
     // From keyPressEvent
     void runToCursor();
@@ -299,7 +302,7 @@ protected slots:
     void keyPageDownPressed();
     void keyPageUpPressed();
 
-    void procChangedSlot();
+    void procChangedClicked();
     void returnPressedSlot();
     void textChangedSlot();
 
@@ -312,8 +315,9 @@ protected slots:
     void lockClickedSlot();
     void searchResultsSlot(uint64_t responseId);
     void symbolTableChangedSlot(uint64_t responseId);
-private:
+    void syncUiButtons();
 
+private:
     void SetProc(Processor mode);
     void UpdateTextBox();
 
