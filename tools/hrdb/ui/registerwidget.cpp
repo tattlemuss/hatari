@@ -659,6 +659,7 @@ void RegisterWidget::PopulateRegisters()
             ++row;
         }
         ++row;
+        m_rulers.push_back(row);
         AddDspReg8(  2, row, DspRegisters::A2, m_prevDspRegs, m_currDspRegs);
         AddDspReg24(10, row, DspRegisters::A1, m_prevDspRegs, m_currDspRegs);
         AddDspReg24(22, row, DspRegisters::A0, m_prevDspRegs, m_currDspRegs);
@@ -673,13 +674,23 @@ void RegisterWidget::PopulateRegisters()
         AddDspReg24(10,  row, DspRegisters::Y1, m_prevDspRegs, m_currDspRegs);
         AddDspReg24(22, row, DspRegisters::Y0, m_prevDspRegs, m_currDspRegs);
         ++row;
+        m_rulers.push_back(row);
         for (uint32_t reg = 0; reg < 8; ++reg)
         {
             AddDspReg16( 2, row, DspRegisters::R0 + reg, m_prevDspRegs, m_currDspRegs);
-            AddDspReg16(15, row, DspRegisters::N0 + reg, m_prevDspRegs, m_currDspRegs);
-            AddDspReg16(28, row, DspRegisters::M0 + reg, m_prevDspRegs, m_currDspRegs);
+            AddDspReg16(13, row, DspRegisters::N0 + reg, m_prevDspRegs, m_currDspRegs);
+            AddDspReg16(24, row, DspRegisters::M0 + reg, m_prevDspRegs, m_currDspRegs);
             row++;
         }
+        m_rulers.push_back(row);
+        AddDspReg16(2, row, DspRegisters::LA, m_prevDspRegs, m_currDspRegs);
+        AddDspReg16(13, row, DspRegisters::LC, m_prevDspRegs, m_currDspRegs);
+        AddDspReg16(23, row, DspRegisters::OMR, m_prevDspRegs, m_currDspRegs);
+        ++row;
+        AddDspReg16(2, row, DspRegisters::SP, m_prevDspRegs, m_currDspRegs);
+        AddDspReg16(12, row, DspRegisters::SSH, m_prevDspRegs, m_currDspRegs);
+        AddDspReg16(23, row, DspRegisters::SSL, m_prevDspRegs, m_currDspRegs);
+        ++row;
     }
 
     if (m_showCpu)
@@ -712,6 +723,7 @@ void RegisterWidget::PopulateRegisters()
         }
     }
 
+    m_rulers.push_back(row);
     // Variables
     // Sundry info
     AddToken(0, row, QString::asprintf("VBL: %10u Frame Cycles: %6u", GET_REG(m_currRegs, VBL), GET_REG(m_currRegs, FrameCycles)), TokenType::kNone);
