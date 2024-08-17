@@ -10,50 +10,69 @@
 NonAntiAliasImage::NonAntiAliasImage(QWidget *parent, Session* pSession)
     : QWidget(parent),
       m_pSession(pSession),
-      m_pBitmap(nullptr),
+      m_pPixelData(nullptr),
       m_bitmapSize(0),
       m_bRunningMask(false),
       m_darken(false),
       m_enableGrid(false),
       m_enableZoom(false)
 {
+    m_mode = kIndexed;
+    m_width = 0;
+    m_height = 0;
     m_renderRect = rect();
     setMouseTracking(true);
     setFocusPolicy(Qt::FocusPolicy::StrongFocus);
     m_pixelInfo.isValid = false;
     m_pixelInfo.x = 0;
     m_pixelInfo.y = 0;
-    m_pixelInfo.pixelValue = 0;
+    m_pixelInfo.pixelValue.clear();
     setCursor(Qt::CrossCursor);
     connect(m_pSession,         &Session::settingsChanged, this, &NonAntiAliasImage::settingsChanged);
 }
 
-void NonAntiAliasImage::setPixmap(int width, int height)
+void NonAntiAliasImage::SetPixmap(Mode mode, int width, int height)
+{
+    m_mode = mode;
+    m_width = width;
+    m_height = height;
+    RefreshPixmap();
+}
+
+void NonAntiAliasImage::RefreshPixmap()
 {
     // Regenerate a new shape
-    m_img = QImage(m_pBitmap, width, height, width, QImage::Format_Indexed8);
-    m_img.setColorTable(m_colours);
+    if (m_mode == kIndexed)
+    {
+        m_img = QImage(m_pPixelData, m_width, m_height, m_width, QImage::Format_Indexed8);
+        m_img.setColorTable(m_colours);
+    }
+    else
+    {
+        m_img = QImage(m_pPixelData, m_width, m_height, QImage::Format_RGB32);
+    }
     QPixmap pm = QPixmap::fromImage(m_img);
     m_pixmap = pm;
     UpdateMouseInfo();
     emit MouseInfoChanged();
     update();
+
 }
 
 NonAntiAliasImage::~NonAntiAliasImage()
 {
-    delete [] m_pBitmap;
+    delete [] m_pPixelData;
 }
 
-uint8_t* NonAntiAliasImage::AllocBitmap(int size)
+uint8_t* NonAntiAliasImage::AllocPixelData(int size)
 {
     if (size == m_bitmapSize)
-        return m_pBitmap;
+        return m_pPixelData;
 
-    delete [] m_pBitmap;
-    m_pBitmap = new uint8_t[size];
+    delete [] m_pPixelData;
+    m_pPixelData = new uint8_t[size];
     m_bitmapSize = size;
-    return m_pBitmap;
+    return m_pPixelData;
 }
 
 void NonAntiAliasImage::SetRunning(bool runFlag)
@@ -219,15 +238,28 @@ void NonAntiAliasImage::UpdateMouseInfo()
         int y = bmPoint.y();
         m_pixelInfo.x = x;
         m_pixelInfo.y = y;
-        m_pixelInfo.pixelValue = -1;
+        m_pixelInfo.pixelValue.clear();
 
         if (x >= 0 &&
             x < m_pixmap.width() &&
             y >= 0 &&
             y < m_pixmap.height() &&
-            m_pBitmap)
+            m_pPixelData)
         {
-            m_pixelInfo.pixelValue = m_pBitmap[y * m_pixmap.width() + x];
+            if (m_mode == kIndexed)
+            {
+                uint8_t val = m_pPixelData[y * m_pixmap.width() + x];
+                m_pixelInfo.pixelValue = QString::asprintf("%d", val);
+            }
+            else if (m_mode == kTruColor)
+            {
+                const uint8_t* data = &m_pPixelData[(y * m_pixmap.width() + x) * 4];
+                // Data is BB GG RR in memory
+                m_pixelInfo.pixelValue = QString::asprintf("[R:%d,G:%d,B:%d]",
+                                                           data[2] >> 3,
+                                                           data[1] >> 2,
+                                                           data[0] >> 3);
+            }
         }
         m_pixelInfo.isValid = true;
     }

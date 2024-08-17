@@ -78,7 +78,8 @@ private:
         kFormat2Bitplane,
         kFormat1Bitplane,
         kFormatRegisters,
-        kFormat1BPP
+        kFormat1BPP,
+        kFormatTruColor       // Falcon 16bpp
     };
 
     enum Palette

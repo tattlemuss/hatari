@@ -127,6 +127,7 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     m_pModeComboBox->addItem(tr("2 Plane"), Mode::kFormat2Bitplane);
     m_pModeComboBox->addItem(tr("1 Plane"), Mode::kFormat1Bitplane);
     m_pModeComboBox->addItem(tr("1 BPP"), Mode::kFormat1BPP);
+    m_pModeComboBox->addItem(tr("TruCol"), Mode::kFormatTruColor);
 
     m_pLeftStrideButton->setArrowType(Qt::ArrowType::LeftArrow);
     m_pRightStrideButton->setArrowType(Qt::ArrowType::RightArrow);
@@ -250,12 +251,12 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     connect(m_pLockAddressToVideoCheckBox,  &QCheckBox::stateChanged,     this, &GraphicsInspectorWidget::lockAddressToVideoChanged);
     connect(m_pLockAddressToVideoCheckBox,  &QCheckBox::stateChanged,     this, &GraphicsInspectorWidget::lockAddressToVideoChanged);
 
-    connect(m_pModeComboBox,    SIGNAL(activated(int)),                   SLOT(modeChangedSlot(int)));  // this is user-changed
-    connect(m_pPaletteComboBox, SIGNAL(currentIndexChanged(int)),         SLOT(paletteChangedSlot(int)));
-    connect(m_pStrideSpinBox,      SIGNAL(valueChanged(int)),                SLOT(StrideChangedSlot(int)));
-    connect(m_pHeightSpinBox,   SIGNAL(valueChanged(int)),                SLOT(heightChangedSlot(int)));
-    connect(m_pLeftStrideButton,   &QToolButton::clicked,                    this, &GraphicsInspectorWidget::leftStrideClicked);
-    connect(m_pRightStrideButton,  &QToolButton::clicked,                    this, &GraphicsInspectorWidget::rightStrideClicked);
+    connect(m_pModeComboBox,           SIGNAL(activated(int)),            SLOT(modeChangedSlot(int)));  // this is user-changed
+    connect(m_pPaletteComboBox,        SIGNAL(currentIndexChanged(int)),  SLOT(paletteChangedSlot(int)));
+    connect(m_pStrideSpinBox,          SIGNAL(valueChanged(int)),         SLOT(StrideChangedSlot(int)));
+    connect(m_pHeightSpinBox,          SIGNAL(valueChanged(int)),         SLOT(heightChangedSlot(int)));
+    connect(m_pLeftStrideButton,       &QToolButton::clicked,             this, &GraphicsInspectorWidget::leftStrideClicked);
+    connect(m_pRightStrideButton,      &QToolButton::clicked,             this, &GraphicsInspectorWidget::rightStrideClicked);
 
     connect(m_pImageWidget,  &NonAntiAliasImage::MouseInfoChanged,        this, &GraphicsInspectorWidget::updateInfoLine);
     connect(m_pSession,      &Session::addressRequested,                  this, &GraphicsInspectorWidget::RequestBitmapAddress);
@@ -396,7 +397,7 @@ void GraphicsInspectorWidget::connectChanged()
 {
     if (!m_pTargetModel->IsConnected())
     {
-        m_pImageWidget->setPixmap(0, 0);
+        m_pImageWidget->SetPixmap(NonAntiAliasImage::kIndexed, 0, 0);
     }
 }
 
@@ -550,7 +551,7 @@ void GraphicsInspectorWidget::paletteChangedSlot(int index)
     m_paletteMode = static_cast<Palette>(rawIdx);
 
     // Ensure pixmap is updated
-    m_pImageWidget->setPixmap(GetEffectiveStride(), GetEffectiveHeight());
+    m_pImageWidget->RefreshPixmap();
 
     UpdateUIElements();
 
@@ -685,7 +686,7 @@ void GraphicsInspectorWidget::updateInfoLine()
         }
 
         ref << "[" << info.x << ", " << info.y << "]";
-        if (info.pixelValue >= 0)
+        if (info.pixelValue.size() >= 0)
             ref << " Pixel Value: " << info.pixelValue;
         if (addr != ~0U)
         {
@@ -892,12 +893,13 @@ void GraphicsInspectorWidget::UpdateImage()
     if ((int)pMemOrig->GetSize() < required)
         return;
 
+    NonAntiAliasImage::Mode imgType = NonAntiAliasImage::kIndexed;
     if (mode == kFormat4Bitplane)
     {
         int numChunks = Stride / 8;
         width = numChunks * 16;
         int bitmapSize = numChunks * 16 * height;
-        uint8_t* pDestPixels = m_pImageWidget->AllocBitmap(bitmapSize);
+        uint8_t* pDestPixels = m_pImageWidget->AllocPixelData(bitmapSize);
         for (int y = 0; y < height; ++y)
         {
             const uint8_t* pChunk = pMemOrig->GetData() + y * data.bytesPerLine;
@@ -932,7 +934,7 @@ void GraphicsInspectorWidget::UpdateImage()
         int numChunks = Stride / 6;
         width = numChunks * 16;
         int bitmapSize = numChunks * 16 * height;
-        uint8_t* pDestPixels = m_pImageWidget->AllocBitmap(bitmapSize);
+        uint8_t* pDestPixels = m_pImageWidget->AllocPixelData(bitmapSize);
         for (int y = 0; y < height; ++y)
         {
             const uint8_t* pChunk = pMemOrig->GetData() + y * data.bytesPerLine;
@@ -964,7 +966,7 @@ void GraphicsInspectorWidget::UpdateImage()
         int numChunks = Stride / 4;
         width = numChunks * 16;
         int bitmapSize = numChunks * 16 * height;
-        uint8_t* pDestPixels = m_pImageWidget->AllocBitmap(bitmapSize);
+        uint8_t* pDestPixels = m_pImageWidget->AllocPixelData(bitmapSize);
         for (int y = 0; y < height; ++y)
         {
             const uint8_t* pChunk = pMemOrig->GetData() + y * data.bytesPerLine;
@@ -992,7 +994,7 @@ void GraphicsInspectorWidget::UpdateImage()
         int numChunks = Stride / 2;
         width = numChunks * 16;
         int bitmapSize = numChunks * 16 * height;
-        uint8_t* pDestPixels = m_pImageWidget->AllocBitmap(bitmapSize);
+        uint8_t* pDestPixels = m_pImageWidget->AllocPixelData(bitmapSize);
         for (int y = 0; y < height; ++y)
         {
             const uint8_t* pChunk = pMemOrig->GetData() + y * data.bytesPerLine;
@@ -1015,14 +1017,39 @@ void GraphicsInspectorWidget::UpdateImage()
     else if (mode == kFormat1BPP)
     {
         int bitmapSize = data.bytesPerLine * height;
-        uint8_t* pDestPixels = m_pImageWidget->AllocBitmap(bitmapSize);
+        uint8_t* pDestPixels = m_pImageWidget->AllocPixelData(bitmapSize);
         assert(pMemOrig->GetSize() >= bitmapSize);
 
         // This is a simple memcpy
         memcpy(pDestPixels, pMemOrig->GetData(), bitmapSize);
         width = data.pixels;
     }
-    m_pImageWidget->setPixmap(width, height);
+    else if (mode == kFormatTruColor)
+    {
+        int numWords = Stride / 2;
+        width = numWords;
+
+        int bitmapSize = width * 4 * height;
+        uint8_t* pDestPixels = m_pImageWidget->AllocPixelData(bitmapSize);
+        for (int y = 0; y < height; ++y)
+        {
+            const uint8_t* pChunk = pMemOrig->GetData() + y * Stride;
+            for (int x = 0; x < width; ++x)
+            {
+                uint16_t pixVal = (pChunk[0] << 8) | pChunk[1];
+                uint8_t r = ((pixVal >> 11) & 0x1f) << 3;
+                uint8_t g = ((pixVal >>  5) & 0x3f) << 2;
+                uint8_t b = ((pixVal >>  0) & 0x1f) << 3;
+                *pDestPixels++ = b;
+                *pDestPixels++ = g;
+                *pDestPixels++ = r;
+                *pDestPixels++ = 0xff;
+                pChunk += 2;
+            }
+        }
+        imgType = NonAntiAliasImage::kTruColor;
+    }
+    m_pImageWidget->SetPixmap(imgType, width, height);
 
     // Update annotations
     UpdateAnnotations();
@@ -1048,6 +1075,9 @@ void GraphicsInspectorWidget::UpdateUIElements()
         break;
     case kFormatRegisters:
         allowAdjustWidth = false;  allowAdjustPalette = true;
+        break;
+    case kFormatTruColor:
+        allowAdjustWidth = true;  allowAdjustPalette = false;
         break;
     default:
         assert(0);
@@ -1177,6 +1207,9 @@ void GraphicsInspectorWidget::GetEffectiveData(GraphicsInspectorWidget::Effectiv
     {
     case kFormat1BPP:
         data.pixels = data.bytesPerLine;
+        break;
+    case kFormatTruColor:
+        data.pixels = data.bytesPerLine / 2;
         break;
     default:
         data.pixels = data.bytesPerLine / BytesPerChunk(data.mode) * 16;

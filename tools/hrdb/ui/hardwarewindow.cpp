@@ -668,7 +668,7 @@ bool HardwareBitmapBlitterHalftone::Update(const TargetModel *pTarget)
     if (!mem.HasCpuRange(address, 16 * 2U))
         return false;
 
-    uint8_t* pData = m_pImage->AllocBitmap(16 * 16);
+    uint8_t* pData = m_pImage->AllocPixelData(16 * 16);
     for (uint y = 0; y < 16; ++y)
     {
         uint32_t data = 0;
@@ -683,7 +683,7 @@ bool HardwareBitmapBlitterHalftone::Update(const TargetModel *pTarget)
     m_pImage->m_colours.resize(2U);
     m_pImage->m_colours[0] = 0xffffffff;
     m_pImage->m_colours[1] = 0xff000000;
-    m_pImage->setPixmap(16, 16);
+    m_pImage->SetPixmap(NonAntiAliasImage::kIndexed, 16, 16);
     return true;
 }
 
