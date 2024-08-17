@@ -172,9 +172,9 @@ bool MemoryWidget::SetExpression(std::string expression)
 {
     // This does a "once only"
     uint32_t addr;
-	bool res = ParseExpression(m_address.space == MEM_CPU, expression, addr);
-	if (!res)
-		return false;
+    bool res = ParseExpression(m_address.space == MEM_CPU, expression, addr);
+    if (!res)
+        return false;
     SetAddressInternal(maddr(m_address.space, addr));
     RequestMemory(kNoMoveCursor);
     m_addressExpression = expression;
@@ -192,8 +192,8 @@ void MemoryWidget::SetAddressInternal(MemAddr addr)
 
 bool MemoryWidget::CanSetExpression(std::string expression) const
 {
-	uint32_t addr;
-	return ParseExpression(m_address.space == MEM_CPU, expression.c_str(), addr);
+    uint32_t addr;
+    return ParseExpression(m_address.space == MEM_CPU, expression.c_str(), addr);
 }
 
 
@@ -1051,19 +1051,19 @@ void MemoryWidget::RecalcLockedExpression()
         {
             SetAddressInternal(maddr(m_address.space, addr));
         }
-	}
+    }
 }
 
 bool MemoryWidget::ParseExpression(bool isCpu, const std::string& expr, uint32_t& addr) const
 {
-	if (isCpu)
-		return StringParsers::ParseCpuExpression(expr.c_str(), addr,
-											m_pTargetModel->GetSymbolTable(),
-											m_pTargetModel->GetRegs());
-	else
-		return StringParsers::ParseDspExpression(expr.c_str(), addr,
-											m_pTargetModel->GetSymbolTable(),
-											m_pTargetModel->GetDspRegs());
+    if (isCpu)
+        return StringParsers::ParseCpuExpression(expr.c_str(), addr,
+                                            m_pTargetModel->GetSymbolTable(),
+                                            m_pTargetModel->GetRegs());
+    else
+        return StringParsers::ParseDspExpression(expr.c_str(), addr,
+                                            m_pTargetModel->GetSymbolTable(),
+                                            m_pTargetModel->GetDspRegs());
 }
 
 void MemoryWidget::RecalcRowCount()
