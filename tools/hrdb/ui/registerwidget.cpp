@@ -245,6 +245,7 @@ void RegisterWidget::paintEvent(QPaintEvent * ev)
         painter.drawLine(0, y, this->rect().width(), y);
     }
 
+    painter.setPen(QPen(pal.dark(), 1));
     for (int i = 0; i < m_tokens.size(); ++i)
     {
         Token& tok = m_tokens[i];
@@ -255,14 +256,16 @@ void RegisterWidget::paintEvent(QPaintEvent * ev)
         int h = m_lineHeight;
         tok.rect.setRect(x, y, w, h);
 
+        QColor col = pal.dark().color();
+
         if (tok.colour == TokenColour::kNormal)
-            painter.setPen(pal.text().color());
+            col = pal.text().color();
         else if (tok.colour == TokenColour::kChanged)
-            painter.setPen(Qt::red);
+            col = Qt::red;
         else if (tok.colour == TokenColour::kInactive)
-            painter.setPen(pal.light().color());
+            col = pal.light().color();
         else if (tok.colour == TokenColour::kCode)
-            painter.setPen(Qt::darkGreen);
+            col = Qt::darkGreen;
 
         if (i == m_tokenUnderMouseIndex && tok.type != TokenType::kNone)
         {
@@ -270,6 +273,17 @@ void RegisterWidget::paintEvent(QPaintEvent * ev)
             painter.setPen(Qt::NoPen);
             painter.drawRect(tok.rect);
             painter.setPen(pal.highlightedText().color());
+        }
+        else if (tok.invert)
+        {
+            painter.setBrush(col);
+            painter.setPen(Qt::NoPen);
+            painter.drawRect(tok.rect);
+            painter.setPen(pal.highlightedText().color());
+        }
+        else
+        {
+            painter.setPen(col);
         }
 
         painter.drawText(x, m_yAscent + y, tok.text);
@@ -763,7 +777,7 @@ QString RegisterWidget::FindSymbol(uint32_t addr)
     return DescribeSymbol(m_pTargetModel->GetSymbolTable(), addr & 0xffffff);
 }
 
-int RegisterWidget::AddToken(int x, int y, QString text, TokenType type, uint32_t subIndex, TokenColour colour)
+int RegisterWidget::AddToken(int x, int y, QString text, TokenType type, uint32_t subIndex, TokenColour colour, bool invert)
 {
     Token tok;
     tok.x = x;
@@ -772,6 +786,7 @@ int RegisterWidget::AddToken(int x, int y, QString text, TokenType type, uint32_
     tok.type = type;
     tok.subIndex = subIndex;
     tok.colour = colour;
+    tok.invert = invert;
     m_tokens.push_back(tok);
     // Return X position
     return tok.x + text.size();
@@ -859,13 +874,8 @@ int RegisterWidget::AddSRBit(int x, int y, uint32_t bit, const char* pName)
     uint32_t valOld = (prevRegs.m_value[Registers::SR] >> bit) & 1;
 
     TokenColour highlight = (valNew != valOld) ? kChanged : kNormal;
-    QString text;
-    if (valNew)
-        text = pName;
-    else
-        text = QString("-").repeated(strlen(pName));
-    //QString text = QString::asprintf("%s=%x", pName, valNew);
-    return AddToken(x, y, text, TokenType::kStatusRegisterBit, bit, highlight);
+    QString text = pName;
+    return AddToken(x, y, text, TokenType::kStatusRegisterBit, bit, highlight, valNew != 0);
 }
 
 int RegisterWidget::AddDspSRBit(int x, int y, uint32_t bit, const char* pName)
@@ -875,12 +885,8 @@ int RegisterWidget::AddDspSRBit(int x, int y, uint32_t bit, const char* pName)
     uint32_t valOld = (prevRegs.Get(DspRegisters::SR) >> bit) & 1;
 
     TokenColour highlight = (valNew != valOld) ? kChanged : kNormal;
-    QString text;
-    if (valNew)
-        text = pName;
-    else
-        text = QString("-").repeated(strlen(pName));
-    return AddToken(x, y, QString(text), TokenType::kDspStatusRegisterBit, bit, highlight);
+    QString text = pName;
+    return AddToken(x, y, QString(text), TokenType::kDspStatusRegisterBit, bit, highlight, valNew != 0);
 }
 
 int RegisterWidget::AddDspOMRBit(int x, int y, uint32_t bit, const char* pName)
@@ -890,12 +896,8 @@ int RegisterWidget::AddDspOMRBit(int x, int y, uint32_t bit, const char* pName)
     uint32_t valOld = (prevRegs.Get(DspRegisters::OMR) >> bit) & 1;
 
     TokenColour highlight = (valNew != valOld) ? kChanged : kNormal;
-    QString text;
-    if (valNew)
-        text = pName;
-    else
-        text = QString("-").repeated(strlen(pName));
-    return AddToken(x, y, QString(text), TokenType::kDspOMRBit, bit, highlight);
+    QString text = pName;
+    return AddToken(x, y, QString(text), TokenType::kDspOMRBit, bit, highlight, valNew != 0);
 }
 
 int RegisterWidget::AddCACRBit(int x, int y, uint32_t bit, const char* pName)

@@ -73,13 +73,14 @@ private:
         TokenType type;
         uint32_t subIndex;      // subIndex e.g "4" for D4, 0x12345 for symbol address, bitnumber for SR field
         TokenColour colour;     // how to draw it
-
+        bool invert;            // swap back + front
         QRectF rect;            // bounding rectangle, updated when rendered
     };
 
     QString FindSymbol(uint32_t addr);
 
-    int AddToken(int x, int y, QString text, TokenType type, uint32_t subIndex = 0, TokenColour colour = TokenColour::kNormal);
+    int AddToken(int x, int y, QString text, TokenType type, uint32_t subIndex = 0, TokenColour colour = TokenColour::kNormal,
+                 bool invert = false);
     int AddReg16(int x, int y, uint32_t regIndex);
     int AddReg32(int x, int y, uint32_t regIndex);
     int AddDspReg24(int x, int y, uint32_t regIndex);
