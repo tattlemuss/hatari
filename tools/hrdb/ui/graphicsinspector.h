@@ -199,7 +199,7 @@ private:
     Request                         m_requestBitmap;
 
     // Mouseover data
-    NonAntiAliasImage::MouseInfo    m_mouseInfo;            // data from MouseOver in bitmap
+    MemoryBitmap::PixelInfo         m_mouseInfo;            // data from MouseOver in bitmap
     uint32_t                        m_addressUnderMouse;    // ~0U for "invalid"
 
     // Options

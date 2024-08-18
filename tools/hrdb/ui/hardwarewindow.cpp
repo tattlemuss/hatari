@@ -660,6 +660,7 @@ HardwareBitmap::~HardwareBitmap()
 }
 
 //-----------------------------------------------------------------------------
+// TODO: this code isn't used now that we switched to a table view!
 bool HardwareBitmapBlitterHalftone::Update(const TargetModel *pTarget)
 {
     const Memory& mem = *pTarget->GetMemory(MemorySlot::kHardwareWindowBlitter);
@@ -668,22 +669,20 @@ bool HardwareBitmapBlitterHalftone::Update(const TargetModel *pTarget)
     if (!mem.HasCpuRange(address, 16 * 2U))
         return false;
 
-    uint8_t* pData = m_pImage->AllocPixelData(16 * 16);
-    for (uint y = 0; y < 16; ++y)
+    // Create a temporary image
+    Memory tmpMem(MEM_CPU, address, 16 * 2U);
+    for (uint32_t i = 0; i < 32; ++i)
     {
-        uint32_t data = 0;
-        mem.ReadCpuMulti(address + 2U * y, 2, data);
-        for (int pix = 15; pix >= 0; --pix)
-        {
-            uint8_t val  = (data & 0x8000) ? 1 : 0;
-            *pData++ = val;
-            data <<= 1U;
-        }
+        uint8_t val;
+        mem.ReadCpuByte(address + i, val);
+        tmpMem.Set(i,val);
     }
-    m_pImage->m_colours.resize(2U);
-    m_pImage->m_colours[0] = 0xffffffff;
-    m_pImage->m_colours[1] = 0xff000000;
-    m_pImage->SetPixmap(NonAntiAliasImage::kIndexed, 16, 16);
+
+    MemoryBitmap::Palette pal;
+    pal.resize(2U);
+    pal[0] = 0xffffffff;
+    pal[1] = 0xff000000;
+    m_pImage->m_bitmap.Set1Plane(pal, 2U, 16, &tmpMem);
     return true;
 }
 

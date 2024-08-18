@@ -397,7 +397,7 @@ void GraphicsInspectorWidget::connectChanged()
 {
     if (!m_pTargetModel->IsConnected())
     {
-        m_pImageWidget->SetPixmap(NonAntiAliasImage::kIndexed, 0, 0);
+        m_pImageWidget->m_bitmap.Clear();
     }
 }
 
@@ -551,9 +551,10 @@ void GraphicsInspectorWidget::paletteChangedSlot(int index)
     m_paletteMode = static_cast<Palette>(rawIdx);
 
     // Ensure pixmap is updated
-    m_pImageWidget->RefreshPixmap();
+    //m_pImageWidget->m_bitmap.RefreshPixmap();
 
     UpdateUIElements();
+    updateInfoLine();
 
     // Only certain modes require palette memory re-request
     if (m_paletteMode == kRegisters || m_paletteMode == kUserMemory)
@@ -651,12 +652,12 @@ void GraphicsInspectorWidget::saveImageClicked()
           filter);
 
     if (filename.size() != 0)
-        m_pImageWidget->GetImage().save(filename);
+        m_pImageWidget->m_bitmap.GetImage().save(filename);
 }
 
 void GraphicsInspectorWidget::updateInfoLine()
 {
-    const NonAntiAliasImage::MouseInfo& info = m_pImageWidget->GetMouseInfo();
+    const MemoryBitmap::PixelInfo& info = m_pImageWidget->GetMouseInfo();
 
     // Take a copy for right-click events
     m_mouseInfo = info;
@@ -806,15 +807,11 @@ void GraphicsInspectorWidget::UpdateFormatFromUI()
 void GraphicsInspectorWidget::UpdateImage()
 {
     // Colours are ARGB
-    m_pImageWidget->m_colours.clear();
-    m_pImageWidget->m_colours.resize(256);
+    MemoryBitmap::Palette palette;
+    palette.clear();
+    palette.resize(256);
 
-    if (GetEffectiveMode() == kFormat1BPP)
-    {
-        for (uint i = 0; i < 256; ++i)
-            m_pImageWidget->m_colours[i] = (0xff000000 + i * 0x010101);
-    }
-    else switch (m_paletteMode)
+    switch (m_paletteMode)
     {
         case kRegisters:
         case kUserMemory:
@@ -831,31 +828,31 @@ void GraphicsInspectorWidget::UpdateImage()
 
                 uint32_t colour = 0xff000000U;
                 HardwareST::GetColour(regVal, m_pTargetModel->GetMachineType(), colour);
-                m_pImageWidget->m_colours[i] = colour;
+                palette[i] = colour;
             }
             break;
         }
         case kGreyscale:
             for (uint i = 0; i < 16; ++i)
             {
-                m_pImageWidget->m_colours[i] = (0xff000000 + i * 0x101010);
+                palette[i] = (0xff000000 + i * 0x101010);
             }
             break;
         case kContrast1:
             // This palette is derived from one of the bitplane palettes in "44"
-            CreateBitplanePalette(m_pImageWidget->m_colours, 0x500000*2, 0x224400*2, 0x003322*2, 0x000055*2);
+            CreateBitplanePalette(palette, 0x500000*2, 0x224400*2, 0x003322*2, 0x000055*2);
             break;
         case kBitplane0:
-            CreateBitplanePalette(m_pImageWidget->m_colours, 0xbbbbbb, 0x220000, 0x2200, 0x22);
+            CreateBitplanePalette(palette, 0xbbbbbb, 0x220000, 0x2200, 0x22);
             break;
         case kBitplane1:
-            CreateBitplanePalette(m_pImageWidget->m_colours, 0x220000, 0xbbbbbb, 0x2200, 0x22);
+            CreateBitplanePalette(palette, 0x220000, 0xbbbbbb, 0x2200, 0x22);
             break;
         case kBitplane2:
-            CreateBitplanePalette(m_pImageWidget->m_colours, 0x220000, 0x2200, 0xbbbbbb, 0x22);
+            CreateBitplanePalette(palette, 0x220000, 0x2200, 0xbbbbbb, 0x22);
             break;
         case kBitplane3:
-            CreateBitplanePalette(m_pImageWidget->m_colours, 0x220000, 0x2200, 0x22, 0xbbbbbb);
+            CreateBitplanePalette(palette, 0x220000, 0x2200, 0x22, 0xbbbbbb);
             break;
     }
 
@@ -868,8 +865,8 @@ void GraphicsInspectorWidget::UpdateImage()
             if (pMem && pMem->ReadCpuMulti(Regs::VID_PAL_0, 2, colour0))
             {
                 int ind = colour0 & 1;
-                m_pImageWidget->m_colours[ind    ] = 0xff000000 | 0x000000;
-                m_pImageWidget->m_colours[ind ^ 1] = 0xff000000 | 0xffffff;
+                palette[ind    ] = 0xff000000 | 0x000000;
+                palette[ind ^ 1] = 0xff000000 | 0xffffff;
             }
         }
     }
@@ -882,9 +879,6 @@ void GraphicsInspectorWidget::UpdateImage()
     GetEffectiveData(data);
 
     Mode mode = data.mode;
-    int Stride = data.bytesPerLine;
-    int height = data.height;
-    int width = 0;
 
     // Uncompress
     int required = data.requiredSize;
@@ -893,163 +887,18 @@ void GraphicsInspectorWidget::UpdateImage()
     if ((int)pMemOrig->GetSize() < required)
         return;
 
-    NonAntiAliasImage::Mode imgType = NonAntiAliasImage::kIndexed;
     if (mode == kFormat4Bitplane)
-    {
-        int numChunks = Stride / 8;
-        width = numChunks * 16;
-        int bitmapSize = numChunks * 16 * height;
-        uint8_t* pDestPixels = m_pImageWidget->AllocPixelData(bitmapSize);
-        for (int y = 0; y < height; ++y)
-        {
-            const uint8_t* pChunk = pMemOrig->GetData() + y * data.bytesPerLine;
-            for (int x = 0; x < numChunks; ++x)
-            {
-                int32_t pSrc[4];    // top 16 bits never used
-                pSrc[3] = (pChunk[0] << 8) | pChunk[1];
-                pSrc[2] = (pChunk[2] << 8) | pChunk[3];
-                pSrc[1] = (pChunk[4] << 8) | pChunk[5];
-                pSrc[0] = (pChunk[6] << 8) | pChunk[7];
-                for (int pix = 15; pix >= 0; --pix)
-                {
-                    uint8_t val;
-                    val  = (pSrc[0] & 1); val <<= 1;
-                    val |= (pSrc[1] & 1); val <<= 1;
-                    val |= (pSrc[2] & 1); val <<= 1;
-                    val |= (pSrc[3] & 1);
-
-                    pDestPixels[pix] = val;
-                    pSrc[0] >>= 1;
-                    pSrc[1] >>= 1;
-                    pSrc[2] >>= 1;
-                    pSrc[3] >>= 1;
-                }
-                pChunk += 8;
-                pDestPixels += 16;
-            }
-        }
-    }
+        m_pImageWidget->m_bitmap.Set4Plane(palette, data.bytesPerLine, data.height, pMemOrig);
     else if (mode == kFormat3Bitplane)
-    {
-        int numChunks = Stride / 6;
-        width = numChunks * 16;
-        int bitmapSize = numChunks * 16 * height;
-        uint8_t* pDestPixels = m_pImageWidget->AllocPixelData(bitmapSize);
-        for (int y = 0; y < height; ++y)
-        {
-            const uint8_t* pChunk = pMemOrig->GetData() + y * data.bytesPerLine;
-            for (int x = 0; x < numChunks; ++x)
-            {
-                int32_t pSrc[3];    // top 16 bits never used
-                pSrc[2] = (pChunk[0] << 8) | pChunk[1];
-                pSrc[1] = (pChunk[2] << 8) | pChunk[3];
-                pSrc[0] = (pChunk[4] << 8) | pChunk[5];
-                for (int pix = 15; pix >= 0; --pix)
-                {
-                    uint8_t val;
-                    val  = (pSrc[0] & 1); val <<= 1;
-                    val |= (pSrc[1] & 1); val <<= 1;
-                    val |= (pSrc[2] & 1);
-
-                    pDestPixels[pix] = val;
-                    pSrc[0] >>= 1;
-                    pSrc[1] >>= 1;
-                    pSrc[2] >>= 1;
-                }
-                pChunk += 6;
-                pDestPixels += 16;
-            }
-        }
-    }
+        m_pImageWidget->m_bitmap.Set3Plane(palette, data.bytesPerLine, data.height, pMemOrig);
     else if (mode == kFormat2Bitplane)
-    {
-        int numChunks = Stride / 4;
-        width = numChunks * 16;
-        int bitmapSize = numChunks * 16 * height;
-        uint8_t* pDestPixels = m_pImageWidget->AllocPixelData(bitmapSize);
-        for (int y = 0; y < height; ++y)
-        {
-            const uint8_t* pChunk = pMemOrig->GetData() + y * data.bytesPerLine;
-            for (int x = 0; x < numChunks; ++x)
-            {
-                int32_t pSrc[2];
-                pSrc[1] = (pChunk[0] << 8) | pChunk[1];
-                pSrc[0] = (pChunk[2] << 8) | pChunk[3];
-                for (int pix = 15; pix >= 0; --pix)
-                {
-                    uint8_t val;
-                    val  = (pSrc[0] & 1); val <<= 1;
-                    val |= (pSrc[1] & 1);
-                    pDestPixels[pix] = val;
-                    pSrc[0] >>= 1;
-                    pSrc[1] >>= 1;
-                }
-                pChunk += 4;
-                pDestPixels += 16;
-            }
-        }
-    }
+        m_pImageWidget->m_bitmap.Set2Plane(palette, data.bytesPerLine, data.height, pMemOrig);
     else if (mode == kFormat1Bitplane)
-    {
-        int numChunks = Stride / 2;
-        width = numChunks * 16;
-        int bitmapSize = numChunks * 16 * height;
-        uint8_t* pDestPixels = m_pImageWidget->AllocPixelData(bitmapSize);
-        for (int y = 0; y < height; ++y)
-        {
-            const uint8_t* pChunk = pMemOrig->GetData() + y * data.bytesPerLine;
-            for (int x = 0; x < numChunks; ++x)
-            {
-                int32_t pSrc[1];
-                pSrc[0] = (pChunk[0] << 8) | pChunk[1];
-                for (int pix = 15; pix >= 0; --pix)
-                {
-                    uint8_t val;
-                    val  = (pSrc[0] & 1);
-                    pDestPixels[pix] = val;
-                    pSrc[0] >>= 1;
-                }
-                pChunk += 2;
-                pDestPixels += 16;
-            }
-        }
-    }
+        m_pImageWidget->m_bitmap.Set1Plane(palette, data.bytesPerLine, data.height, pMemOrig);
     else if (mode == kFormat1BPP)
-    {
-        int bitmapSize = data.bytesPerLine * height;
-        uint8_t* pDestPixels = m_pImageWidget->AllocPixelData(bitmapSize);
-        assert(pMemOrig->GetSize() >= bitmapSize);
-
-        // This is a simple memcpy
-        memcpy(pDestPixels, pMemOrig->GetData(), bitmapSize);
-        width = data.pixels;
-    }
+        m_pImageWidget->m_bitmap.Set1BPP(data.bytesPerLine, data.height, pMemOrig);
     else if (mode == kFormatTruColor)
-    {
-        int numWords = Stride / 2;
-        width = numWords;
-
-        int bitmapSize = width * 4 * height;
-        uint8_t* pDestPixels = m_pImageWidget->AllocPixelData(bitmapSize);
-        for (int y = 0; y < height; ++y)
-        {
-            const uint8_t* pChunk = pMemOrig->GetData() + y * Stride;
-            for (int x = 0; x < width; ++x)
-            {
-                uint16_t pixVal = (pChunk[0] << 8) | pChunk[1];
-                uint8_t r = ((pixVal >> 11) & 0x1f) << 3;
-                uint8_t g = ((pixVal >>  5) & 0x3f) << 2;
-                uint8_t b = ((pixVal >>  0) & 0x1f) << 3;
-                *pDestPixels++ = b;
-                *pDestPixels++ = g;
-                *pDestPixels++ = r;
-                *pDestPixels++ = 0xff;
-                pChunk += 2;
-            }
-        }
-        imgType = NonAntiAliasImage::kTruColor;
-    }
-    m_pImageWidget->SetPixmap(imgType, width, height);
+        m_pImageWidget->m_bitmap.SetTruColor(data.bytesPerLine, data.height, pMemOrig);
 
     // Update annotations
     UpdateAnnotations();

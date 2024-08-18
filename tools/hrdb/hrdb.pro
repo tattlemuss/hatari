@@ -53,6 +53,7 @@ SOURCES += \
     ui/graphicsinspector.cpp \
     ui/hardwarewindow.cpp \
     ui/mainwindow.cpp \
+    ui/memorybitmap.cpp \
     ui/memoryviewwidget.cpp \
     ui/nonantialiasimage.cpp \
     ui/prefsdialog.cpp \
@@ -106,6 +107,7 @@ HEADERS += \
     ui/graphicsinspector.h \
     ui/hardwarewindow.h \
     ui/mainwindow.h \
+    ui/memorybitmap.h \
     ui/memoryviewwidget.h \
     ui/nonantialiasimage.h \
     ui/prefsdialog.h \

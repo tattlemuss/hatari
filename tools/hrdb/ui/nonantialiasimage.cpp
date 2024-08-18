@@ -10,16 +10,11 @@
 NonAntiAliasImage::NonAntiAliasImage(QWidget *parent, Session* pSession)
     : QWidget(parent),
       m_pSession(pSession),
-      m_pPixelData(nullptr),
-      m_bitmapSize(0),
       m_bRunningMask(false),
       m_darken(false),
       m_enableGrid(false),
       m_enableZoom(false)
 {
-    m_mode = kIndexed;
-    m_width = 0;
-    m_height = 0;
     m_renderRect = rect();
     setMouseTracking(true);
     setFocusPolicy(Qt::FocusPolicy::StrongFocus);
@@ -31,48 +26,8 @@ NonAntiAliasImage::NonAntiAliasImage(QWidget *parent, Session* pSession)
     connect(m_pSession,         &Session::settingsChanged, this, &NonAntiAliasImage::settingsChanged);
 }
 
-void NonAntiAliasImage::SetPixmap(Mode mode, int width, int height)
-{
-    m_mode = mode;
-    m_width = width;
-    m_height = height;
-    RefreshPixmap();
-}
-
-void NonAntiAliasImage::RefreshPixmap()
-{
-    // Regenerate a new shape
-    if (m_mode == kIndexed)
-    {
-        m_img = QImage(m_pPixelData, m_width, m_height, m_width, QImage::Format_Indexed8);
-        m_img.setColorTable(m_colours);
-    }
-    else
-    {
-        m_img = QImage(m_pPixelData, m_width, m_height, QImage::Format_RGB32);
-    }
-    QPixmap pm = QPixmap::fromImage(m_img);
-    m_pixmap = pm;
-    UpdateMouseInfo();
-    emit MouseInfoChanged();
-    update();
-
-}
-
 NonAntiAliasImage::~NonAntiAliasImage()
 {
-    delete [] m_pPixelData;
-}
-
-uint8_t* NonAntiAliasImage::AllocPixelData(int size)
-{
-    if (size == m_bitmapSize)
-        return m_pPixelData;
-
-    delete [] m_pPixelData;
-    m_pPixelData = new uint8_t[size];
-    m_bitmapSize = size;
-    return m_pPixelData;
 }
 
 void NonAntiAliasImage::SetRunning(bool runFlag)
@@ -115,6 +70,7 @@ void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
 
     QPalette pal = this->palette();
     painter.setFont(m_pSession->GetSettings().m_font);
+    const QPixmap& m_pixmap(m_bitmap.pixmap());
     if (m_pSession->m_pTargetModel->IsConnected())
     {
         if (m_pixmap.width() != 0 && m_pixmap.height() != 0)
@@ -226,6 +182,7 @@ void NonAntiAliasImage::settingsChanged()
 void NonAntiAliasImage::UpdateMouseInfo()
 {
     m_pixelInfo.isValid = false;
+    const QPixmap& m_pixmap(m_bitmap.pixmap());
     if (m_pixmap.width() == 0)
         return;
 
@@ -236,37 +193,13 @@ void NonAntiAliasImage::UpdateMouseInfo()
         QPoint bmPoint = BitmapPointFromScreenPoint(mpos, m_renderRect);
         int x = bmPoint.x();
         int y = bmPoint.y();
-        m_pixelInfo.x = x;
-        m_pixelInfo.y = y;
-        m_pixelInfo.pixelValue.clear();
-
-        if (x >= 0 &&
-            x < m_pixmap.width() &&
-            y >= 0 &&
-            y < m_pixmap.height() &&
-            m_pPixelData)
-        {
-            if (m_mode == kIndexed)
-            {
-                uint8_t val = m_pPixelData[y * m_pixmap.width() + x];
-                m_pixelInfo.pixelValue = QString::asprintf("%d", val);
-            }
-            else if (m_mode == kTruColor)
-            {
-                const uint8_t* data = &m_pPixelData[(y * m_pixmap.width() + x) * 4];
-                // Data is BB GG RR in memory
-                m_pixelInfo.pixelValue = QString::asprintf("[R:%d,G:%d,B:%d]",
-                                                           data[2] >> 3,
-                                                           data[1] >> 2,
-                                                           data[0] >> 3);
-            }
-        }
-        m_pixelInfo.isValid = true;
+        m_bitmap.GetPixelInfo(x, y, m_pixelInfo);
     }
 }
 
 void NonAntiAliasImage::DrawZoom(QPainter& painter) const
 {
+    const QPixmap& m_pixmap(m_bitmap.pixmap());
     const int pixelCountX = kZoomPixelBorder * 2 + 1;  // overall rect grab size
     const int pixelCountY = pixelCountX;
 
@@ -309,6 +242,7 @@ void NonAntiAliasImage::DrawZoom(QPainter& painter) const
 
 QPoint NonAntiAliasImage::ScreenPointFromBitmapPoint(const QPoint &bitmapPoint, const QRect &rect) const
 {
+    const QPixmap& m_pixmap(m_bitmap.pixmap());
     // Work out position as a proportion of the render rect
     float x = rect.x() + (rect.width() * bitmapPoint.x()) / m_pixmap.width();
     float y = rect.y() + (rect.height() * bitmapPoint.y()) / m_pixmap.height();
@@ -317,6 +251,7 @@ QPoint NonAntiAliasImage::ScreenPointFromBitmapPoint(const QPoint &bitmapPoint, 
 
 QPoint NonAntiAliasImage::BitmapPointFromScreenPoint(const QPoint &bitmapPoint, const QRect &rect) const
 {
+    const QPixmap& m_pixmap(m_bitmap.pixmap());
     const QRect& r = rect;
     double x_frac = double(bitmapPoint.x() - r.x()) / r.width();
     double y_frac = double(bitmapPoint.y() - r.y()) / r.height();
