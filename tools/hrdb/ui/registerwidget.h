@@ -84,9 +84,8 @@ private:
     int AddReg16(int x, int y, uint32_t regIndex);
     int AddReg32(int x, int y, uint32_t regIndex);
     int AddDspReg24(int x, int y, uint32_t regIndex);
-    int AddDspReg8(int x, int y, uint32_t regIndex);
     int AddDspReg16(int x, int y, uint32_t regIndex);
-    int AddDspReg56(int x, int y, uint32_t regIndex);
+    int AddDspReg8(int x, int y, uint32_t regIndex);
 
     int AddSRBit(int x, int y, uint32_t bit, const char *pName);
     int AddDspSRBit(int x, int y, uint32_t bit, const char *pName);

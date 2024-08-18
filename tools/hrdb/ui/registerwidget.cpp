@@ -825,17 +825,6 @@ int RegisterWidget::AddDspReg24(int x, int y, uint32_t regIndex)
     return AddToken(x + label.size() + 1, y, value, TokenType::kDspRegister, regIndex, highlight);
 }
 
-int RegisterWidget::AddDspReg8(int x, int y, uint32_t regIndex)
-{
-    const DspRegisters& prevRegs(m_prevDspRegs); const DspRegisters& regs(m_currDspRegs);
-    TokenColour highlight = (regs.Get(regIndex) != prevRegs.Get(regIndex)) ? kChanged : kNormal;
-
-    QString label = QString::asprintf("%s:",  DspRegisters::s_names[regIndex]);
-    QString value = QString::asprintf("%02lx", regs.Get(regIndex));
-    AddToken(x, y, label, TokenType::kDspRegister, regIndex, TokenColour::kNormal);
-    return AddToken(x + label.size() + 1, y, value, TokenType::kDspRegister, regIndex, highlight);
-}
-
 int RegisterWidget::AddDspReg16(int x, int y, uint32_t regIndex)
 {
     const DspRegisters& prevRegs(m_prevDspRegs); const DspRegisters& regs(m_currDspRegs);
@@ -847,24 +836,15 @@ int RegisterWidget::AddDspReg16(int x, int y, uint32_t regIndex)
     return AddToken(x + label.size() + 1, y, value, TokenType::kDspRegister, regIndex, highlight);
 }
 
-int RegisterWidget::AddDspReg56(int x, int y, uint32_t regIndex)
+int RegisterWidget::AddDspReg8(int x, int y, uint32_t regIndex)
 {
     const DspRegisters& prevRegs(m_prevDspRegs); const DspRegisters& regs(m_currDspRegs);
+    TokenColour highlight = (regs.Get(regIndex) != prevRegs.Get(regIndex)) ? kChanged : kNormal;
+
     QString label = QString::asprintf("%s:",  DspRegisters::s_names[regIndex]);
-    x = AddToken(x, y, label, TokenType::kDspRegister, regIndex, TokenColour::kNormal);
-
-    QString value2 = QString::asprintf("%02lx", regs.Get(regIndex));
-    QString value1 = QString::asprintf("%06lx", regs.Get(regIndex + 1));
-    QString value0 = QString::asprintf("%06lx", regs.Get(regIndex + 2));
-
-    TokenColour highlight2 = (regs.Get(regIndex + 0) != prevRegs.Get(regIndex + 0)) ? kChanged : kNormal;
-    TokenColour highlight1 = (regs.Get(regIndex + 1) != prevRegs.Get(regIndex + 1)) ? kChanged : kNormal;
-    TokenColour highlight0 = (regs.Get(regIndex + 2) != prevRegs.Get(regIndex + 2)) ? kChanged : kNormal;
-
-    x = AddToken(x + 1, y, value2, TokenType::kDspRegister, regIndex + 0, highlight2);
-    x = AddToken(x + 1, y, value1, TokenType::kDspRegister, regIndex + 1, highlight1);
-    x = AddToken(x + 1, y, value0, TokenType::kDspRegister, regIndex + 2, highlight0);
-    return x;
+    QString value = QString::asprintf("%02lx", regs.Get(regIndex));
+    AddToken(x, y, label, TokenType::kDspRegister, regIndex, TokenColour::kNormal);
+    return AddToken(x + label.size() + 1, y, value, TokenType::kDspRegister, regIndex, highlight);
 }
 
 int RegisterWidget::AddSRBit(int x, int y, uint32_t bit, const char* pName)
