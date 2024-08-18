@@ -144,9 +144,11 @@ public:
         return m_value[reg];
     }
 
-    static const char* GetSRBitName(uint32_t bit);
-
     void Set(uint32_t reg, uint64_t val);
+
+    // Names and text
+    static const char* GetSRBitName(uint32_t bit);
+    static const char* GetOMRBitDesc(uint32_t bit);
 
     enum
     {
@@ -197,8 +199,19 @@ public:
         kC = 0
     };
 
+    enum OMRBits
+    {
+        kMA = 0,        // Operating mode A
+        kMB = 1,        // Operating mode B
+        kDE = 2,        // Data ROM Enable
+        kYD = 3,        // Internal Y Memory Disable
+        kMC = 4,        // Operating mode C
+        kSD = 6         // Stop Delay
+    };
+
     // Null-terminated 1:1 array of register names
     static const char* s_names[];
+
 private:
     uint64_t	m_value[REG_COUNT];
 };

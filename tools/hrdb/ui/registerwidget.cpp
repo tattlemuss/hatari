@@ -129,6 +129,14 @@ static QString CreateDspSRTooltip(uint32_t srRegValue, uint32_t registerBit)
                              valSet ? "TRUE" : "False");
 }
 
+static QString CreateDspOMRTooltip(uint32_t srRegValue, uint32_t registerBit)
+{
+    uint32_t valSet = (srRegValue >> registerBit) & 1;
+    return QString::asprintf("%s = %s", DspRegisters::GetOMRBitDesc(registerBit),
+                             valSet ? "TRUE" : "False");
+}
+
+
 static QString CreateCACRTooltip(uint32_t cacrRegValue, uint32_t registerBit)
 {
     uint32_t valSet = (cacrRegValue >> registerBit) & 1;
@@ -476,22 +484,22 @@ void RegisterWidget::PopulateRegisters()
 
     if (m_showCpu)
     {
-        AddReg32(2, row, Registers::PC, m_prevRegs, m_currRegs);
+        AddReg32(2, row, Registers::PC);
         QString sym = FindSymbol(GET_REG(m_currRegs, PC) & 0xffffff);
         if (sym.size() != 0)
             AddToken(16, row, MakeBracket(sym), TokenType::kSymbol, GET_REG(m_currRegs, PC));
 
         // Status register
         ++row;
-        AddReg16(2, row, Registers::SR, m_prevRegs, m_currRegs);
+        AddReg16(2, row, Registers::SR);
         int col = 11;
-        col = AddSRBit(col, row, m_prevRegs, m_currRegs, Registers::SRBits::kTrace1, "T");
-        col = AddSRBit(col, row, m_prevRegs, m_currRegs, Registers::SRBits::kSupervisor, "S");
-        col = AddSRBit(col, row, m_prevRegs, m_currRegs, Registers::SRBits::kX, "X");
-        col = AddSRBit(col, row, m_prevRegs, m_currRegs, Registers::SRBits::kN, "N");
-        col = AddSRBit(col, row, m_prevRegs, m_currRegs, Registers::SRBits::kZ, "Z");
-        col = AddSRBit(col, row, m_prevRegs, m_currRegs, Registers::SRBits::kV, "V");
-        col = AddSRBit(col, row, m_prevRegs, m_currRegs, Registers::SRBits::kC, "C");
+        col = AddSRBit(col, row, Registers::SRBits::kTrace1, "T");
+        col = AddSRBit(col, row, Registers::SRBits::kSupervisor, "S");
+        col = AddSRBit(col, row, Registers::SRBits::kX, "X");
+        col = AddSRBit(col, row, Registers::SRBits::kN, "N");
+        col = AddSRBit(col, row, Registers::SRBits::kZ, "Z");
+        col = AddSRBit(col, row, Registers::SRBits::kV, "V");
+        col = AddSRBit(col, row, Registers::SRBits::kC, "C");
         QString iplLevel = QString::asprintf("IPL=%u", (m_currRegs.m_value[Registers::SR] >> 8 & 0x7));
         col = AddToken(col + 2, row, iplLevel, TokenType::kNone);
 
@@ -605,19 +613,19 @@ void RegisterWidget::PopulateRegisters()
         row++;
         for (uint32_t reg = 0; reg < 8; ++reg)
         {
-            AddReg32(2, row, Registers::D0 + reg, m_prevRegs, m_currRegs);
+            AddReg32(2, row, Registers::D0 + reg);
 
-            AddReg32(17, row, Registers::A0 + reg, m_prevRegs, m_currRegs); AddSymbol(30, row, m_currRegs.m_value[Registers::A0 + reg]);
+            AddReg32(17, row, Registers::A0 + reg); AddSymbol(30, row, m_currRegs.m_value[Registers::A0 + reg]);
             row++;
         }
-        AddReg32(16, row, Registers::ISP, m_prevRegs, m_currRegs); AddSymbol(30, row, m_currRegs.m_value[Registers::ISP]);
+        AddReg32(16, row, Registers::ISP); AddSymbol(30, row, m_currRegs.m_value[Registers::ISP]);
         row++;
-        AddReg32(16, row, Registers::USP, m_prevRegs, m_currRegs); AddSymbol(30, row, m_currRegs.m_value[Registers::USP]);
+        AddReg32(16, row, Registers::USP); AddSymbol(30, row, m_currRegs.m_value[Registers::USP]);
         row++;
 
         if (m_pTargetModel->GetCpuLevel() >= TargetModel::CpuLevel::kCpuLevel68020)
         {
-            AddReg32(16, row, Registers::MSP, m_prevRegs, m_currRegs); AddSymbol(30, row, m_currRegs.m_value[Registers::MSP]);
+            AddReg32(16, row, Registers::MSP); AddSymbol(30, row, m_currRegs.m_value[Registers::MSP]);
             row++;
         }
 
@@ -626,25 +634,25 @@ void RegisterWidget::PopulateRegisters()
     // DSP registers
     if (m_showDsp && m_pTargetModel->GetMachineType() == MACHINE_FALCON)
     {
-        AddDspReg16(2,  row, DspRegisters::PC, m_prevDspRegs, m_currDspRegs);
+        AddDspReg16(2,  row, DspRegisters::PC);
         ++row;
         int col;
-        col = 1 + AddDspReg16(2, row, DspRegisters::SR, m_prevDspRegs, m_currDspRegs);
-        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kLF, "LF");
-        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kDM, "DM");
-        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kT, "T");
-        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kS1, "S1");
-        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kS0, "S0");
-        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kI1, "I1");
-        col = 1 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kI0, "I0");
-        col = 0 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kS, "S");
-        col = 0 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kL, "L");
-        col = 0 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kE, "E");
-        col = 0 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kU, "U");
-        col = 0 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kN, "N");
-        col = 0 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kZ, "Z");
-        col = 0 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kV, "V");
-        col = 0 + AddDspSRBit(col, row, m_prevDspRegs, m_currDspRegs, DspRegisters::SRBits::kC, "C");
+        col = 1 + AddDspReg16(2, row, DspRegisters::SR);
+        col = 1 + AddDspSRBit(col, row, DspRegisters::SRBits::kLF, "LF");
+        col = 1 + AddDspSRBit(col, row, DspRegisters::SRBits::kDM, "DM");
+        col = 1 + AddDspSRBit(col, row, DspRegisters::SRBits::kT, "T");
+        col = 1 + AddDspSRBit(col, row, DspRegisters::SRBits::kS1, "S1");
+        col = 1 + AddDspSRBit(col, row, DspRegisters::SRBits::kS0, "S0");
+        col = 1 + AddDspSRBit(col, row, DspRegisters::SRBits::kI1, "I1");
+        col = 1 + AddDspSRBit(col, row, DspRegisters::SRBits::kI0, "I0");
+        col = 0 + AddDspSRBit(col, row, DspRegisters::SRBits::kS, "S");
+        col = 0 + AddDspSRBit(col, row, DspRegisters::SRBits::kL, "L");
+        col = 0 + AddDspSRBit(col, row, DspRegisters::SRBits::kE, "E");
+        col = 0 + AddDspSRBit(col, row, DspRegisters::SRBits::kU, "U");
+        col = 0 + AddDspSRBit(col, row, DspRegisters::SRBits::kN, "N");
+        col = 0 + AddDspSRBit(col, row, DspRegisters::SRBits::kZ, "Z");
+        col = 0 + AddDspSRBit(col, row, DspRegisters::SRBits::kV, "V");
+        col = 0 + AddDspSRBit(col, row, DspRegisters::SRBits::kC, "C");
 
         // Row 1 -- instruction and analysis
         if (m_disasmDsp.lines.size() > 0)
@@ -660,36 +668,40 @@ void RegisterWidget::PopulateRegisters()
         }
         ++row;
         m_rulers.push_back(row);
-        AddDspReg8(  2, row, DspRegisters::A2, m_prevDspRegs, m_currDspRegs);
-        AddDspReg24(10, row, DspRegisters::A1, m_prevDspRegs, m_currDspRegs);
-        AddDspReg24(22, row, DspRegisters::A0, m_prevDspRegs, m_currDspRegs);
+        AddDspReg8(  2, row, DspRegisters::A2);
+        AddDspReg24(10, row, DspRegisters::A1);
+        AddDspReg24(22, row, DspRegisters::A0);
         ++row;
-        AddDspReg8(  2, row, DspRegisters::B2, m_prevDspRegs, m_currDspRegs);
-        AddDspReg24(10, row, DspRegisters::B1, m_prevDspRegs, m_currDspRegs);
-        AddDspReg24(22, row, DspRegisters::B0, m_prevDspRegs, m_currDspRegs);
+        AddDspReg8(  2, row, DspRegisters::B2);
+        AddDspReg24(10, row, DspRegisters::B1);
+        AddDspReg24(22, row, DspRegisters::B0);
         ++row;
-        AddDspReg24(10,  row, DspRegisters::X1, m_prevDspRegs, m_currDspRegs);
-        AddDspReg24(22, row, DspRegisters::X0, m_prevDspRegs, m_currDspRegs);
+        AddDspReg24(10,  row, DspRegisters::X1);
+        AddDspReg24(22, row, DspRegisters::X0);
         ++row;
-        AddDspReg24(10,  row, DspRegisters::Y1, m_prevDspRegs, m_currDspRegs);
-        AddDspReg24(22, row, DspRegisters::Y0, m_prevDspRegs, m_currDspRegs);
+        AddDspReg24(10,  row, DspRegisters::Y1);
+        AddDspReg24(22, row, DspRegisters::Y0);
         ++row;
         m_rulers.push_back(row);
         for (uint32_t reg = 0; reg < 8; ++reg)
         {
-            AddDspReg16( 2, row, DspRegisters::R0 + reg, m_prevDspRegs, m_currDspRegs);
-            AddDspReg16(13, row, DspRegisters::N0 + reg, m_prevDspRegs, m_currDspRegs);
-            AddDspReg16(24, row, DspRegisters::M0 + reg, m_prevDspRegs, m_currDspRegs);
+            AddDspReg16( 2, row, DspRegisters::R0 + reg);
+            AddDspReg16(13, row, DspRegisters::N0 + reg);
+            AddDspReg16(24, row, DspRegisters::M0 + reg);
             row++;
         }
         m_rulers.push_back(row);
-        AddDspReg16(2, row, DspRegisters::LA, m_prevDspRegs, m_currDspRegs);
-        AddDspReg16(13, row, DspRegisters::LC, m_prevDspRegs, m_currDspRegs);
-        AddDspReg16(23, row, DspRegisters::OMR, m_prevDspRegs, m_currDspRegs);
+        AddDspReg16(2, row, DspRegisters::LA);
+        AddDspReg16(13, row, DspRegisters::LC);
+        col = AddDspReg16(23, row, DspRegisters::OMR);
+        col = 1 + AddDspOMRBit(col + 1, row, DspRegisters::kDE, "DE");
+        col = 1 + AddDspOMRBit(col + 1, row, DspRegisters::kYD, "YD");
+        col = 1 + AddDspOMRBit(col + 1, row, DspRegisters::kSD, "SD");
+
         ++row;
-        AddDspReg16(2, row, DspRegisters::SP, m_prevDspRegs, m_currDspRegs);
-        AddDspReg16(12, row, DspRegisters::SSH, m_prevDspRegs, m_currDspRegs);
-        AddDspReg16(23, row, DspRegisters::SSL, m_prevDspRegs, m_currDspRegs);
+        AddDspReg16(2, row, DspRegisters::SP);
+        AddDspReg16(12, row, DspRegisters::SSH);
+        AddDspReg16(23, row, DspRegisters::SSL);
         ++row;
     }
 
@@ -699,25 +711,25 @@ void RegisterWidget::PopulateRegisters()
         m_rulers.push_back(row);
         if (m_pTargetModel->GetCpuLevel() >= TargetModel::CpuLevel::kCpuLevel68010)
         {
-            AddReg32(1, row, Registers::DFC, m_prevRegs, m_currRegs); AddReg32(16, row, Registers::SFC, m_prevRegs, m_currRegs);
+            AddReg32(1, row, Registers::DFC); AddReg32(16, row, Registers::SFC);
             row++;
         }
         if (m_pTargetModel->GetCpuLevel() >= TargetModel::CpuLevel::kCpuLevel68020)
         {
             // 68020
-            AddReg32(0, row, Registers::CAAR, m_prevRegs, m_currRegs);
-            AddReg16(15, row, Registers::CACR, m_prevRegs, m_currRegs);
+            AddReg32(0, row, Registers::CAAR);
+            AddReg16(15, row, Registers::CACR);
             const int x = 28;
-            AddCACRBit(x+0, row, m_prevRegs, m_currRegs, Registers::CACRBits::WA, "WA");
-            AddCACRBit(x+7, row, m_prevRegs, m_currRegs, Registers::CACRBits::DBE, "DBE");
-            AddCACRBit(x+13, row, m_prevRegs, m_currRegs, Registers::CACRBits::CD, "CD");
-            AddCACRBit(x+18, row, m_prevRegs, m_currRegs, Registers::CACRBits::FD, "FD");
-            AddCACRBit(x+23, row, m_prevRegs, m_currRegs, Registers::CACRBits::ED, "ED");
+            AddCACRBit(x+0, row, Registers::CACRBits::WA, "WA");
+            AddCACRBit(x+7, row, Registers::CACRBits::DBE, "DBE");
+            AddCACRBit(x+13, row, Registers::CACRBits::CD, "CD");
+            AddCACRBit(x+18, row, Registers::CACRBits::FD, "FD");
+            AddCACRBit(x+23, row, Registers::CACRBits::ED, "ED");
 
-            AddCACRBit(x+30, row, m_prevRegs, m_currRegs, Registers::CACRBits::IBE, "IBE");
-            AddCACRBit(x+36, row, m_prevRegs, m_currRegs, Registers::CACRBits::CI, "CI");
-            AddCACRBit(x+41, row, m_prevRegs, m_currRegs, Registers::CACRBits::FI, "FI");
-            AddCACRBit(x+46, row, m_prevRegs, m_currRegs, Registers::CACRBits::EI, "EI");
+            AddCACRBit(x+30, row, Registers::CACRBits::IBE, "IBE");
+            AddCACRBit(x+36, row, Registers::CACRBits::CI, "CI");
+            AddCACRBit(x+41, row, Registers::CACRBits::FI, "FI");
+            AddCACRBit(x+46, row, Registers::CACRBits::EI, "EI");
             row++;
             row++;
         }
@@ -765,8 +777,9 @@ int RegisterWidget::AddToken(int x, int y, QString text, TokenType type, uint32_
     return tok.x + text.size();
 }
 
-int RegisterWidget::AddReg16(int x, int y, uint32_t regIndex, const Registers& prevRegs, const Registers& regs)
+int RegisterWidget::AddReg16(int x, int y, uint32_t regIndex)
 {
+    const Registers& prevRegs(m_prevRegs); const Registers& regs(m_currRegs);
     TokenColour highlight = (regs.m_value[regIndex] != prevRegs.m_value[regIndex]) ? kChanged : kNormal;
 
     QString label = QString::asprintf("%s:",  Registers::s_names[regIndex]);
@@ -775,8 +788,9 @@ int RegisterWidget::AddReg16(int x, int y, uint32_t regIndex, const Registers& p
     return AddToken(x + label.size() + 1, y, value, TokenType::kRegister, regIndex, highlight);
 }
 
-int RegisterWidget::AddReg32(int x, int y, uint32_t regIndex, const Registers& prevRegs, const Registers& regs)
+int RegisterWidget::AddReg32(int x, int y, uint32_t regIndex)
 {
+    const Registers& prevRegs(m_prevRegs); const Registers& regs(m_currRegs);
     TokenColour highlight = (regs.m_value[regIndex] != prevRegs.m_value[regIndex]) ? kChanged : kNormal;
 
     QString label = QString::asprintf("%s:",  Registers::s_names[regIndex]);
@@ -785,8 +799,9 @@ int RegisterWidget::AddReg32(int x, int y, uint32_t regIndex, const Registers& p
     return AddToken(x + label.size() + 1, y, value, TokenType::kRegister, regIndex, highlight);
 }
 
-int RegisterWidget::AddDspReg24(int x, int y, uint32_t regIndex, const DspRegisters& prevRegs, const DspRegisters& regs)
+int RegisterWidget::AddDspReg24(int x, int y, uint32_t regIndex)
 {
+    const DspRegisters& prevRegs(m_prevDspRegs); const DspRegisters& regs(m_currDspRegs);
     TokenColour highlight = (regs.Get(regIndex) != prevRegs.Get(regIndex)) ? kChanged : kNormal;
 
     QString label = QString::asprintf("%s:",  DspRegisters::s_names[regIndex]);
@@ -795,8 +810,9 @@ int RegisterWidget::AddDspReg24(int x, int y, uint32_t regIndex, const DspRegist
     return AddToken(x + label.size() + 1, y, value, TokenType::kDspRegister, regIndex, highlight);
 }
 
-int RegisterWidget::AddDspReg8(int x, int y, uint32_t regIndex, const DspRegisters& prevRegs, const DspRegisters& regs)
+int RegisterWidget::AddDspReg8(int x, int y, uint32_t regIndex)
 {
+    const DspRegisters& prevRegs(m_prevDspRegs); const DspRegisters& regs(m_currDspRegs);
     TokenColour highlight = (regs.Get(regIndex) != prevRegs.Get(regIndex)) ? kChanged : kNormal;
 
     QString label = QString::asprintf("%s:",  DspRegisters::s_names[regIndex]);
@@ -805,8 +821,9 @@ int RegisterWidget::AddDspReg8(int x, int y, uint32_t regIndex, const DspRegiste
     return AddToken(x + label.size() + 1, y, value, TokenType::kDspRegister, regIndex, highlight);
 }
 
-int RegisterWidget::AddDspReg16(int x, int y, uint32_t regIndex, const DspRegisters& prevRegs, const DspRegisters& regs)
+int RegisterWidget::AddDspReg16(int x, int y, uint32_t regIndex)
 {
+    const DspRegisters& prevRegs(m_prevDspRegs); const DspRegisters& regs(m_currDspRegs);
     TokenColour highlight = (regs.Get(regIndex) != prevRegs.Get(regIndex)) ? kChanged : kNormal;
 
     QString label = QString::asprintf("%s:",  DspRegisters::s_names[regIndex]);
@@ -815,8 +832,9 @@ int RegisterWidget::AddDspReg16(int x, int y, uint32_t regIndex, const DspRegist
     return AddToken(x + label.size() + 1, y, value, TokenType::kDspRegister, regIndex, highlight);
 }
 
-int RegisterWidget::AddDspReg56(int x, int y, uint32_t regIndex, const DspRegisters& prevRegs, const DspRegisters& regs)
+int RegisterWidget::AddDspReg56(int x, int y, uint32_t regIndex)
 {
+    const DspRegisters& prevRegs(m_prevDspRegs); const DspRegisters& regs(m_currDspRegs);
     QString label = QString::asprintf("%s:",  DspRegisters::s_names[regIndex]);
     x = AddToken(x, y, label, TokenType::kDspRegister, regIndex, TokenColour::kNormal);
 
@@ -834,8 +852,9 @@ int RegisterWidget::AddDspReg56(int x, int y, uint32_t regIndex, const DspRegist
     return x;
 }
 
-int RegisterWidget::AddSRBit(int x, int y, const Registers& prevRegs, const Registers& regs, uint32_t bit, const char* pName)
+int RegisterWidget::AddSRBit(int x, int y, uint32_t bit, const char* pName)
 {
+    const Registers& prevRegs(m_prevRegs); const Registers& regs(m_currRegs);
     uint32_t valNew = (regs.m_value[Registers::SR] >> bit) & 1;
     uint32_t valOld = (prevRegs.m_value[Registers::SR] >> bit) & 1;
 
@@ -849,8 +868,9 @@ int RegisterWidget::AddSRBit(int x, int y, const Registers& prevRegs, const Regi
     return AddToken(x, y, text, TokenType::kStatusRegisterBit, bit, highlight);
 }
 
-int RegisterWidget::AddDspSRBit(int x, int y, const DspRegisters& prevRegs, const DspRegisters& regs, uint32_t bit, const char* pName)
+int RegisterWidget::AddDspSRBit(int x, int y, uint32_t bit, const char* pName)
 {
+    const DspRegisters& prevRegs(m_prevDspRegs); const DspRegisters& regs(m_currDspRegs);
     uint32_t valNew = (regs.Get(DspRegisters::SR) >> bit) & 1;
     uint32_t valOld = (prevRegs.Get(DspRegisters::SR) >> bit) & 1;
 
@@ -863,8 +883,24 @@ int RegisterWidget::AddDspSRBit(int x, int y, const DspRegisters& prevRegs, cons
     return AddToken(x, y, QString(text), TokenType::kDspStatusRegisterBit, bit, highlight);
 }
 
-int RegisterWidget::AddCACRBit(int x, int y, const Registers& prevRegs, const Registers& regs, uint32_t bit, const char* pName)
+int RegisterWidget::AddDspOMRBit(int x, int y, uint32_t bit, const char* pName)
 {
+    const DspRegisters& prevRegs(m_prevDspRegs); const DspRegisters& regs(m_currDspRegs);
+    uint32_t valNew = (regs.Get(DspRegisters::OMR) >> bit) & 1;
+    uint32_t valOld = (prevRegs.Get(DspRegisters::OMR) >> bit) & 1;
+
+    TokenColour highlight = (valNew != valOld) ? kChanged : kNormal;
+    QString text;
+    if (valNew)
+        text = pName;
+    else
+        text = QString("-").repeated(strlen(pName));
+    return AddToken(x, y, QString(text), TokenType::kDspOMRBit, bit, highlight);
+}
+
+int RegisterWidget::AddCACRBit(int x, int y, uint32_t bit, const char* pName)
+{
+    const Registers& prevRegs(m_prevRegs); const Registers& regs(m_currRegs);
     uint32_t valNew = (regs.m_value[Registers::CACR] >> bit) & 1;
     uint32_t valOld = (prevRegs.m_value[Registers::CACR] >> bit) & 1;
 
@@ -907,6 +943,8 @@ QString RegisterWidget::GetTooltipText(const RegisterWidget::Token& token)
          return CreateSRTooltip(m_currRegs.Get(Registers::SR), token.subIndex);
     case TokenType::kDspStatusRegisterBit:
          return CreateDspSRTooltip(m_currDspRegs.Get(DspRegisters::SR), token.subIndex);
+    case TokenType::kDspOMRBit:
+         return CreateDspOMRTooltip(m_currDspRegs.Get(DspRegisters::OMR), token.subIndex);
     case TokenType::kCACRBit:
          return CreateCACRTooltip(m_currRegs.Get(Registers::CACR), token.subIndex);
     default:

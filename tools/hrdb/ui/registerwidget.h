@@ -52,6 +52,7 @@ private:
         kStatusRegisterBit,
         kDspStatusRegisterBit,
         kCACRBit,
+        kDspOMRBit,
         kNone,
     };
 
@@ -79,16 +80,17 @@ private:
     QString FindSymbol(uint32_t addr);
 
     int AddToken(int x, int y, QString text, TokenType type, uint32_t subIndex = 0, TokenColour colour = TokenColour::kNormal);
-    int AddReg16(int x, int y, uint32_t regIndex, const Registers &prevRegs, const Registers &m_currRegs);
-    int AddReg32(int x, int y, uint32_t regIndex, const Registers &prevRegs, const Registers &m_currRegs);
-    int AddDspReg24(int x, int y, uint32_t regIndex, const DspRegisters &prevRegs, const DspRegisters &regs);
-    int AddDspReg8(int x, int y, uint32_t regIndex, const DspRegisters &prevRegs, const DspRegisters &regs);
-    int AddDspReg16(int x, int y, uint32_t regIndex, const DspRegisters &prevRegs, const DspRegisters &regs);
-    int AddDspReg56(int x, int y, uint32_t regIndex, const DspRegisters &prevRegs, const DspRegisters &regs);
+    int AddReg16(int x, int y, uint32_t regIndex);
+    int AddReg32(int x, int y, uint32_t regIndex);
+    int AddDspReg24(int x, int y, uint32_t regIndex);
+    int AddDspReg8(int x, int y, uint32_t regIndex);
+    int AddDspReg16(int x, int y, uint32_t regIndex);
+    int AddDspReg56(int x, int y, uint32_t regIndex);
 
-    int AddSRBit(int x, int y, const Registers &prevRegs, const Registers &m_currRegs, uint32_t bit, const char *pName);
-    int AddDspSRBit(int x, int y, const DspRegisters &prevRegs, const DspRegisters &regs, uint32_t bit, const char *pName);
-    int AddCACRBit(int x, int y, const Registers &prevRegs, const Registers &m_currRegs, uint32_t bit, const char *pName);
+    int AddSRBit(int x, int y, uint32_t bit, const char *pName);
+    int AddDspSRBit(int x, int y, uint32_t bit, const char *pName);
+    int AddDspOMRBit(int x, int y, uint32_t bit, const char* pName);
+    int AddCACRBit(int x, int y, uint32_t bit, const char *pName);
     int AddSymbol(int x, int y, uint32_t address);
 
     QString GetTooltipText(const Token& token);

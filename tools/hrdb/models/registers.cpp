@@ -160,3 +160,17 @@ const char* DspRegisters::GetSRBitName(uint32_t bit)
     }
     return "";
 }
+
+const char* DspRegisters::GetOMRBitDesc(uint32_t bit)
+{
+    switch (bit)
+    {
+        case kMA: return "MA (Operating mode A)";
+        case kMB: return "MB (Operating mode B)";
+        case kDE: return "DE (Data ROM Enable)";
+        case kYD: return "YD (Internal Y Memory Disable)";
+        case kMC: return "MC (Operating mode C)";
+        case kSD: return "SD (Stop Delay)";
+    }
+    return "";
+}
