@@ -12,7 +12,8 @@ enum MemSpace
     MEM_P = 1,
     MEM_X = 2,
     MEM_Y = 3,
-    MEM_SPACE_MAX = 4
+    MEM_L = 4,
+    MEM_SPACE_MAX = 5
 };
 
 // Describes a unique memory address from the target.

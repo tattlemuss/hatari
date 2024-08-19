@@ -34,7 +34,7 @@ public:
     bool GetShowHex() const     { return m_bShowHex; }
     Processor GetProc() const   { return m_proc; }
     bool GetInstructionAddr(int row, uint32_t& addr) const;
-    bool GetEA(int row, int operandIndex, uint32_t &addr);
+    bool GetEA(int row, int operandIndex, MemAddr& addr);
 
     bool SetAddress(std::string addr);
     bool SetSearchResultAddress(uint32_t addr);
@@ -95,6 +95,7 @@ private:
     void LayOutBranches();
 
     void CalcAnnotations68();
+    void CalcAnnotations56();
     void printEA(const hop68::operand &op, const Registers &regs, uint32_t address, QTextStream &ref) const;
 
     // Disassembly line supporting both 68k and 56K.
@@ -103,14 +104,13 @@ private:
         // effective-addresses of operands in the instruction.
         struct Annotations
         {
-            void Reset()
-            {
-                valid[0] = valid[1] = false;
-                osComments.clear();
-            }
+            static const uint32_t kNumEAs = 4;
+            void Reset();
+
             // Effective addresses for operands
-            bool valid[2];
-            uint32_t address[2];
+            // A DSP instruction can have lots!
+            bool valid[kNumEAs];
+            MemAddr address[kNumEAs];
 
             QString  osComments;    // Extra info like trap call name, line-A in future?
         };
@@ -127,21 +127,8 @@ private:
         uint8_t              mem[32];           // Copy of instruction memory, up to a max
         Annotations          annotations;       // Effective Address data annotations, OS commments
 
-        uint32_t    GetByteSize() const
-        {
-            if (proc == kProcCpu)
-                return inst68.byte_count;
-            else
-                return inst56.word_count * 3;
-        }
-
-        uint32_t    GetEndAddr() const
-        {
-            if (proc == kProcCpu)
-                return address + inst68.byte_count;
-            else
-                return address + inst56.word_count;
-        }
+        uint32_t    GetByteSize() const;
+        uint32_t    GetEndAddr() const;
     };
     QVector<Line>           m_disasm;
 

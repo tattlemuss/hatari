@@ -137,7 +137,7 @@ void DisasmWidget::RequestMemory()
     }
 }
 
-bool DisasmWidget::GetEA(int row, int operandIndex, uint32_t &addr)
+bool DisasmWidget::GetEA(int row, int operandIndex, MemAddr& addr)
 {
     if (row >= m_disasm.size())
         return false;
@@ -578,6 +578,8 @@ void DisasmWidget::paintEvent(QPaintEvent* ev)
                     painter.drawText(x, text_y, t.disasm);
                     break;
                 case kComments:
+                    if (!t.isPc)
+                        painter.setPen(Qt::darkGreen);
                     painter.drawText(x, text_y, t.comments);
                     break;
                 }
@@ -888,9 +890,9 @@ void DisasmWidget::CalcDisasm56()
     if (m_disasm.size() == 0)
         return;
 
-    // Organise branches
-    // These store the number of branch lines going in, and coming out of,
-    // each instruction.
+    // Annotate traps
+    CalcAnnotations56();
+
     // NOTE: do not use m_rowCount here, it can be stale!
     for (int row = 0; row < m_disasm.size(); ++row)
     {
@@ -956,15 +958,24 @@ void DisasmWidget::CalcDisasm56()
         QTextStream ref(&t.disasm);
         Disassembler56::print_inst(line.inst56, line.address, ref, m_pSession->GetSettings().m_bDisassHexNumerics);
 
-#if 0
+
         // Comments
         QTextStream refC(&t.comments);
-        Registers regs = m_pTargetModel->GetRegs();
-        printEA(line.inst68.op0, regs, line.address, refC);
-        if (t.comments.size() != 0)
-            refC << "  ";
-        printEA(line.inst68.op1, regs, line.address, refC);
-        refC << line.annotationText;
+        bool wrotePrev = false;
+        for (uint32_t i = 0; i < Line::Annotations::kNumEAs; ++i)
+        {
+            if (line.annotations.valid[i])
+            {
+                if (wrotePrev)
+                    refC << ", ";
+                else
+                    refC << "; ";
+
+                refC << Format::to_address(line.annotations.address[i]);
+                wrotePrev = true;
+            }
+        }
+        refC << line.annotations.osComments;
 
         // Breakpoint/PC
         for (size_t i = 0; i < m_breakpoints.m_breakpoints.size(); ++i)
@@ -975,14 +986,16 @@ void DisasmWidget::CalcDisasm56()
                 break;
             }
         }
-#endif
+
         // Branch info
         uint32_t target;
         if (DisAnalyse56::getBranchTarget(line.inst56, target))
             (void) AddDisasmBranch(row, target);
         m_rowTexts.push_back(t);
     }
+
     LayOutBranches();
+
 }
 
 // Add a branch to m_branches. We try to match the target address
@@ -1119,9 +1132,59 @@ void DisasmWidget::CalcAnnotations68()
         const hop68::instruction& inst = line.inst68;
         Line::Annotations& annots = line.annotations;
         bool useRegs = inst.address == pc;
-        annots.valid[0] = Disassembler::calc_fixed_ea(inst.op0, useRegs, regs, m_disasm[i].address, annots.address[0]);
-        annots.valid[1] = Disassembler::calc_fixed_ea(inst.op1, useRegs, regs, m_disasm[i].address, annots.address[1]);
+
+        annots.valid[0] = Disassembler::calc_fixed_ea(inst.op0, useRegs, regs, m_disasm[i].address, annots.address[0].addr);
+        annots.valid[1] = Disassembler::calc_fixed_ea(inst.op1, useRegs, regs, m_disasm[i].address, annots.address[1].addr);
+        annots.valid[2] = false;
+        annots.valid[3] = false;
         annots.osComments = GetTOSAnnotation(m_memory, line.address, inst);
+    }
+}
+
+void DisasmWidget::CalcAnnotations56()
+{
+    for (int i = 0; i < m_disasm.size(); ++i)
+    {
+        Line& line = m_disasm[i];
+        const hop56::instruction& inst = line.inst56;
+        Line::Annotations& annots = line.annotations;
+
+        bool valids[10];
+        Disassembler56::addr_t addr[10];
+        valids[0] = Disassembler56::calc_ea(inst.operands[0], addr[0]);
+        valids[1] = Disassembler56::calc_ea(inst.operands[1], addr[1]);
+        valids[2] = Disassembler56::calc_ea(inst.operands[2], addr[2]);
+        valids[3] = Disassembler56::calc_ea(inst.operands[3], addr[3]);
+        valids[4] = Disassembler56::calc_ea(inst.operands[4], addr[4]);
+        valids[5] = Disassembler56::calc_ea(inst.operands[5], addr[5]);
+        valids[6] = Disassembler56::calc_ea(inst.pmoves[0].operands[0], addr[6]);
+        valids[7] = Disassembler56::calc_ea(inst.pmoves[0].operands[1], addr[7]);
+        valids[8] = Disassembler56::calc_ea(inst.pmoves[1].operands[0], addr[8]);
+        valids[9] = Disassembler56::calc_ea(inst.pmoves[1].operands[1], addr[9]);
+
+        uint32_t readSlot = 0;
+        uint32_t writeSlot = 0;
+        static const MemSpace spaces[hop56::MEM_COUNT] =
+        {
+            MEM_P,        // "None" maps to P: memory
+            MEM_X,
+            MEM_Y,
+            MEM_P,
+            MEM_L
+        };
+
+        while (writeSlot < Line::Annotations::kNumEAs && readSlot < 10)
+        {
+            if (valids[readSlot])
+            {
+                // Convert to our memory space format
+                const Disassembler56::addr_t& a = addr[readSlot];
+                annots.valid[writeSlot] = true;
+                annots.address[writeSlot] = maddr(spaces[a.mem], a.addr);
+                ++writeSlot;
+            }
+            ++readSlot;
+        }
     }
 }
 
@@ -1354,7 +1417,7 @@ void DisasmWidget::RecalcColumnWidths()
     if (m_proc == kProcCpu)
         pos += 8+18+9+1; // movea.l $12345678(pc,d0.w),$12345678
     else
-        pos += 50;
+        pos += 40;      // best guess for the moment
 
     m_columnLeft[kComments] = pos; pos += 80;
     m_columnLeft[kNumColumns] = pos;
@@ -1402,17 +1465,16 @@ void DisasmWidget::ContextMenu(int row, QPoint globalPos)
         m_showAddressMenus[0].AddTo(&menu);
     }
 
-    for (int32_t op = 0; op < 2; ++op)
+    for (uint32_t op = 0; op < Line::Annotations::kNumEAs; ++op)
     {
         int32_t menuIndex = op + 1;
-        uint32_t opAddr;
+        MemAddr opAddr;
         if (GetEA(m_rightClickRow, op, opAddr))
         {
-            QString addrText = Format::to_address(space, opAddr);
-            // TODO: effective addresses on DSP will have different memory spaces...
+            // This now handles different memory spaces
             m_showAddressMenus[menuIndex].Set(
                         QString::asprintf("Effective address %u", menuIndex),
-                        m_pSession, space, opAddr);
+                        m_pSession, opAddr.space, opAddr.addr);
             m_showAddressMenus[menuIndex].AddTo(&menu);
         }
     }
@@ -1751,4 +1813,26 @@ void DisasmWidget::Line::Reset()
     inst68.reset();
     memset(mem, 0, sizeof(mem));
     annotations.Reset();
+}
+
+uint32_t DisasmWidget::Line::GetByteSize() const
+{
+    if (proc == kProcCpu)
+        return inst68.byte_count;
+    else
+        return inst56.word_count * 3;
+}
+
+uint32_t DisasmWidget::Line::GetEndAddr() const
+{
+    if (proc == kProcCpu)
+        return address + inst68.byte_count;
+    else
+        return address + inst56.word_count;
+}
+
+void DisasmWidget::Line::Annotations::Reset()
+{
+    valid[0] = valid[1] = false;
+    osComments.clear();
 }

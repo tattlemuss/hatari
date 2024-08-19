@@ -16,3 +16,8 @@ QString Format::to_address(int memorySpace, uint32_t val)
     }
     return QString("?");
 }
+
+QString Format::to_address(const MemAddr& addr)
+{
+    return to_address(addr.space, addr.addr);
+}

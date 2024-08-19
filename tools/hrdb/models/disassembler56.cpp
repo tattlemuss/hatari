@@ -193,6 +193,32 @@ int Disassembler56::print_inst(const hop56::instruction &inst, uint32_t inst_add
     }
 }
 
+// Check if an operand jumps to another known address, and return that address
+bool Disassembler56::calc_ea(const hop56::operand& op, addr_t& target_address)
+{
+    if (op.type == hop56::operand::ABS)
+    {
+        target_address.mem = op.memory;
+        target_address.addr = op.abs.address;
+        return true;
+    }
+    if (op.type == hop56::operand::ABS_SHORT)
+    {
+        target_address.mem = op.memory;
+        target_address.addr = op.abs_short.address;
+        return true;
+    }
+    if (op.type == hop56::operand::IO_SHORT)
+    {
+        target_address.mem = op.memory;
+        target_address.addr = op.io_short.address;
+        return true;
+    }
+
+    return false;
+}
+
+
 int Disassembler56::print_terse(const hop56::instruction &inst, uint32_t inst_address, QTextStream &ref, bool bDisassHexNumerics)
 {
     if (inst.opcode == hop56::INVALID)
@@ -275,6 +301,8 @@ bool DisAnalyse56::isSubroutine(const hop56::instruction &inst)
         case hop56::Opcode::O_JSR:
         case hop56::Opcode::O_JSSET:
             return true;
+        default:
+            break;
     }
 
     return false;
@@ -282,6 +310,7 @@ bool DisAnalyse56::isSubroutine(const hop56::instruction &inst)
 
 bool DisAnalyse56::isBranch(const hop56::instruction &inst, const DspRegisters &regs, bool &takeBranch)
 {
+    // TODO
     return false;
 }
 

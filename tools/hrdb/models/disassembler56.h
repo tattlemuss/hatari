@@ -17,6 +17,21 @@ namespace hop56
 class Disassembler56
 {
 public:
+
+    // Describes a DSP address.
+    struct addr_t
+    {
+        hop56::Memory mem;
+        uint32_t	  addr;
+
+        bool operator<(const addr_t& other) const
+        {
+            if (mem != other.mem)
+                return mem < other.mem;
+            return addr < other.addr;
+        }
+    };
+
     struct line
     {
         uint32_t             address;
@@ -51,6 +66,8 @@ public:
 
     // Format a single instruction and its arguments
     static int print_terse(const hop56::instruction& inst, /*const symbols& symbols, */ uint32_t inst_address, QTextStream& ref, bool bDisassHexNumerics);
+
+    static bool calc_ea(const hop56::operand& op, addr_t& target_address);
 };
 
 class DisAnalyse56
