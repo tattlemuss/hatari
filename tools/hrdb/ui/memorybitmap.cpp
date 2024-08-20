@@ -171,6 +171,46 @@ void MemoryBitmap::Set4Plane(const Palette& palette, int strideInBytes, int heig
     SetPixmap(kIndexed, width, height);
 }
 
+void MemoryBitmap::Set8Plane(const Palette& palette, int strideInBytes, int height, const Memory* pMemOrig)
+{
+    if (pMemOrig->GetSize() < (uint32_t)(strideInBytes * height))
+    {
+        Clear();
+        return;
+    }
+    int numChunks = strideInBytes / 16;
+    int width = numChunks * 16;
+    int bitmapSize = numChunks * 16 * height;
+    uint8_t* pDestPixels = AllocPixelData(bitmapSize);
+    for (int y = 0; y < height; ++y)
+    {
+        const uint8_t* pChunk = pMemOrig->GetData() + y * strideInBytes;
+        for (int x = 0; x < numChunks; ++x)
+        {
+            int32_t src[8];    // top 16 bits never used
+            for (int i = 0; i < 8; ++i)
+            {
+                src[7 - i] = (pChunk[0] << 8) | pChunk[1];
+                pChunk += 2;
+            }
+            for (int pix = 15; pix >= 0; --pix)
+            {
+                uint8_t val = 0;
+                for (int i = 0; i < 8; ++i)
+                {
+                    val |= (src[i] & 1);
+                    val <<= 1;
+                    src[i] >>= 1;
+                }
+                pDestPixels[pix] = val;
+            }
+            pDestPixels += 16;
+        }
+    }
+    m_colours = palette;
+    SetPixmap(kIndexed, width, height);
+}
+
 void MemoryBitmap::Set1BPP(int strideInBytes, int height, const Memory* pMemOrig)
 {
     if (pMemOrig->GetSize() < (uint32_t)(strideInBytes * height))

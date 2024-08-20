@@ -73,13 +73,15 @@ protected:
 private:
     enum Mode
     {
-        kFormat4Bitplane,
-        kFormat3Bitplane,
-        kFormat2Bitplane,
-        kFormat1Bitplane,
-        kFormatRegisters,
-        kFormat1BPP,
-        kFormatTruColor       // Falcon 16bpp
+        // NOTE: these are serialised, so keep values the same
+        kFormat8Bitplane = 7,
+        kFormat4Bitplane = 0,
+        kFormat3Bitplane = 1,
+        kFormat2Bitplane = 2,
+        kFormat1Bitplane = 3,
+        kFormatRegisters = 4,
+        kFormat1BPP = 5,
+        kFormatTruColor = 6       // Falcon 16bpp
     };
 
     enum Palette

@@ -59,22 +59,26 @@ static void CreateBitplanePalette(QVector<uint32_t>& palette,
                                   uint32_t col3)
 {
     int i = 0;
-    palette[i++] = (0xff000000 + 0                  );
-    palette[i++] = (0xff000000 +               +col0);
-    palette[i++] = (0xff000000 +          +col1     );
-    palette[i++] = (0xff000000 +          +col1+col0);
-    palette[i++] = (0xff000000 +      col2          );
-    palette[i++] = (0xff000000 +      col2     +col0);
-    palette[i++] = (0xff000000 +      col2+col1     );
-    palette[i++] = (0xff000000 +      col2+col1+col0);
-    palette[i++] = (0xff000000 + col3               );
-    palette[i++] = (0xff000000 + col3          +col0);
-    palette[i++] = (0xff000000 + col3     +col1     );
-    palette[i++] = (0xff000000 + col3     +col1+col0);
-    palette[i++] = (0xff000000 + col3+col2          );
-    palette[i++] = (0xff000000 + col3+col2     +col0);
-    palette[i++] = (0xff000000 + col3+col2+col1     );
-    palette[i++] = (0xff000000 + col3+col2+col1+col0);
+    // This loop just ensures all 256 entries are filled.
+    for (int loop = 0; loop < 16; ++loop)
+    {
+        palette[i++] = (0xff000000 + 0                  );
+        palette[i++] = (0xff000000 +               +col0);
+        palette[i++] = (0xff000000 +          +col1     );
+        palette[i++] = (0xff000000 +          +col1+col0);
+        palette[i++] = (0xff000000 +      col2          );
+        palette[i++] = (0xff000000 +      col2     +col0);
+        palette[i++] = (0xff000000 +      col2+col1     );
+        palette[i++] = (0xff000000 +      col2+col1+col0);
+        palette[i++] = (0xff000000 + col3               );
+        palette[i++] = (0xff000000 + col3          +col0);
+        palette[i++] = (0xff000000 + col3     +col1     );
+        palette[i++] = (0xff000000 + col3     +col1+col0);
+        palette[i++] = (0xff000000 + col3+col2          );
+        palette[i++] = (0xff000000 + col3+col2     +col0);
+        palette[i++] = (0xff000000 + col3+col2+col1     );
+        palette[i++] = (0xff000000 + col3+col2+col1+col0);
+    }
 }
 
 GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
@@ -122,6 +126,7 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     m_pHeightSpinBox = new QSpinBox(this);
 
     m_pModeComboBox->addItem(tr("Registers"), Mode::kFormatRegisters);
+    m_pModeComboBox->addItem(tr("8 Plane"), Mode::kFormat8Bitplane);
     m_pModeComboBox->addItem(tr("4 Plane"), Mode::kFormat4Bitplane);
     m_pModeComboBox->addItem(tr("3 Plane"), Mode::kFormat3Bitplane);
     m_pModeComboBox->addItem(tr("2 Plane"), Mode::kFormat2Bitplane);
@@ -677,6 +682,7 @@ void GraphicsInspectorWidget::updateInfoLine()
         case Mode::kFormat2Bitplane:
         case Mode::kFormat3Bitplane:
         case Mode::kFormat4Bitplane:
+        case Mode::kFormat8Bitplane:
             addr = m_bitmapAddress + info.y * data.bytesPerLine + (info.x / 16) * BytesPerChunk(m_mode);
             break;
         case Mode::kFormat1BPP:
@@ -833,9 +839,16 @@ void GraphicsInspectorWidget::UpdateImage()
             break;
         }
         case kGreyscale:
-            for (uint i = 0; i < 16; ++i)
+            // Compensate for 256-colour
+            if (m_mode == kFormat8Bitplane)
             {
-                palette[i] = (0xff000000 + i * 0x101010);
+                for (uint i = 0; i < 256; ++i)
+                    palette[i] = (0xff000000 + i * 0x010101);
+            }
+            else
+            {
+                for (uint i = 0; i < 16; ++i)
+                    palette[i] = (0xff000000 + i * 0x101010);
             }
             break;
         case kContrast1:
@@ -887,7 +900,9 @@ void GraphicsInspectorWidget::UpdateImage()
     if ((int)pMemOrig->GetSize() < required)
         return;
 
-    if (mode == kFormat4Bitplane)
+    if (mode == kFormat8Bitplane)
+        m_pImageWidget->m_bitmap.Set8Plane(palette, data.bytesPerLine, data.height, pMemOrig);
+    else if (mode == kFormat4Bitplane)
         m_pImageWidget->m_bitmap.Set4Plane(palette, data.bytesPerLine, data.height, pMemOrig);
     else if (mode == kFormat3Bitplane)
         m_pImageWidget->m_bitmap.Set3Plane(palette, data.bytesPerLine, data.height, pMemOrig);
@@ -917,6 +932,7 @@ void GraphicsInspectorWidget::UpdateUIElements()
     case kFormat2Bitplane:
     case kFormat3Bitplane:
     case kFormat4Bitplane:
+    case kFormat8Bitplane:
         allowAdjustWidth = true; allowAdjustPalette = true;
         break;
     case kFormat1BPP:
@@ -1070,6 +1086,7 @@ int32_t GraphicsInspectorWidget::BytesPerChunk(GraphicsInspectorWidget::Mode mod
 {
     switch (mode)
     {
+    case kFormat8Bitplane: return 16;
     case kFormat4Bitplane: return 8;
     case kFormat3Bitplane: return 6;
     case kFormat2Bitplane: return 4;

@@ -39,6 +39,7 @@ public:
     void Set2Plane(const Palette& palette, int strideInBytes, int height, const Memory* pMemOrig);
     void Set3Plane(const Palette& palette, int strideInBytes, int height, const Memory* pMemOrig);
     void Set4Plane(const Palette& palette, int strideInBytes, int height, const Memory* pMemOrig);
+    void Set8Plane(const Palette& palette, int strideInBytes, int height, const Memory* pMemOrig);
     void Set1BPP(int strideInBytes, int height, const Memory* pMemOrig);
     void SetTruColor(int strideInBytes, int height, const Memory* pMemOrig);
 private:
