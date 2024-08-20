@@ -51,7 +51,9 @@ TargetModel::TargetModel() :
 
     // Set up the hardware-specific symbol tables
     m_symbolTables.m_tables[MEM_CPU].InitHardware(MEM_CPU);
+    m_symbolTables.m_tables[MEM_P].InitHardware(MEM_P);
     m_symbolTables.m_tables[MEM_X].InitHardware(MEM_X);
+    m_symbolTables.m_tables[MEM_Y].InitHardware(MEM_Y);
 
     connect(m_pDelayedUpdateTimer,  &QTimer::timeout, this, &TargetModel::delayedTimer);
     connect(m_pRunningRefreshTimer, &QTimer::timeout, this, &TargetModel::runningRefreshTimerSignal);
