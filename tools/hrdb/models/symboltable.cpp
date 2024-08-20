@@ -475,7 +475,9 @@ bool SymbolTable::FindLowerOrEqual(uint32_t address, bool sizeCheck, Symbol &res
 {
     // This is non-intuitive, but we need to find the *higher* symbol
     // in all the subtables (the one that's closest to the given address)
-    uint32_t highest = 0;
+
+    bool foundOne = false;
+    int64_t highest = (int64_t)-1;   // found address can be 0...
 
     for (int i = 0; i < kNumTables; ++i)
     {
@@ -486,10 +488,11 @@ bool SymbolTable::FindLowerOrEqual(uint32_t address, bool sizeCheck, Symbol &res
             {
                 result = tempRes;
                 highest = tempRes.address;
+                foundOne = true;
             }
         }
     }
-    return highest != 0;
+    return foundOne;
 }
 
 bool SymbolTable::Find(std::string name, Symbol &result) const
