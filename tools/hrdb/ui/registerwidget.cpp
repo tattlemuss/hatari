@@ -507,8 +507,8 @@ void RegisterWidget::PopulateRegisters()
         ++row;
         AddReg16(2, row, Registers::SR);
         int col = 11;
-        col = AddSRBit(col, row, Registers::SRBits::kTrace1, "T");
-        col = AddSRBit(col, row, Registers::SRBits::kSupervisor, "S");
+        col = 1 + AddSRBit(col, row, Registers::SRBits::kTrace1, "T");
+        col = 1 + AddSRBit(col, row, Registers::SRBits::kSupervisor, "S");
         col = AddSRBit(col, row, Registers::SRBits::kX, "X");
         col = AddSRBit(col, row, Registers::SRBits::kN, "N");
         col = AddSRBit(col, row, Registers::SRBits::kZ, "Z");
@@ -733,17 +733,17 @@ void RegisterWidget::PopulateRegisters()
             // 68020
             AddReg32(0, row, Registers::CAAR);
             AddReg16(15, row, Registers::CACR);
-            const int x = 28;
-            AddCACRBit(x+0, row, Registers::CACRBits::WA, "WA");
-            AddCACRBit(x+7, row, Registers::CACRBits::DBE, "DBE");
-            AddCACRBit(x+13, row, Registers::CACRBits::CD, "CD");
-            AddCACRBit(x+18, row, Registers::CACRBits::FD, "FD");
-            AddCACRBit(x+23, row, Registers::CACRBits::ED, "ED");
+            int x = 28;
+            x = 1 + AddCACRBit(x, row, Registers::CACRBits::WA, "WA");
+            x = 1 + AddCACRBit(x, row, Registers::CACRBits::DBE, "DBE");
+            x = 1 + AddCACRBit(x, row, Registers::CACRBits::CD, "CD");
+            x = 1 + AddCACRBit(x, row, Registers::CACRBits::FD, "FD");
+            x = 3 + AddCACRBit(x, row, Registers::CACRBits::ED, "ED");
 
-            AddCACRBit(x+30, row, Registers::CACRBits::IBE, "IBE");
-            AddCACRBit(x+36, row, Registers::CACRBits::CI, "CI");
-            AddCACRBit(x+41, row, Registers::CACRBits::FI, "FI");
-            AddCACRBit(x+46, row, Registers::CACRBits::EI, "EI");
+            x = 1 + AddCACRBit(x, row, Registers::CACRBits::IBE, "IBE");
+            x = 1 + AddCACRBit(x, row, Registers::CACRBits::CI, "CI");
+            x = 1 + AddCACRBit(x, row, Registers::CACRBits::FI, "FI");
+            x = 1 + AddCACRBit(x, row, Registers::CACRBits::EI, "EI");
             row++;
             row++;
         }
@@ -887,8 +887,8 @@ int RegisterWidget::AddCACRBit(int x, int y, uint32_t bit, const char* pName)
     uint32_t valOld = (prevRegs.m_value[Registers::CACR] >> bit) & 1;
 
     TokenColour highlight = (valNew != valOld) ? kChanged : kNormal;
-    QString text = QString::asprintf("%s=%x", pName, valNew);
-    return AddToken(x, y, QString(text), TokenType::kCACRBit, bit, highlight);
+    QString text = pName;
+    return AddToken(x, y, QString(text), TokenType::kCACRBit, bit, highlight, valNew != 0);
 }
 
 int RegisterWidget::AddSymbol(int x, int y, uint32_t address)
