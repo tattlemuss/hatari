@@ -19,6 +19,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     hardware/hardware_st.cpp \
+    hardware/regs_falc.cpp \
     hardware/regs_st.cpp \
     hardware/tos.cpp \
     hopper/decode.cpp \
@@ -67,6 +68,7 @@ SOURCES += \
 
 HEADERS += \
     hardware/hardware_st.h \
+    hardware/regs_falc.h \
     hardware/regs_st.h \
     hardware/tos.h \
     hopper/buffer.h \
