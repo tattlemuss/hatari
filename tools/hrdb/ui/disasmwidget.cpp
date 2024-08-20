@@ -893,6 +893,8 @@ void DisasmWidget::CalcDisasm56()
     // Annotate traps
     CalcAnnotations56();
 
+    const SymbolTable& symsP = m_pTargetModel->GetSymbolTable(MEM_P);
+
     // NOTE: do not use m_rowCount here, it can be stale!
     for (int row = 0; row < m_disasm.size(); ++row)
     {
@@ -924,21 +926,20 @@ void DisasmWidget::CalcDisasm56()
         }
 
         // Symbol
-#if 0
         QString addrText;
         Symbol sym;
         if (row == 0)
         {
             // show symbol + offset if necessary for the top line
-            t.symbol = DescribeSymbol(m_pTargetModel->GetSymbolTable(), addr);
+            t.symbol = DescribeSymbol(symsP, addr);
             if (!t.symbol.isEmpty())
                 t.symbol += ":";
         }
         else {
-            if (m_pTargetModel->GetSymbolTable().Find(addr, sym))
+            if (symsP.Find(addr, sym))
                 t.symbol = QString::fromStdString(sym.name) + ":";
         }
-
+#if 0
         // Cycles
         if (m_pTargetModel->IsProfileEnabled())
         {
@@ -1316,6 +1317,7 @@ void DisasmWidget::SetProc(Processor mode)
     else
         SetAddress(newAddr);
 
+    RecalcColumnWidths();
     emit procChangedSignal();
 }
 
