@@ -174,6 +174,7 @@ private:
     // Cached information when video register fetch happens.
     // Used to control palette when in Mono mode.
     Regs::RESOLUTION    m_cachedResolution;
+    uint16_t            m_cachedFalcResolution; // Copy of SPSHIFT, or 0 for ST
 
     // Stores state of "memory wanted" vs "memory request in flight"
     struct Request

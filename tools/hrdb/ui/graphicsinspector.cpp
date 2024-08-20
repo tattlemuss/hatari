@@ -34,7 +34,8 @@
 
     The code uses a dependency system, since it needs 3 bits of memory
     * the video regs
-    * the palette (which might be memory or not
+    * the palette (which might be memory or not, and depends on registers
+        as to whether to fetch $ff8240 or $ff9800)
     * the bitmap, (which might depend on registers)
 
     The bitmap cannot be requested until video regs and palette have been
@@ -446,9 +447,14 @@ void GraphicsInspectorWidget::memoryChanged(int /*memorySlot*/, uint64_t command
         const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
         if (pMem)
         {
+            m_cachedFalcResolution = 0;
             uint8_t val = 0;
             if (pMem->ReadCpuByte(Regs::VID_SHIFTER_RES, val))
                 m_cachedResolution = Regs::GetField_VID_SHIFTER_RES_RES(val);
+            uint32_t falcVal = 0;
+            if (m_pTargetModel->GetMachineType() == MACHINE_FALCON &&
+                    pMem->ReadCpuMulti(0xff8266, 2U, falcVal))
+                m_cachedFalcResolution = static_cast<uint16_t>(falcVal);
         }
 
         // See if bitmap etc can now be requested
@@ -740,12 +746,16 @@ void GraphicsInspectorWidget::UpdateMemoryRequests()
         return;
     }
 
-    if (m_requestRegs.isDirty || m_requestPalette.isDirty)
+    if (m_requestRegs.isDirty)
     {
-        if (m_requestRegs.isDirty && m_requestRegs.requestId == 0)
+        if (m_requestRegs.requestId == 0)
             m_requestRegs.requestId = m_pDispatcher->ReadMemory(MemorySlot::kGraphicsInspectorVideoRegs, Regs::VID_REG_BASE, 0x70);
+        return; // block the next requests
+    }
 
-        if (m_requestPalette.isDirty && m_requestPalette.requestId == 0)
+    if (m_requestPalette.isDirty)
+    {
+        if (m_requestPalette.requestId == 0)
         {
             if (m_paletteMode == kRegisters)
                 m_requestPalette.requestId = m_pDispatcher->ReadMemory(MemorySlot::kGraphicsInspectorPalette, Regs::VID_PAL_0, 0x20);
@@ -754,7 +764,7 @@ void GraphicsInspectorWidget::UpdateMemoryRequests()
             else
                 m_requestPalette.Clear();   // we don't need to fetch
         }
-        return;
+        return; // block the next requests
     }
 
     // We only get here if the other flags are clean
