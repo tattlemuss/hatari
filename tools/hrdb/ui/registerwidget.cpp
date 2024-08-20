@@ -676,7 +676,7 @@ void RegisterWidget::PopulateRegisters()
             QTextStream ref(&disasmText);
 
             const hop56::instruction& inst = m_disasmDsp.lines[0].inst;
-            Disassembler56::print_terse(inst, m_disasmDsp.lines[0].address, ref, m_pSession->GetSettings().m_bDisassHexNumerics);
+            Disassembler56::print_terse(inst, ref);
             AddToken(2, row, disasmText, TokenType::kNone, 0, TokenColour::kCode);
             ++row;
         }

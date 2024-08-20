@@ -956,8 +956,7 @@ void DisasmWidget::CalcDisasm56()
 
         // Disassembly
         QTextStream ref(&t.disasm);
-        Disassembler56::print_inst(line.inst56, line.address, ref, m_pSession->GetSettings().m_bDisassHexNumerics);
-
+        Disassembler56::print_inst(line.inst56, ref);
 
         // Comments
         QTextStream refC(&t.comments);
@@ -971,7 +970,13 @@ void DisasmWidget::CalcDisasm56()
                 else
                     refC << "; ";
 
-                refC << Format::to_address(line.annotations.address[i]);
+                const MemAddr& addr = line.annotations.address[i];
+                refC << Format::to_address(addr);
+
+                const SymbolTable& symTab = m_pTargetModel->GetSymbolTable(addr.space);
+                Symbol sym;
+                if (symTab.FindLowerOrEqual(addr.addr, true, sym))
+                    refC << "=" << sym.name.c_str();
                 wrotePrev = true;
             }
         }
@@ -1406,10 +1411,14 @@ void DisasmWidget::RecalcColumnWidths()
 {
     int pos = 1;
     m_columnLeft[kSymbol] = pos; pos += 19;
-    m_columnLeft[kAddress] = pos; pos += 9;
+    m_columnLeft[kAddress] = pos;
+    if (m_proc == kProcCpu)
+        pos += 9;
+    else
+        pos += 7;
     m_columnLeft[kPC] = pos; pos += 1;
     m_columnLeft[kBreakpoint] = pos; pos += 1;
-    m_columnLeft[kHex] = pos; pos += (m_bShowHex) ? 10 * 2 + 1 : 0;
+    m_columnLeft[kHex] = pos; pos += (m_bShowHex) ? (10 * 2 + 1) : 0;
     m_columnLeft[kCycles] = pos;
     pos += (m_pTargetModel->IsProfileEnabled()) ? 20 : 0;
 
@@ -1417,7 +1426,7 @@ void DisasmWidget::RecalcColumnWidths()
     if (m_proc == kProcCpu)
         pos += 8+18+9+1; // movea.l $12345678(pc,d0.w),$12345678
     else
-        pos += 40;      // best guess for the moment
+        pos += 42;       // best guess for the moment
 
     m_columnLeft[kComments] = pos; pos += 80;
     m_columnLeft[kNumColumns] = pos;

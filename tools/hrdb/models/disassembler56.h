@@ -62,10 +62,10 @@ public:
     static int decode_buf(hop56::buffer_reader& buf, disassembly& disasm, const hop56::decode_settings& settings, uint32_t address, int32_t maxLines);
 
     // Format a single instruction and its arguments
-    static int print_inst(const hop56::instruction& inst, /*const symbols& symbols, */ uint32_t inst_address, QTextStream& ref, bool bDisassHexNumerics);
+    static int print_inst(const hop56::instruction& inst, QTextStream& ref);
 
     // Format a single instruction and its arguments
-    static int print_terse(const hop56::instruction& inst, /*const symbols& symbols, */ uint32_t inst_address, QTextStream& ref, bool bDisassHexNumerics);
+    static int print_terse(const hop56::instruction& inst, QTextStream& ref);
 
     static bool calc_ea(const hop56::operand& op, addr_t& target_address);
 };

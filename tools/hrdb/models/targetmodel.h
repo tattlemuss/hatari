@@ -177,7 +177,10 @@ public:
         return m_pMemory[slot];
     }
     const Breakpoints& GetBreakpoints() const { return m_breakpoints; }
-    const SymbolTable& GetSymbolTable() const { return m_symbolTable; }
+
+    // This refers to the CPU symbol table
+    const SymbolTable& GetSymbolTable(MemSpace space = MEM_CPU) const;
+
     const SearchResults& GetSearchResults() const { return m_searchResults; }
     const ExceptionMask& GetExceptionMask() const { return m_exceptionMask; }
     YmState GetYm() const { return m_ymState; }
@@ -275,7 +278,7 @@ private:
 
     AllRegisters    m_regs;             // Current register values
     Breakpoints     m_breakpoints;      // Current breakpoint list
-    SymbolTable     m_symbolTable;
+    AllSymbols      m_symbolTables;
     ExceptionMask   m_exceptionMask;
     YmState         m_ymState;
     ProfileData*    m_pProfileData;

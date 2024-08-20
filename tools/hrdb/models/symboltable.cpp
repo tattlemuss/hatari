@@ -257,6 +257,31 @@ static void AddHardware(SymbolSubTable& table)
     ADD_SYM(__vec_mfp_mono,    0x13c, 4, "MFP Mono Interrupt Vector (default)")
 }
 
+static void AddHardwareX(SymbolSubTable& table)
+{
+    ADD_SYM(DSP_PBC			, 0xffc0 + 0x20, 1, "Port B control register")
+    ADD_SYM(DSP_PCC			, 0xffc0 + 0x21, 1, "Port C control register")
+    ADD_SYM(DSP_PBDDR		, 0xffc0 + 0x22, 1, "Port B data direction register")
+    ADD_SYM(DSP_PCDDR		, 0xffc0 + 0x23, 1, "Port C data direction register")
+    ADD_SYM(DSP_PBD			, 0xffc0 + 0x24, 1, "Port B data register")
+    ADD_SYM(DSP_PCD			, 0xffc0 + 0x25, 1, "Port C data register")
+    ADD_SYM(DSP_HOST_HCR	, 0xffc0 + 0x28, 1, "Host control register")
+    ADD_SYM(DSP_HOST_HSR	, 0xffc0 + 0x29, 1, "Host status register")
+    ADD_SYM(DSP_HOST_HRX	, 0xffc0 + 0x2b, 1, "Host receive register")
+    ADD_SYM(DSP_HOST_HTX	, 0xffc0 + 0x2b, 1, "Host transmit register")
+    ADD_SYM(DSP_SSI_CRA		, 0xffc0 + 0x2c, 1, "SSI control register A")
+    ADD_SYM(DSP_SSI_CRB		, 0xffc0 + 0x2d, 1, "SSI control register B")
+    ADD_SYM(DSP_SSI_SR		, 0xffc0 + 0x2e, 1, "SSI status register")
+    ADD_SYM(DSP_SSI_TSR		, 0xffc0 + 0x2e, 1, "SSI time slot register")
+    ADD_SYM(DSP_SSI_RX		, 0xffc0 + 0x2f, 1, "SSI receive register")
+    ADD_SYM(DSP_SSI_TX		, 0xffc0 + 0x2f, 1, "SSI transmit register")
+    ADD_SYM(DSP_SCI_SCR		, 0xffc0 + 0x30, 1, "SCI control register")
+    ADD_SYM(DSP_SCI_SSR		, 0xffc0 + 0x31, 1, "SCI status register")
+    ADD_SYM(DSP_SCI_SCCR	, 0xffc0 + 0x32, 1, "SCI clock control register")
+    ADD_SYM(DSP_BCR			, 0xffc0 + 0x3e, 1, "Port A bus control register")
+    ADD_SYM(DSP_IPR			, 0xffc0 + 0x3f, 1, "Interrupt priority register")
+}
+
 void SymbolSubTable::Clear()
 {
     m_symbols.clear();
@@ -380,11 +405,19 @@ const Symbol SymbolSubTable::Get(size_t index) const
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 SymbolTable::SymbolTable()
 {
-    AddHardware(m_subTables[kHardware]);
+}
+
+void SymbolTable::InitHardware(MemSpace space)
+{
+    if (space == MEM_CPU)
+        AddHardware(m_subTables[kHardware]);
+    if (space == MEM_X)
+        AddHardwareX(m_subTables[kHardware]);
+
     m_subTables[kHardware].CreateCache();
 }
 
-void SymbolTable::Reset()
+void SymbolTable::ResetHatari()
 {
     m_subTables[kHatari].Clear();
 }

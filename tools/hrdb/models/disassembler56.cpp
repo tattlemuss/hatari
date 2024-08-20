@@ -119,7 +119,7 @@ static void print(const hop56::operand& operand, /*const symbols& symbols,*/ QTe
     }
 }
 
-int Disassembler56::print_inst(const hop56::instruction &inst, uint32_t inst_address, QTextStream &ref, bool bDisassHexNumerics)
+int Disassembler56::print_inst(const hop56::instruction &inst, QTextStream &ref)
 {
 
     if (inst.opcode == hop56::INVALID)
@@ -129,7 +129,7 @@ int Disassembler56::print_inst(const hop56::instruction &inst, uint32_t inst_add
     }
 
     QString opcode = hop56::get_opcode_string(inst.opcode);
-    QString pad = QString("%1").arg(opcode, -6);
+    QString pad = QString("%1").arg(opcode, -6);    // I don't understand how this works
     ref << pad;
 
     QString part1;
@@ -144,7 +144,6 @@ int Disassembler56::print_inst(const hop56::instruction &inst, uint32_t inst_add
 
         if (i == 0)
         {
-            ref1 << "   ";
             if (inst.neg_operands)
                 ref1 << "-";
         }
@@ -172,7 +171,7 @@ int Disassembler56::print_inst(const hop56::instruction &inst, uint32_t inst_add
     ref1.flush();
     //if (part1.size() > 0)
     {
-        pad = QString("%1").arg(part1, -20);
+        pad = QString("%1").arg(part1, -9);
         ref << pad;
     }
 
@@ -183,14 +182,22 @@ int Disassembler56::print_inst(const hop56::instruction &inst, uint32_t inst_add
         if (pmove.operands[0].type == hop56::operand::NONE)
             continue;	// skip if there is no first operand
 
-        ref << "   ";
-        print(pmove.operands[0], ref);
+        QString part2;
+        QTextStream ref2(&part2);
+        // Always ensure 1 space
+        ref2 << " ";
+        print(pmove.operands[0], ref2);
 
-        if (pmove.operands[1].type == hop56::operand::NONE)
-            continue;	// next pmove
-        ref << ",";
-        print(pmove.operands[1], ref);
+        if (pmove.operands[1].type != hop56::operand::NONE)
+        {
+            ref2 << ",";
+            print(pmove.operands[1], ref2);
+        }
+        // Align this pmove part too
+        pad = QString("%1").arg(part2, -12);
+        ref << pad;
     }
+    return 0;
 }
 
 // Check if an operand jumps to another known address, and return that address
@@ -219,7 +226,7 @@ bool Disassembler56::calc_ea(const hop56::operand& op, addr_t& target_address)
 }
 
 
-int Disassembler56::print_terse(const hop56::instruction &inst, uint32_t inst_address, QTextStream &ref, bool bDisassHexNumerics)
+int Disassembler56::print_terse(const hop56::instruction &inst, QTextStream &ref)
 {
     if (inst.opcode == hop56::INVALID)
     {
@@ -274,6 +281,7 @@ int Disassembler56::print_terse(const hop56::instruction &inst, uint32_t inst_ad
         ref << ",";
         print(pmove.operands[1], ref);
     }
+    return 0;
 }
 
 bool DisAnalyse56::isSubroutine(const hop56::instruction &inst)

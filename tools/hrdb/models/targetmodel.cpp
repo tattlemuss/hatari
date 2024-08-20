@@ -49,6 +49,10 @@ TargetModel::TargetModel() :
 
     m_decodeSettings.cpu_type = hop68::CPU_TYPE_68000;
 
+    // Set up the hardware-specific symbol tables
+    m_symbolTables.m_tables[MEM_CPU].InitHardware(MEM_CPU);
+    m_symbolTables.m_tables[MEM_X].InitHardware(MEM_X);
+
     connect(m_pDelayedUpdateTimer,  &QTimer::timeout, this, &TargetModel::delayedTimer);
     connect(m_pRunningRefreshTimer, &QTimer::timeout, this, &TargetModel::runningRefreshTimerSignal);
 }
@@ -70,7 +74,7 @@ void TargetModel::SetConnected(int connected)
     if (connected == 0)
     {
         // Clear out lots of data from the model
-        m_symbolTable.Reset();
+        m_symbolTables.m_tables[MEM_CPU].ResetHatari();
 
         Breakpoints dummyBreak;
         SetBreakpoints(dummyBreak, 0);
@@ -163,7 +167,7 @@ void TargetModel::SetBreakpoints(const Breakpoints& bps, uint64_t commandId)
 
 void TargetModel::SetSymbolTable(const SymbolSubTable& syms, uint64_t commandId)
 {
-    m_symbolTable.SetHatariSubTable(syms);
+    m_symbolTables.m_tables[MEM_CPU].SetHatariSubTable(syms);
     m_changedFlags.SetChanged(TargetChangedFlags::kSymbolTable);
     emit symbolTableChangedSignal(commandId);
 }
@@ -242,6 +246,12 @@ uint32_t TargetModel::GetStartStopPC(Processor proc) const
         return m_startStopPc;
     else
         return m_startStopDspPc;
+}
+
+const SymbolTable& TargetModel::GetSymbolTable(MemSpace space) const
+{
+    assert(space <= MEM_SPACE_MAX);
+    return m_symbolTables.m_tables[space];
 }
 
 void TargetModel::GetProfileData(uint32_t addr, uint32_t& count, uint32_t& cycles) const
