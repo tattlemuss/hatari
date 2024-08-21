@@ -17,7 +17,7 @@ class TargetModel;
 class Dispatcher;
 class Session;
 
-namespace Regs
+namespace stgen
 {
     struct FieldDef;
 }
@@ -86,10 +86,10 @@ private:
     void memoryChanged(int memorySlot, uint64_t commandId);
     void settingsChanged();
 
-    void addField(HardwareBase* pLayout, const QString& title, const Regs::FieldDef& def);
+    void addField(HardwareBase* pLayout, const QString& title, const stgen::FieldDef& def);
     void addRegBinary16(HardwareBase* pLayout, const QString& title, uint32_t addr);
     void addRegSigned16(HardwareBase* pLayout, const QString& title, uint32_t addr);
-    void addMultiField(HardwareBase *pLayout, const QString &title, const Regs::FieldDef** defs);
+    void addMultiField(HardwareBase *pLayout, const QString &title, const stgen::FieldDef** defs);
     void addShared(HardwareBase *pLayout, const QString &title, HardwareField* pField);
 
     Session*                    m_pSession;

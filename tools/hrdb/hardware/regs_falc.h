@@ -4,27 +4,10 @@
 #ifndef STGEN_regs_falc_H
 #define STGEN_regs_falc_H
 #include <stdint.h>
-namespace FalconRegs {
 
-struct StringDef
-{
-    uint32_t value;
-    const char* string;
-};
+#include "stgen.h"
 
-struct FieldDef
-{
-    uint32_t regAddr;
-    uint32_t mask;
-    uint8_t size;
-    uint8_t shift;
-    const char* name;
-    const StringDef* strings;
-    const char* comment;
-};
-
-// Look up a string in the table
-const char* GetString(const StringDef* strings, uint32_t value);
+namespace Regs {
 
 
 /* Enum -> string lookup declarations */
@@ -41,7 +24,7 @@ static const uint32_t FALC_SPSHIFT                   = 0xff8266;
 static const uint32_t VID_SCANLINE_OFFSET_FALCON_ALL_SHIFT = 0;
 static const uint32_t VID_SCANLINE_OFFSET_FALCON_ALL_MASK = 511;
 inline uint16_t GetField_VID_SCANLINE_OFFSET_FALCON_ALL(uint32_t value) { return static_cast<uint16_t>(((value)>>0) & 511); }
-extern const FieldDef g_fieldDef_VID_SCANLINE_OFFSET_FALCON_ALL;
+extern const stgen::FieldDef g_fieldDef_VID_SCANLINE_OFFSET_FALCON_ALL;
 
 
 /* Register VID_LINE_WIDTH_FALCON ($ff8210)*/
@@ -49,7 +32,7 @@ extern const FieldDef g_fieldDef_VID_SCANLINE_OFFSET_FALCON_ALL;
 static const uint32_t VID_LINE_WIDTH_FALCON_ALL_SHIFT = 0;
 static const uint32_t VID_LINE_WIDTH_FALCON_ALL_MASK = 1023;
 inline uint16_t GetField_VID_LINE_WIDTH_FALCON_ALL(uint32_t value) { return static_cast<uint16_t>(((value)>>0) & 1023); }
-extern const FieldDef g_fieldDef_VID_LINE_WIDTH_FALCON_ALL;
+extern const stgen::FieldDef g_fieldDef_VID_LINE_WIDTH_FALCON_ALL;
 
 
 /* Register FALC_SPSHIFT ($ff8266)*/
@@ -57,37 +40,37 @@ extern const FieldDef g_fieldDef_VID_LINE_WIDTH_FALCON_ALL;
 static const uint32_t FALC_SPSHIFT_COLBANK_SHIFT = 0;
 static const uint32_t FALC_SPSHIFT_COLBANK_MASK = 15;
 inline uint8_t GetField_FALC_SPSHIFT_COLBANK(uint32_t value) { return static_cast<uint8_t>(((value)>>0) & 15); }
-extern const FieldDef g_fieldDef_FALC_SPSHIFT_COLBANK;
+extern const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_COLBANK;
 
 /* Field MODE_256 */
 static const uint32_t FALC_SPSHIFT_MODE_256_SHIFT = 4;
 static const uint32_t FALC_SPSHIFT_MODE_256_MASK = 1;
 inline bool GetField_FALC_SPSHIFT_MODE_256(uint32_t value) { return static_cast<bool>(((value)>>4) & 1); }
-extern const FieldDef g_fieldDef_FALC_SPSHIFT_MODE_256;
+extern const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_MODE_256;
 
 /* Field TRUCOL */
 static const uint32_t FALC_SPSHIFT_TRUCOL_SHIFT = 8;
 static const uint32_t FALC_SPSHIFT_TRUCOL_MASK = 1;
 inline bool GetField_FALC_SPSHIFT_TRUCOL(uint32_t value) { return static_cast<bool>(((value)>>8) & 1); }
-extern const FieldDef g_fieldDef_FALC_SPSHIFT_TRUCOL;
+extern const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_TRUCOL;
 
 /* Field OVERLAY */
 static const uint32_t FALC_SPSHIFT_OVERLAY_SHIFT = 9;
 static const uint32_t FALC_SPSHIFT_OVERLAY_MASK = 1;
 inline bool GetField_FALC_SPSHIFT_OVERLAY(uint32_t value) { return static_cast<bool>(((value)>>9) & 1); }
-extern const FieldDef g_fieldDef_FALC_SPSHIFT_OVERLAY;
+extern const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_OVERLAY;
 
 /* Field MODE_2 */
 static const uint32_t FALC_SPSHIFT_MODE_2_SHIFT = 10;
 static const uint32_t FALC_SPSHIFT_MODE_2_MASK = 1;
 inline bool GetField_FALC_SPSHIFT_MODE_2(uint32_t value) { return static_cast<bool>(((value)>>10) & 1); }
-extern const FieldDef g_fieldDef_FALC_SPSHIFT_MODE_2;
+extern const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_MODE_2;
 
 
 /* Register Field Sets */
 
-extern const FieldDef* g_regFieldsDef_VID_SCANLINE_OFFSET_FALCON[];
-extern const FieldDef* g_regFieldsDef_VID_LINE_WIDTH_FALCON[];
-extern const FieldDef* g_regFieldsDef_FALC_SPSHIFT[];
+extern const stgen::FieldDef* g_regFieldsDef_VID_SCANLINE_OFFSET_FALCON[];
+extern const stgen::FieldDef* g_regFieldsDef_VID_LINE_WIDTH_FALCON[];
+extern const stgen::FieldDef* g_regFieldsDef_FALC_SPSHIFT[];
 } // namespace
 #endif

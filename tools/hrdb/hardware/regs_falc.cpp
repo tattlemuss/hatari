@@ -2,58 +2,47 @@
 
 #include "regs_falc.h"
 
-namespace FalconRegs {
+namespace Regs {
 
-    const char* GetString(const StringDef* strings, uint32_t value)
-    {
-        while (strings->string)
-        {
-            if (value == strings->value)
-                return strings->string;
-            ++strings;
-        }
-        return "?";
-    }
-
-const FieldDef g_fieldDef_VID_SCANLINE_OFFSET_FALCON_ALL = {
+const stgen::FieldDef g_fieldDef_VID_SCANLINE_OFFSET_FALCON_ALL = {
   VID_SCANLINE_OFFSET_FALCON, VID_SCANLINE_OFFSET_FALCON_ALL_MASK,
   2, VID_SCANLINE_OFFSET_FALCON_ALL_SHIFT,
   "ALL", nullptr, "Offset in words (Falcon)" };
-const FieldDef g_fieldDef_VID_LINE_WIDTH_FALCON_ALL = {
+const stgen::FieldDef g_fieldDef_VID_LINE_WIDTH_FALCON_ALL = {
   VID_LINE_WIDTH_FALCON, VID_LINE_WIDTH_FALCON_ALL_MASK,
   2, VID_LINE_WIDTH_FALCON_ALL_SHIFT,
   "ALL", nullptr, "Offset in words (Falcon)" };
-const FieldDef g_fieldDef_FALC_SPSHIFT_COLBANK = {
+const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_COLBANK = {
   FALC_SPSHIFT, FALC_SPSHIFT_COLBANK_MASK,
   1, FALC_SPSHIFT_COLBANK_SHIFT,
   "COLBANK", nullptr, "Colour bank in 8-bitplane" };
-const FieldDef g_fieldDef_FALC_SPSHIFT_MODE_256 = {
+const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_MODE_256 = {
   FALC_SPSHIFT, FALC_SPSHIFT_MODE_256_MASK,
   1, FALC_SPSHIFT_MODE_256_SHIFT,
   "MODE_256", nullptr, "256-colour mode (8-bitplane)" };
-const FieldDef g_fieldDef_FALC_SPSHIFT_TRUCOL = {
+const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_TRUCOL = {
   FALC_SPSHIFT, FALC_SPSHIFT_TRUCOL_MASK,
   1, FALC_SPSHIFT_TRUCOL_SHIFT,
   "TRUCOL", nullptr, "True-Color mode" };
-const FieldDef g_fieldDef_FALC_SPSHIFT_OVERLAY = {
+const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_OVERLAY = {
   FALC_SPSHIFT, FALC_SPSHIFT_OVERLAY_MASK,
   1, FALC_SPSHIFT_OVERLAY_SHIFT,
   "OVERLAY", nullptr, "Overlay mode" };
-const FieldDef g_fieldDef_FALC_SPSHIFT_MODE_2 = {
+const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_MODE_2 = {
   FALC_SPSHIFT, FALC_SPSHIFT_MODE_2_MASK,
   1, FALC_SPSHIFT_MODE_2_SHIFT,
   "MODE_2", nullptr, "2-colour mode (1-bitplane)" };
 /* Register Field Sets */
 
-const FieldDef* g_regFieldsDef_VID_SCANLINE_OFFSET_FALCON[] = {
+const stgen::FieldDef* g_regFieldsDef_VID_SCANLINE_OFFSET_FALCON[] = {
 	 &g_fieldDef_VID_SCANLINE_OFFSET_FALCON_ALL,
 	nullptr
 };
-const FieldDef* g_regFieldsDef_VID_LINE_WIDTH_FALCON[] = {
+const stgen::FieldDef* g_regFieldsDef_VID_LINE_WIDTH_FALCON[] = {
 	 &g_fieldDef_VID_LINE_WIDTH_FALCON_ALL,
 	nullptr
 };
-const FieldDef* g_regFieldsDef_FALC_SPSHIFT[] = {
+const stgen::FieldDef* g_regFieldsDef_FALC_SPSHIFT[] = {
 	 &g_fieldDef_FALC_SPSHIFT_COLBANK,
 	 &g_fieldDef_FALC_SPSHIFT_MODE_256,
 	 &g_fieldDef_FALC_SPSHIFT_TRUCOL,

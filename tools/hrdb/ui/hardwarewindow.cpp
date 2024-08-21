@@ -55,7 +55,7 @@ uint32_t ReadAddressMulti(const TargetModel* pModel, uint32_t address, uint32_t 
 }
 
 //-----------------------------------------------------------------------------
-bool GetField(const TargetModel* pModel, const Regs::FieldDef& def, QString& result)
+bool GetField(const TargetModel* pModel, const stgen::FieldDef& def, QString& result)
 {
     if (!HasAddressMulti(pModel, def.regAddr, def.size))
         return false;
@@ -63,7 +63,7 @@ bool GetField(const TargetModel* pModel, const Regs::FieldDef& def, QString& res
     uint32_t regVal = ReadAddressMulti(pModel, def.regAddr, def.size);
     uint32_t extracted = (regVal >> def.shift) & def.mask;
     if (def.strings)
-        result = QString::asprintf("%s ($%x)", GetString(def.strings, extracted), extracted);
+        result = QString::asprintf("%s ($%x)", stgen::GetString(def.strings, extracted), extracted);
     else
         result = QString::asprintf("%u ($%x)", extracted, extracted);
     return true;
@@ -106,7 +106,7 @@ bool GetRegBinary16(const TargetModel* pModel, uint32_t addr, QString& result)
 }
 
 //-----------------------------------------------------------------------------
-bool GetFieldVal(const Memory& mem, const Regs::FieldDef& def, uint32_t& result)
+bool GetFieldVal(const Memory& mem, const stgen::FieldDef& def, uint32_t& result)
 {
     if (!mem.HasCpuRange(def.regAddr, def.size))
         return false;
@@ -193,7 +193,7 @@ HardwareField::~HardwareField()
 class HardwareFieldRegEnum : public HardwareField
 {
 public:
-    HardwareFieldRegEnum(const Regs::FieldDef& def) :
+    HardwareFieldRegEnum(const stgen::FieldDef& def) :
         m_def(def)
     {
         m_memAddress = m_def.regAddr;
@@ -202,7 +202,7 @@ public:
 
     bool Update(const TargetModel* pTarget);
 
-    const Regs::FieldDef&   m_def;
+    const stgen::FieldDef&   m_def;
 };
 
 //-----------------------------------------------------------------------------
@@ -241,7 +241,7 @@ public:
 class HardwareFieldMultiField : public HardwareField
 {
 public:
-    HardwareFieldMultiField(const Regs::FieldDef** defs) :
+    HardwareFieldMultiField(const stgen::FieldDef** defs) :
         m_pDefs(defs)
     {
         // Simply use the first register address
@@ -251,7 +251,7 @@ public:
 
     bool Update(const TargetModel* pTarget);
 
-    const Regs::FieldDef**  m_pDefs;
+    const stgen::FieldDef**  m_pDefs;
 };
 
 //-----------------------------------------------------------------------------
@@ -430,10 +430,10 @@ bool HardwareFieldMultiField::Update(const TargetModel* pTarget)
 {
     QString res;
     QTextStream ref(&res);
-    const Regs::FieldDef** pDef = m_pDefs;
+    const stgen::FieldDef** pDef = m_pDefs;
     for (; *pDef; ++pDef)
     {
-        const Regs::FieldDef* pCurrDef = *pDef;
+        const stgen::FieldDef* pCurrDef = *pDef;
         if (!HasAddressMulti(pTarget, pCurrDef->regAddr, 1))
             return false;
         uint32_t regVal = ReadAddressMulti(pTarget, pCurrDef->regAddr, 1);
@@ -450,7 +450,7 @@ bool HardwareFieldMultiField::Update(const TargetModel* pTarget)
         else {
             if (pCurrDef->strings)
             {
-                const char* str = Regs::GetString(pCurrDef->strings, extracted);
+                const char* str = stgen::GetString(pCurrDef->strings, extracted);
                 ref << pCurrDef->name << "=" << str << " ";
             }
             else
@@ -1329,7 +1329,7 @@ void HardwareWindow::settingsChanged()
 }
 
 //-----------------------------------------------------------------------------
-void HardwareWindow::addField(HardwareBase* pLayout, const QString& title, const Regs::FieldDef &def)
+void HardwareWindow::addField(HardwareBase* pLayout, const QString& title, const stgen::FieldDef &def)
 {
     HardwareFieldRegEnum* pField = new HardwareFieldRegEnum(def);
     addShared(pLayout, title, pField);
@@ -1350,7 +1350,7 @@ void HardwareWindow::addRegSigned16(HardwareBase* pLayout, const QString& title,
 }
 
 //-----------------------------------------------------------------------------
-void HardwareWindow::addMultiField(HardwareBase* pLayout, const QString& title, const Regs::FieldDef** defs)
+void HardwareWindow::addMultiField(HardwareBase* pLayout, const QString& title, const stgen::FieldDef** defs)
 {
     HardwareFieldMultiField* pField = new HardwareFieldMultiField(defs);
     addShared(pLayout, title, pField);

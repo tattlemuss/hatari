@@ -21,6 +21,7 @@ SOURCES += \
     hardware/hardware_st.cpp \
     hardware/regs_falc.cpp \
     hardware/regs_st.cpp \
+    hardware/stgen.cpp \
     hardware/tos.cpp \
     hopper/decode.cpp \
     hopper/instruction.cpp \
@@ -70,6 +71,7 @@ HEADERS += \
     hardware/hardware_st.h \
     hardware/regs_falc.h \
     hardware/regs_st.h \
+    hardware/stgen.h \
     hardware/tos.h \
     hopper/buffer.h \
     hopper/decode.h \

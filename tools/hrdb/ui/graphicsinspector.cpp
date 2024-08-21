@@ -455,7 +455,7 @@ void GraphicsInspectorWidget::memoryChanged(int /*memorySlot*/, uint64_t command
                 m_cachedResolution = Regs::GetField_VID_SHIFTER_RES_RES(val);
             uint32_t falcVal = 0;
             if (m_pTargetModel->GetMachineType() == MACHINE_FALCON &&
-                    pMem->ReadCpuMulti(FalconRegs::FALC_SPSHIFT, 2U, falcVal))
+                    pMem->ReadCpuMulti(Regs::FALC_SPSHIFT, 2U, falcVal))
                 m_cachedFalcResolution = static_cast<uint16_t>(falcVal);
         }
 
