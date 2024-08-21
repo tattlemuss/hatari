@@ -155,7 +155,8 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     // Third line
     m_pPaletteComboBox = new QComboBox(this);
     m_pPaletteComboBox->addItem(tr("Registers"), kRegisters);
-    m_pPaletteComboBox->addItem(tr("Memory..."), kUserMemory);
+    m_pPaletteComboBox->addItem(tr("Memory (ST)"), kUserMemory);
+    m_pPaletteComboBox->addItem(tr("Memory (F030)"), kUserMemoryF030);
     m_pPaletteComboBox->addItem(tr("Greyscale"), kGreyscale);
     m_pPaletteComboBox->addItem(tr("Contrast1"), kContrast1);
     m_pPaletteComboBox->addItem(tr("Bitplane0"), kBitplane0);
@@ -569,7 +570,9 @@ void GraphicsInspectorWidget::paletteChangedSlot(int index)
     updateInfoLine();
 
     // Only certain modes require palette memory re-request
-    if (m_paletteMode == kRegisters || m_paletteMode == kUserMemory)
+
+    if (m_paletteMode == kRegisters || m_paletteMode == kUserMemory ||
+            m_paletteMode == kUserMemoryF030)
         m_requestPalette.Dirty();
 
     // This will recalc the image immediately if no requests have been
@@ -762,6 +765,8 @@ void GraphicsInspectorWidget::UpdateMemoryRequests()
                 m_requestPalette.requestId = m_pDispatcher->ReadMemory(MemorySlot::kGraphicsInspectorPalette, Regs::VID_PAL_0, 0x20);
             else if (m_paletteMode == kUserMemory)
                 m_requestPalette.requestId = m_pDispatcher->ReadMemory(MemorySlot::kGraphicsInspectorPalette, m_paletteAddress, 0x20);
+            else if (m_paletteMode == kUserMemoryF030)
+                m_requestPalette.requestId = m_pDispatcher->ReadMemory(MemorySlot::kGraphicsInspectorPalette, m_paletteAddress, 256 * 4);
             else
                 m_requestPalette.Clear();   // we don't need to fetch
         }
@@ -845,6 +850,22 @@ void GraphicsInspectorWidget::UpdateImage()
 
                 uint32_t colour = 0xff000000U;
                 HardwareST::GetColour(regVal, m_pTargetModel->GetMachineType(), colour);
+                palette[i] = colour;
+            }
+            break;
+        }
+        case kUserMemoryF030:
+        {
+            const Memory* pMemOrig = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorPalette);
+            if (!pMemOrig || pMemOrig->GetSize() < 256 * 4)
+                return;
+
+            for (uint i = 0; i < 256; ++i)
+            {
+                uint8_t r = pMemOrig->Get(i * 4 + 0) & 0xfc;
+                uint8_t g = pMemOrig->Get(i * 4 + 1) & 0xfc;
+                uint8_t b = pMemOrig->Get(i * 4 + 3) & 0xfc;
+                uint32_t colour = 0xff000000U | (r << 16) | (g << 8) | (b);
                 palette[i] = colour;
             }
             break;
@@ -967,7 +988,9 @@ void GraphicsInspectorWidget::UpdateUIElements()
 
     // Disable palette control for chunky
     m_pPaletteComboBox->setEnabled(allowAdjustPalette);
-    m_pPaletteAddressLineEdit->setVisible(m_paletteMode == kUserMemory);
+    bool usingMemory = (m_paletteMode == kUserMemory) ||
+            (m_paletteMode == kUserMemoryF030);
+    m_pPaletteAddressLineEdit->setVisible(usingMemory);
 
     m_pOverlayDarkenAction->setChecked(m_pImageWidget->GetDarken());
     m_pOverlayGridAction->setChecked(m_pImageWidget->GetGrid());

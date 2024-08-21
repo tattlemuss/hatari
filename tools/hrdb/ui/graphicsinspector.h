@@ -86,14 +86,16 @@ private:
 
     enum Palette
     {
-        kGreyscale,
-        kContrast1,
-        kBitplane0,
-        kBitplane1,
-        kBitplane2,
-        kBitplane3,
-        kRegisters,
-        kUserMemory
+        // NOTE: these are serialised, so keep values the same
+        kGreyscale = 0,
+        kContrast1 = 1,
+        kBitplane0 = 2,
+        kBitplane1 = 3,
+        kBitplane2 = 4,
+        kBitplane3 = 5,
+        kRegisters = 6,
+        kUserMemory = 7,
+        kUserMemoryF030 = 8
     };
 
     void RequestBitmapAddress(Session::WindowType type, int windowIndex, int memorySpace, uint32_t address);
