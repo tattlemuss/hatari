@@ -198,8 +198,8 @@ void MemoryBitmap::Set8Plane(const Palette& palette, int strideInBytes, int heig
                 uint8_t val = 0;
                 for (int i = 0; i < 8; ++i)
                 {
-                    val |= (src[i] & 1);
                     val <<= 1;
+                    val |= (src[i] & 1);
                     src[i] >>= 1;
                 }
                 pDestPixels[pix] = val;
