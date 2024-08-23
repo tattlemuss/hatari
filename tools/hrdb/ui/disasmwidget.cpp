@@ -847,7 +847,7 @@ void DisasmWidget::CalcDisasm68()
         // Branch info
         uint32_t target;
         if (DisAnalyse::getBranchTarget(line.address, line.inst68, target))
-            (void)AddDisasmBranch(row, target);
+            (void)AddDisasmBranch(row, target, false);
         m_rowTexts.push_back(t);
     }
 
@@ -995,8 +995,9 @@ void DisasmWidget::CalcDisasm56()
 
         // Branch info
         uint32_t target;
-        if (DisAnalyse56::getBranchTarget(line.inst56, target))
-            (void) AddDisasmBranch(row, target);
+        bool reversed = false;
+        if (DisAnalyse56::getBranchTarget(line.inst56, line.address, target, reversed))
+            (void) AddDisasmBranch(row, target, reversed);
         m_rowTexts.push_back(t);
     }
 
@@ -1006,7 +1007,7 @@ void DisasmWidget::CalcDisasm56()
 
 // Add a branch to m_branches. We try to match the target address
 // to existing row addresses in the disassembly
-int DisasmWidget::AddDisasmBranch(int row, uint32_t target)
+int DisasmWidget::AddDisasmBranch(int row, uint32_t target, bool reversed)
 {
     int targetLine = -1;
 
@@ -1051,6 +1052,13 @@ int DisasmWidget::AddDisasmBranch(int row, uint32_t target)
     if (b.stop != -1)
     {
         assert(b.start != -1);
+
+        if (reversed)
+        {
+            int tmp = b.start;
+            b.start = b.stop;
+            b.stop = tmp;
+        }
         m_branches.push_back(b);
     }
     return targetLine;

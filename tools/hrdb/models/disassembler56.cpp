@@ -322,8 +322,9 @@ bool DisAnalyse56::isBranch(const hop56::instruction &inst, const DspRegisters &
     return false;
 }
 
-bool DisAnalyse56::getBranchTarget(const hop56::instruction &inst, uint32_t &target)
+bool DisAnalyse56::getBranchTarget(const hop56::instruction &inst, uint32_t instAddr, uint32_t &target, bool& reversed)
 {
+    reversed = false;
     switch (inst.opcode)
     {
     case hop56::Opcode::O_JCC:
@@ -343,6 +344,7 @@ bool DisAnalyse56::getBranchTarget(const hop56::instruction &inst, uint32_t &tar
     case hop56::Opcode::O_JNR:
     case hop56::Opcode::O_JPL:
     case hop56::Opcode::O_JMP:
+    case hop56::Opcode::O_JSR:
         if (inst.operands[0].type == hop56::operand::Type::ABS)
         {
             target = inst.operands[0].abs.address;
@@ -359,6 +361,19 @@ bool DisAnalyse56::getBranchTarget(const hop56::instruction &inst, uint32_t &tar
             return true;
         }
         return true;
+    case hop56::Opcode::O_DO:
+            // e.g. do #15,addr
+            if (inst.operands[1].type == hop56::operand::Type::ABS)
+            {
+                target = inst.operands[1].abs.address;
+                reversed = true;
+                return true;
+            }
+            return true;
+        case hop56::Opcode::O_REP:
+            target = instAddr + inst.word_count;
+            reversed = true;
+            return true;
     default:
         break;
     }

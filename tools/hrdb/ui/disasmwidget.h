@@ -91,7 +91,7 @@ private:
     void CalcDisasm68();
     void CalcDisasm56();
 
-    int AddDisasmBranch(int row, uint32_t target);
+    int AddDisasmBranch(int row, uint32_t target, bool reversed);
     void LayOutBranches();
 
     void CalcAnnotations68();

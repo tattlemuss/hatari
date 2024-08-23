@@ -474,9 +474,11 @@ void MainWindow::nextDspClickedSlot()
     bool shouldStepOver = DisAnalyse56::isSubroutine(currLine.inst);
 
     // Step over branches-to-self too
+    // TODO needs better "step over" logic here, possibly a specific function.
     uint32_t targetAddr = -1;
-    bool isBranch = DisAnalyse56::getBranchTarget(currLine.inst, targetAddr);
-    if (isBranch && targetAddr == currLine.address)
+    bool reversed = false;
+    bool isBranch = DisAnalyse56::getBranchTarget(currLine.inst, currLine.address, targetAddr, reversed);
+    if (isBranch && !reversed && targetAddr == currLine.address)
         shouldStepOver = true;
 
     if (shouldStepOver)

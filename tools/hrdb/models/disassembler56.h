@@ -80,7 +80,7 @@ public:
     static bool isBranch(const hop56::instruction &inst, const DspRegisters& regs, bool& takeBranch);
 
     // See if this is a branch instruction and where it points (i.e. its effective address)
-    static bool getBranchTarget(const hop56::instruction &inst, uint32_t& target);
+    static bool getBranchTarget(const hop56::instruction &inst, uint32_t instAddr, uint32_t& target, bool& reversed);
 };
 
 #endif // DISASSEMBLER56_H
