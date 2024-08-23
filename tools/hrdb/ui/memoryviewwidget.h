@@ -47,6 +47,7 @@ public:
 
     struct CursorInfo
     {
+        MemSpace m_cursorSpace;
         uint32_t m_cursorAddress;
         bool     m_isCursorValid;
 

@@ -595,13 +595,13 @@ void MemoryWidget::RecalcColumnLayout()
 // of text/hex data in the the UI
 void MemoryWidget::RecalcText()
 {
-    const SymbolTable& symTable = m_pTargetModel->GetSymbolTable();
-
     static char toHex[] = "0123456789abcdef";
     int32_t rowCount = m_rowCount;
     int32_t colCount = m_columnMap.size();
     if (m_rows.size() != rowCount)
         m_rows.resize(rowCount);
+
+    const SymbolTable& symTab = m_pTargetModel->GetSymbolTable(m_currentMemory.GetSpace());
 
     for (int32_t r = 0; r < rowCount; ++r)
     {
@@ -692,14 +692,11 @@ void MemoryWidget::RecalcText()
             }
 
             row.m_symbolId[col] = -1;
-            if (m_address.space == MEM_CPU)
+            Symbol sym;
+            if (info.type != ColumnType::kSpace)
             {
-                Symbol sym;
-                if (info.type != ColumnType::kSpace)
-                {
-                    if (symTable.FindLowerOrEqual(charAddress & 0xffffff, true, sym))
-                        row.m_symbolId[col] = (int)sym.index;
-                }
+                if (symTab.FindLowerOrEqual(charAddress & 0xffffff, true, sym))
+                    row.m_symbolId[col] = (int)sym.index;
             }
             row.m_text[col] = outChar;
             row.m_types[col] = outType;
@@ -1123,6 +1120,8 @@ void MemoryWidget::RecalcAutoRowWidth()
 void MemoryWidget::RecalcCursorInfo()
 {
     m_cursorInfo.m_cursorAddress = 0;
+    m_cursorInfo.m_cursorSpace = MEM_CPU;
+
     m_cursorInfo.m_isCursorValid = false;
     m_cursorInfo.m_startAddress = CalcAddress(m_address, 0, 0);
     m_cursorInfo.m_sizeInBytes = m_rowCount * m_bytesPerRow;
@@ -1136,6 +1135,7 @@ void MemoryWidget::RecalcCursorInfo()
             if (info.type == ColumnType::kSpace)
                 break;
             m_cursorInfo.m_cursorAddress = CalcAddress(m_address, m_cursorRow, m_cursorCol);
+            m_cursorInfo.m_cursorSpace = m_address.space;
             m_cursorInfo.m_isCursorValid = true;
             break;
         }
@@ -1495,16 +1495,15 @@ void MemoryWindow::cursorChangedSlot()
         QTextStream ref(&final);
         ref << QString("Cursor: ") << Format::to_hex32(info.m_cursorAddress & 0xffffff);
 
-        if (m_pMemoryWidget->GetSpace() == MEM_CPU)
-        {
-            QString symText = DescribeSymbol(m_pTargetModel->GetSymbolTable(), info.m_cursorAddress & 0xffffff);
-            if (!symText.isEmpty())
-                ref << " (" + symText + ")";
+        const SymbolTable& symTable = m_pTargetModel->GetSymbolTable(info.m_cursorSpace);
 
-            QString commentText = DescribeSymbolComment(m_pTargetModel->GetSymbolTable(), info.m_cursorAddress);
-            if (!commentText.isEmpty())
-                ref << " " + commentText;
-        }
+        QString symText = DescribeSymbol(symTable, info.m_cursorAddress & 0xffffff);
+        if (!symText.isEmpty())
+            ref << " (" + symText + ")";
+
+        QString commentText = DescribeSymbolComment(symTable, info.m_cursorAddress);
+        if (!commentText.isEmpty())
+            ref << " " + commentText;
 
         m_pCursorInfoLabel->setText(final);
     }
