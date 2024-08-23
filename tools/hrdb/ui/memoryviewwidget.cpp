@@ -983,7 +983,7 @@ void MemoryWidget::resizeEvent(QResizeEvent* event)
 {
     QWidget::resizeEvent(event);
     RecalcRowCount();
-    if (m_widthMode == kAuto)
+    if (m_address.space == MEM_CPU && m_widthMode == kAuto)
     {
         RecalcAutoRowWidth();
         RecalcText();
