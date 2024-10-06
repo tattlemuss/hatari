@@ -902,6 +902,7 @@ static int RemoteDebug_bpdel(int nArgc, char *psArgs[], RemoteDebugState* state)
 		if ((proc != 0) && (proc != 1))
 			return 1;
 
+		++arg;
 		if (read_hex32_value(psArgs[arg], &bp_position))
 		{
 			if (proc == 0)
