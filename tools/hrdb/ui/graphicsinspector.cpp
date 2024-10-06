@@ -339,10 +339,11 @@ void GraphicsInspectorWidget::keyPressEvent(QKeyEvent* ev)
     GetEffectiveData(data);
 
     int32_t height = GetEffectiveHeight();
+    Qt::KeyboardModifiers modif = ev->modifiers() & ~(Qt::KeypadModifier | Qt::GroupSwitchModifier);
 
-    bool shift = (ev->modifiers().testFlag(Qt::KeyboardModifier::ShiftModifier));
+    bool shift = (modif.testFlag(Qt::KeyboardModifier::ShiftModifier));
     // Handle keyboard shortcuts with scope here, since QShortcut is global
-    if (ev->modifiers() == Qt::ControlModifier)
+    if (modif == Qt::ControlModifier)
     {
         switch (ev->key())
         {

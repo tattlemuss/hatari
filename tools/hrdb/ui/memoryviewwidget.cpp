@@ -750,9 +750,10 @@ void MemoryWidget::paintEvent(QPaintEvent* ev)
 
 void MemoryWidget::keyPressEvent(QKeyEvent* event)
 {
+    Qt::KeyboardModifiers modif = event->modifiers() & ~(Qt::KeypadModifier | Qt::GroupSwitchModifier);
     if (m_pTargetModel->IsConnected())
     {
-        if (event->modifiers() == Qt::NoModifier)
+        if (modif == Qt::NoModifier)
         {
             switch (event->key())
             {
