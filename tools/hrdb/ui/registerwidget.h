@@ -77,6 +77,12 @@ private:
         QRectF rect;            // bounding rectangle, updated when rendered
     };
 
+    struct Ruler
+    {
+        int y;
+        QString text;
+    };
+
     QString FindSymbol(uint32_t addr);
 
     int AddToken(int x, int y, QString text, TokenType type, uint32_t subIndex = 0, TokenColour colour = TokenColour::kNormal,
@@ -92,6 +98,8 @@ private:
     int AddDspOMRBit(int x, int y, uint32_t bit, const char* pName);
     int AddCACRBit(int x, int y, uint32_t bit, const char *pName);
     int AddSymbol(int x, int y, uint32_t address);
+
+    void AddRuler(int y, QString text);
 
     QString GetTooltipText(const Token& token);
     void UpdateTokenUnderMouse();
@@ -129,7 +137,7 @@ private:
     Disassembler56::disassembly m_disasmDsp;
 
     QVector<Token>              m_tokens;
-    QVector<int>                m_rulers;
+    QVector<Ruler>              m_rulers;
 
     // Mouse data
     QPointF                     m_mousePos;                  // last updated position

@@ -233,18 +233,27 @@ void RegisterWidget::paintEvent(QPaintEvent * ev)
     QFontMetrics info(painter.fontMetrics());
     const QPalette& pal = this->palette();
 
+    painter.setClipRect(this->rect());
+    //().boundingRect());
+
     const QBrush& br = pal.window().color();
     painter.fillRect(this->rect(), br);
     painter.setPen(QPen(pal.dark(), hasFocus() ? 6 : 2));
     painter.drawRect(this->rect());
 
+    // Draw Rulers
+    int rectW = this->rect().right() - m_charWidth * 2;
     painter.setPen(QPen(pal.dark(), 2));
     for (int i = 0; i < m_rulers.size(); ++i)
     {
-        int y = GetPixelFromRow(m_rulers[i]);
+        int y = GetPixelFromRow(m_rulers[i].y);
+        int h = m_lineHeight;
         painter.drawLine(0, y, this->rect().width(), y);
+        painter.drawText(0, y, rectW, h,
+                         Qt::AlignRight, m_rulers[i].text);
     }
 
+    // Draw Tokens
     painter.setPen(QPen(pal.dark(), 1));
     for (int i = 0; i < m_tokens.size(); ++i)
     {
@@ -495,9 +504,9 @@ void RegisterWidget::PopulateRegisters()
 
     // Row 0 -- PC, and symbol if applicable
     int row = 0;
-
     if (m_showCpu)
     {
+        AddRuler(row, "CPU");
         AddReg32(2, row, Registers::PC);
         QString sym = FindSymbol(GET_REG(m_currRegs, PC) & 0xffffff);
         if (sym.size() != 0)
@@ -625,6 +634,7 @@ void RegisterWidget::PopulateRegisters()
 
         // D-regs // A-regs
         row++;
+        AddRuler(row, "CPU Regs");
         for (uint32_t reg = 0; reg < 8; ++reg)
         {
             AddReg32(2, row, Registers::D0 + reg);
@@ -643,11 +653,11 @@ void RegisterWidget::PopulateRegisters()
             row++;
         }
 
-        m_rulers.push_back(row);
     }
     // DSP registers
     if (m_showDsp && m_pTargetModel->GetMachineType() == MACHINE_FALCON)
     {
+        AddRuler(row, "DSP");
         AddDspReg16(2,  row, DspRegisters::PC);
         ++row;
         int col;
@@ -681,7 +691,7 @@ void RegisterWidget::PopulateRegisters()
             ++row;
         }
         ++row;
-        m_rulers.push_back(row);
+        AddRuler(row, "DSP ALU");
         AddDspReg8(  2, row, DspRegisters::A2);
         AddDspReg24(10, row, DspRegisters::A1);
         AddDspReg24(22, row, DspRegisters::A0);
@@ -696,7 +706,7 @@ void RegisterWidget::PopulateRegisters()
         AddDspReg24(10,  row, DspRegisters::Y1);
         AddDspReg24(22, row, DspRegisters::Y0);
         ++row;
-        m_rulers.push_back(row);
+        AddRuler(row, "DSP Address");
         for (uint32_t reg = 0; reg < 8; ++reg)
         {
             AddDspReg16( 2, row, DspRegisters::R0 + reg);
@@ -704,7 +714,7 @@ void RegisterWidget::PopulateRegisters()
             AddDspReg16(24, row, DspRegisters::M0 + reg);
             row++;
         }
-        m_rulers.push_back(row);
+        AddRuler(row, "DSP (other)");
         AddDspReg16(2, row, DspRegisters::LA);
         AddDspReg16(13, row, DspRegisters::LC);
         col = AddDspReg16(23, row, DspRegisters::OMR);
@@ -722,14 +732,15 @@ void RegisterWidget::PopulateRegisters()
     if (m_showCpu)
     {
         // More sundry non-stack registers
-        m_rulers.push_back(row);
         if (m_pTargetModel->GetCpuLevel() >= TargetModel::CpuLevel::kCpuLevel68010)
         {
+            AddRuler(row, "CPU: 68010");
             AddReg32(1, row, Registers::DFC); AddReg32(16, row, Registers::SFC);
             row++;
         }
         if (m_pTargetModel->GetCpuLevel() >= TargetModel::CpuLevel::kCpuLevel68020)
         {
+            AddRuler(row, "CPU: 68020");
             // 68020
             AddReg32(0, row, Registers::CAAR);
             AddReg16(15, row, Registers::CACR);
@@ -749,7 +760,7 @@ void RegisterWidget::PopulateRegisters()
         }
     }
 
-    m_rulers.push_back(row);
+    AddRuler(row, "Hatari");
     // Variables
     // Sundry info
     AddToken(0, row, QString::asprintf("VBL: %10u Frame Cycles: %6u", GET_REG(m_currRegs, VBL), GET_REG(m_currRegs, FrameCycles)), TokenType::kNone);
@@ -900,7 +911,14 @@ int RegisterWidget::AddSymbol(int x, int y, uint32_t address)
     QString comment = DescribeSymbolComment(m_pTargetModel->GetSymbolTable(), address);
     if (!comment.isEmpty())
         symText += " ;" + comment;
-    return AddToken(x, y, symText, TokenType::kSymbol, address);
+    return AddToken(x, y, symText, TokenType::kSymbol, address, TokenColour::kCode);
+}
+
+void RegisterWidget::AddRuler(int y, QString text)
+{
+    Ruler r;
+    r.y = y; r.text = text;
+    m_rulers.push_back(r);
 }
 
 QString RegisterWidget::GetTooltipText(const RegisterWidget::Token& token)
