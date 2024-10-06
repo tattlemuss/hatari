@@ -575,10 +575,11 @@ void DisasmWidget::paintEvent(QPaintEvent* ev)
 
 void DisasmWidget::keyPressEvent(QKeyEvent* event)
 {
+    Qt::KeyboardModifiers modif = event->modifiers() & ~(Qt::KeypadModifier | Qt::GroupSwitchModifier);
     if (m_pTargetModel->IsConnected())
     {
         // Handle keyboard shortcuts with scope here, since QShortcut is global
-        if (event->modifiers() == Qt::ControlModifier)
+        if (modif == Qt::ControlModifier)
         {
             switch (event->key())
             {
@@ -589,7 +590,7 @@ void DisasmWidget::keyPressEvent(QKeyEvent* event)
                 default: break;
             }
         }
-        else if (event->modifiers() == Qt::NoModifier)
+        else if (modif == Qt::NoModifier)
         {
             switch (event->key())
             {
@@ -597,7 +598,7 @@ void DisasmWidget::keyPressEvent(QKeyEvent* event)
             case Qt::Key_Down:       MoveDown();            return;
             case Qt::Key_PageUp:     PageUp();              return;
             case Qt::Key_PageDown:   PageDown();            return;
-            case Qt::Key_F9:         toggleBreakpoint();       return;
+            case Qt::Key_F9:         toggleBreakpoint();    return;
             default: break;
             }
         }
