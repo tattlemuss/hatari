@@ -17,7 +17,7 @@ class TargetModel;
 class Dispatcher;
 class Session;
 
-namespace Regs
+namespace stgen
 {
     struct FieldDef;
 }
@@ -56,13 +56,13 @@ class HardwareTreeView : public QTreeView
 {
 public:
     HardwareTreeView(QWidget* parent, Session* pSession);
+
 protected:
     virtual void contextMenuEvent(QContextMenuEvent *event) override;
 
     Session*            m_pSession;
     // Menu actions
-    QMenu*              m_pShowAddressMenu;
-    ShowAddressActions  m_showAddressActions;
+    ShowAddressMenu     m_showAddressMenu;
 };
 
 class HardwareWindow : public QDockWidget
@@ -86,10 +86,10 @@ private:
     void memoryChanged(int memorySlot, uint64_t commandId);
     void settingsChanged();
 
-    void addField(HardwareBase* pLayout, const QString& title, const Regs::FieldDef& def);
+    void addField(HardwareBase* pLayout, const QString& title, const stgen::FieldDef& def);
     void addRegBinary16(HardwareBase* pLayout, const QString& title, uint32_t addr);
     void addRegSigned16(HardwareBase* pLayout, const QString& title, uint32_t addr);
-    void addMultiField(HardwareBase *pLayout, const QString &title, const Regs::FieldDef** defs);
+    void addMultiField(HardwareBase *pLayout, const QString &title, const stgen::FieldDef** defs);
     void addShared(HardwareBase *pLayout, const QString &title, HardwareField* pField);
 
     Session*                    m_pSession;

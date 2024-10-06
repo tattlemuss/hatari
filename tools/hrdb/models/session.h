@@ -13,7 +13,7 @@ class Dispatcher;
 class TargetModel;
 class FileWatcher;
 
-#define VERSION_STRING      "0.009 (July 2024)"
+#define VERSION_STRING      "0.009-DSP (August 2024)"
 #define HELP_URL            "http://clarets.org/steve/projects/hrdb.html"
 
 // Shared runtime data about the debugging session used by multiple UI components
@@ -98,11 +98,7 @@ signals:
 
     // Shared signal to request a new address in another window.
     // Qt seems to have no central message dispatch, so use signals/slots
-    void addressRequested(WindowType windowType, int windowId, uint32_t address);
-
-    // Called by the main window when all data such as regs, breakpoints, symbols
-    // are updated.
-    void mainStateUpdated();
+    void addressRequested(WindowType windowType, int windowId, int memSpace, uint32_t address);
 
     // Called by UI elements to flag a shared message
     void messageSet(const QString& msg);

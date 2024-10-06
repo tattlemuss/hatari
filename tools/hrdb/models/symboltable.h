@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include "memaddr.h"
 
 struct Symbol
 {
@@ -47,8 +48,8 @@ class SymbolTable
 {
 public:
     SymbolTable();
-
-    void Reset();
+    void InitHardware(MemSpace space);
+    void ResetHatari();
 
     void SetHatariSubTable(const SymbolSubTable& subtable);
     const SymbolSubTable& GetHatariSubTable() const { return m_subTables[kHatari]; }
@@ -68,5 +69,13 @@ private:
     };
     SymbolSubTable   m_subTables[kNumTables];
 };
+
+// Wrapper for all the symbol tables supplied.
+class AllSymbols
+{
+public:
+    SymbolTable m_tables[MEM_SPACE_MAX];
+};
+
 
 #endif // SYMBOLTABLE_H

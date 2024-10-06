@@ -82,6 +82,14 @@ static QString CreateTooltip(uint32_t address, const SymbolTable& symTable, uint
     return final;
 }
 
+static int32_t GetDivider(MemSpace space)
+{
+    if (space != MEM_CPU)
+        return 3;
+    return 1;
+}
+
+
 MemoryWidget::MemoryWidget(QWidget *parent, Session* pSession,
                            int windowIndex,
                            QAction* pSearchAction, QAction* pSaveAction) :
@@ -90,23 +98,29 @@ MemoryWidget::MemoryWidget(QWidget *parent, Session* pSession,
     m_pTargetModel(pSession->m_pTargetModel),
     m_pDispatcher(pSession->m_pDispatcher),
     m_isLocked(false),
-    m_address(0),
+    m_address(maddr(MEM_CPU, 0)),
     m_widthMode(k16),
     m_sizeMode(kModeByte),
     m_bytesPerRow(16),
+    m_hasAscii(true),
     m_rowCount(1),
     m_cursorRow(0),
     m_cursorCol(0),
     m_requestId(0),
     m_requestCursorMode(kNoMoveCursor),
     m_windowIndex(windowIndex),
-    m_currentMemory(0, 0),
-    m_previousMemory(0, 0),
+    m_currentMemory(MEM_CPU, 0, 0),
+    m_previousMemory(MEM_CPU, 0, 0),
     m_pSearchAction(pSearchAction),
     m_pSaveAction(pSaveAction),
     m_wheelAngleDelta(0)
 {
     m_memSlot = static_cast<MemorySlot>(MemorySlot::kMemoryView0 + m_windowIndex);
+
+    m_lastAddresses[MEM_CPU] = 0;
+    m_lastAddresses[MEM_P] = 0;
+    m_lastAddresses[MEM_X] = 0;
+    m_lastAddresses[MEM_Y] = 0;
 
     UpdateFont();
     SetSizeMode(SizeMode::kModeByte);
@@ -121,6 +135,7 @@ MemoryWidget::MemoryWidget(QWidget *parent, Session* pSession,
     connect(m_pTargetModel, &TargetModel::connectChangedSignal,     this, &MemoryWidget::connectChanged);
     connect(m_pTargetModel, &TargetModel::otherMemoryChangedSignal, this, &MemoryWidget::otherMemoryChanged);
     connect(m_pTargetModel, &TargetModel::symbolTableChangedSignal, this, &MemoryWidget::symbolTableChanged);
+    connect(m_pTargetModel, &TargetModel::configChangedSignal,      this, &MemoryWidget::configChanged);
     connect(m_pSession,     &Session::settingsChanged,              this, &MemoryWidget::settingsChanged);
 }
 
@@ -128,39 +143,68 @@ MemoryWidget::~MemoryWidget()
 {
 }
 
-bool MemoryWidget::CanSetExpression(std::string expression) const
+void MemoryWidget::SetSpace(MemSpace space)
 {
-    uint32_t addr;
-    return StringParsers::ParseExpression(expression.c_str(), addr,
-                                        m_pTargetModel->GetSymbolTable(),
-                                        m_pTargetModel->GetRegs());
+    bool wasCpu = m_address.space == MEM_CPU;
+    bool isCpu = space == MEM_CPU;
+
+    // If we use the combo,
+    // cancel any lock if we are switch between CPU<->DSP
+    // and we revert to the last address known in this space
+    SetAddressInternal(maddr(space, m_lastAddresses[space]));
+
+    if (m_isLocked && (wasCpu != isCpu))
+        SetLock(false);     // this won't request memory since we are clearing the lock.
+
+    RequestMemory(CursorMode::kNoMoveCursor);
 }
+
+void MemoryWidget::SetAddress(MemAddr full)
+{
+    // If we use the full address value, any locked expression is cancelled
+    SetAddressInternal(full);
+    if (m_isLocked)
+        SetLock(false);
+
+    RequestMemory(CursorMode::kNoMoveCursor);
+}
+
 
 bool MemoryWidget::SetExpression(std::string expression)
 {
     // This does a "once only"
     uint32_t addr;
-    if (!StringParsers::ParseExpression(expression.c_str(), addr,
-                                        m_pTargetModel->GetSymbolTable(),
-                                        m_pTargetModel->GetRegs()))
-    {
+    bool res = ParseExpression(m_address.space == MEM_CPU, expression, addr);
+    if (!res)
         return false;
-    }
-    SetAddress(addr, kNoMoveCursor);
+    SetAddressInternal(maddr(m_address.space, addr));
+    RequestMemory(kNoMoveCursor);
     m_addressExpression = expression;
     return true;
 }
 
-void MemoryWidget::SetSearchResultAddress(uint32_t addr)
+void MemoryWidget::SetAddressInternal(MemAddr addr)
 {
-    SetAddress(addr, kMoveCursor);
+    SetSpaceInternal(addr.space);
+    m_address.addr = addr.addr;
+    if (addr.space != MEM_CPU)
+        m_address.addr &= 0xffff;       // Mask DSP addresses
 }
 
-void MemoryWidget::SetAddress(uint32_t address, CursorMode moveCursor)
+
+bool MemoryWidget::CanSetExpression(std::string expression) const
 {
-    m_address = address;
-    RequestMemory(moveCursor);
+    uint32_t addr;
+    return ParseExpression(m_address.space == MEM_CPU, expression.c_str(), addr);
 }
+
+
+void MemoryWidget::SetSearchResultAddress(MemAddr addr)
+{
+    SetAddressInternal(addr);
+    RequestMemory(kMoveCursor);
+}
+
 
 void MemoryWidget::SetRowCount(int32_t rowCount)
 {
@@ -179,12 +223,6 @@ void MemoryWidget::SetRowCount(int32_t rowCount)
     }
 }
 
-uint32_t MemoryWidget::CalcAddress(int row, int col) const
-{
-   uint32_t rowAddress = m_address + row * m_bytesPerRow;
-   const ColInfo& info = m_columnMap[col];
-   return rowAddress + info.byteOffset;
-}
 
 void MemoryWidget::SetLock(bool locked)
 {
@@ -199,7 +237,9 @@ void MemoryWidget::SetLock(bool locked)
         RecalcLockedExpression();
         RequestMemory(kNoMoveCursor);
     }
+    // Don't clear the expression yet, since it might be reused
 }
+
 
 void MemoryWidget::SetSizeMode(MemoryWidget::SizeMode mode)
 {
@@ -214,15 +254,26 @@ void MemoryWidget::SetWidthMode(WidthMode widthMode)
 {
     // Store for UI
     m_widthMode = widthMode;
-    switch (widthMode)
+
+    if (m_address.space != MEM_CPU)
     {
-    case WidthMode::k4:      m_bytesPerRow = 4; break;
-    case WidthMode::k8:      m_bytesPerRow = 8; break;
-    case WidthMode::k16:     m_bytesPerRow = 16; break;
-    case WidthMode::k32:     m_bytesPerRow = 32; break;
-    case WidthMode::k64:     m_bytesPerRow = 64; break;
-    case WidthMode::kAuto:   RecalcRowWidth(); break;
-    default:                 break;
+        // DSP width is fixed -- or do we have a custom enum?
+        m_hasAscii = false;
+        m_bytesPerRow = 3 * 8;
+    }
+    else
+    {
+        m_hasAscii = true;
+        switch (widthMode)
+        {
+        case WidthMode::k4:      m_bytesPerRow = 4; break;
+        case WidthMode::k8:      m_bytesPerRow = 8; break;
+        case WidthMode::k16:     m_bytesPerRow = 16; break;
+        case WidthMode::k32:     m_bytesPerRow = 32; break;
+        case WidthMode::k64:     m_bytesPerRow = 64; break;
+        case WidthMode::kAuto:   RecalcAutoRowWidth(); break;
+        default:                 break;
+        }
     }
 
     RecalcColumnLayout();
@@ -315,26 +366,35 @@ void MemoryWidget::MoveRelative(int32_t bytes)
     if (m_requestId != 0)
         return; // not up to date
 
-    if (bytes >= 0)
+    // "Jump" is the change in address, not bytes
+    int32_t jump = bytes / GetDivider(m_address.space);
+
+    if (jump >= 0)
     {
-        uint32_t bytesAbs(static_cast<uint32_t>(bytes));
-        SetAddress(m_address + bytesAbs, kNoMoveCursor);
+        uint32_t jumpAbs(static_cast<uint32_t>(jump));
+        SetAddressInternal(maddr(m_address.space, m_address.addr + jumpAbs));
     }
     else
     {
         // "bytes" is negative, so convert to unsigned for calcs
-        uint32_t bytesAbs(static_cast<uint32_t>(-bytes));
-        if (m_address > bytesAbs)
-            SetAddress(m_address - bytesAbs, kNoMoveCursor);
+        uint32_t jumpAbs(static_cast<uint32_t>(-jump));
+        if (m_address.addr > jumpAbs)
+            SetAddressInternal(maddr(m_address.space, m_address.addr - jumpAbs));
         else
-            SetAddress(0, kNoMoveCursor);
+            SetAddressInternal(maddr(m_address.space, 0));
+
     }
+    RequestMemory(kNoMoveCursor);
 }
 
 bool MemoryWidget::EditKey(char key)
 {
     // Can't edit while we still wait for memory
     if (m_requestId != 0)
+        return false;
+
+    // Can only edit CPU memory
+    if (m_address.space != MEM_CPU)
         return false;
 
     const ColInfo& info = m_columnMap[m_cursorCol];
@@ -346,9 +406,9 @@ bool MemoryWidget::EditKey(char key)
     if (info.type == ColumnType::kInvalid)
         return false;
 
-    uint32_t address = m_address + m_cursorRow * m_bytesPerRow + info.byteOffset;
+    uint32_t address = CalcAddress(m_address, m_cursorRow, m_cursorCol);
     uint8_t cursorByte;
-    if (!m_currentMemory.ReadAddressByte(address, cursorByte))
+    if (!m_currentMemory.ReadCpuByte(address, cursorByte))
         return false;
 
     uint8_t val;
@@ -430,6 +490,20 @@ char MemoryWidget::IsEditKey(const QKeyEvent* event)
     return 0;
 }
 
+void MemoryWidget::SetSpaceInternal(MemSpace space)
+{
+    if (space != m_address.space)
+    {
+        m_address.space = space;
+
+        // Re-do width calculations
+        SetWidthMode(m_widthMode);
+        RecalcColumnLayout();
+
+        emit spaceChangedSignal();
+    }
+}
+
 void MemoryWidget::memoryChanged(int memorySlot, uint64_t commandId)
 {
     if (memorySlot != m_memSlot)
@@ -444,7 +518,7 @@ void MemoryWidget::memoryChanged(int memorySlot, uint64_t commandId)
     if (!pMem)
         return;
 
-    if (pMem->GetAddress() != m_address)
+    if (pMem->GetMemAddr() != m_address)
         return;
 
     if (m_requestCursorMode == kMoveCursor)
@@ -467,7 +541,9 @@ void MemoryWidget::RecalcColumnLayout()
     // Calc the screen postions.
     // I need a screen position for each *character* on the grid (i.e. nybble)
     int groupSize = 0;
-    if (m_sizeMode == kModeByte)
+    if (m_address.space != MEM_CPU)
+        groupSize = 3;
+    else if (m_sizeMode == kModeByte)
         groupSize = 1;
     else if (m_sizeMode == kModeWord)
         groupSize = 2;
@@ -495,12 +571,15 @@ void MemoryWidget::RecalcColumnLayout()
     }
 
     // Add ASCII
-    for (int byte2 = 0; byte2 < m_bytesPerRow; ++byte2)
+    if (m_hasAscii)
     {
-        ColInfo info;
-        info.type = ColumnType::kASCII;
-        info.byteOffset = byte2;
-        m_columnMap.push_back(info);
+        for (int byte2 = 0; byte2 < m_bytesPerRow; ++byte2)
+        {
+            ColInfo info;
+            info.type = ColumnType::kASCII;
+            info.byteOffset = byte2;
+            m_columnMap.push_back(info);
+        }
     }
 
     // Stop crash when resizing and cursor is at end
@@ -511,17 +590,18 @@ void MemoryWidget::RecalcColumnLayout()
     RecalcText();
 }
 
+
 // This reads the current positional state, and updates the matrix
 // of text/hex data in the the UI
 void MemoryWidget::RecalcText()
 {
-    const SymbolTable& symTable = m_pTargetModel->GetSymbolTable();
-
     static char toHex[] = "0123456789abcdef";
     int32_t rowCount = m_rowCount;
     int32_t colCount = m_columnMap.size();
     if (m_rows.size() != rowCount)
         m_rows.resize(rowCount);
+
+    const SymbolTable& symTab = m_pTargetModel->GetSymbolTable(m_currentMemory.GetSpace());
 
     for (int32_t r = 0; r < rowCount; ++r)
     {
@@ -530,7 +610,18 @@ void MemoryWidget::RecalcText()
         row.m_types.resize(colCount);
         row.m_byteChanged.resize(colCount);
         row.m_symbolId.resize(colCount);
-        uint32_t rowAddress = m_address + r * m_bytesPerRow;
+
+        // Adjust memory offsets for DSP memory
+        uint32_t rowAddress;
+        uint32_t newRowOffset;         // offset in bytes to m_currentMemory base
+        uint32_t oldRowOffset;         // offset in bytes to m_previousMemory base
+        uint32_t addressDivider = GetDivider(m_address.space);
+
+        rowAddress = CalcAddress(m_address, r, 0);
+        newRowOffset = (rowAddress - m_currentMemory.GetAddress()) * addressDivider;
+        oldRowOffset = (rowAddress - m_previousMemory.GetAddress()) * addressDivider;
+
+        bool sameSpace = m_previousMemory.GetSpace() == m_currentMemory.GetSpace();
 
         for (int col = 0; col < colCount; ++col)
         {
@@ -539,57 +630,72 @@ void MemoryWidget::RecalcText()
 
             char outChar = '?';
             ColumnType outType = ColumnType::kInvalid;
+            uint32_t newByteOffset = newRowOffset + info.byteOffset;
+            uint32_t charAddress = CalcAddress(m_address, r, col);
 
-            uint32_t charAddress = rowAddress + info.byteOffset;
-            bool hasAddress = m_currentMemory.ReadAddressByte(charAddress, byteVal);
+            bool hasAddress = newByteOffset < m_currentMemory.GetSize();
             bool changed = false;
-
-            uint8_t oldC;
-            if (hasAddress && m_previousMemory.ReadAddressByte(charAddress, oldC))
+            if (hasAddress)
             {
-                if (oldC != byteVal)
-                    changed = true;
+                byteVal = m_currentMemory.Get(newByteOffset);
+
+                // Check previous memory version
+                if (sameSpace)
+                {
+                    uint32_t oldByteOffset = oldRowOffset + info.byteOffset;
+                    bool hadAddress = oldByteOffset < m_previousMemory.GetSize();
+                    if (hasAddress && hadAddress)
+                    {
+                        uint8_t oldC = m_previousMemory.Get(oldByteOffset);
+                        if (oldC != byteVal)
+                            changed = true;
+                    }
+                }
+
+                switch (info.type)
+                {
+                case ColumnType::kTopNybble:
+                    if (hasAddress)
+                    {
+                        outChar = toHex[(byteVal >> 4) & 0xf];
+                        outType = info.type;
+                    }
+                    break;
+                case ColumnType::kBottomNybble:
+                    if (hasAddress)
+                    {
+                        outChar = toHex[byteVal & 0xf];
+                        outType = info.type;
+                    }
+                    break;
+                case ColumnType::kASCII:
+                    if (hasAddress)
+                    {
+                        outChar = '.';
+                        if (byteVal >= 32 && byteVal < 128)
+                            outChar = static_cast<char>(byteVal);
+                        outType = info.type;
+                    }
+                    break;
+                case ColumnType::kSpace:
+                    outChar = ' ';
+                    outType = info.type;
+                    break;
+                case ColumnType::kInvalid:
+                    outChar = '?';
+                    break;
+                }
             }
-
-            switch (info.type)
+            else
             {
-            case ColumnType::kTopNybble:
-                if (hasAddress)
-                {
-                    outChar = toHex[(byteVal >> 4) & 0xf];
-                    outType = info.type;
-                }
-                break;
-            case ColumnType::kBottomNybble:
-                if (hasAddress)
-                {
-                    outChar = toHex[byteVal & 0xf];
-                    outType = info.type;
-                }
-                break;
-            case ColumnType::kASCII:
-                if (hasAddress)
-                {
-                    outChar = '.';
-                    if (byteVal >= 32 && byteVal < 128)
-                        outChar = static_cast<char>(byteVal);
-                    outType = info.type;
-                }
-                break;
-            case ColumnType::kSpace:
-                outChar = ' ';
-                outType = info.type;
-                break;
-            case ColumnType::kInvalid:
                 outChar = '?';
-                break;
             }
 
-            Symbol sym;
             row.m_symbolId[col] = -1;
+            Symbol sym;
             if (info.type != ColumnType::kSpace)
             {
-                if (symTable.FindLowerOrEqual(charAddress & 0xffffff, true, sym))
+                if (symTab.FindLowerOrEqual(charAddress & 0xffffff, true, sym))
                     row.m_symbolId[col] = (int)sym.index;
             }
             row.m_text[col] = outChar;
@@ -615,7 +721,7 @@ void MemoryWidget::startStopChanged()
         if (pMem)
             m_previousMemory = *pMem;
         else {
-            m_previousMemory = Memory(0, 0);
+            m_previousMemory = Memory(MEM_CPU, 0, 0);
         }
     }
 }
@@ -623,7 +729,8 @@ void MemoryWidget::startStopChanged()
 void MemoryWidget::connectChanged()
 {
     m_rows.clear();
-    m_address = 0;
+    m_address.space = MEM_CPU;
+    m_address.addr = 0;
     RecalcCursorInfo();
     update();
 }
@@ -641,11 +748,11 @@ void MemoryWidget::registersChanged()
 void MemoryWidget::otherMemoryChanged(uint32_t address, uint32_t size)
 {
     // Do a re-request, only if it affected our view
-    if (address + size <= m_address)
+    if (address + size <= m_address.addr)
         return;
 
     uint32_t ourSize = static_cast<uint32_t>(m_rowCount * m_bytesPerRow);
-    if (m_address + ourSize <= address)
+    if (m_address.addr + ourSize <= address)
         return;
     RequestMemory(kNoMoveCursor);
 }
@@ -663,6 +770,13 @@ void MemoryWidget::settingsChanged()
     RecalcRowCount();
     RequestMemory(kNoMoveCursor);
     update();
+}
+
+void MemoryWidget::configChanged()
+{
+    // Force back to CPU if there's no DSP
+    if (!m_pTargetModel->IsDspActive())
+        SetSpace(MEM_CPU);
 }
 
 void MemoryWidget::paintEvent(QPaintEvent* ev)
@@ -702,8 +816,17 @@ void MemoryWidget::paintEvent(QPaintEvent* ev)
             painter.setPen(pal.text().color());
             int topleft_y = GetPixelFromRow(row);
             int text_y = topleft_y + y_ascent;
-            uint32_t rowAddr = m_address + row * m_bytesPerRow;
-            QString addr = QString::asprintf("%08x", rowAddr);
+            uint32_t rowAddr = CalcAddress(m_address, row, 0);
+
+            QString addr;
+            switch (m_address.space)
+            {
+            case MEM_CPU: addr = QString::asprintf("%08x", rowAddr); break;
+            case MEM_P: addr = QString::asprintf("P:$%04x", rowAddr); break;
+            case MEM_X: addr = QString::asprintf("X:$%04x", rowAddr); break;
+            case MEM_Y: addr = QString::asprintf("Y:$%04x", rowAddr); break;
+            default: break;
+            }
             painter.drawText(GetAddrX(), text_y, addr);
 
             // Now hex
@@ -861,8 +984,12 @@ void MemoryWidget::resizeEvent(QResizeEvent* event)
 {
     QWidget::resizeEvent(event);
     RecalcRowCount();
-    if (m_widthMode == kAuto)
-        RecalcRowWidth();
+    if (m_address.space == MEM_CPU && m_widthMode == kAuto)
+    {
+        RecalcAutoRowWidth();
+        RecalcText();
+        RequestMemory(kNoMoveCursor);
+    }
 }
 
 bool MemoryWidget::event(QEvent *event)
@@ -900,11 +1027,18 @@ void MemoryWidget::RequestMemory(MemoryWidget::CursorMode moveCursor)
 {
     // Memory size requested is based on the current matrix dimensions
     uint32_t size = static_cast<uint32_t>(m_rowCount * m_bytesPerRow);
+
     if (m_pTargetModel->IsConnected())
     {
-        m_requestId = m_pDispatcher->ReadMemory(m_memSlot, m_address, size);
+        // Adjust for DSP words...
+        if (m_address.space != MEM_CPU)
+            size = ((size + 2U) / 3U);
+
+        m_requestId = m_pDispatcher->ReadMemory(m_memSlot, m_address.space, m_address.addr, size);
         m_requestCursorMode = moveCursor;
     }
+    // Record the last-requested address for this space.
+    m_lastAddresses[m_address.space] = m_address.addr;
 }
 
 void MemoryWidget::RecalcLockedExpression()
@@ -912,13 +1046,24 @@ void MemoryWidget::RecalcLockedExpression()
     if (m_isLocked)
     {
         uint32_t addr;
-        if (StringParsers::ParseExpression(m_addressExpression.c_str(), addr,
-                                            m_pTargetModel->GetSymbolTable(),
-                                            m_pTargetModel->GetRegs()))
+        if (ParseExpression(m_address.space == MEM_CPU,
+                            m_addressExpression, addr))
         {
-            SetAddress(addr, kNoMoveCursor);
+            SetAddressInternal(maddr(m_address.space, addr));
         }
     }
+}
+
+bool MemoryWidget::ParseExpression(bool isCpu, const std::string& expr, uint32_t& addr) const
+{
+    if (isCpu)
+        return StringParsers::ParseCpuExpression(expr.c_str(), addr,
+                                            m_pTargetModel->GetSymbolTable(),
+                                            m_pTargetModel->GetRegs());
+    else
+        return StringParsers::ParseDspExpression(expr.c_str(), addr,
+                                            m_pTargetModel->GetSymbolTable(),
+                                            m_pTargetModel->GetDspRegs());
 }
 
 void MemoryWidget::RecalcRowCount()
@@ -939,8 +1084,8 @@ void MemoryWidget::RecalcRowCount()
     RecalcText();
 }
 
-void MemoryWidget::RecalcRowWidth()
-{
+void MemoryWidget::RecalcAutoRowWidth()
+{   
     int w = this->size().width() - (Session::kWidgetBorderX * 2);
 
     // calc how many chars fit
@@ -970,16 +1115,16 @@ void MemoryWidget::RecalcRowWidth()
     {
         m_bytesPerRow = finalChunkCount * 4;
         RecalcColumnLayout();
-        RecalcText();
-        RequestMemory(kNoMoveCursor);
     }
 }
 
 void MemoryWidget::RecalcCursorInfo()
 {
     m_cursorInfo.m_cursorAddress = 0;
+    m_cursorInfo.m_cursorSpace = MEM_CPU;
+
     m_cursorInfo.m_isCursorValid = false;
-    m_cursorInfo.m_startAddress = CalcAddress(0, 0);
+    m_cursorInfo.m_startAddress = CalcAddress(m_address, 0, 0);
     m_cursorInfo.m_sizeInBytes = m_rowCount * m_bytesPerRow;
 
     if (m_cursorRow < m_rows.size())
@@ -990,7 +1135,8 @@ void MemoryWidget::RecalcCursorInfo()
             const ColInfo& info = m_columnMap[col];
             if (info.type == ColumnType::kSpace)
                 break;
-            m_cursorInfo.m_cursorAddress = CalcAddress(m_cursorRow, m_cursorCol);
+            m_cursorInfo.m_cursorAddress = CalcAddress(m_address, m_cursorRow, m_cursorCol);
+            m_cursorInfo.m_cursorSpace = m_address.space;
             m_cursorInfo.m_isCursorValid = true;
             break;
         }
@@ -1012,12 +1158,15 @@ QString MemoryWidget::CalcMouseoverText(int mouseX, int mouseY)
     if (!mem)
         return QString();
 
-    uint32_t addr = CalcAddress(row, col);
+    if (mem->GetMemAddr().space != MEM_CPU)
+        return QString("DSP");
+
+    uint32_t addr = CalcAddress(m_address, row, col);
     uint8_t byteVal;
-    mem->ReadAddressByte(addr, byteVal);
+    mem->ReadCpuByte(addr, byteVal);
 
     uint32_t wordVal;
-    if (!mem->ReadAddressMulti(addr & 0xfffffe, 2, wordVal))
+    if (!mem->ReadCpuMulti(addr & 0xfffffe, 2, wordVal))
         return QString();
 
     // Work out what's under the mouse
@@ -1032,7 +1181,7 @@ QString MemoryWidget::CalcMouseoverText(int mouseX, int mouseY)
         addrLong &= ~1U;        // $fe
 
     uint32_t longVal;
-    if (!mem->ReadAddressMulti(addrLong, 4, longVal))
+    if (!mem->ReadCpuMulti(addrLong, 4, longVal))
         return QString();
     return CreateTooltip(addr, m_pTargetModel->GetSymbolTable(), byteVal, wordVal, longVal);
 }
@@ -1072,35 +1221,67 @@ void MemoryWidget::KeyboardContextMenu()
 void MemoryWidget::ContextMenu(int row, int col, QPoint globalPos)
 {
     QMenu menu(this);
-    menu.addAction(m_pSaveAction);
+    MemSpace space = m_address.space;
+    bool isCpu = (space == MEM_CPU);
+
+    if (isCpu)
+        menu.addAction(m_pSaveAction);
 
     // These actions are optional
     if (row != -1)
     {
         // Align the memory location to 2 or 4 bytes, based on context
         // (view address, or word/long mode)
-        uint32_t addr = CalcAddress(row, col);
-        if (m_sizeMode == SizeMode::kModeLong)
-            addr &= ~3U;
-        else
-            addr &= ~1U;
+        uint32_t addr = CalcAddress(m_address, row, col);
+        if (isCpu)
+        {
+            if (m_sizeMode == SizeMode::kModeLong)
+                addr &= ~3U;
+            else
+                addr &= ~1U;
 
-        menu.addAction(m_pSearchAction);
+            menu.addAction(m_pSearchAction);
+        }
 
-        m_showAddressMenus[0].setAddress(m_pSession, addr);
-        m_showAddressMenus[0].setTitle(QString::asprintf("Data Address: $%x", addr));
-        menu.addMenu(m_showAddressMenus[0].m_pMenu);
+        // TODO different memory spaces
+        m_showThisAddressMenu.Set("Cursor Address",
+                                   m_pSession, space, addr);
+        m_showThisAddressMenu.AddTo(&menu);
 
         const Memory* mem = m_pTargetModel->GetMemory(m_memSlot);
         if (mem)
         {
-            uint32_t longContents;
-            if (mem->ReadAddressMulti(addr, 4, longContents))
+            bool valid = false;
+            uint32_t contents;
+            if (isCpu)
             {
-                longContents &= 0xffffff;
-                m_showAddressMenus[1].setAddress(m_pSession, longContents);
-                m_showAddressMenus[1].setTitle(QString::asprintf("Pointer Address: $%x", longContents));
-                menu.addMenu(m_showAddressMenus[1].m_pMenu);
+                valid = mem->ReadCpuMulti(addr, 4, contents);
+                if (valid)
+                {
+                    contents &= 0xffffff;
+                    m_showPtrAddressMenu[0].Set("Data Address",
+                                                m_pSession, m_address.space, contents);
+                    m_showPtrAddressMenu[0].AddTo(&menu);
+                }
+            }
+            else
+            {
+                valid = mem->ReadDspWord(addr, contents);
+                if (valid)
+                {
+                    contents &= 0xffff;
+                    // We don't know which memory space we want, so show all three.
+                    m_showPtrAddressMenu[0].Set("Data Address", m_pSession, MEM_P, contents);
+                    m_showPtrAddressMenu[1].Set("Pointer Address", m_pSession, MEM_X, contents);
+                    m_showPtrAddressMenu[2].Set("Pointer Address", m_pSession, MEM_Y, contents);
+                    m_showPtrAddressMenu[0].AddTo(&menu);
+                    m_showPtrAddressMenu[1].AddTo(&menu);
+                    m_showPtrAddressMenu[2].AddTo(&menu);
+                }
+            }
+
+            if (valid)
+            {
             }
         }
     }
@@ -1127,6 +1308,19 @@ bool MemoryWidget::CalcRowColFromMouse(int x, int y, int& row, int& col)
         }
     }
     return false;
+}
+
+uint32_t MemoryWidget::CalcAddrOffset(MemAddr addr, int row, int col) const
+{
+    uint32_t divider = addr.space == MEM_CPU ? 1 : 3;
+    const ColInfo& info = m_columnMap[col];
+    uint32_t charByteOffset = row * m_bytesPerRow + info.byteOffset;
+    return (charByteOffset / divider);
+}
+
+uint32_t MemoryWidget::CalcAddress(MemAddr addr, int row, int col) const
+{
+    return addr.addr + CalcAddrOffset(addr, row, col);
 }
 
 //-----------------------------------------------------------------------------
@@ -1162,6 +1356,12 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
     m_pAddressEdit = new QLineEdit(this);
     m_pAddressEdit->setCompleter(pCompl);
 
+    m_pSpaceComboBox = new QComboBox(this);
+    m_pSpaceComboBox->insertItem(0, "CPU", QVariant(MEM_CPU));
+    m_pSpaceComboBox->insertItem(1, "P:", QVariant(MEM_P));
+    m_pSpaceComboBox->insertItem(2, "X:", QVariant(MEM_X));
+    m_pSpaceComboBox->insertItem(3, "Y:", QVariant(MEM_Y));
+
     m_pLockCheckBox = new QCheckBox(tr("Lock"), this);
     m_pCursorInfoLabel = new ElidedLabel("", this);
 
@@ -1187,6 +1387,8 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
     auto pTopRegion = new QWidget(this);      // top buttons/edits
 
     SetMargins(pTopLayout);
+
+    pTopLayout->addWidget(m_pSpaceComboBox);
     pTopLayout->addWidget(m_pAddressEdit);
     pTopLayout->addWidget(m_pLockCheckBox);
     pTopLayout->addWidget(m_pSizeModeComboBox);
@@ -1203,6 +1405,9 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
 
     loadSettings();
 
+    // Ensure UI elements are up to date
+    syncUiElements();
+
     // The scope here is explained at https://forum.qt.io/topic/67981/qshortcut-multiple-widget-instances/2
     new QShortcut(QKeySequence("Ctrl+F"),         this, SLOT(findClickedSlot()),    nullptr, Qt::WidgetWithChildrenShortcut);
     new QShortcut(QKeySequence("Ctrl+W"),         this, SLOT(saveBinClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
@@ -1212,12 +1417,16 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
 
     connect(m_pAddressEdit,  &QLineEdit::returnPressed,                this, &MemoryWindow::returnPressedSlot);
     connect(m_pAddressEdit,  &QLineEdit::textChanged,                  this, &MemoryWindow::textEditedSlot);
-    connect(m_pLockCheckBox, &QCheckBox::stateChanged,                 this, &MemoryWindow::lockChangedSlot);
+    connect(m_pLockCheckBox, &QCheckBox::stateChanged,                 this, &MemoryWindow::lockClickedSlot);
     connect(m_pSession,      &Session::addressRequested,               this, &MemoryWindow::requestAddress);
     connect(m_pMemoryWidget, &MemoryWidget::cursorChangedSignal,       this, &MemoryWindow::cursorChangedSlot);
+    connect(m_pMemoryWidget, &MemoryWidget::spaceChangedSignal,        this, &MemoryWindow::syncUiElements);
+    connect(m_pMemoryWidget, &MemoryWidget::lockChangedSignal,         this, &MemoryWindow::syncUiElements);
     connect(m_pTargetModel,  &TargetModel::searchResultsChangedSignal, this, &MemoryWindow::searchResultsSlot);
     connect(m_pTargetModel,  &TargetModel::symbolTableChangedSignal,   this, &MemoryWindow::symbolTableChangedSlot);
+    connect(m_pTargetModel,  &TargetModel::configChangedSignal,        this, &MemoryWindow::syncUiElements);
 
+    connect(m_pSpaceComboBox,        SIGNAL(currentIndexChanged(int)), SLOT(spaceComboBoxChangedSlot(int)));
     connect(m_pSizeModeComboBox,     SIGNAL(currentIndexChanged(int)), SLOT(sizeModeComboBoxChangedSlot(int)));
     connect(m_pWidthComboBox,        SIGNAL(currentIndexChanged(int)), SLOT(widthComboBoxChangedSlot(int)));
 }
@@ -1262,7 +1471,7 @@ void MemoryWindow::saveSettings()
     settings.endGroup();
 }
 
-void MemoryWindow::requestAddress(Session::WindowType type, int windowIndex, uint32_t address)
+void MemoryWindow::requestAddress(Session::WindowType type, int windowIndex, int memorySpace, uint32_t address)
 {
     if (type != Session::WindowType::kMemoryWindow)
         return;
@@ -1270,9 +1479,8 @@ void MemoryWindow::requestAddress(Session::WindowType type, int windowIndex, uin
     if (windowIndex != m_windowIndex)
         return;
 
-    m_pMemoryWidget->SetLock(false);
-    m_pMemoryWidget->SetExpression(std::to_string(address));
-    m_pLockCheckBox->setChecked(false);
+    m_pMemoryWidget->SetAddress(maddr((MemSpace)memorySpace, address));
+
     setVisible(true);
     this->keyFocus();
     raise();
@@ -1287,11 +1495,14 @@ void MemoryWindow::cursorChangedSlot()
         QString final;
         QTextStream ref(&final);
         ref << QString("Cursor: ") << Format::to_hex32(info.m_cursorAddress & 0xffffff);
-        QString symText = DescribeSymbol(m_pTargetModel->GetSymbolTable(), info.m_cursorAddress & 0xffffff);
+
+        const SymbolTable& symTable = m_pTargetModel->GetSymbolTable(info.m_cursorSpace);
+
+        QString symText = DescribeSymbol(symTable, info.m_cursorAddress & 0xffffff);
         if (!symText.isEmpty())
             ref << " (" + symText + ")";
 
-        QString commentText = DescribeSymbolComment(m_pTargetModel->GetSymbolTable(), info.m_cursorAddress);
+        QString commentText = DescribeSymbolComment(symTable, info.m_cursorAddress);
         if (!commentText.isEmpty())
             ref << " " + commentText;
 
@@ -1305,6 +1516,7 @@ void MemoryWindow::returnPressedSlot()
 {
     bool valid = m_pMemoryWidget->SetExpression(m_pAddressEdit->text().toStdString());
     Colouring::SetErrorState(m_pAddressEdit, valid);
+    m_pLockCheckBox->setChecked(m_pMemoryWidget->IsLocked());
     if (valid)
         m_pMemoryWidget->setFocus();
 }
@@ -1318,6 +1530,13 @@ void MemoryWindow::textEditedSlot()
 void MemoryWindow::lockChangedSlot()
 {
     m_pMemoryWidget->SetLock(m_pLockCheckBox->isChecked());
+}
+
+void MemoryWindow::spaceComboBoxChangedSlot(int /*index*/)
+{
+    int space = m_pSpaceComboBox->currentData().toInt();
+    m_pMemoryWidget->SetSpace(static_cast<MemSpace>(space));
+    m_pLockCheckBox->setChecked(m_pMemoryWidget->IsLocked());
 }
 
 void MemoryWindow::sizeModeComboBoxChangedSlot(int index)
@@ -1334,6 +1553,9 @@ void MemoryWindow::widthComboBoxChangedSlot(int /*index*/)
 void MemoryWindow::findClickedSlot()
 {
     if (!m_pTargetModel->IsConnected())
+        return;
+
+    if (m_pMemoryWidget->GetSpace() != MEM_CPU)
         return;
 
     const MemoryWidget::CursorInfo& info = m_pMemoryWidget->GetCursorInfo();
@@ -1361,6 +1583,9 @@ void MemoryWindow::findClickedSlot()
 void MemoryWindow::nextClickedSlot()
 {
     if (!m_pTargetModel->IsConnected())
+        return;
+
+    if (m_pMemoryWidget->GetSpace() != MEM_CPU)
         return;
 
     const MemoryWidget::CursorInfo& info = m_pMemoryWidget->GetCursorInfo();
@@ -1409,7 +1634,7 @@ void MemoryWindow::gotoClickedSlot()
 
 void MemoryWindow::lockClickedSlot()
 {
-    m_pLockCheckBox->toggle();
+    m_pMemoryWidget->SetLock(m_pLockCheckBox->isChecked());
 }
 
 void MemoryWindow::searchResultsSlot(uint64_t responseId)
@@ -1421,8 +1646,8 @@ void MemoryWindow::searchResultsSlot(uint64_t responseId)
         {
             uint32_t addr = results.addresses[0];
             m_pMemoryWidget->SetLock(false);
-            m_pLockCheckBox->setChecked(false);
-            m_pMemoryWidget->SetSearchResultAddress(addr);
+            m_pMemoryWidget->SetSearchResultAddress(maddr(MEM_CPU, addr));
+            m_pLockCheckBox->setChecked(m_pMemoryWidget->IsLocked());
 
             // Allow the "next" operation to work
             m_searchSettings.m_startAddress = addr + 1;
@@ -1443,4 +1668,22 @@ void MemoryWindow::searchResultsSlot(uint64_t responseId)
 void MemoryWindow::symbolTableChangedSlot(uint64_t /*responseId*/)
 {
     m_pSymbolTableModel->emitChanged();
+}
+
+void MemoryWindow::syncUiElements()
+{
+    bool allowSpaceSetting = m_pTargetModel->IsDspActive();
+    m_pSpaceComboBox->setEnabled(allowSpaceSetting);
+
+    MemSpace space = m_pMemoryWidget->GetSpace();
+    m_pWidthComboBox->setEnabled(space == MEM_CPU);
+    m_pSizeModeComboBox->setEnabled(space == MEM_CPU);
+
+    m_pLockCheckBox->setChecked(m_pMemoryWidget->IsLocked());
+
+    // Update combo box UI from the new address
+    m_pLockCheckBox->setChecked(m_pMemoryWidget->IsLocked());
+    int spaceComboIndex = m_pWidthComboBox->findData((int)space);
+    if (spaceComboIndex != -1)
+        m_pSpaceComboBox->setCurrentIndex(spaceComboIndex);
 }

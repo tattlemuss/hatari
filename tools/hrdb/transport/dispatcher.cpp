@@ -12,7 +12,7 @@
 //#define DISPATCHER_DEBUG
 
 // Protocol ID which needs to match the Hatari target
-#define REMOTEDEBUG_PROTOCOL_ID	(0x1007)
+#define REMOTEDEBUG_PROTOCOL_ID	(0x1008)
 
 //-----------------------------------------------------------------------------
 // Character value for the separator in responses/notifications from the target
@@ -31,6 +31,20 @@ int RegNameToEnum(const char* name)
         ++i;
     }
     return Registers::REG_COUNT;
+}
+
+int DspRegNameToEnum(const char* name)
+{
+    const char** pCurrName = DspRegisters::s_names;
+    int i = 0;
+    while (*pCurrName)
+    {
+        if (strcmp(name, *pCurrName) == 0)
+            return i;
+        ++pCurrName;
+        ++i;
+    }
+    return DspRegisters::REG_COUNT;
 }
 
 //-----------------------------------------------------------------------------
@@ -66,6 +80,26 @@ uint64_t Dispatcher::InsertFlush()
 uint64_t Dispatcher::ReadMemory(MemorySlot slot, uint32_t address, uint32_t size)
 {
     QString tmp = QString::asprintf("mem %x %x", address, size);
+    return SendCommandShared(slot, tmp.toStdString());
+}
+
+uint64_t Dispatcher::ReadMemory(MemorySlot slot, MemSpace space, uint32_t address, uint32_t size)
+{
+    QString tmp;
+    switch (space)
+    {
+    case MEM_CPU:
+        tmp = QString::asprintf("mem %x %x", address, size); break;
+    case MEM_P:
+        tmp = QString::asprintf("dmem P %x %x", address, size); break;
+    case MEM_X:
+        tmp = QString::asprintf("dmem X %x %x", address, size); break;
+    case MEM_Y:
+        tmp = QString::asprintf("dmem Y %x %x", address, size); break;
+    default:
+        assert(0);
+        return 0;
+    }
     return SendCommandShared(slot, tmp.toStdString());
 }
 
@@ -118,9 +152,12 @@ uint64_t Dispatcher::Run()
     return SendCommandPacket("run");
 }
 
-uint64_t Dispatcher::Step()
+uint64_t Dispatcher::Step(Processor proc)
 {
-    return SendCommandPacket("step");
+    if (proc == kProcCpu)
+        return SendCommandPacket("step");
+    else
+        return SendCommandPacket("dstep");
 }
 
 uint64_t Dispatcher::ReadRegisters()
@@ -128,39 +165,50 @@ uint64_t Dispatcher::ReadRegisters()
     return SendCommandPacket("regs");
 }
 
-uint64_t Dispatcher::RunToPC(uint32_t next_pc)
+uint64_t Dispatcher::RunToPC(Processor proc, uint32_t next_pc)
 {
-    QString str = QString::asprintf("bp pc = $%x : once", next_pc);
+    const char* cmd = (proc == kProcCpu) ? "bp" : "dbp";
+    QString str = QString::asprintf("%s pc = $%x : once", cmd, next_pc);
     SendCommandPacket(str.toStdString().c_str());
     return SendCommandPacket("run");
 }
 
-uint64_t Dispatcher::SetBreakpoint(std::string expression, uint64_t optionFlags)
+uint64_t Dispatcher::SetBreakpoint(Processor proc, std::string expression, uint64_t optionFlags)
 {
-    std::string command = std::string("bp " + expression);
+    const char* cmd = (proc == kProcCpu) ? "bp" : "dbp";
+    QString command = QString::asprintf("%s %s", cmd, expression.c_str());
 
     // Add extra options
     if (optionFlags & kBpFlagOnce)
         command += ": once";
     if (optionFlags & kBpFlagTrace)
         command += ": trace";
-    SendCommandShared(MemorySlot::kNone, command);
+    SendCommandShared(MemorySlot::kNone, command.toStdString().c_str());
     return SendCommandShared(MemorySlot::kNone, "bplist"); // update state
 }
 
-uint64_t Dispatcher::DeleteBreakpoint(uint32_t breakpointId)
+uint64_t Dispatcher::DeleteBreakpoint(Processor proc, uint32_t breakpointId)
 {
-    QString cmd = QString::asprintf("bpdel %x", breakpointId);
+    QString cmd = QString::asprintf("bpdel %x %x", proc, breakpointId);
     SendCommandPacket(cmd.toStdString().c_str());
     return SendCommandPacket("bplist");
 }
 
 
-uint64_t Dispatcher::SetRegister(int reg, uint32_t val)
+uint64_t Dispatcher::SetRegister(Processor proc, int reg, uint32_t val)
 {
-    const char* pRegName = Registers::s_names[reg];
-    QString cmd = QString::asprintf("console r %s=$%x", pRegName, val);
-    return SendCommandPacket(cmd.toStdString().c_str());
+    if (proc == kProcCpu)
+    {
+        const char* pRegName = Registers::s_names[reg];
+        QString cmd = QString::asprintf("console r %s=$%x", pRegName, val);
+        return SendCommandPacket(cmd.toStdString().c_str());
+    }
+    else
+    {
+        const char* pRegName = DspRegisters::s_names[reg];
+        QString cmd = QString::asprintf("console dr %s=$%x", pRegName, val);
+        return SendCommandPacket(cmd.toStdString().c_str());
+    }
 }
 
 uint64_t Dispatcher::SetExceptionMask(uint32_t mask)
@@ -425,6 +473,8 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
         ParseRegs(splitResp, cmd);
     else if (type == "mem")
         ParseMem(splitResp, cmd);
+    else if (type == "dmem")
+        ParseDmem(splitResp, cmd);
     else if (type == "bplist")
         ParseBplist(splitResp, cmd);
     else if (type == "symlist")
@@ -506,19 +556,23 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
     {
         std::string runningStr = s.Split(SEP_CHAR);
         std::string pcStr = s.Split(SEP_CHAR);
+        std::string dspPcStr = s.Split(SEP_CHAR);
         std::string ffwdStr = s.Split(SEP_CHAR);
         uint32_t running;
         uint32_t pc;
+        uint32_t dsp_pc;
         uint32_t ffwd;
         if (!StringParsers::ParseHexString(runningStr.c_str(), running))
             return;
         if (!StringParsers::ParseHexString(pcStr.c_str(), pc))
             return;
+        if (!StringParsers::ParseHexString(dspPcStr.c_str(), dsp_pc))
+            return;
         if (!StringParsers::ParseHexString(ffwdStr.c_str(), ffwd))
             return;
 
         // This call goes off and lots of views insert requests here, so add a flush into the queue
-        m_pTargetModel->SetStatus(running != 0, pc, ffwd);
+        m_pTargetModel->SetStatus(running != 0, pc, dsp_pc, ffwd);
         this->InsertFlush();
     }
     else if (type == "!config")
@@ -526,16 +580,20 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
         std::string machineTypeStr = s.Split(SEP_CHAR);
         std::string cpuLevelStr = s.Split(SEP_CHAR);
         std::string stRamSizeStr = s.Split(SEP_CHAR);
+        std::string dspActiveStr = s.Split(SEP_CHAR);
         uint32_t machineType;
         uint32_t cpuLevel;
         uint32_t stRamSize;
+        uint32_t dspActive;
         if (!StringParsers::ParseHexString(machineTypeStr.c_str(), machineType))
             return;
         if (!StringParsers::ParseHexString(cpuLevelStr.c_str(), cpuLevel))
             return;
         if (!StringParsers::ParseHexString(stRamSizeStr.c_str(), stRamSize))
             return;
-        m_pTargetModel->SetConfig(machineType, cpuLevel, stRamSize);
+        if (!StringParsers::ParseHexString(dspActiveStr.c_str(), dspActive))
+            return;
+        m_pTargetModel->SetConfig(machineType, cpuLevel, stRamSize, dspActive);
         this->InsertFlush();
     }
     else if (type == "!profile")
@@ -575,7 +633,9 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
             lastaddr = newaddr;
             ++numDeltas;
         }
-        m_pTargetModel->ProfileDeltaComplete(static_cast<int>(enabled));
+        // Don't send a signal if no deltas happened...
+        if (numDeltas)
+            m_pTargetModel->ProfileDeltaComplete(static_cast<int>(enabled));
     }  
     else if (type == "!symbols")
     {
@@ -588,6 +648,7 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
 void Dispatcher::ParseRegs(StringSplitter& splitResp, const RemoteCommand& cmd)
 {
     Registers regs;
+    DspRegisters dspRegs;
     while (true)
     {
         std::string reg = splitResp.Split(SEP_CHAR);
@@ -601,11 +662,20 @@ void Dispatcher::ParseRegs(StringSplitter& splitResp, const RemoteCommand& cmd)
         // Write this value into register structure
         // NOTE: this is tolerant to not matching the name
         // since we use "Vars"
-        int reg_id = RegNameToEnum(reg.c_str());
-        if (reg_id != Registers::REG_COUNT)
-            regs.m_value[reg_id] = value;
+        if (reg.find("D_", 0) == 0)
+        {
+            int reg_id = DspRegNameToEnum(reg.c_str() + 2);
+            if (reg_id != DspRegisters::REG_COUNT)
+                dspRegs.Set(reg_id, value);
+        }
+        else
+        {
+            int reg_id = RegNameToEnum(reg.c_str());
+            if (reg_id != Registers::REG_COUNT)
+                regs.m_value[reg_id] = value;
+        }
     }
-    m_pTargetModel->SetRegisters(regs, cmd.m_uid);
+    m_pTargetModel->SetRegisters(regs, dspRegs, cmd.m_uid);
 }
 
 void Dispatcher::ParseMem(StringSplitter& splitResp, const RemoteCommand& cmd)
@@ -620,7 +690,7 @@ void Dispatcher::ParseMem(StringSplitter& splitResp, const RemoteCommand& cmd)
         return;
 
     // Create a new memory block to pass to the data model
-    Memory* pMem = new Memory(addr, size);
+    Memory* pMem = new Memory(MEM_CPU, addr, size);
 
     // Now parse the uuencoded data
     // Each "group" encodes 3 bytes
@@ -650,6 +720,58 @@ void Dispatcher::ParseMem(StringSplitter& splitResp, const RemoteCommand& cmd)
     m_pTargetModel->SetMemory(cmd.m_memorySlot, pMem, cmd.m_uid);
 }
 
+void Dispatcher::ParseDmem(StringSplitter &splitResp, const RemoteCommand &cmd)
+{
+    std::string memspace = splitResp.Split(SEP_CHAR);
+    std::string addrStr = splitResp.Split(SEP_CHAR);
+    std::string sizeStr = splitResp.Split(SEP_CHAR);
+    uint32_t addr;
+    if (!StringParsers::ParseHexString(addrStr.c_str(), addr))
+        return;
+    uint32_t sizeInWords;
+    if (!StringParsers::ParseHexString(sizeStr.c_str(), sizeInWords))
+        return;
+    MemSpace space;
+    switch (memspace[0])
+    {
+        case 'P' : space = MEM_P; break;
+        case 'X' : space = MEM_X; break;
+        case 'Y' : space = MEM_Y; break;
+    default:
+        return;
+    }
+
+    // Create a new memory block to pass to the data model
+    Memory* pMem = new Memory(space, addr, sizeInWords * 3);
+
+    // Now parse the uuencoded data
+    // Each "group" encodes 3 bytes
+    uint32_t numGroups = sizeInWords;        // round up to next block
+
+    uint32_t writePos = 0;
+    uint32_t readPos = splitResp.GetPos();
+    for (uint32_t group = 0; group < numGroups; ++group)
+    {
+        uint32_t accum = 0;
+        for (int i = 0; i < 4; ++i)
+        {
+            accum <<= 6;
+            uint32_t value = cmd.m_response[readPos++];
+            assert(value >= 32 && value < 32+64);
+            accum |= (value - 32u);
+        }
+
+        // Now output 3 chars
+        for (int i = 0; i < 3; ++i)
+        {
+            pMem->Set(writePos++, (accum >> 16) & 0xff);
+            accum <<= 8;
+        }
+    }
+
+    m_pTargetModel->SetMemory(cmd.m_memorySlot, pMem, cmd.m_uid);
+}
+
 void Dispatcher::ParseBplist(StringSplitter& splitResp, const RemoteCommand& cmd)
 {
     // Breakpoints
@@ -662,13 +784,23 @@ void Dispatcher::ParseBplist(StringSplitter& splitResp, const RemoteCommand& cmd
     for (uint32_t i = 0; i < count; ++i)
     {
         Breakpoint bp;
-        bp.m_id = i + 1;        // IDs in Hatari start at 1 :(
+
+        std::string procStr = splitResp.Split(SEP_CHAR);
+        std::string idStr = splitResp.Split(SEP_CHAR);
         bp.SetExpression(splitResp.Split(SEP_CHAR));
         std::string ccountStr = splitResp.Split(SEP_CHAR);
         std::string hitsStr = splitResp.Split(SEP_CHAR);
         std::string onceStr = splitResp.Split(SEP_CHAR);
         std::string quietStr = splitResp.Split(SEP_CHAR);
         std::string traceStr = splitResp.Split(SEP_CHAR);
+
+        uint32_t proc;
+        if (!StringParsers::ParseHexString(procStr.c_str(), proc))
+            return;
+        bp.m_proc = proc != 0 ? kProcDsp : kProcCpu;
+
+        if (!StringParsers::ParseHexString(idStr.c_str(), bp.m_id))
+            return;
         if (!StringParsers::ParseHexString(ccountStr.c_str(), bp.m_conditionCount))
             return;
         if (!StringParsers::ParseHexString(hitsStr.c_str(), bp.m_hitCount))

@@ -10,6 +10,7 @@
 #include <QMainWindow>
 #include "../models/memory.h"
 #include "../models/disassembler.h"
+#include "../models/disassembler56.h"
 #include "../models/targetmodel.h"
 
 class QPushButton;
@@ -64,7 +65,9 @@ private:
 private slots:
     void startStopClickedSlot();
     void singleStepClickedSlot();
+    void singleStepDspClickedSlot();
     void nextClickedSlot();
+    void nextDspClickedSlot();
     void skipPressedSlot();
     void runToClickedSlot();
     void cycleRunToSlot();
@@ -72,6 +75,7 @@ private slots:
 
 private:
     void connectChanged();
+    void configChanged();
     void startStopChanged();
     void memoryChanged(int slot, uint64_t commandId);
     void runningRefreshTimer();
@@ -137,6 +141,10 @@ private:
     QPushButton*    m_pRunToButton;
     QComboBox*      m_pRunToCombo;
 
+    QPushButton*    m_pDspStepIntoButton;
+    QPushButton*    m_pDspStepOverButton;
+    QWidget*        m_pDspTopWidget;
+
     RegisterWidget* m_pRegisterWidget;
 
     // Dialogs
@@ -160,9 +168,13 @@ private:
 
     // Target data -- used for single-stepping
     Disassembler::disassembly   m_disasm;
+    Disassembler56::disassembly m_disasm56;
+
+    // Flush request made before main state is fetched
+    uint64_t                    m_mainStateStartedRequest;
 
     // Flush request made after all main state is fetched
-    uint64_t                    m_mainStateUpdateRequest;
+    uint64_t                    m_mainStateCompleteRequest;
 
     // Flush request made by live update (fetching registers)
     uint64_t                    m_liveRegisterReadRequest;

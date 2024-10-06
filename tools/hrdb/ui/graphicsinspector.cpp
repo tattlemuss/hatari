@@ -25,6 +25,7 @@
 #include "../models/stringparsers.h"
 #include "../models/session.h"
 #include "../hardware/regs_st.h"
+#include "../hardware/regs_falc.h"
 
 #include "elidedlabel.h"
 #include "quicklayout.h"
@@ -34,7 +35,8 @@
 
     The code uses a dependency system, since it needs 3 bits of memory
     * the video regs
-    * the palette (which might be memory or not
+    * the palette (which might be memory or not, and depends on registers
+        as to whether to fetch $ff8240 or $ff9800)
     * the bitmap, (which might depend on registers)
 
     The bitmap cannot be requested until video regs and palette have been
@@ -59,22 +61,26 @@ static void CreateBitplanePalette(QVector<uint32_t>& palette,
                                   uint32_t col3)
 {
     int i = 0;
-    palette[i++] = (0xff000000 + 0                  );
-    palette[i++] = (0xff000000 +               +col0);
-    palette[i++] = (0xff000000 +          +col1     );
-    palette[i++] = (0xff000000 +          +col1+col0);
-    palette[i++] = (0xff000000 +      col2          );
-    palette[i++] = (0xff000000 +      col2     +col0);
-    palette[i++] = (0xff000000 +      col2+col1     );
-    palette[i++] = (0xff000000 +      col2+col1+col0);
-    palette[i++] = (0xff000000 + col3               );
-    palette[i++] = (0xff000000 + col3          +col0);
-    palette[i++] = (0xff000000 + col3     +col1     );
-    palette[i++] = (0xff000000 + col3     +col1+col0);
-    palette[i++] = (0xff000000 + col3+col2          );
-    palette[i++] = (0xff000000 + col3+col2     +col0);
-    palette[i++] = (0xff000000 + col3+col2+col1     );
-    palette[i++] = (0xff000000 + col3+col2+col1+col0);
+    // This loop just ensures all 256 entries are filled.
+    for (int loop = 0; loop < 16; ++loop)
+    {
+        palette[i++] = (0xff000000 + 0                  );
+        palette[i++] = (0xff000000 +               +col0);
+        palette[i++] = (0xff000000 +          +col1     );
+        palette[i++] = (0xff000000 +          +col1+col0);
+        palette[i++] = (0xff000000 +      col2          );
+        palette[i++] = (0xff000000 +      col2     +col0);
+        palette[i++] = (0xff000000 +      col2+col1     );
+        palette[i++] = (0xff000000 +      col2+col1+col0);
+        palette[i++] = (0xff000000 + col3               );
+        palette[i++] = (0xff000000 + col3          +col0);
+        palette[i++] = (0xff000000 + col3     +col1     );
+        palette[i++] = (0xff000000 + col3     +col1+col0);
+        palette[i++] = (0xff000000 + col3+col2          );
+        palette[i++] = (0xff000000 + col3+col2     +col0);
+        palette[i++] = (0xff000000 + col3+col2+col1     );
+        palette[i++] = (0xff000000 + col3+col2+col1+col0);
+    }
 }
 
 GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
@@ -122,11 +128,13 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     m_pHeightSpinBox = new QSpinBox(this);
 
     m_pModeComboBox->addItem(tr("Registers"), Mode::kFormatRegisters);
+    m_pModeComboBox->addItem(tr("8 Plane"), Mode::kFormat8Bitplane);
     m_pModeComboBox->addItem(tr("4 Plane"), Mode::kFormat4Bitplane);
     m_pModeComboBox->addItem(tr("3 Plane"), Mode::kFormat3Bitplane);
     m_pModeComboBox->addItem(tr("2 Plane"), Mode::kFormat2Bitplane);
     m_pModeComboBox->addItem(tr("1 Plane"), Mode::kFormat1Bitplane);
     m_pModeComboBox->addItem(tr("1 BPP"), Mode::kFormat1BPP);
+    m_pModeComboBox->addItem(tr("TruCol"), Mode::kFormatTruColor);
 
     m_pLeftStrideButton->setArrowType(Qt::ArrowType::LeftArrow);
     m_pRightStrideButton->setArrowType(Qt::ArrowType::RightArrow);
@@ -147,7 +155,8 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     // Third line
     m_pPaletteComboBox = new QComboBox(this);
     m_pPaletteComboBox->addItem(tr("Registers"), kRegisters);
-    m_pPaletteComboBox->addItem(tr("Memory..."), kUserMemory);
+    m_pPaletteComboBox->addItem(tr("Memory (ST)"), kUserMemory);
+    m_pPaletteComboBox->addItem(tr("Memory (F030)"), kUserMemoryF030);
     m_pPaletteComboBox->addItem(tr("Greyscale"), kGreyscale);
     m_pPaletteComboBox->addItem(tr("Contrast1"), kContrast1);
     m_pPaletteComboBox->addItem(tr("Bitplane0"), kBitplane0);
@@ -250,12 +259,12 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     connect(m_pLockAddressToVideoCheckBox,  &QCheckBox::stateChanged,     this, &GraphicsInspectorWidget::lockAddressToVideoChanged);
     connect(m_pLockAddressToVideoCheckBox,  &QCheckBox::stateChanged,     this, &GraphicsInspectorWidget::lockAddressToVideoChanged);
 
-    connect(m_pModeComboBox,    SIGNAL(activated(int)),                   SLOT(modeChangedSlot(int)));  // this is user-changed
-    connect(m_pPaletteComboBox, SIGNAL(currentIndexChanged(int)),         SLOT(paletteChangedSlot(int)));
-    connect(m_pStrideSpinBox,      SIGNAL(valueChanged(int)),                SLOT(StrideChangedSlot(int)));
-    connect(m_pHeightSpinBox,   SIGNAL(valueChanged(int)),                SLOT(heightChangedSlot(int)));
-    connect(m_pLeftStrideButton,   &QToolButton::clicked,                    this, &GraphicsInspectorWidget::leftStrideClicked);
-    connect(m_pRightStrideButton,  &QToolButton::clicked,                    this, &GraphicsInspectorWidget::rightStrideClicked);
+    connect(m_pModeComboBox,           SIGNAL(activated(int)),            SLOT(modeChangedSlot(int)));  // this is user-changed
+    connect(m_pPaletteComboBox,        SIGNAL(currentIndexChanged(int)),  SLOT(paletteChangedSlot(int)));
+    connect(m_pStrideSpinBox,          SIGNAL(valueChanged(int)),         SLOT(StrideChangedSlot(int)));
+    connect(m_pHeightSpinBox,          SIGNAL(valueChanged(int)),         SLOT(heightChangedSlot(int)));
+    connect(m_pLeftStrideButton,       &QToolButton::clicked,             this, &GraphicsInspectorWidget::leftStrideClicked);
+    connect(m_pRightStrideButton,      &QToolButton::clicked,             this, &GraphicsInspectorWidget::rightStrideClicked);
 
     connect(m_pImageWidget,  &NonAntiAliasImage::MouseInfoChanged,        this, &GraphicsInspectorWidget::updateInfoLine);
     connect(m_pSession,      &Session::addressRequested,                  this, &GraphicsInspectorWidget::RequestBitmapAddress);
@@ -397,7 +406,7 @@ void GraphicsInspectorWidget::connectChanged()
 {
     if (!m_pTargetModel->IsConnected())
     {
-        m_pImageWidget->setPixmap(0, 0);
+        m_pImageWidget->m_bitmap.Clear();
     }
 }
 
@@ -441,9 +450,14 @@ void GraphicsInspectorWidget::memoryChanged(int /*memorySlot*/, uint64_t command
         const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
         if (pMem)
         {
+            m_cachedFalcResolution = 0;
             uint8_t val = 0;
-            if (pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, val))
+            if (pMem->ReadCpuByte(Regs::VID_SHIFTER_RES, val))
                 m_cachedResolution = Regs::GetField_VID_SHIFTER_RES_RES(val);
+            uint32_t falcVal = 0;
+            if (m_pTargetModel->GetMachineType() == MACHINE_FALCON &&
+                    pMem->ReadCpuMulti(Regs::FALC_SPSHIFT, 2U, falcVal))
+                m_cachedFalcResolution = static_cast<uint16_t>(falcVal);
         }
 
         // See if bitmap etc can now be requested
@@ -469,7 +483,7 @@ void GraphicsInspectorWidget::bitmapAddressChanged()
 {
     std::string expression = m_pBitmapAddressLineEdit->text().toStdString();
     uint32_t addr;
-    if (!StringParsers::ParseExpression(expression.c_str(), addr,
+    if (!StringParsers::ParseCpuExpression(expression.c_str(), addr,
                                         m_pTargetModel->GetSymbolTable(),
                                         m_pTargetModel->GetRegs()))
     {
@@ -487,7 +501,7 @@ void GraphicsInspectorWidget::paletteAddressChanged()
 {
     std::string expression = m_pPaletteAddressLineEdit->text().toStdString();
     uint32_t addr;
-    if (!StringParsers::ParseExpression(expression.c_str(), addr,
+    if (!StringParsers::ParseCpuExpression(expression.c_str(), addr,
                                         m_pTargetModel->GetSymbolTable(),
                                         m_pTargetModel->GetRegs()))
     {
@@ -551,12 +565,15 @@ void GraphicsInspectorWidget::paletteChangedSlot(int index)
     m_paletteMode = static_cast<Palette>(rawIdx);
 
     // Ensure pixmap is updated
-    m_pImageWidget->setPixmap(GetEffectiveStride(), GetEffectiveHeight());
+    //m_pImageWidget->m_bitmap.RefreshPixmap();
 
     UpdateUIElements();
+    updateInfoLine();
 
     // Only certain modes require palette memory re-request
-    if (m_paletteMode == kRegisters || m_paletteMode == kUserMemory)
+
+    if (m_paletteMode == kRegisters || m_paletteMode == kUserMemory ||
+            m_paletteMode == kUserMemoryF030)
         m_requestPalette.Dirty();
 
     // This will recalc the image immediately if no requests have been
@@ -651,12 +668,12 @@ void GraphicsInspectorWidget::saveImageClicked()
           filter);
 
     if (filename.size() != 0)
-        m_pImageWidget->GetImage().save(filename);
+        m_pImageWidget->m_bitmap.GetImage().save(filename);
 }
 
 void GraphicsInspectorWidget::updateInfoLine()
 {
-    const NonAntiAliasImage::MouseInfo& info = m_pImageWidget->GetMouseInfo();
+    const MemoryBitmap::PixelInfo& info = m_pImageWidget->GetMouseInfo();
 
     // Take a copy for right-click events
     m_mouseInfo = info;
@@ -676,6 +693,7 @@ void GraphicsInspectorWidget::updateInfoLine()
         case Mode::kFormat2Bitplane:
         case Mode::kFormat3Bitplane:
         case Mode::kFormat4Bitplane:
+        case Mode::kFormat8Bitplane:
             addr = m_bitmapAddress + info.y * data.bytesPerLine + (info.x / 16) * BytesPerChunk(m_mode);
             break;
         case Mode::kFormat1BPP:
@@ -686,7 +704,7 @@ void GraphicsInspectorWidget::updateInfoLine()
         }
 
         ref << "[" << info.x << ", " << info.y << "]";
-        if (info.pixelValue >= 0)
+        if (info.pixelValue.size() >= 0)
             ref << " Pixel Value: " << info.pixelValue;
         if (addr != ~0U)
         {
@@ -700,7 +718,7 @@ void GraphicsInspectorWidget::updateInfoLine()
     m_pMouseInfoLabel->setText(str);
 }
 
-void GraphicsInspectorWidget::RequestBitmapAddress(Session::WindowType type, int windowIndex, uint32_t address)
+void GraphicsInspectorWidget::RequestBitmapAddress(Session::WindowType type, int windowIndex, int /*memorySpace*/, uint32_t address)
 {
     if (type != Session::WindowType::kGraphicsInspector)
         return;
@@ -733,21 +751,27 @@ void GraphicsInspectorWidget::UpdateMemoryRequests()
         return;
     }
 
-    if (m_requestRegs.isDirty || m_requestPalette.isDirty)
+    if (m_requestRegs.isDirty)
     {
-        if (m_requestRegs.isDirty && m_requestRegs.requestId == 0)
+        if (m_requestRegs.requestId == 0)
             m_requestRegs.requestId = m_pDispatcher->ReadMemory(MemorySlot::kGraphicsInspectorVideoRegs, Regs::VID_REG_BASE, 0x70);
+        return; // block the next requests
+    }
 
-        if (m_requestPalette.isDirty && m_requestPalette.requestId == 0)
+    if (m_requestPalette.isDirty)
+    {
+        if (m_requestPalette.requestId == 0)
         {
             if (m_paletteMode == kRegisters)
                 m_requestPalette.requestId = m_pDispatcher->ReadMemory(MemorySlot::kGraphicsInspectorPalette, Regs::VID_PAL_0, 0x20);
             else if (m_paletteMode == kUserMemory)
                 m_requestPalette.requestId = m_pDispatcher->ReadMemory(MemorySlot::kGraphicsInspectorPalette, m_paletteAddress, 0x20);
+            else if (m_paletteMode == kUserMemoryF030)
+                m_requestPalette.requestId = m_pDispatcher->ReadMemory(MemorySlot::kGraphicsInspectorPalette, m_paletteAddress, 256 * 4);
             else
                 m_requestPalette.Clear();   // we don't need to fetch
         }
-        return;
+        return; // block the next requests
     }
 
     // We only get here if the other flags are clean
@@ -806,15 +830,11 @@ void GraphicsInspectorWidget::UpdateFormatFromUI()
 void GraphicsInspectorWidget::UpdateImage()
 {
     // Colours are ARGB
-    m_pImageWidget->m_colours.clear();
-    m_pImageWidget->m_colours.resize(256);
+    MemoryBitmap::Palette palette;
+    palette.clear();
+    palette.resize(256);
 
-    if (GetEffectiveMode() == kFormat1BPP)
-    {
-        for (uint i = 0; i < 256; ++i)
-            m_pImageWidget->m_colours[i] = (0xff000000 + i * 0x010101);
-    }
-    else switch (m_paletteMode)
+    switch (m_paletteMode)
     {
         case kRegisters:
         case kUserMemory:
@@ -831,31 +851,54 @@ void GraphicsInspectorWidget::UpdateImage()
 
                 uint32_t colour = 0xff000000U;
                 HardwareST::GetColour(regVal, m_pTargetModel->GetMachineType(), colour);
-                m_pImageWidget->m_colours[i] = colour;
+                palette[i] = colour;
+            }
+            break;
+        }
+        case kUserMemoryF030:
+        {
+            const Memory* pMemOrig = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorPalette);
+            if (!pMemOrig || pMemOrig->GetSize() < 256 * 4)
+                return;
+
+            for (uint i = 0; i < 256; ++i)
+            {
+                uint8_t r = pMemOrig->Get(i * 4 + 0) & 0xfc;
+                uint8_t g = pMemOrig->Get(i * 4 + 1) & 0xfc;
+                uint8_t b = pMemOrig->Get(i * 4 + 3) & 0xfc;
+                uint32_t colour = 0xff000000U | (r << 16) | (g << 8) | (b);
+                palette[i] = colour;
             }
             break;
         }
         case kGreyscale:
-            for (uint i = 0; i < 16; ++i)
+            // Compensate for 256-colour
+            if (m_mode == kFormat8Bitplane)
             {
-                m_pImageWidget->m_colours[i] = (0xff000000 + i * 0x101010);
+                for (uint i = 0; i < 256; ++i)
+                    palette[i] = (0xff000000 + i * 0x010101);
+            }
+            else
+            {
+                for (uint i = 0; i < 16; ++i)
+                    palette[i] = (0xff000000 + i * 0x101010);
             }
             break;
         case kContrast1:
             // This palette is derived from one of the bitplane palettes in "44"
-            CreateBitplanePalette(m_pImageWidget->m_colours, 0x500000*2, 0x224400*2, 0x003322*2, 0x000055*2);
+            CreateBitplanePalette(palette, 0x500000*2, 0x224400*2, 0x003322*2, 0x000055*2);
             break;
         case kBitplane0:
-            CreateBitplanePalette(m_pImageWidget->m_colours, 0xbbbbbb, 0x220000, 0x2200, 0x22);
+            CreateBitplanePalette(palette, 0xbbbbbb, 0x220000, 0x2200, 0x22);
             break;
         case kBitplane1:
-            CreateBitplanePalette(m_pImageWidget->m_colours, 0x220000, 0xbbbbbb, 0x2200, 0x22);
+            CreateBitplanePalette(palette, 0x220000, 0xbbbbbb, 0x2200, 0x22);
             break;
         case kBitplane2:
-            CreateBitplanePalette(m_pImageWidget->m_colours, 0x220000, 0x2200, 0xbbbbbb, 0x22);
+            CreateBitplanePalette(palette, 0x220000, 0x2200, 0xbbbbbb, 0x22);
             break;
         case kBitplane3:
-            CreateBitplanePalette(m_pImageWidget->m_colours, 0x220000, 0x2200, 0x22, 0xbbbbbb);
+            CreateBitplanePalette(palette, 0x220000, 0x2200, 0x22, 0xbbbbbb);
             break;
     }
 
@@ -865,11 +908,11 @@ void GraphicsInspectorWidget::UpdateImage()
         {
             const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kGraphicsInspectorVideoRegs);
             uint32_t colour0 = 0;
-            if (pMem && pMem->ReadAddressMulti(Regs::VID_PAL_0, 2, colour0))
+            if (pMem && pMem->ReadCpuMulti(Regs::VID_PAL_0, 2, colour0))
             {
                 int ind = colour0 & 1;
-                m_pImageWidget->m_colours[ind    ] = 0xff000000 | 0x000000;
-                m_pImageWidget->m_colours[ind ^ 1] = 0xff000000 | 0xffffff;
+                palette[ind    ] = 0xff000000 | 0x000000;
+                palette[ind ^ 1] = 0xff000000 | 0xffffff;
             }
         }
     }
@@ -882,9 +925,6 @@ void GraphicsInspectorWidget::UpdateImage()
     GetEffectiveData(data);
 
     Mode mode = data.mode;
-    int Stride = data.bytesPerLine;
-    int height = data.height;
-    int width = 0;
 
     // Uncompress
     int required = data.requiredSize;
@@ -893,137 +933,20 @@ void GraphicsInspectorWidget::UpdateImage()
     if ((int)pMemOrig->GetSize() < required)
         return;
 
-    if (mode == kFormat4Bitplane)
-    {
-        int numChunks = Stride / 8;
-        width = numChunks * 16;
-        int bitmapSize = numChunks * 16 * height;
-        uint8_t* pDestPixels = m_pImageWidget->AllocBitmap(bitmapSize);
-        for (int y = 0; y < height; ++y)
-        {
-            const uint8_t* pChunk = pMemOrig->GetData() + y * data.bytesPerLine;
-            for (int x = 0; x < numChunks; ++x)
-            {
-                int32_t pSrc[4];    // top 16 bits never used
-                pSrc[3] = (pChunk[0] << 8) | pChunk[1];
-                pSrc[2] = (pChunk[2] << 8) | pChunk[3];
-                pSrc[1] = (pChunk[4] << 8) | pChunk[5];
-                pSrc[0] = (pChunk[6] << 8) | pChunk[7];
-                for (int pix = 15; pix >= 0; --pix)
-                {
-                    uint8_t val;
-                    val  = (pSrc[0] & 1); val <<= 1;
-                    val |= (pSrc[1] & 1); val <<= 1;
-                    val |= (pSrc[2] & 1); val <<= 1;
-                    val |= (pSrc[3] & 1);
-
-                    pDestPixels[pix] = val;
-                    pSrc[0] >>= 1;
-                    pSrc[1] >>= 1;
-                    pSrc[2] >>= 1;
-                    pSrc[3] >>= 1;
-                }
-                pChunk += 8;
-                pDestPixels += 16;
-            }
-        }
-    }
+    if (mode == kFormat8Bitplane)
+        m_pImageWidget->m_bitmap.Set8Plane(palette, data.bytesPerLine, data.height, pMemOrig);
+    else if (mode == kFormat4Bitplane)
+        m_pImageWidget->m_bitmap.Set4Plane(palette, data.bytesPerLine, data.height, pMemOrig);
     else if (mode == kFormat3Bitplane)
-    {
-        int numChunks = Stride / 6;
-        width = numChunks * 16;
-        int bitmapSize = numChunks * 16 * height;
-        uint8_t* pDestPixels = m_pImageWidget->AllocBitmap(bitmapSize);
-        for (int y = 0; y < height; ++y)
-        {
-            const uint8_t* pChunk = pMemOrig->GetData() + y * data.bytesPerLine;
-            for (int x = 0; x < numChunks; ++x)
-            {
-                int32_t pSrc[3];    // top 16 bits never used
-                pSrc[2] = (pChunk[0] << 8) | pChunk[1];
-                pSrc[1] = (pChunk[2] << 8) | pChunk[3];
-                pSrc[0] = (pChunk[4] << 8) | pChunk[5];
-                for (int pix = 15; pix >= 0; --pix)
-                {
-                    uint8_t val;
-                    val  = (pSrc[0] & 1); val <<= 1;
-                    val |= (pSrc[1] & 1); val <<= 1;
-                    val |= (pSrc[2] & 1);
-
-                    pDestPixels[pix] = val;
-                    pSrc[0] >>= 1;
-                    pSrc[1] >>= 1;
-                    pSrc[2] >>= 1;
-                }
-                pChunk += 6;
-                pDestPixels += 16;
-            }
-        }
-    }
+        m_pImageWidget->m_bitmap.Set3Plane(palette, data.bytesPerLine, data.height, pMemOrig);
     else if (mode == kFormat2Bitplane)
-    {
-        int numChunks = Stride / 4;
-        width = numChunks * 16;
-        int bitmapSize = numChunks * 16 * height;
-        uint8_t* pDestPixels = m_pImageWidget->AllocBitmap(bitmapSize);
-        for (int y = 0; y < height; ++y)
-        {
-            const uint8_t* pChunk = pMemOrig->GetData() + y * data.bytesPerLine;
-            for (int x = 0; x < numChunks; ++x)
-            {
-                int32_t pSrc[2];
-                pSrc[1] = (pChunk[0] << 8) | pChunk[1];
-                pSrc[0] = (pChunk[2] << 8) | pChunk[3];
-                for (int pix = 15; pix >= 0; --pix)
-                {
-                    uint8_t val;
-                    val  = (pSrc[0] & 1); val <<= 1;
-                    val |= (pSrc[1] & 1);
-                    pDestPixels[pix] = val;
-                    pSrc[0] >>= 1;
-                    pSrc[1] >>= 1;
-                }
-                pChunk += 4;
-                pDestPixels += 16;
-            }
-        }
-    }
+        m_pImageWidget->m_bitmap.Set2Plane(palette, data.bytesPerLine, data.height, pMemOrig);
     else if (mode == kFormat1Bitplane)
-    {
-        int numChunks = Stride / 2;
-        width = numChunks * 16;
-        int bitmapSize = numChunks * 16 * height;
-        uint8_t* pDestPixels = m_pImageWidget->AllocBitmap(bitmapSize);
-        for (int y = 0; y < height; ++y)
-        {
-            const uint8_t* pChunk = pMemOrig->GetData() + y * data.bytesPerLine;
-            for (int x = 0; x < numChunks; ++x)
-            {
-                int32_t pSrc[1];
-                pSrc[0] = (pChunk[0] << 8) | pChunk[1];
-                for (int pix = 15; pix >= 0; --pix)
-                {
-                    uint8_t val;
-                    val  = (pSrc[0] & 1);
-                    pDestPixels[pix] = val;
-                    pSrc[0] >>= 1;
-                }
-                pChunk += 2;
-                pDestPixels += 16;
-            }
-        }
-    }
+        m_pImageWidget->m_bitmap.Set1Plane(palette, data.bytesPerLine, data.height, pMemOrig);
     else if (mode == kFormat1BPP)
-    {
-        int bitmapSize = data.bytesPerLine * height;
-        uint8_t* pDestPixels = m_pImageWidget->AllocBitmap(bitmapSize);
-        assert(pMemOrig->GetSize() >= bitmapSize);
-
-        // This is a simple memcpy
-        memcpy(pDestPixels, pMemOrig->GetData(), bitmapSize);
-        width = data.pixels;
-    }
-    m_pImageWidget->setPixmap(width, height);
+        m_pImageWidget->m_bitmap.Set1BPP(data.bytesPerLine, data.height, pMemOrig);
+    else if (mode == kFormatTruColor)
+        m_pImageWidget->m_bitmap.SetTruColor(data.bytesPerLine, data.height, pMemOrig);
 
     // Update annotations
     UpdateAnnotations();
@@ -1042,6 +965,7 @@ void GraphicsInspectorWidget::UpdateUIElements()
     case kFormat2Bitplane:
     case kFormat3Bitplane:
     case kFormat4Bitplane:
+    case kFormat8Bitplane:
         allowAdjustWidth = true; allowAdjustPalette = true;
         break;
     case kFormat1BPP:
@@ -1049,6 +973,9 @@ void GraphicsInspectorWidget::UpdateUIElements()
         break;
     case kFormatRegisters:
         allowAdjustWidth = false;  allowAdjustPalette = true;
+        break;
+    case kFormatTruColor:
+        allowAdjustWidth = true;  allowAdjustPalette = false;
         break;
     default:
         assert(0);
@@ -1062,7 +989,9 @@ void GraphicsInspectorWidget::UpdateUIElements()
 
     // Disable palette control for chunky
     m_pPaletteComboBox->setEnabled(allowAdjustPalette);
-    m_pPaletteAddressLineEdit->setVisible(m_paletteMode == kUserMemory);
+    bool usingMemory = (m_paletteMode == kUserMemory) ||
+            (m_paletteMode == kUserMemoryF030);
+    m_pPaletteAddressLineEdit->setVisible(usingMemory);
 
     m_pOverlayDarkenAction->setChecked(m_pImageWidget->GetDarken());
     m_pOverlayGridAction->setChecked(m_pImageWidget->GetGrid());
@@ -1084,7 +1013,7 @@ GraphicsInspectorWidget::Mode GraphicsInspectorWidget::GetEffectiveMode() const
             return Mode::kFormat4Bitplane;
 
         uint8_t val = 0;
-        if (!pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, val))
+        if (!pMem->ReadCpuByte(Regs::VID_SHIFTER_RES, val))
             return Mode::kFormat1Bitplane;
 
         Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(val);
@@ -1112,7 +1041,7 @@ int GraphicsInspectorWidget::GetEffectiveStride() const
         uint8_t tmpReg = 0;
         MACHINETYPE mtype = m_pTargetModel->GetMachineType();
 
-        pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, tmpReg);
+        pMem->ReadCpuByte(Regs::VID_SHIFTER_RES, tmpReg);
         Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(tmpReg);
         switch (modeReg)
         {
@@ -1127,7 +1056,7 @@ int GraphicsInspectorWidget::GetEffectiveStride() const
         if (!IsMachineST(mtype))
         {
             uint8_t modeReg;
-            pMem->ReadAddressByte(Regs::VID_HORIZ_SCROLL_STE, tmpReg);
+            pMem->ReadCpuByte(Regs::VID_HORIZ_SCROLL_STE, tmpReg);
             modeReg = Regs::GetField_VID_HORIZ_SCROLL_STE_PIXELS(tmpReg);
             if (modeReg != 0)
                 bytes += chunkSize;  // extra read for scroll
@@ -1137,7 +1066,7 @@ int GraphicsInspectorWidget::GetEffectiveStride() const
         if (IsMachineSTE(mtype))
         {
             uint8_t lineDelta = 0;
-            pMem->ReadAddressByte(Regs::VID_SCANLINE_OFFSET_STE, lineDelta);
+            pMem->ReadCpuByte(Regs::VID_SCANLINE_OFFSET_STE, lineDelta);
             if (lineDelta)
                 bytes += lineDelta * 2;
         }
@@ -1154,7 +1083,7 @@ int GraphicsInspectorWidget::GetEffectiveHeight() const
         if (!pMem)
             return 0;
         uint8_t tmpReg;
-        pMem->ReadAddressByte(Regs::VID_SHIFTER_RES, tmpReg);
+        pMem->ReadCpuByte(Regs::VID_SHIFTER_RES, tmpReg);
         Regs::RESOLUTION modeReg = Regs::GetField_VID_SHIFTER_RES_RES(tmpReg);
         if (modeReg == Regs::RESOLUTION::LOW)
             return 200;
@@ -1179,6 +1108,9 @@ void GraphicsInspectorWidget::GetEffectiveData(GraphicsInspectorWidget::Effectiv
     case kFormat1BPP:
         data.pixels = data.bytesPerLine;
         break;
+    case kFormatTruColor:
+        data.pixels = data.bytesPerLine / 2;
+        break;
     default:
         data.pixels = data.bytesPerLine / BytesPerChunk(data.mode) * 16;
         break;
@@ -1189,6 +1121,7 @@ int32_t GraphicsInspectorWidget::BytesPerChunk(GraphicsInspectorWidget::Mode mod
 {
     switch (mode)
     {
+    case kFormat8Bitplane: return 16;
     case kFormat4Bitplane: return 8;
     case kFormat3Bitplane: return 6;
     case kFormat2Bitplane: return 4;
@@ -1280,16 +1213,20 @@ void GraphicsInspectorWidget::ContextMenu(QPoint pos)
     // Add the default actions
     menu.addAction(m_pSaveImageAction);
     menu.addMenu(m_pOverlayMenu);
+    MemSpace space = MEM_CPU;
 
-    m_showAddressMenus[0].setAddress(m_pSession, m_bitmapAddress);
-    m_showAddressMenus[0].setTitle(Format::to_hex32(m_bitmapAddress) + QString(" (Bitmap address)"));
-    menu.addMenu(m_showAddressMenus[0].m_pMenu);
+    QString addrText = Format::to_address(space, m_bitmapAddress);
+    m_showAddressMenus[0].Set("Bitmap address",
+                                   m_pSession, space, m_bitmapAddress);
+    m_showAddressMenus[0].AddTo(&menu);
 
     if (m_mouseInfo.isValid && m_addressUnderMouse != ~0U)
     {
-        m_showAddressMenus[1].setAddress(m_pSession, m_addressUnderMouse);
-        m_showAddressMenus[1].setTitle(Format::to_hex32(m_addressUnderMouse) + QString(" (Mouse Cursor address)"));
-        menu.addMenu(m_showAddressMenus[1].m_pMenu);
+        addrText = Format::to_address(space, m_addressUnderMouse);
+        m_showAddressMenus[1].Set("Mouse Cursor address",
+                                       m_pSession, space, m_addressUnderMouse);
+
+        m_showAddressMenus[1].AddTo(&menu);
     }
 
     menu.exec(pos);

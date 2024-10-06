@@ -7,6 +7,8 @@
 #include "symboltable.h"
 #include "registers.h"
 
+using namespace hop68;
+
 void Disassembler::decode_inst(buffer_reader& buf, instruction& inst, const decode_settings& settings)
 {
     decode(inst, buf, settings);

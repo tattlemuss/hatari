@@ -4,6 +4,7 @@
 #include <string>
 #include <deque>
 #include "remotecommand.h"
+#include "../models/processor.h"
 #include <QObject>
 
 class QTcpSocket;
@@ -20,9 +21,15 @@ public:
 
     uint64_t InsertFlush();
 
-    // Request a specific memory block.
-    // Allows strings so expressions can evaluate
+    // Request a specific CPU memory block.
+    // Sizes are in bytes.
     uint64_t ReadMemory(MemorySlot slot, uint32_t address, uint32_t size);
+
+    // Request a memory block from any memory space.
+    // Sizes are NUMBER OF MEMORY LOCATIONS,
+    // so bytes for CPU, and DSP-words for DSP
+    uint64_t ReadMemory(MemorySlot slot, MemSpace space, uint32_t address, uint32_t size);
+
     uint64_t ReadRegisters();
     uint64_t ReadInfoYm();
     uint64_t ReadBreakpoints();
@@ -38,8 +45,8 @@ public:
     // CPU control
     uint64_t Break();
     uint64_t Run();
-    uint64_t Step();
-    uint64_t RunToPC(uint32_t pc);
+    uint64_t Step(Processor proc);
+    uint64_t RunToPC(Processor proc, uint32_t pc);
 
     enum BreakpointFlags
     {
@@ -49,10 +56,10 @@ public:
         kBpFlagTrace = 1 << 1
     };
 
-    uint64_t SetBreakpoint(std::string expression, uint64_t optionFlags);
-    uint64_t DeleteBreakpoint(uint32_t breakpointId);
+    uint64_t SetBreakpoint(Processor proc, std::string expression, uint64_t optionFlags);
+    uint64_t DeleteBreakpoint(Processor proc, uint32_t breakpointId);
+    uint64_t SetRegister(Processor proc, int reg, uint32_t val);
 
-    uint64_t SetRegister(int reg, uint32_t val);
     uint64_t SetExceptionMask(uint32_t mask);
     uint64_t SetLoggingFile(const std::string& filename);
     uint64_t SetProfileEnable(bool enable);
@@ -85,6 +92,7 @@ private:
     // Response parsers for each command
     void ParseRegs(StringSplitter& splitResp, const RemoteCommand& cmd);
     void ParseMem(StringSplitter& splitResp, const RemoteCommand& cmd);
+    void ParseDmem(StringSplitter& splitResp, const RemoteCommand& cmd);
     void ParseBplist(StringSplitter& splitResp, const RemoteCommand& cmd);
     void ParseSymlist(StringSplitter& splitResp, const RemoteCommand& cmd);
     void ParseExmask(StringSplitter& splitResp, const RemoteCommand& cmd);

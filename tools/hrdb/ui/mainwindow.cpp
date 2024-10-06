@@ -8,10 +8,14 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QScrollArea>
 #include <QSettings>
 #include <QShortcut>
 #include <QStatusBar>
 #include <QToolBar>
+
+#include "hopper/buffer.h"
+#include "hopper56/buffer.h"
 
 #include "../transport/dispatcher.h"
 #include "../models/targetmodel.h"
@@ -47,7 +51,8 @@ static int ShowResetWarning()
 MainWindow::MainWindow(Session& session, QWidget *parent)
     : QMainWindow(parent),
       m_session(session),
-      m_mainStateUpdateRequest(0),
+      m_mainStateStartedRequest(0),
+      m_mainStateCompleteRequest(0),
       m_liveRegisterReadRequest(0)
 {
     setObjectName("MainWindow");
@@ -57,6 +62,10 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     // Creation - done in Tab order
     // Register/status window
     m_pRegisterWidget = new RegisterWidget(this, &m_session);
+
+    QScrollArea* pScrollArea = new QScrollArea(this);
+    pScrollArea->setWidget(m_pRegisterWidget);
+    pScrollArea->setWidgetResizable(false);
 
     // Top row of buttons
     m_pRunningSquare = new QWidget(this);
@@ -69,7 +78,7 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     m_pStartStopButton->setToolTip("Ctrl+R: Run/Stop, Esc: Stop");
     m_pStepIntoButton->setToolTip("S: Execute one instruction.\n"
             "Jumps into subroutines.\n"
-            "Shift+S: skip instruction.");
+            "Ctrl+S: skip instruction.");
     m_pStepOverButton->setToolTip("N: Stop at next instruction in memory.\n"
             "Jumps over subroutines and through backwards loops.");
 
@@ -82,6 +91,13 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     m_pRunToCombo->insertItem(kRunToVbl, "Next VBL");
     m_pRunToCombo->insertItem(kRunToHbl, "Next HBL");
     m_pRunToCombo->insertItem(kRunToRam, "In RAM");
+
+    m_pDspStepIntoButton = new QPushButton("Step DSP", this);
+    m_pDspStepOverButton = new QPushButton("Next DSP", this);
+    m_pDspStepIntoButton->setToolTip("Shift+S: Execute one DSP instruction.\n"
+            "Jumps into subroutines.\n");
+    m_pDspStepOverButton->setToolTip("Shift+N: Stop at next instruction in memory.\n"
+            "Jumps over subroutines and through loop-to-self.");
 
     for (int i = 0; i < kNumDisasmViews; ++i)
     {
@@ -122,25 +138,36 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
 
     // https://doc.qt.io/qt-5/qtwidgets-layouts-basiclayouts-example.html
     QVBoxLayout *vlayout = new QVBoxLayout;
-    QHBoxLayout *hlayout = new QHBoxLayout;
+    QHBoxLayout *hlayoutTop = new QHBoxLayout;
+    QHBoxLayout *hlayoutDsp = new QHBoxLayout;
     auto pTopGroupBox = new QWidget(this);
+    m_pDspTopWidget = new QWidget(this);
+
     auto pMainGroupBox = new QGroupBox(this);
 
-    SetMargins(hlayout);
-    hlayout->setAlignment(Qt::AlignLeft);
-    hlayout->addWidget(m_pRunningSquare);
-    hlayout->addWidget(m_pStartStopButton);
-    hlayout->addWidget(m_pStepIntoButton);
-    hlayout->addWidget(m_pStepOverButton);
-    hlayout->addWidget(m_pRunToButton);
-    hlayout->addWidget(m_pRunToCombo);
-    hlayout->addStretch();
+    SetMargins(hlayoutTop);
+    hlayoutTop->setAlignment(Qt::AlignLeft);
+    hlayoutTop->addWidget(m_pRunningSquare);
+    hlayoutTop->addWidget(m_pStartStopButton);
+    hlayoutTop->addWidget(m_pStepIntoButton);
+    hlayoutTop->addWidget(m_pStepOverButton);
+    hlayoutTop->addWidget(m_pRunToButton);
+    hlayoutTop->addWidget(m_pRunToCombo);
+    hlayoutTop->addStretch();
     //hlayout->setAlignment(m_pRunToCombo, Qt::Align);
-    pTopGroupBox->setLayout(hlayout);
+    pTopGroupBox->setLayout(hlayoutTop);
+
+    SetMargins(hlayoutDsp);
+    hlayoutDsp->setAlignment(Qt::AlignLeft);
+    hlayoutDsp->addWidget(m_pDspStepIntoButton);
+    hlayoutDsp->addWidget(m_pDspStepOverButton);
+    hlayoutDsp->addStretch();
+    m_pDspTopWidget->setLayout(hlayoutDsp);
 
     SetMargins(vlayout);
     vlayout->addWidget(pTopGroupBox);
-    vlayout->addWidget(m_pRegisterWidget);
+    vlayout->addWidget(m_pDspTopWidget);
+    vlayout->addWidget(pScrollArea);
     vlayout->setAlignment(Qt::Alignment(Qt::AlignTop));
     pMainGroupBox->setFlat(true);
     pMainGroupBox->setLayout(vlayout);
@@ -167,6 +194,7 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
 
     // Listen for target changes
     connect(m_pTargetModel, &TargetModel::startStopChangedSignal,    this, &MainWindow::startStopChanged);
+    connect(m_pTargetModel, &TargetModel::configChangedSignal,       this, &MainWindow::configChanged);
     connect(m_pTargetModel, &TargetModel::connectChangedSignal,      this, &MainWindow::connectChanged);
     connect(m_pTargetModel, &TargetModel::memoryChangedSignal,       this, &MainWindow::memoryChanged);
     connect(m_pTargetModel, &TargetModel::runningRefreshTimerSignal, this, &MainWindow::runningRefreshTimer);
@@ -176,10 +204,13 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     connect(m_pTargetModel, &TargetModel::symbolProgramChangedSignal,this, &MainWindow::symbolProgramChanged);
 
     // Wire up buttons to actions
-    connect(m_pStartStopButton, &QAbstractButton::clicked, this, &MainWindow::startStopClickedSlot);
-    connect(m_pStepIntoButton,  &QAbstractButton::clicked, this, &MainWindow::singleStepClickedSlot);
-    connect(m_pStepOverButton,  &QAbstractButton::clicked, this, &MainWindow::nextClickedSlot);
-    connect(m_pRunToButton,     &QAbstractButton::clicked, this, &MainWindow::runToClickedSlot);
+    connect(m_pStartStopButton,   &QAbstractButton::clicked, this, &MainWindow::startStopClickedSlot);
+    connect(m_pStepIntoButton,    &QAbstractButton::clicked, this, &MainWindow::singleStepClickedSlot);
+    connect(m_pStepOverButton,    &QAbstractButton::clicked, this, &MainWindow::nextClickedSlot);
+    connect(m_pRunToButton,       &QAbstractButton::clicked, this, &MainWindow::runToClickedSlot);
+
+    connect(m_pDspStepIntoButton, &QAbstractButton::clicked, this, &MainWindow::singleStepDspClickedSlot);
+    connect(m_pDspStepOverButton, &QAbstractButton::clicked, this, &MainWindow::nextDspClickedSlot);
 
     // Wire up menu appearance
     connect(m_pWindowMenu, &QMenu::aboutToShow,            this, &MainWindow::updateWindowMenu);
@@ -191,8 +222,10 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     new QShortcut(QKeySequence("Ctrl+R"),         this, SLOT(startStopClickedSlot()));
     new QShortcut(QKeySequence("Esc"),            this, SLOT(breakPressedSlot()));
     new QShortcut(QKeySequence("S"),              this, SLOT(singleStepClickedSlot()));
+    new QShortcut(QKeySequence("Shift+S"),        this, SLOT(singleStepDspClickedSlot()));
     new QShortcut(QKeySequence("Ctrl+S"),         this, SLOT(skipPressedSlot()));
     new QShortcut(QKeySequence("N"),              this, SLOT(nextClickedSlot()));
+    new QShortcut(QKeySequence("Shift+N"),        this, SLOT(nextDspClickedSlot()));
     new QShortcut(QKeySequence("U"),              this, SLOT(runToClickedSlot()));
     new QShortcut(QKeySequence("Ctrl+Shift+U"),   this, SLOT(cycleRunToSlot()));
     // Specific "Run until" modes
@@ -209,7 +242,8 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     // Try initial connect
     ConnectTriggered();
 
-    // Update everything
+    // Update everything to ensure UI elements are up-to-date
+    configChanged();
     connectChanged();
     startStopChanged();
 
@@ -231,6 +265,11 @@ void MainWindow::connectChanged()
     //    m_pDispatcher->SendCommandPacket("profile 1");
 }
 
+void MainWindow::configChanged()
+{
+    m_pDspTopWidget->setVisible(m_pTargetModel->IsDspActive());
+}
+
 void MainWindow::startStopChanged()
 {
     bool isRunning = m_pTargetModel->IsRunning();
@@ -243,7 +282,7 @@ void MainWindow::startStopChanged()
         // The Main Window does this and other windows feed from it.
         // NOTE: we assume here that PC is already updated (normally this
         // is done with a notification at the stop)
-        requestMainState(m_pTargetModel->GetStartStopPC());
+        requestMainState(m_pTargetModel->GetStartStopPC(kProcCpu));
     }
     PopulateRunningSquare();
     updateButtonEnable();
@@ -251,22 +290,33 @@ void MainWindow::startStopChanged()
 
 void MainWindow::memoryChanged(int slot, uint64_t /*commandId*/)
 {
-    if (slot != MemorySlot::kMainPC)
-        return;
-
-    // This is the last part of the main state update, so flag it
-    emit m_session.mainStateUpdated();
-
-    // Disassemble the first instruction
-    m_disasm.lines.clear();
-    const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kMainPC);
-    if (!pMem)
-        return;
-
-    // Fetch data and decode the next instruction.
-    buffer_reader disasmBuf(pMem->GetData(), pMem->GetSize(), pMem->GetAddress());
-    Disassembler::decode_buf(disasmBuf, m_disasm, m_pTargetModel->GetDisasmSettings(), pMem->GetAddress(), 1);
-}
+    if (slot == MemorySlot::kMainPC)
+    {
+        // Disassemble the first instruction
+        m_disasm.lines.clear();
+        const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kMainPC);
+        if (pMem)
+        {
+            // Fetch data and decode the next instruction.
+            hop68::buffer_reader disasmBuf(pMem->GetData(), pMem->GetSize(), pMem->GetAddress());
+            Disassembler::decode_buf(disasmBuf, m_disasm, m_pTargetModel->GetDisasmSettings(), pMem->GetAddress(), 1);
+        }
+    }
+    if (slot == MemorySlot::kMainDspPC)
+    {
+        // Disassemble the first instruction
+        m_disasm56.lines.clear();
+        const Memory* pMem = m_pTargetModel->GetMemory(MemorySlot::kMainDspPC);
+        if (pMem)
+        {
+            // Fetch data and decode the next instruction.
+            hop56::buffer_reader disasmBuf(pMem->GetData(), pMem->GetSize(), pMem->GetAddress());
+            hop56::decode_settings dummy;
+            Disassembler56::decode_buf(disasmBuf, m_disasm56, dummy, pMem->GetAddress(), 1);
+        }
+    }
+    // Flagging main state update end is now handled by Flush()
+ }
 
 void MainWindow::runningRefreshTimer()
 {
@@ -290,11 +340,16 @@ void MainWindow::flush(const TargetChangedFlags& /*flags*/, uint64_t commandId)
         requestMainState(m_pTargetModel->GetRegs().Get(Registers::PC));
         m_liveRegisterReadRequest = 0;
     }
-    else if (commandId == m_mainStateUpdateRequest)
+    else if (commandId == m_mainStateStartedRequest)
     {
-        // This is where we should
-        emit m_session.mainStateUpdated();
-        m_mainStateUpdateRequest = 0;
+        m_pTargetModel->SetMainUpdate(true);
+        m_mainStateStartedRequest = 0;
+    }
+    else if (commandId == m_mainStateCompleteRequest)
+    {
+        // This is where we should flag completion
+        m_pTargetModel->SetMainUpdate(false);
+        m_mainStateCompleteRequest = 0;
     }
 }
 
@@ -344,16 +399,24 @@ void MainWindow::singleStepClickedSlot()
     if (m_pTargetModel->IsRunning())
         return;
 
-    m_pDispatcher->Step();
+    m_pDispatcher->Step(kProcCpu);
+}
+
+void MainWindow::singleStepDspClickedSlot()
+{
+    if (!m_pTargetModel->IsConnected())
+        return;
+
+    if (m_pTargetModel->IsRunning())
+        return;
+
+    m_pDispatcher->Step(kProcDsp);
 }
 
 void MainWindow::nextClickedSlot()
 {
     if (!m_pTargetModel->IsConnected())
         return;
-
-    m_pDispatcher->SendSaveBin(0x0, 0x1000, std::string("/tmp/saved.bin"));
-
 
     if (m_pTargetModel->IsRunning())
         return;
@@ -366,7 +429,7 @@ void MainWindow::nextClickedSlot()
     // the PC we are stepping from. This slows down stepping a little (since there is
     // a round-trip). In theory we could send the next instruction opcode as part of
     // the "status" notification if we want it to be faster.
-    if(m_disasm.lines[0].address != m_pTargetModel->GetStartStopPC())
+    if(m_disasm.lines[0].address != m_pTargetModel->GetStartStopPC(kProcCpu))
         return;
 
     const Disassembler::line& nextInst = m_disasm.lines[0];
@@ -377,11 +440,55 @@ void MainWindow::nextClickedSlot()
     if (shouldStepOver)
     {
         uint32_t next_pc = nextInst.inst.byte_count + nextInst.address;
-        m_pDispatcher->RunToPC(next_pc);
+        m_pDispatcher->RunToPC(kProcCpu, next_pc);
     }
     else
     {
-        m_pDispatcher->Step();
+        m_pDispatcher->Step(kProcCpu);
+    }
+}
+
+void MainWindow::nextDspClickedSlot()
+{
+    if (!m_pTargetModel->IsConnected())
+        return;
+
+    if (m_pTargetModel->IsRunning())
+        return;
+
+    // Work out where the next PC is
+    if (m_disasm56.lines.size() == 0)
+        return;
+
+    // Bug fix: we can't decide on how to step until the available disassembly matches
+    // the PC we are stepping from. This slows down stepping a little (since there is
+    // a round-trip). In theory we could send the next instruction opcode as part of
+    // the "status" notification if we want it to be faster.
+
+    uint32_t pc = m_pTargetModel->GetStartStopPC(kProcDsp);
+    if(m_disasm56.lines[0].address != pc)
+        return;
+
+    const Disassembler56::line& currLine = m_disasm56.lines[0];
+    // Either "next" or set breakpoint to following instruction
+    bool shouldStepOver = DisAnalyse56::isSubroutine(currLine.inst);
+
+    // Step over branches-to-self too
+    // TODO needs better "step over" logic here, possibly a specific function.
+    uint32_t targetAddr = -1;
+    bool reversed = false;
+    bool isBranch = DisAnalyse56::getBranchTarget(currLine.inst, currLine.address, targetAddr, reversed);
+    if (isBranch && !reversed && targetAddr == currLine.address)
+        shouldStepOver = true;
+
+    if (shouldStepOver)
+    {
+        uint32_t next_pc = currLine.inst.word_count + currLine.address;
+        m_pDispatcher->RunToPC(kProcDsp, next_pc);
+    }
+    else
+    {
+        m_pDispatcher->Step(kProcDsp);
     }
 }
 
@@ -401,11 +508,11 @@ void MainWindow::skipPressedSlot()
     // the PC we are stepping from. This slows down stepping a little (since there is
     // a round-trip). In theory we could send the next instruction opcode as part of
     // the "status" notification if we want it to be faster.
-    if(m_disasm.lines[0].address != m_pTargetModel->GetStartStopPC())
+    if(m_disasm.lines[0].address != m_pTargetModel->GetStartStopPC(kProcCpu))
         return;
 
     const Disassembler::line& nextInst = m_disasm.lines[0];
-    m_pDispatcher->SetRegister(Registers::PC, nextInst.GetEnd());
+    m_pDispatcher->SetRegister(kProcCpu, Registers::PC, nextInst.GetEnd());
 }
 
 void MainWindow::runToClickedSlot()
@@ -537,6 +644,7 @@ void MainWindow::updateButtonEnable()
 {
     bool isConnected = m_pTargetModel->IsConnected();
     bool isRunning = m_pTargetModel->IsRunning();
+    bool dspActive = m_pTargetModel->IsDspActive();
 
     // Buttons...
     m_pStartStopButton->setEnabled(isConnected);
@@ -544,6 +652,9 @@ void MainWindow::updateButtonEnable()
     m_pStepIntoButton->setEnabled(isConnected && !isRunning);
     m_pStepOverButton->setEnabled(isConnected && !isRunning);
     m_pRunToButton->setEnabled(isConnected && !isRunning);
+
+    m_pDspStepIntoButton->setEnabled(dspActive && isConnected && !isRunning);
+    m_pDspStepOverButton->setEnabled(dspActive && isConnected && !isRunning);
 
     // Menu items...
     m_pConnectAct->setEnabled(!isConnected);
@@ -626,6 +737,7 @@ void MainWindow::saveSettings()
     m_pConsoleWindow->saveSettings();
     m_pHardwareWindow->saveSettings();
     m_pProfileWindow->saveSettings();
+    m_pRegisterWidget->saveSettings();
 }
 
 void MainWindow::runTo(MainWindow::RunToMode mode)
@@ -636,15 +748,15 @@ void MainWindow::runTo(MainWindow::RunToMode mode)
         return;
 
     if (mode == kRunToRts)
-        m_pDispatcher->SetBreakpoint("(pc).w = $4e75", Dispatcher::kBpFlagOnce);   // RTS
+        m_pDispatcher->SetBreakpoint(kProcCpu, "(pc).w = $4e75", Dispatcher::kBpFlagOnce);   // RTS
     else if (mode == kRunToRte)
-        m_pDispatcher->SetBreakpoint("(pc).w = $4e73", Dispatcher::kBpFlagOnce);   // RTE
+        m_pDispatcher->SetBreakpoint(kProcCpu, "(pc).w = $4e73", Dispatcher::kBpFlagOnce);   // RTE
     else if (mode == kRunToVbl)
-        m_pDispatcher->SetBreakpoint("VBL ! VBL", Dispatcher::kBpFlagOnce);        // VBL
+        m_pDispatcher->SetBreakpoint(kProcCpu, "VBL ! VBL", Dispatcher::kBpFlagOnce);        // VBL
     else if (mode == kRunToHbl)
-        m_pDispatcher->SetBreakpoint("HBL ! HBL", Dispatcher::kBpFlagOnce);        // VBL
+        m_pDispatcher->SetBreakpoint(kProcCpu, "HBL ! HBL", Dispatcher::kBpFlagOnce);        // VBL
     else if (mode == kRunToRam)
-        m_pDispatcher->SetBreakpoint("PC < $e00000", Dispatcher::kBpFlagOnce);     // Not in TOS
+        m_pDispatcher->SetBreakpoint(kProcCpu, "PC < $e00000", Dispatcher::kBpFlagOnce);     // Not in TOS
     else
         return;
     // start execution again
@@ -704,19 +816,24 @@ void MainWindow::messageSet(const QString &msg)
 
 void MainWindow::requestMainState(uint32_t pc)
 {
+    // Insert flag for the start of main state updating
+    m_mainStateStartedRequest = m_pDispatcher->InsertFlush();
+
     // Do all the "essentials" straight away.
     m_pDispatcher->ReadRegisters();
 
     // This is the memory for the current instruction.
     // It's used by this and Register windows.
     // *** NOTE this code assumes PC register is already available ***
-    m_pDispatcher->ReadMemory(MemorySlot::kMainPC, pc, 10);
+    m_pDispatcher->ReadMemory(MemorySlot::kMainPC, MEM_CPU, pc, 32);
     m_pDispatcher->ReadBreakpoints();
     m_pDispatcher->ReadExceptionMask();
+    if (m_pTargetModel->IsDspActive())
+        m_pDispatcher->ReadMemory(MemorySlot::kMainDspPC, MEM_P, m_pTargetModel->GetStartStopPC(kProcDsp), 2U);
 
     // Basepage makes things much easier
     m_pDispatcher->ReadMemory(MemorySlot::kBasePage, 0, 0x200);
-    m_mainStateUpdateRequest = m_pDispatcher->InsertFlush();
+    m_mainStateCompleteRequest = m_pDispatcher->InsertFlush();
 }
 
 void MainWindow::createActions()

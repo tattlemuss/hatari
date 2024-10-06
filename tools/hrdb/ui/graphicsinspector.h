@@ -73,27 +73,32 @@ protected:
 private:
     enum Mode
     {
-        kFormat4Bitplane,
-        kFormat3Bitplane,
-        kFormat2Bitplane,
-        kFormat1Bitplane,
-        kFormatRegisters,
-        kFormat1BPP
+        // NOTE: these are serialised, so keep values the same
+        kFormat8Bitplane = 7,
+        kFormat4Bitplane = 0,
+        kFormat3Bitplane = 1,
+        kFormat2Bitplane = 2,
+        kFormat1Bitplane = 3,
+        kFormatRegisters = 4,
+        kFormat1BPP = 5,
+        kFormatTruColor = 6       // Falcon 16bpp
     };
 
     enum Palette
     {
-        kGreyscale,
-        kContrast1,
-        kBitplane0,
-        kBitplane1,
-        kBitplane2,
-        kBitplane3,
-        kRegisters,
-        kUserMemory
+        // NOTE: these are serialised, so keep values the same
+        kGreyscale = 0,
+        kContrast1 = 1,
+        kBitplane0 = 2,
+        kBitplane1 = 3,
+        kBitplane2 = 4,
+        kBitplane3 = 5,
+        kRegisters = 6,
+        kUserMemory = 7,
+        kUserMemoryF030 = 8
     };
 
-    void RequestBitmapAddress(Session::WindowType type, int windowIndex, uint32_t address);
+    void RequestBitmapAddress(Session::WindowType type, int windowIndex, int memorySpace, uint32_t address);
 
     // Looks at dirty requests, and issues them in the correct orders
     void UpdateMemoryRequests();
@@ -171,6 +176,7 @@ private:
     // Cached information when video register fetch happens.
     // Used to control palette when in Mono mode.
     Regs::RESOLUTION    m_cachedResolution;
+    uint16_t            m_cachedFalcResolution; // Copy of SPSHIFT, or 0 for ST
 
     // Stores state of "memory wanted" vs "memory request in flight"
     struct Request
@@ -198,7 +204,7 @@ private:
     Request                         m_requestBitmap;
 
     // Mouseover data
-    NonAntiAliasImage::MouseInfo    m_mouseInfo;            // data from MouseOver in bitmap
+    MemoryBitmap::PixelInfo         m_mouseInfo;            // data from MouseOver in bitmap
     uint32_t                        m_addressUnderMouse;    // ~0U for "invalid"
 
     // Options

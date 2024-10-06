@@ -5,8 +5,15 @@
 #include <QString>
 #include <QTextStream>
 
+struct MemAddr;
+
 namespace Format
 {
+    // Format a value as "$xx" in a consistent fashion
+    QString to_address(int memorySpace, uint32_t val);
+    // Format a value as "$xx" in a consistent fashion
+    QString to_address(const MemAddr& addr);
+
     // Format a value as "$xx" in a consistent fashion
     inline QString to_hex32(uint32_t val);
 

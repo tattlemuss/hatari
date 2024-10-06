@@ -33,6 +33,7 @@
 #include "debugui.h"	/* For DebugUI_RegisterRemoteDebug */
 #include "debug_priv.h"	/* For debugOutput control */
 #include "debugcpu.h"	/* For stepping */
+#include "debugdsp.h"	/* For stepping */
 #include "stMemory.h"
 #include "breakcond.h"
 #include "symbols.h"
@@ -43,6 +44,8 @@
 #include "psg.h"
 #include "dmaSnd.h"
 #include "blitter.h"
+#include "dsp.h"
+#include "dsp_cpu.h"
 #include "profile.h"
 // For status bar updates
 #include "screen.h"
@@ -81,7 +84,8 @@ static bool bRemoteBreakIsActive = false;
 /* 0x1005    add memfind command, add stramsize to $config notification */
 /* 0x1006    use hex only for address/size in mem[*], bpdel, exmask commands */
 /* 0x1007    add savebin */
-#define REMOTEDEBUG_PROTOCOL_ID	(0x1007)
+/* 0x1008    add dmem, DSP support in NotifyConfig */
+#define REMOTEDEBUG_PROTOCOL_ID	(0x1008)
 
 /* Char ID to denote terminator of a token. This is under the ASCII "normal"
 	character value range so that 32-255 can be used */
@@ -89,6 +93,12 @@ static bool bRemoteBreakIsActive = false;
 
 /* Forward declaration of callback */
 void RemoteDebug_SymbolsChanged(void);
+
+// -----------------------------------------------------------------------------
+static bool IsDspActive(void)
+{
+	return ConfigureParams.System.nDSPType == DSP_TYPE_EMU;
+}
 
 // -----------------------------------------------------------------------------
 // Structure managing a resizeable buffer of uint8_t
@@ -312,14 +322,17 @@ static bool read_hex32_value(const char* c, uint32_t* result)
 
 // -----------------------------------------------------------------------------
 // Send the out-of-band status to flag start/stop
-// Format: "!status <break active> <pc> <ffwd>"
+// Format: "!status <break active> <pc> <dsp-pc> <ffwd>"
 static int RemoteDebug_NotifyState(RemoteDebugState* state)
 {
 	send_str(state, "!status");
 	send_sep(state);
 	send_hex(state, bRemoteBreakIsActive ? 0 : 1);
 	send_sep(state);
+	// PC values are to help fetch disassembly of next instruction quickly.
 	send_hex(state, M68000_GetPC());
+	send_sep(state);
+	send_hex(state, DSP_GetPC());
 	send_sep(state);
 	send_hex(state, ConfigureParams.System.bFastForward ? 1 : 0);
 	send_term(state);
@@ -338,6 +351,8 @@ static int RemoteDebug_NotifyConfig(RemoteDebugState* state)
 	send_hex(state, system->nCpuLevel);
 	send_sep(state);
 	send_hex(state, STRamEnd);
+	send_sep(state);
+	send_hex(state, IsDspActive());
 
 	send_term(state);
 	return 0;
@@ -521,12 +536,58 @@ static int RemoteDebug_step(int nArgc, char *psArgs[], RemoteDebugState* state)
 }
 
 // -----------------------------------------------------------------------------
+/* Step next instruction. This is currently a passthrough to the normal debugui code. */
+static int RemoteDebug_dstep(int nArgc, char *psArgs[], RemoteDebugState* state)
+{
+	DebugDsp_SetSteps(1);
+	send_str(state, "OK");
+
+	// Restart
+	bRemoteBreakIsActive = false;
+	return 0;
+}
+
+// -----------------------------------------------------------------------------
 static int RemoteDebug_run(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	send_str(state, "OK");
 	bRemoteBreakIsActive = false;
 	return 0;
 }
+
+// -----------------------------------------------------------------------------
+// Register names and IDs for DSP
+typedef struct RemoteDebugDspReg
+{
+	uint8_t		regId;
+	const char*	regName;
+}  RemoteDebugDspReg;
+
+#define STRINGIFY(x) #x
+#define DSP_REG(id)  { DSP_REG_##id	, "D_" STRINGIFY(id) }
+
+static const RemoteDebugDspReg g_remoteDebugDspRegs[] =
+{
+	DSP_REG(X0), DSP_REG(X1),
+	DSP_REG(Y0), DSP_REG(Y1),
+	DSP_REG(A0), DSP_REG(B0),
+	DSP_REG(A2), DSP_REG(B2),
+	DSP_REG(A1), DSP_REG(B1),
+
+	DSP_REG(R0), DSP_REG(R1), DSP_REG(R2), DSP_REG(R3),
+	DSP_REG(R4), DSP_REG(R5), DSP_REG(R6), DSP_REG(R7),
+
+	DSP_REG(N0), DSP_REG(N1), DSP_REG(N2), DSP_REG(N3),
+	DSP_REG(N4), DSP_REG(N5), DSP_REG(N6), DSP_REG(N7),
+
+	DSP_REG(M0), DSP_REG(M1), DSP_REG(M2), DSP_REG(M3),
+	DSP_REG(M4), DSP_REG(M5), DSP_REG(M6), DSP_REG(M7),
+
+	DSP_REG(SR), DSP_REG(OMR), DSP_REG(SP),
+	DSP_REG(SSH), DSP_REG(SSL),
+	DSP_REG(LA), DSP_REG(LC),
+	{ 0xff, NULL}
+};
 
 /**
  * Dump register contents. 
@@ -556,7 +617,18 @@ static int RemoteDebug_regs(int nArgc, char *psArgs[], RemoteDebugState* state)
 	// Normal regs
 	for (regIdx = 0; regIdx < ARRAY_SIZE(regIds); ++regIdx)
 		send_key_value(state, regNames[regIdx], Regs[regIds[regIdx]]);
-		
+
+	if (IsDspActive())
+	{
+		const RemoteDebugDspReg* pCurrReg = g_remoteDebugDspRegs;
+		while (pCurrReg->regName)
+		{
+			send_key_value(state, pCurrReg->regName, dsp_core.registers[pCurrReg->regId]);
+			++pCurrReg;
+		}
+		send_key_value(state, "D_PC", dsp_core.pc);
+	}
+
 	// Special regs
 	send_key_value(state, "PC", M68000_GetPC());
 	send_key_value(state, "USP", regs.usp);
@@ -728,7 +800,7 @@ static int RemoteDebug_memset(int nArgc, char *psArgs[], RemoteDebugState* state
 }
 
 // -----------------------------------------------------------------------------
-/* Set a breakpoint at an address. */
+/* Set a CPU breakpoint at an address. */
 static int RemoteDebug_bp(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	int arg = 1;
@@ -745,32 +817,66 @@ static int RemoteDebug_bp(int nArgc, char *psArgs[], RemoteDebugState* state)
 }
 
 // -----------------------------------------------------------------------------
-/* List all breakpoints */
+/* Set a DSP breakpoint at an address. */
+static int RemoteDebug_dbp(int nArgc, char *psArgs[], RemoteDebugState* state)
+{
+	int arg = 1;
+	if (nArgc >= arg + 1)
+	{
+		// Pass to standard simple function
+		if (BreakCond_Command(psArgs[arg], true))
+		{
+			send_str(state, "OK");
+			return 0;
+		}
+	}
+	return 1;
+}
+
+// -----------------------------------------------------------------------------
+/* List all breakpoints, CPU and DSP */
 static int RemoteDebug_bplist(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
-	int i, count;
+	int proc, i, count, proc_count;
 
-	count = BreakCond_CpuBreakPointCount();
+	count = BreakCond_CpuBreakPointCount() + BreakCond_DspBreakPointCount();
 	send_str(state, "OK");
 	send_sep(state);
 	send_hex(state, count);
 	send_sep(state);
 
 	/* NOTE breakpoint query indices start at 1 */
-	for (i = 1; i <= count; ++i)
+	for (proc = 0; proc < 2; ++proc)
 	{
-		bc_breakpoint_query_t query;
-		BreakCond_GetCpuBreakpointInfo(i, &query);
+		if (proc == 0)
+			proc_count = BreakCond_CpuBreakPointCount();
+		else
+			proc_count = BreakCond_DspBreakPointCount();
 
-		send_str(state, query.expression);
-		/* Note this has the ` character to flag the expression end,
-		since the expression can contain spaces */
-		send_sep(state);
-		send_hex(state, query.ccount); send_sep(state);
-		send_hex(state, query.hits); send_sep(state);
-		send_bool(state, query.once); send_sep(state);
-		send_bool(state, query.quiet); send_sep(state);
-		send_bool(state, query.trace); send_sep(state);
+		for (i = 1; i <= proc_count; ++i)
+		{
+			bc_breakpoint_query_t query;
+			if (proc == 0)
+				BreakCond_GetCpuBreakpointInfo(i, &query);
+			else
+				BreakCond_GetDspBreakpointInfo(i, &query);
+
+			/* Send processor type and ID for breakpoint */
+			send_hex(state, proc);
+			send_sep(state);
+			send_hex(state, i);
+			send_sep(state);
+
+			send_str(state, query.expression);
+			/* Note this has the ` character to flag the expression end,
+			since the expression can contain spaces */
+			send_sep(state);
+			send_hex(state, query.ccount); send_sep(state);
+			send_hex(state, query.hits); send_sep(state);
+			send_bool(state, query.once); send_sep(state);
+			send_bool(state, query.quiet); send_sep(state);
+			send_bool(state, query.trace); send_sep(state);
+		}
 	}
 	return 0;
 }
@@ -778,19 +884,32 @@ static int RemoteDebug_bplist(int nArgc, char *psArgs[], RemoteDebugState* state
 // -----------------------------------------------------------------------------
 /* Remove breakpoint number N.
  *
- * Input: "bpdel <breakpoint_index:hex>
- * 
+ * Input: "bpdel <proc:hex> <breakpoint_index:hex>
+ *
  * NOTE breakpoint IDs start at 1!
 */
 static int RemoteDebug_bpdel(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
 	int arg = 1;
-	uint32_t bp_position;
-	if (nArgc >= arg + 1)
+	uint32_t proc, bp_position;
+	bool res = false;
+	if (nArgc >= arg + 2)
 	{
+		// Address
+		if (!read_hex32_value(psArgs[arg], &proc))
+			return 1;
+
+		if ((proc != 0) && (proc != 1))
+			return 1;
+
 		if (read_hex32_value(psArgs[arg], &bp_position))
 		{
-			if (BreakCond_RemoveCpuBreakpoint(bp_position))
+			if (proc == 0)
+				res = BreakCond_RemoveCpuBreakpoint(bp_position);
+			else
+				res = BreakCond_RemoveDspBreakpoint(bp_position);
+
+			if (res)
 			{
 				send_str(state, "OK");
 				return 0;
@@ -1111,6 +1230,74 @@ static int RemoteDebug_savebin(int nArgc, char *psArgs[], RemoteDebugState* stat
 	return 0;
 }
 
+/**
+ * Dump the requested area of DSP memory.
+ *
+ * Input: "mem <space:char> <start addr:hex> <size in DSP-words:hex>\n"
+ *
+ * Output: "mem <address:hex> <size:hexr> <memory as base16 string>\n"
+ */
+
+static int RemoteDebug_dmem(int nArgc, char *psArgs[], RemoteDebugState* state)
+{
+	int arg;
+	uint32_t result = 0;
+	char memspace = 0;
+	Uint32 memdump_addr = 0;
+	Uint32 memdump_count = 0;
+	const char* mem_str = NULL;
+
+	/* For remote debug, only "space" "address" "count" is supported */
+	arg = 1;
+	if (nArgc >= arg + 3)
+	{
+		memspace = psArgs[arg][0];
+		if (memspace != 'X' && memspace != 'Y' && memspace != 'P')
+			return 1;
+		++arg;
+
+		if (!read_hex32_value(psArgs[arg], &memdump_addr))
+			return 1;
+		++arg;
+		if (!read_hex32_value(psArgs[arg], &memdump_count))
+			return 1;
+		++arg;
+	}
+	else
+	{
+		// Not enough args
+		return 1;
+	}
+
+	// Don't need to and with 0xffff here, since DSP_ReadMemory does it
+
+	flush_data(state);
+	send_str(state, "OK");
+	send_sep(state);
+	send_char(state, memspace);
+	send_sep(state);
+	send_hex(state, memdump_addr);
+	send_sep(state);
+	send_hex(state, memdump_count);
+	send_sep(state);
+
+	// Send data in blocks of "buffer_size" memory bytes
+	// (We don't need a terminator when sending)
+	while (memdump_count)
+	{
+		result = DSP_ReadMemory(memdump_addr, memspace, &mem_str);
+
+		// Now write 3 bytes to 4 chars as ASCII uuencode
+		send_char(state, 32 + ((result >> 18) & 0x3f));
+		send_char(state, 32 + ((result >> 12) & 0x3f));
+		send_char(state, 32 + ((result >>  6) & 0x3f));
+		send_char(state, 32 + ((result      ) & 0x3f));
+		++memdump_addr;
+		--memdump_count;
+	}
+	return 0;
+}
+
 // -----------------------------------------------------------------------------
 /* DebugUI command structure */
 typedef struct
@@ -1125,11 +1312,13 @@ static const rdbcommand_t remoteDebugCommandList[] = {
 	{ RemoteDebug_status,	"status"	, true		},
 	{ RemoteDebug_break,	"break"		, true		},
 	{ RemoteDebug_step,		"step"		, true		},
+	{ RemoteDebug_dstep,	"dstep"		, true		},
 	{ RemoteDebug_run,		"run"		, true		},
 	{ RemoteDebug_regs,		"regs"		, true		},
 	{ RemoteDebug_mem,		"mem"		, true		},
 	{ RemoteDebug_memset,	"memset"	, true		},
 	{ RemoteDebug_bp,		"bp"		, false		},
+	{ RemoteDebug_dbp,		"dbp"		, false		},
 	{ RemoteDebug_bplist,	"bplist"	, true		},
 	{ RemoteDebug_bpdel,	"bpdel"		, true		},
 	{ RemoteDebug_symlist,	"symlist"	, true		},
@@ -1143,6 +1332,7 @@ static const rdbcommand_t remoteDebugCommandList[] = {
 	{ RemoteDebug_ffwd,		"ffwd"		, true		},
 	{ RemoteDebug_memfind,	"memfind"	, true		},
 	{ RemoteDebug_savebin,	"savebin"	, true		},
+	{ RemoteDebug_dmem,		"dmem"		, true		},
 
 	/* Terminator */
 	{ NULL, NULL }

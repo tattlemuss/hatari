@@ -23,4 +23,7 @@ extern int DebugDsp_DisAsm(int nArgc, char *psArgs[]);
 extern int DebugDsp_MemDump(int nArgc, char *psArgs[]);
 extern int DebugDsp_Register(int nArgc, char *psArgs[]);
 
+/* For RemoteDebug */
+extern void DebugDsp_SetSteps(int steps);
+
 #endif /* HATARI_DEBUGDSP_H */

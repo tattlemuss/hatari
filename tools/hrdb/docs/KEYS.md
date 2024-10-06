@@ -7,8 +7,10 @@ Basic program control:
 | Ctrl+R        | Start/stop                                   |
 | Esc           | Stop                                         |
 | S             | Step (execute next instruction)              |
+| Shift+S       | Step DSP                                     |
 | Ctrl+S        | Skip (jump over instruction                  |
 | N             | Next (execute, but step through bsr/jsr/dbf) |
+| Shift + N     | Next DSP                                     |
 | U             | Run Until RTS/RTE/VBL/HBL/RAM                |
 | Ctrl+Shift+U  | Cycle "Run Until.." choice                   |
 | Ctrl+U, S     | Run To RTS                                   |

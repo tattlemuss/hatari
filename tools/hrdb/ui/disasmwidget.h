@@ -6,12 +6,13 @@
 #include <QMenu>
 #include "../models/breakpoint.h"
 #include "../models/disassembler.h"
+#include "../models/disassembler56.h"
 #include "../models/memory.h"
 #include "../models/session.h"
+#include "../models/targetmodel.h"
 #include "showaddressactions.h"
 #include "searchdialog.h"
 
-class TargetModel;
 class Dispatcher;
 class QCheckBox;
 class QPaintEvent;
@@ -31,8 +32,9 @@ public:
     int GetRowCount() const     { return m_rowCount; }
     bool GetFollowPC() const    { return m_bFollowPC; }
     bool GetShowHex() const     { return m_bShowHex; }
+    Processor GetProc() const   { return m_proc; }
     bool GetInstructionAddr(int row, uint32_t& addr) const;
-    bool GetEA(int row, int operandIndex, uint32_t &addr);
+    bool GetEA(int row, int operandIndex, MemAddr& addr);
 
     bool SetAddress(std::string addr);
     bool SetSearchResultAddress(uint32_t addr);
@@ -52,8 +54,11 @@ public:
     void SetRowCount(int count);
     void SetShowHex(bool show);
     void SetFollowPC(bool follow);
+    void SetProc(Processor mode);
+
 signals:
     void addressChanged(uint64_t addr);
+    void procChangedSignal();
 
 private:
     void startStopChanged();
@@ -63,6 +68,8 @@ private:
     void symbolTableChanged(uint64_t commandId);
     void otherMemoryChanged(uint32_t address, uint32_t size);
     void profileChanged();
+    void mainStateCompleted();
+    void configChanged();
 
     // From keyPressEvent
     void runToCursor();
@@ -78,22 +85,55 @@ private:
 
     void SetAddress(uint32_t addr);
     void RequestMemory();
+
+    // Disassmbly/row generation
     void CalcDisasm();
-    void CalcOpAddresses();
-    void printEA(const operand &op, const Registers &regs, uint32_t address, QTextStream &ref) const;
+    void CalcDisasm68();
+    void CalcDisasm56();
 
-    // Cached data when the up-to-date request comes through
-    Memory       m_memory;
+    int AddDisasmBranch(int row, uint32_t target, bool reversed);
+    void LayOutBranches();
 
-    struct OpAddresses
+    void CalcAnnotations68();
+    void CalcAnnotations56();
+    void printEA(const hop68::operand &op, const Registers &regs, uint32_t address, QTextStream &ref) const;
+
+    // Disassembly line supporting both 68k and 56K.
+    struct Line
     {
-        bool valid[2];
-        uint32_t address[2];
-        QString annotationText;     // Extra info like trap call name, line-A in future?
-    };
+        // effective-addresses of operands in the instruction.
+        struct Annotations
+        {
+            static const uint32_t kNumEAs = 4;
+            void Reset();
 
-    Disassembler::disassembly m_disasm;
-    QVector<OpAddresses> m_opAddresses;
+            // Effective addresses for operands
+            // A DSP instruction can have lots!
+            bool valid[kNumEAs];
+            MemAddr address[kNumEAs];
+
+            QString  osComments;    // Extra info like trap call name, line-A in future?
+        };
+
+        void Reset();
+        Processor            proc;
+        uint32_t             address;
+
+        // Ideally this would be a union, but the instruction classes
+        // have non-POD constructors
+        hop56::instruction   inst56;
+        hop68::instruction   inst68;
+
+        uint8_t              mem[32];           // Copy of instruction memory, up to a max
+        Annotations          annotations;       // Effective Address data annotations, OS commments
+
+        uint32_t    GetByteSize() const;
+        uint32_t    GetEndAddr() const;
+    };
+    QVector<Line>           m_disasm;
+
+    // The text that goes in each row,
+    // a 1:1 pairing with the Line data.
     struct RowText
     {
         QString     symbol;
@@ -106,31 +146,40 @@ private:
         QString     cycles;
         QString     disasm;
         QString     comments;
-
-        int         branchTargetLine;       // -1 for no branch, or the ID of the target line
     };
     QVector<RowText>    m_rowTexts;
 
+    // Describes a branch from one row of the disasm to another,
+    // or off the top/bottom of the disassembly area.
     struct Branch
     {
         int top() const { return std::min(start, stop);}
         int bottom() const { return std::max(start, stop);}
-        int start;
-        int stop;
-        int depth;
-        int type; // 0=normal, 1=top, 2=bottom
+        int start;      // row number
+        int stop;       // row number
+        int depth;      // X-position of the vertical part of the connection arrow
+        int type;       // 0=normal, 1=top, 2=bottom
     };
     QVector<Branch>     m_branches;
 
     Breakpoints m_breakpoints;
     int         m_rowCount;
 
-    // Address of the top line of text that was requested
-    uint32_t m_requestedAddress;    // Most recent address requested
+    Processor   m_proc;
+    // Data linked to current proc
+    uint32_t    m_minInstSize;
+    uint32_t    m_maxInstSize;
 
-    uint32_t m_logicalAddr;         // Most recent address that can be shown
-    uint64_t m_requestId;           // Most recent memory request
-    bool     m_bFollowPC;
+    uint32_t    m_lastAddress[kProcCount];
+
+    // Cached data when the up-to-date request comes through
+    Memory      m_memory;
+
+    uint32_t    m_logicalAddr;         // Logical address for the top line of the disasm view
+                                       // Memory is requested around this address (above and below)
+
+    uint64_t    m_requestId;           // Most recent memory request, or "0" when complete
+    bool        m_bFollowPC;
 
     int         m_windowIndex;
     MemorySlot  m_memSlot;
@@ -146,13 +195,12 @@ private:
     void toggleBreakpointRightClick();
     void setPCRightClick();
     void nopRightClick();
-
     void settingsChangedSlot();
 
     // Layout functions
     void RecalcRowCount();
     void UpdateFont();
-    void RecalcColums();
+    void RecalcColumnWidths();
 
     // Convert from row ID to a pixel Y (top pixel in the drawn row)
     int GetPixelFromRow(int row) const;
@@ -162,6 +210,8 @@ private:
 
     void KeyboardContextMenu();
     void ContextMenu(int row, QPoint globalPos);
+
+    uint32_t GetPC() const;
 
     Session*              m_pSession;
     TargetModel*          m_pTargetModel;   // for inter-window comms
@@ -229,7 +279,7 @@ public:
     void saveSettings();
 
 public slots:
-    void requestAddress(Session::WindowType type, int windowIndex, uint32_t address);
+    void requestAddress(Session::WindowType type, int windowIndex, int memorySpace, uint32_t address);
 
 protected:
 
@@ -238,6 +288,8 @@ protected slots:
     void keyUpPressed();
     void keyPageDownPressed();
     void keyPageUpPressed();
+
+    void procChangedClicked();
     void returnPressedSlot();
     void textChangedSlot();
 
@@ -250,20 +302,23 @@ protected slots:
     void lockClickedSlot();
     void searchResultsSlot(uint64_t responseId);
     void symbolTableChangedSlot(uint64_t responseId);
-private:
+    void syncUiButtons();
 
+private:
+    void SetProc(Processor mode);
     void UpdateTextBox();
 
-    QLineEdit*      m_pAddressEdit;
-    QCheckBox*      m_pShowHex;
-    QCheckBox*      m_pFollowPC;
-    Session*        m_pSession;
-    DisasmWidget*   m_pDisasmWidget;
-    TargetModel*    m_pTargetModel;
-    Dispatcher*     m_pDispatcher;
-    SymbolTableModel* m_pSymbolTableModel;        // used for autocomplete
+    QPushButton*        m_pProcButton;
+    QLineEdit*          m_pAddressEdit;
+    QCheckBox*          m_pShowHex;
+    QCheckBox*          m_pFollowPC;
+    Session*            m_pSession;
+    DisasmWidget*       m_pDisasmWidget;
+    TargetModel*        m_pTargetModel;
+    Dispatcher*         m_pDispatcher;
+    SymbolTableModel*   m_pSymbolTableModel;        // used for autocomplete
 
-    int             m_windowIndex;
+    int                 m_windowIndex;
 
     SearchSettings      m_searchSettings;
     uint64_t            m_searchRequestId;
