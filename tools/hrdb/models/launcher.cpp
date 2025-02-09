@@ -17,6 +17,7 @@ void LaunchSettings::loadSettings(QSettings& settings)
     m_argsTxt = settings.value("args", QVariant("")).toString();
     m_prgFilename = settings.value("prg", QVariant("")).toString();
     m_workingDirectory = settings.value("workingDirectory", QVariant("")).toString();
+    m_hatariConfigFilename = settings.value("hatariConfigFilename", QVariant("")).toString();
     m_watcherFiles = settings.value("watcherFiles", QVariant("")).toString();
     m_watcherActive = settings.value("watcherActive", QVariant("false")).toBool();
     m_breakMode = settings.value("breakMode", QVariant("0")).toInt();
@@ -32,6 +33,7 @@ void LaunchSettings::saveSettings(QSettings &settings) const
     settings.setValue("args", m_argsTxt);
     settings.setValue("prg", m_prgFilename);
     settings.setValue("workingDirectory", m_workingDirectory);
+    settings.setValue("hatariConfigFilename", m_hatariConfigFilename);
     settings.setValue("watcherFiles", m_watcherFiles);
     settings.setValue("watcherActive", m_watcherActive);
     settings.setValue("breakMode", m_breakMode);
@@ -44,10 +46,19 @@ bool LaunchHatari(const LaunchSettings& settings, const Session* pSession)
 {
     // Create a copy of the args that we can adjust
     QStringList args;
+
     QString otherArgsText = settings.m_argsTxt;
     otherArgsText = otherArgsText.trimmed();
     if (otherArgsText.size() != 0)
         args = otherArgsText.split(" ");
+
+    QString configFilename = settings.m_hatariConfigFilename.trimmed();
+    if (configFilename.size() != 0)
+    {
+        // Prepend the "--configfile N" part (backwards!)
+        args.push_front(configFilename);
+        args.push_front("--configfile");
+    }
 
     if (settings.m_watcherActive)
     {

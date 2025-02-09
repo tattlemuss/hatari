@@ -32,6 +32,8 @@ private:
     void exeClicked();
     void prgClicked();
     void workingDirectoryClicked();
+    void hatariConfigClicked();
+
     void watcherFilesClicked();
     void watcherTextChanged();
     void watcherActiveChanged();
@@ -49,6 +51,7 @@ private:
     QLineEdit*      m_pPrgTextEdit;
     QCheckBox*      m_pFastLaunchCheckBox;
     QLineEdit*      m_pArgsTextEdit;
+    QLineEdit*      m_pHatariConfigTextEdit;
     QLineEdit*      m_pWorkingDirectoryTextEdit;
     QLineEdit*      m_pWatcherFilesTextEdit;
     QCheckBox*      m_pWatcherCheckBox; 
