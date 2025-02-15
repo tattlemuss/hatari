@@ -227,6 +227,11 @@ void TargetModel::ProfileReset()
     emit profileChangedSignal();
 }
 
+void TargetModel::SetHistory(uint64_t commmandId, const History& hist)
+{
+
+}
+
 // User-added console command. Anything can happen, so tell everything
 // to update
 void TargetModel::ConsoleCommand()

@@ -100,6 +100,7 @@ private:
     void ParseInfoym(StringSplitter& splitResp, const RemoteCommand& cmd);
     void ParseProfile(StringSplitter& splitResp, const RemoteCommand& cmd);
     void ParseMemfind(StringSplitter& splitResp, const RemoteCommand& cmd);
+    void ParseHistGet(StringSplitter& splitResp, const RemoteCommand& cmd);
 
     std::deque<RemoteCommand*>      m_sentCommands;
     QTcpSocket*                     m_pTcpSocket;

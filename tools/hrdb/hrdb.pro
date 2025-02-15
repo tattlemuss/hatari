@@ -85,6 +85,7 @@ HEADERS += \
     models/disassembler.h \
     models/disassembler56.h \
     models/exceptionmask.h \
+    models/history.h \
     models/launcher.h \
     models/memaddr.h \
     models/memory.h \

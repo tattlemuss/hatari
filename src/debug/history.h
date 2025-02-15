@@ -40,4 +40,16 @@ extern void History_Mark(debug_reason_t reason);
 extern char *History_Match(const char *text, int state);
 extern int History_Parse(int nArgc, char *psArgv[]);
 
+/* for remotedebug */
+typedef struct {
+	bool valid:1;
+	bool for_dsp:1;
+	uint32_t pc;		// Either DSP or CPU
+} history_entry_rdb;
+
+extern void History_Set(history_type_t track, unsigned limit);
+extern unsigned int History_GetCount(void);
+extern void History_Get(unsigned int offset, history_entry_rdb* pEntry);
+
+
 #endif

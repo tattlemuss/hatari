@@ -8,6 +8,7 @@
 #include "../models/stringsplitter.h"
 #include "../models/stringparsers.h"
 #include "../models/profiledata.h"
+#include "../models/history.h"
 
 //#define DISPATCHER_DEBUG
 
@@ -502,6 +503,8 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
         m_pTargetModel->ConsoleCommand();
     else if (type == "savebin")
        m_pTargetModel->SaveBinComplete(cmd.m_uid, 0U);
+    else if (type == "histget")
+        ParseHistGet(splitResp, cmd);
     else
     {
         // For debugging
@@ -912,4 +915,23 @@ void Dispatcher::ParseMemfind(StringSplitter &splitResp, const RemoteCommand &cm
         results.addresses.push_back(value);
     }
     m_pTargetModel->SetSearchResults(cmd.m_uid, results);
+}
+
+void Dispatcher::ParseHistGet(StringSplitter &splitResp, const RemoteCommand &cmd)
+{
+    History hist;
+    while (true)
+    {
+        std::string cpuStr = splitResp.Split(SEP_CHAR);
+        if (cpuStr.size() == 0)
+            break;
+        std::string addrStr = splitResp.Split(SEP_CHAR);
+        HistoryEntry entry;
+        if (!StringParsers::ParseHexString(cpuStr.c_str(), entry.is_dsp))
+            break;
+        if (!StringParsers::ParseHexString(addrStr.c_str(), entry.pc))
+            break;
+        hist.entries.push_back(entry);
+    }
+    m_pTargetModel->SetHistory(cmd.m_uid, hist);
 }

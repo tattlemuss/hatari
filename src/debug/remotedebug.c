@@ -47,6 +47,7 @@
 #include "dsp.h"
 #include "dsp_cpu.h"
 #include "profile.h"
+#include "history.h"
 // For status bar updates
 #include "screen.h"
 #include "statusbar.h"
@@ -1300,6 +1301,74 @@ static int RemoteDebug_dmem(int nArgc, char *psArgs[], RemoteDebugState* state)
 }
 
 // -----------------------------------------------------------------------------
+/**
+ * Set the history tracking config.
+ *
+ * Input: "hist <cpu_enable:hex> <dsp_enable:hex> <limit:hex>
+ *
+ * Output: "OK"/"NG"
+ */
+
+static int RemoteDebug_histset(int nArgc, char *psArgs[], RemoteDebugState* state)
+{
+	int arg = 1;
+	uint32_t enable_cpu = 0;
+	uint32_t enable_dsp = 0;
+	uint32_t limit = 0;
+	history_type_t htype = HISTORY_TRACK_NONE;
+	if (nArgc >= arg + 3)
+	{
+		if (!read_hex32_value(psArgs[arg], &enable_cpu))
+			return 1;
+		++arg;
+		if (!read_hex32_value(psArgs[arg], &enable_dsp))
+			return 1;
+		++arg;
+		if (!read_hex32_value(psArgs[arg], &limit))
+			return 1;
+		++arg;
+	}
+	if (enable_cpu)
+		htype |= HISTORY_TRACK_CPU;
+	if (enable_dsp)
+		htype |= HISTORY_TRACK_DSP;
+	History_Set(htype, limit);
+	send_str(state, "OK");
+	return 0;
+}
+
+// -----------------------------------------------------------------------------
+/**
+ * Set the history tracking config.
+ *
+ * Input: "hist <cpu_enable:hex> <dsp_enable:hex> <limit:hex>
+ *
+ * Output: "OK"/"NG"
+ */
+
+static int RemoteDebug_histget(int nArgc, char *psArgs[], RemoteDebugState* state)
+{
+	unsigned int count = History_GetCount();
+	history_entry_rdb entry;
+	unsigned int i;
+
+	send_str(state, "OK");
+	send_sep(state);
+	for (i = 1; i <= count; ++i)
+	{
+		History_Get(i, &entry);
+		if (!entry.valid)
+			break;
+
+		send_hex(state, entry.for_dsp);
+		send_sep(state);
+		send_hex(state, entry.pc);
+		send_sep(state);
+	}
+	return 0;
+}
+
+// -----------------------------------------------------------------------------
 /* DebugUI command structure */
 typedef struct
 {
@@ -1334,6 +1403,8 @@ static const rdbcommand_t remoteDebugCommandList[] = {
 	{ RemoteDebug_memfind,	"memfind"	, true		},
 	{ RemoteDebug_savebin,	"savebin"	, true		},
 	{ RemoteDebug_dmem,		"dmem"		, true		},
+	{ RemoteDebug_histset,	"histset"	, true		},
+	{ RemoteDebug_histget,	"histget"	, true		},
 
 	/* Terminator */
 	{ NULL, NULL }

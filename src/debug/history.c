@@ -131,6 +131,8 @@ static void History_Advance(void)
 void History_AddCpu(void)
 {
 	uint32_t pc = M68000_GetPC();
+	//if (pc < 0x12000 || pc > 0x70000)
+	//	return;
 
 	if (pc == History.item[History.idx].pc.cpu) {
 		History.repeats++;
@@ -367,3 +369,32 @@ int History_Parse(int nArgc, char *psArgs[])
 	History_Show(stderr, count);
 	return DEBUGGER_CMDDONE;
 }
+
+void History_Set(history_type_t track, unsigned limit)
+{
+	History_Enable(track, limit);
+}
+
+unsigned int History_GetCount()
+{
+	return History.count;
+}
+
+void History_Get(unsigned int offset, history_entry_rdb* pEntry)
+{
+	int i;
+	pEntry->valid = false;
+	if (offset > History.count || offset > History.limit)
+		return;
+	i = History.idx + History.limit - offset;
+	i %= History.limit;
+	if (!History.item[i].valid)
+		return;
+	pEntry->valid = true;
+	pEntry->for_dsp = History.item[i].for_dsp;
+	if (pEntry->for_dsp)
+		pEntry->pc = History.item[i].pc.dsp;
+	else
+		pEntry->pc = History.item[i].pc.cpu;
+}
+

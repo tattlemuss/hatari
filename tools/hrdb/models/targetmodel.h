@@ -18,6 +18,7 @@
 class QTimer;
 class ProfileData;
 struct ProfileDelta;
+struct History;
 
 class TargetChangedFlags
 {
@@ -130,6 +131,9 @@ public:
     // (Called from UI)
     // emits profileChangedSignal()
     void ProfileReset();
+
+    // Replaces the CPU/DSP instruction history
+    void SetHistory(uint64_t commmandId, const History& hist);
 
     // User-added console command. Anything can happen!
     void ConsoleCommand();
