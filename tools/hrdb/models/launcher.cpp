@@ -42,7 +42,7 @@ void LaunchSettings::saveSettings(QSettings &settings) const
     settings.endGroup();
 }
 
-bool LaunchHatari(const LaunchSettings& settings, const Session* pSession)
+bool LaunchHatari(const LaunchSettings& settings, Session* pSession)
 {
     // Create a copy of the args that we can adjust
     QStringList args;
@@ -149,14 +149,26 @@ bool LaunchHatari(const LaunchSettings& settings, const Session* pSession)
     args.push_back(settings.m_prgFilename);
 
     // Actually launch the program
-    QProcess proc;
-    proc.setProgram(settings.m_hatariFilename);
-    proc.setArguments(args);
+
+    DetachableProcess* pNewProc = new DetachableProcess();
+
+    // This needs to be done straight away so that the old process can be killed
+    // and release any active network connection.
+    pSession->setHatariProcess(pNewProc);
+
+    pNewProc->setProgram(settings.m_hatariFilename);
+    pNewProc->setArguments(args);
 
     // Redirect outputs to NULL so that Hatari's own spew doesn't cause lockups
     // if hrdb is killed and restarted (temp file contention?)
-    proc.setStandardOutputFile(QProcess::nullDevice());
-    proc.setStandardErrorFile(QProcess::nullDevice());
-    proc.setWorkingDirectory(settings.m_workingDirectory);
-    return proc.startDetached();
+    pNewProc->setStandardOutputFile(QProcess::nullDevice());
+    pNewProc->setStandardErrorFile(QProcess::nullDevice());
+    pNewProc->setWorkingDirectory(settings.m_workingDirectory);
+
+    // We now always start the process as attached.
+    // We have a (rather iffy) QDetachableProcess and call detach() when
+    // hrdb itself exits.
+    // The
+    pNewProc->start();
+    return pNewProc->waitForStarted();
 }

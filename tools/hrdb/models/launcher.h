@@ -35,6 +35,6 @@ public:
 };
 
 // Returns true on success (Qt doesn't offer more options?)
-bool LaunchHatari(const LaunchSettings& settings, const Session* pSession);
+bool LaunchHatari(const LaunchSettings& settings, Session* pSession);
 
 #endif // LAUNCHER_H

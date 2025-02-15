@@ -44,6 +44,11 @@ Session::~Session()
     delete m_pTcpSocket;
     delete m_pTimer;
     delete m_pFileWatcher;
+    if (m_pHatariProcess)
+    {
+        m_pHatariProcess->detach();
+        delete m_pHatariProcess;
+    }
 }
 
 void Session::Connect()
@@ -160,4 +165,16 @@ FileWatcher* Session::createFileWatcherInstance()
             m_pFileWatcher=new FileWatcher(this);
         }
         return m_pFileWatcher;
+}
+
+void Session::setHatariProcess(DetachableProcess* pProc)
+{
+    if (m_pHatariProcess)
+    {
+        // Kill any old Hatari process which might be active.
+        if (m_pHatariProcess->state() == QProcess::Running)
+            m_pHatariProcess->terminate();
+        delete m_pHatariProcess;
+    }
+    m_pHatariProcess = pProc;
 }

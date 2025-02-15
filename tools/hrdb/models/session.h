@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QFont>
+#include <QProcess>
 #include "launcher.h"
 
 class QTcpSocket;
@@ -15,6 +16,23 @@ class FileWatcher;
 
 #define VERSION_STRING      "0.009-DSP (August 2024)"
 #define HELP_URL            "http://clarets.org/steve/projects/hrdb.html"
+
+// Wrapper of QProcess that "allows" a detact() after start().
+// This workaround class is from
+// https://stackoverflow.com/questions/17501642/detaching-a-started-process/36562936#36562936
+// It exploits the protected access to setProcessState() to prevent auto-termination
+// of a process.
+// I don't really like it, but it seems to provide the only way to do this.
+class DetachableProcess : public QProcess
+{
+public:
+    DetachableProcess(QObject *parent = 0) : QProcess(parent){}
+    void detach()
+    {
+        this->waitForStarted();
+        setProcessState(QProcess::NotRunning);
+    }
+};
 
 // Shared runtime data about the debugging session used by multiple UI components
 // This data isn't persisted over runs (that is saved in Settings)
@@ -74,6 +92,9 @@ public:
     Dispatcher*     m_pDispatcher;
     TargetModel*    m_pTargetModel;
 
+    // Controller Hatari process
+    DetachableProcess*       m_pHatariProcess;
+
     const Settings& GetSettings() const;
     const LaunchSettings& GetLaunchSettings() const;
 
@@ -92,6 +113,8 @@ public:
     void resetCold();
 
     FileWatcher* createFileWatcherInstance();
+
+    void setHatariProcess(DetachableProcess* pProc);
 
 signals:
     void settingsChanged();

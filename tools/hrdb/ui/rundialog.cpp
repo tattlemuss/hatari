@@ -263,7 +263,9 @@ void RunDialog::okClicked()
     }
     else
     {
-        QMessageBox::critical(this, "Error", "Failed to launch.");
+        QMessageBox::critical(this, "Error",
+                              "Failed to launch Hatari.\n"
+                              "You might need to check executable and library paths.");
     }
 }
 
@@ -294,11 +296,13 @@ void RunDialog::exeClicked()
 
 void RunDialog::prgClicked()
 {
+    QFileInfo fi(m_launchSettings.m_prgFilename);
+
     QString filter = "Programs (*.prg *.tos *.ttp *.PRG *.TOS *.TTP);"
             ";Images (*.st *.stx *.msa *.ipf *.ST *.STX *.MSA *.IPF)";
     QString filename = QFileDialog::getOpenFileName(this,
           tr("Choose program or image"),
-          QString(), //dir
+          fi.absolutePath(),
           filter);
     if (filename.size() != 0)
         m_pPrgTextEdit->setText(QDir::toNativeSeparators(filename));
@@ -311,7 +315,7 @@ void RunDialog::workingDirectoryClicked()
 {
     QFileDialog dialog(this);
     dialog.setFileMode(QFileDialog::Directory);
-
+    dialog.setDirectory(m_launchSettings.m_workingDirectory);
     QStringList fileNames;
     if (dialog.exec())
     {
@@ -324,10 +328,11 @@ void RunDialog::workingDirectoryClicked()
 
 void RunDialog::hatariConfigClicked()
 {
+    QFileInfo fi(m_launchSettings.m_hatariConfigFilename);
     QString filter = "Hatari config (*.cfg *.CFG)";
     QString filename = QFileDialog::getOpenFileName(this,
           tr("Choose Hatari config file"),
-          QString(), //dir
+          fi.absolutePath(), //dir
           filter);
     if (filename.size() != 0)
     {
