@@ -195,6 +195,7 @@ private:
     void toggleBreakpointRightClick();
     void setPCRightClick();
     void nopRightClick();
+    void copyRightClick();
     void settingsChangedSlot();
 
     // Layout functions
@@ -224,6 +225,7 @@ private:
     QMenu*                m_pEditMenu;        // "edit this instruction" menu
     QAction*              m_pNopAction;
 
+    QAction*              m_pCopyAction;
     QAction*              m_pSearchAction;    // Passed from parent window...
 
     // "Show memory for $x" top-level menus:
