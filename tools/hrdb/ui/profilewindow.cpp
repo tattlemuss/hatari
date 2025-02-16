@@ -462,7 +462,7 @@ void ProfileWindow::profileChanged()
 
 void ProfileWindow::settingsChanged()
 {
-    QFontMetrics fm(m_pSession->GetSettings().m_font);
+    //QFontMetrics fm(m_pSession->GetSettings().m_font);
 
     // Down the side
     m_pTreeView->setFont(m_pSession->GetSettings().m_font);

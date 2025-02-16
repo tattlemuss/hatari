@@ -31,6 +31,8 @@ class ConsoleWindow;
 class HardwareWindow;
 class ProfileWindow;
 class RegisterWidget;
+class SourceWindow;
+
 class ExceptionDialog;
 class RunDialog;
 class PrefsDialog;
@@ -160,6 +162,7 @@ private:
     ConsoleWindow*              m_pConsoleWindow;
     HardwareWindow*             m_pHardwareWindow;
     ProfileWindow*              m_pProfileWindow;
+    SourceWindow*               m_pSourceWindow;
 
     // Low-level data
     Session&                    m_session;
@@ -214,6 +217,7 @@ private:
     QAction* m_pConsoleWindowAct;
     QAction* m_pHardwareWindowAct;
     QAction* m_pProfileWindowAct;
+    QAction* m_pSourceWindowAct;
 
     QAction* m_pOnlineHelpAct;
     QAction* m_pAboutAct;

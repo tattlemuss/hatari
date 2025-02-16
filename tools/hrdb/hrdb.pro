@@ -66,6 +66,7 @@ SOURCES += \
     ui/savebindialog.cpp \
     ui/searchdialog.cpp \
     ui/showaddressactions.cpp \
+    ui/sourcewindow.cpp \
     ui/symboltext.cpp \
 
 HEADERS += \
@@ -128,6 +129,7 @@ HEADERS += \
     ui/savebindialog.h \
     ui/searchdialog.h \
     ui/showaddressactions.h \
+    ui/sourcewindow.h \
     ui/symboltext.h
 
 RESOURCES     = hrdb.qrc    
