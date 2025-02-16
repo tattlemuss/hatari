@@ -2,7 +2,7 @@
 #define BREAKPOINTSWIDGET_H
 
 #include <QDockWidget>
-#include <QTableView>
+#include <QTreeView>
 
 class QComboBox;
 class QCheckBox;
@@ -19,6 +19,7 @@ class BreakpointsTableModel : public QAbstractTableModel
 public:
     enum Column
     {
+        kColProc,
         kColExpression,
         kColHitCount,
         kColOnce,
@@ -44,11 +45,11 @@ private:
     Dispatcher*     m_pDispatcher;
 };
 
-class BreakpointsTableView : public QTableView
+class BreakpointsTreeView : public QTreeView
 {
     Q_OBJECT
 public:
-    BreakpointsTableView(QWidget* parent, BreakpointsTableModel* pModel);
+    BreakpointsTreeView(QWidget* parent, BreakpointsTableModel* pModel);
 
 public slots:
 
@@ -81,14 +82,14 @@ private slots:
     void settingsChangedSlot();
 
 private:
-    BreakpointsTableView*     m_pTableView;
+    BreakpointsTreeView*      m_pTreeView;
     QPushButton*              m_pAddButton;
     QPushButton*              m_pDeleteButton;
 
-    BreakpointsTableModel* pModel;
-    Session*            m_pSession;
-    TargetModel*        m_pTargetModel;
-    Dispatcher*         m_pDispatcher;
+    BreakpointsTableModel*    m_pTableModel;
+    Session*                  m_pSession;
+    TargetModel*              m_pTargetModel;
+    Dispatcher*               m_pDispatcher;
 };
 
 #endif // BREAKPOINTSWIDGET_H

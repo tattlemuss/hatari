@@ -1,6 +1,54 @@
 hrdb Release Notes
 ==================
 
+v0.009 (July 2024)
+
+- Hatari
+  - Update code to Hatari version 2.5.0
+  - (hrdb only) Add Vars for TOSStart and TOSEnd addresses.
+
+- General
+  - Added a "Run to RAM" command. Makes it easier to exit TOS calls. Requested by @troed.
+  - Added Ctrl+U <key> sequences for all the Run To... options.
+	 e.g. "Ctrl+U V" performs "run to next VBL"
+         - Added "Cold Reset" menu option.
+  - Added a protocol check between hrdb and Hatari, to prevent accidental user mismatches.
+  - Switched Breakpoints and Profile windows to use QTreeView.
+      This looks much nicer and more compact.
+  - Fixed auto-complete of symbols when active program is changed multiple times.
+
+- Graphics inspector
+  - Added support for STE line-padding register.
+  - Switched the width of the view to be a number of bytes, rather than "blocks
+      plus padding" approach.
+  - "Use Register" option for formatting is now part of the Format combo box,
+      rather than a separate tickbox.
+  - Add 1BPP (byte-per-pixel) format support, useful for visualising buffer data.
+  - Fix: Correctly use black & white palette in mono resolution. Reported by @troed.
+
+- Memory Window
+  - Added binary values in tooltips. Request from TheNameOfTheGame.
+  - Added "Search..." as context menu option.
+  - Added "Write to File..." context menu option to save binary data.
+
+- Disassembly Window
+  - Behaviour change: typing in an address does not cancel the "Follow PC"
+      option. "Follow PC" must be cancelled by the user.
+  - Added "Search..." as context menu option.
+  - Added annotation of trap calls.
+      i.e. names of GemDOS/Xbios/Bios calls will be displayed as a comment.
+      Currently this only identifies calls of the form "move.w #xx,-(a7) ; trap #yy"
+      Requested by @troed.
+  - Added annotation of Line-A commands.
+      e.g. "dc.w $a000" will show the comment "linea_init"
+
+- Register Window
+  - TOS Annotations: show the trap name in the Register window.
+      This is only flagged by Hatari at the point where the trap #1 instruction
+      is about to be called, not during the lifetime of the trap, so its
+      value is limited.
+
+
 v0.008 (August 2023)
 
 - Graphics Inspector
@@ -13,6 +61,10 @@ v0.008 (August 2023)
   - Show memory address(es) of pixel under mouse pointer (suggestion by ggn/KÜA)
     This address can also be sent to other windows (e.g. Memory) with the
     right-click/context menu.
+  - Bug fix: Graphics Inspector didn't read $ff8260 cleanly in all cases.
+      This resulted in the mode being incorrectly detected as "1-Bitplane"
+      if any bits other than 0 and 1 were set. This happened sometimes with
+      EmuTOS.
 
 - Memory Window
   - Added search feature on Ctrl+F. Search supports hex or text, with case
@@ -38,6 +90,8 @@ v0.008 (August 2023)
   - Added search feature on Ctrl+F. Search supports hex or text, with case
     sensitivity.
   - Added Ctrl+Space shortcut for context menu.
+  - Fixed 68000 disassembly of operands of mode "Address Register Indirect with
+    Index" where the index register is A0-A7. Reported by Martin Sedlak.
 
 - Register Window
   - Added display of 68020 and 68030 register values when appropriate, including
@@ -46,6 +100,9 @@ v0.008 (August 2023)
 - Breakpoints Window
   - Fixed "Trace" flag when creating breakpoints.
   - Removed unnecessary columns from display.
+
+- Console Window
+  - Fixed bug on Windows where Hatari's output would not update properly.
 
 - General
   - Base Hatari build version is still 2.4.1 release.
@@ -57,6 +114,11 @@ v0.008 (August 2023)
     Console Window, Alt+2/3/4 for Memory Windows 2/3/4.
   - Symbol system now supports comments for each label. Comments are added for the
     internal hardware register addresses, low-memory vectors and TOS variables.
+  - Bug fix: crash when using the Hatari "number base" with anything other than 10.
+  - Launch dialog: Fix the resize behaviour so the last combo doesn't stretch.
+  - Added support Windows file names in breakpoint options
+  - Bug fix: correctly triggers fast-forward from the startup debugger script
+     when a separate config file is specified.
 
 
 v0.007 (August 2022)

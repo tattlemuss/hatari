@@ -44,6 +44,7 @@ public:
     }
 
     uint32_t GetPos() const { return (uint32_t) m_pos; }
+    char GetNext() { return m_str[m_pos++]; }
 
     void SplitAll(const char c, std::vector<std::string>& all)
     {

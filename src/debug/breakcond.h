@@ -39,6 +39,12 @@ typedef struct {
 	Breakpoints are indexed from 1!
 	Returns true if data found */
 extern bool BreakCond_GetCpuBreakpointInfo(int position, bc_breakpoint_query_t *result);
+/* Remote debugging: query data for DSP breakpoint N.
+	Breakpoints are indexed from 1!
+	Returns true if data found */
+extern bool BreakCond_GetDspBreakpointInfo(int position, bc_breakpoint_query_t *result);
+
 extern bool BreakCond_RemoveCpuBreakpoint(int position);
+extern bool BreakCond_RemoveDspBreakpoint(int position);
 
 #endif

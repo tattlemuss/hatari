@@ -57,7 +57,7 @@ SearchDialog::SearchDialog(QWidget *parent, const TargetModel* pTargetModel, Sea
     m_returnedSettings(returnedSettings)
 {
     this->setWindowTitle(tr("Find..."));
-    this->setObjectName("SeachDialog");
+    this->setObjectName("SearchDialog");
 
     // Take a copy of the input settings
     m_localSettings = returnedSettings;
@@ -185,12 +185,12 @@ bool SearchDialog::CheckInputs()
         textValid = false;
 
     uint32_t addr;
-    startValid = StringParsers::ParseExpression(m_pLineEditStart->text().toStdString().c_str(), addr,
+    startValid = StringParsers::ParseCpuExpression(m_pLineEditStart->text().toStdString().c_str(), addr,
                                        m_pTargetModel->GetSymbolTable(), m_pTargetModel->GetRegs());
     if (startValid)
         m_localSettings.m_startAddress = addr;
 
-    endValid = StringParsers::ParseExpression(m_pLineEditEnd->text().toStdString().c_str(), addr,
+    endValid = StringParsers::ParseCpuExpression(m_pLineEditEnd->text().toStdString().c_str(), addr,
                                        m_pTargetModel->GetSymbolTable(), m_pTargetModel->GetRegs());
 
     if (endValid)

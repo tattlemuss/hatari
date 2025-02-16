@@ -24,6 +24,7 @@ public:
 
     int m_breakMode;                // one of BreakMode above
     QString m_hatariFilename;
+    QString m_hatariConfigFilename;
     QString m_prgFilename;          // .prg or TOS file to launch
     QString m_workingDirectory;
     QString m_watcherFiles;
@@ -34,6 +35,6 @@ public:
 };
 
 // Returns true on success (Qt doesn't offer more options?)
-bool LaunchHatari(const LaunchSettings& settings, const Session* pSession);
+bool LaunchHatari(const LaunchSettings& settings, Session* pSession);
 
 #endif // LAUNCHER_H

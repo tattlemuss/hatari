@@ -8,11 +8,12 @@
 #include "../models/stringsplitter.h"
 #include "../models/stringparsers.h"
 #include "../models/profiledata.h"
+#include "../models/history.h"
 
 //#define DISPATCHER_DEBUG
 
 // Protocol ID which needs to match the Hatari target
-#define REMOTEDEBUG_PROTOCOL_ID	(0x1006)
+#define REMOTEDEBUG_PROTOCOL_ID	(0x1008)
 
 //-----------------------------------------------------------------------------
 // Character value for the separator in responses/notifications from the target
@@ -31,6 +32,20 @@ int RegNameToEnum(const char* name)
         ++i;
     }
     return Registers::REG_COUNT;
+}
+
+int DspRegNameToEnum(const char* name)
+{
+    const char** pCurrName = DspRegisters::s_names;
+    int i = 0;
+    while (*pCurrName)
+    {
+        if (strcmp(name, *pCurrName) == 0)
+            return i;
+        ++pCurrName;
+        ++i;
+    }
+    return DspRegisters::REG_COUNT;
 }
 
 //-----------------------------------------------------------------------------
@@ -69,6 +84,26 @@ uint64_t Dispatcher::ReadMemory(MemorySlot slot, uint32_t address, uint32_t size
     return SendCommandShared(slot, tmp.toStdString());
 }
 
+uint64_t Dispatcher::ReadMemory(MemorySlot slot, MemSpace space, uint32_t address, uint32_t size)
+{
+    QString tmp;
+    switch (space)
+    {
+    case MEM_CPU:
+        tmp = QString::asprintf("mem %x %x", address, size); break;
+    case MEM_P:
+        tmp = QString::asprintf("dmem P %x %x", address, size); break;
+    case MEM_X:
+        tmp = QString::asprintf("dmem X %x %x", address, size); break;
+    case MEM_Y:
+        tmp = QString::asprintf("dmem Y %x %x", address, size); break;
+    default:
+        assert(0);
+        return 0;
+    }
+    return SendCommandShared(slot, tmp.toStdString());
+}
+
 uint64_t Dispatcher::ReadInfoYm()
 {
     return SendCommandPacket("infoym");
@@ -103,6 +138,11 @@ uint64_t Dispatcher::ResetWarm()
     return SendCommandPacket("resetwarm");
 }
 
+uint64_t Dispatcher::ResetCold()
+{
+    return SendCommandPacket("resetcold");
+}
+
 uint64_t Dispatcher::Break()
 {
     return SendCommandPacket("break");
@@ -113,9 +153,12 @@ uint64_t Dispatcher::Run()
     return SendCommandPacket("run");
 }
 
-uint64_t Dispatcher::Step()
+uint64_t Dispatcher::Step(Processor proc)
 {
-    return SendCommandPacket("step");
+    if (proc == kProcCpu)
+        return SendCommandPacket("step");
+    else
+        return SendCommandPacket("dstep");
 }
 
 uint64_t Dispatcher::ReadRegisters()
@@ -123,39 +166,50 @@ uint64_t Dispatcher::ReadRegisters()
     return SendCommandPacket("regs");
 }
 
-uint64_t Dispatcher::RunToPC(uint32_t next_pc)
+uint64_t Dispatcher::RunToPC(Processor proc, uint32_t next_pc)
 {
-    QString str = QString::asprintf("bp pc = $%x : once", next_pc);
+    const char* cmd = (proc == kProcCpu) ? "bp" : "dbp";
+    QString str = QString::asprintf("%s pc = $%x : once", cmd, next_pc);
     SendCommandPacket(str.toStdString().c_str());
     return SendCommandPacket("run");
 }
 
-uint64_t Dispatcher::SetBreakpoint(std::string expression, uint64_t optionFlags)
+uint64_t Dispatcher::SetBreakpoint(Processor proc, std::string expression, uint64_t optionFlags)
 {
-    std::string command = std::string("bp " + expression);
+    const char* cmd = (proc == kProcCpu) ? "bp" : "dbp";
+    QString command = QString::asprintf("%s %s", cmd, expression.c_str());
 
     // Add extra options
     if (optionFlags & kBpFlagOnce)
         command += ": once";
     if (optionFlags & kBpFlagTrace)
         command += ": trace";
-    SendCommandShared(MemorySlot::kNone, command);
+    SendCommandShared(MemorySlot::kNone, command.toStdString().c_str());
     return SendCommandShared(MemorySlot::kNone, "bplist"); // update state
 }
 
-uint64_t Dispatcher::DeleteBreakpoint(uint32_t breakpointId)
+uint64_t Dispatcher::DeleteBreakpoint(Processor proc, uint32_t breakpointId)
 {
-    QString cmd = QString::asprintf("bpdel %x", breakpointId);
+    QString cmd = QString::asprintf("bpdel %x %x", proc, breakpointId);
     SendCommandPacket(cmd.toStdString().c_str());
     return SendCommandPacket("bplist");
 }
 
 
-uint64_t Dispatcher::SetRegister(int reg, uint32_t val)
+uint64_t Dispatcher::SetRegister(Processor proc, int reg, uint32_t val)
 {
-    const char* pRegName = Registers::s_names[reg];
-    QString cmd = QString::asprintf("console r %s=$%x", pRegName, val);
-    return SendCommandPacket(cmd.toStdString().c_str());
+    if (proc == kProcCpu)
+    {
+        const char* pRegName = Registers::s_names[reg];
+        QString cmd = QString::asprintf("console r %s=$%x", pRegName, val);
+        return SendCommandPacket(cmd.toStdString().c_str());
+    }
+    else
+    {
+        const char* pRegName = DspRegisters::s_names[reg];
+        QString cmd = QString::asprintf("console dr %s=$%x", pRegName, val);
+        return SendCommandPacket(cmd.toStdString().c_str());
+    }
 }
 
 uint64_t Dispatcher::SetExceptionMask(uint32_t mask)
@@ -196,12 +250,18 @@ uint64_t Dispatcher::SendConsoleCommand(const std::string& cmd)
 
 uint64_t Dispatcher::SendMemFind(const QVector<uint8_t>& valuesAndMasks, uint32_t startAddress, uint32_t endAddress)
 {
-    std::string packet = "memfind ";
     QString command = QString::asprintf("memfind %x %x ", startAddress, endAddress - startAddress);
 
     for (int i = 0; i <  valuesAndMasks.size(); ++i)
         command += QString::asprintf("%02x", valuesAndMasks[i]);
 
+    return SendCommandPacket(command.toStdString().c_str());
+}
+
+uint64_t Dispatcher::SendSaveBin(uint32_t startAddress, uint32_t size, const std::string &filename)
+{
+    QString command = QString::asprintf("savebin %x %x %s", startAddress, size,
+                                        filename.c_str());
     return SendCommandPacket(command.toStdString().c_str());
 }
 
@@ -391,213 +451,60 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
     std::string cmd_status = splitResp.Split(SEP_CHAR);
     if (cmd_status != std::string("OK"))
     {
-        std::cout << "Repsonse dropped: " << cmd.m_response << std::endl;
-        std::cout << "Original command: " << cmd.m_cmd << std::endl;
+        assert(cmd_status == "NG");
+        std::cout << "WARNING: Repsonse dropped: " << cmd.m_response << std::endl;
+        std::cout << "WARNING: Original command: " << cmd.m_cmd << std::endl;
+
+        // "NG" commands return a value now, so parse that
+        // for future information
+        std::string valueStr = splitResp.Split(SEP_CHAR);
+        uint32_t value;
+        if (!StringParsers::ParseHexString(valueStr.c_str(), value))
+            return;
+
+        // Send signals for some packet types
+        if (type == "savebin")
+            m_pTargetModel->saveBinCompleteSignal(cmd.m_uid, value);
+
         return;
     }
 
+    // Handle responses with arguments first, and pass to a parser
     if (type == "regs")
-    {
-        Registers regs;
-        while (true)
-        {
-            std::string reg = splitResp.Split(SEP_CHAR);
-            if (reg.size() == 0)
-                break;
-            std::string valueStr = splitResp.Split(SEP_CHAR);
-            uint32_t value;
-            if (!StringParsers::ParseHexString(valueStr.c_str(), value))
-                return;
-
-            // Write this value into register structure
-            // NOTE: this is tolerant to not matching the name
-            // since we use "Vars"
-            int reg_id = RegNameToEnum(reg.c_str());
-            if (reg_id != Registers::REG_COUNT)
-                regs.m_value[reg_id] = value;
-        }
-        m_pTargetModel->SetRegisters(regs, cmd.m_uid);
-    }
+        ParseRegs(splitResp, cmd);
     else if (type == "mem")
-    {
-        std::string addrStr = splitResp.Split(SEP_CHAR);
-        std::string sizeStr = splitResp.Split(SEP_CHAR);
-        uint32_t addr;
-        if (!StringParsers::ParseHexString(addrStr.c_str(), addr))
-            return;
-        uint32_t size;
-        if (!StringParsers::ParseHexString(sizeStr.c_str(), size))
-            return;
-
-        // Create a new memory block to pass to the data model
-        Memory* pMem = new Memory(addr, size);
-
-        // Now parse the uuencoded data
-        // Each "group" encodes 3 bytes
-        uint32_t numGroups = (size + 2) / 3;        // round up to next block
-
-        uint32_t writePos = 0;
-        uint32_t readPos = splitResp.GetPos();
-        for (uint32_t group = 0; group < numGroups; ++group)
-        {
-            uint32_t accum = 0;
-            for (int i = 0; i < 4; ++i)
-            {
-                accum <<= 6;
-                uint32_t value = cmd.m_response[readPos++];
-                assert(value >= 32 && value < 32+64);
-                accum |= (value - 32u);
-            }
-
-            // Now output 3 chars
-            for (int i = 0; i < 3; ++i)
-            {
-                if (writePos == size)
-                    break;
-                pMem->Set(writePos++, (accum >> 16) & 0xff);
-                accum <<= 8;
-            }
-        }
-
-        m_pTargetModel->SetMemory(cmd.m_memorySlot, pMem, cmd.m_uid);
-    }
+        ParseMem(splitResp, cmd);
+    else if (type == "dmem")
+        ParseDmem(splitResp, cmd);
     else if (type == "bplist")
-    {
-        // Breakpoints
-        std::string countStr = splitResp.Split(SEP_CHAR);
-        uint32_t count;
-        if (!StringParsers::ParseHexString(countStr.c_str(), count))
-            return;
-
-        Breakpoints bps;
-        for (uint32_t i = 0; i < count; ++i)
-        {
-            Breakpoint bp;
-            bp.m_id = i + 1;        // IDs in Hatari start at 1 :(
-            bp.SetExpression(splitResp.Split(SEP_CHAR));
-            std::string ccountStr = splitResp.Split(SEP_CHAR);
-            std::string hitsStr = splitResp.Split(SEP_CHAR);
-            std::string onceStr = splitResp.Split(SEP_CHAR);
-            std::string quietStr = splitResp.Split(SEP_CHAR);
-            std::string traceStr = splitResp.Split(SEP_CHAR);
-            if (!StringParsers::ParseHexString(ccountStr.c_str(), bp.m_conditionCount))
-                return;
-            if (!StringParsers::ParseHexString(hitsStr.c_str(), bp.m_hitCount))
-                return;
-            if (!StringParsers::ParseHexString(onceStr.c_str(), bp.m_once))
-                return;
-            if (!StringParsers::ParseHexString(quietStr.c_str(), bp.m_quiet))
-                return;
-            if (!StringParsers::ParseHexString(traceStr.c_str(), bp.m_trace))
-                return;
-            bps.m_breakpoints.push_back(bp);
-        }
-
-        m_pTargetModel->SetBreakpoints(bps, cmd.m_uid);
-    }
+        ParseBplist(splitResp, cmd);
     else if (type == "symlist")
-    {
-        // Symbols
-        std::string countStr = splitResp.Split(SEP_CHAR);
-        uint32_t count;
-        if (!StringParsers::ParseHexString(countStr.c_str(), count))
-            return;
-
-        const std::string absType("A");
-        SymbolSubTable syms;
-        for (uint32_t i = 0; i < count; ++i)
-        {
-            std::string name = splitResp.Split(SEP_CHAR);
-            std::string addrStr = splitResp.Split(SEP_CHAR);
-            uint32_t address;
-            if (!StringParsers::ParseHexString(addrStr.c_str(), address))
-                return;
-            std::string type = splitResp.Split(SEP_CHAR);
-            if (type == absType)
-                continue;
-            uint32_t size = 0;
-            syms.AddSymbol(name, address, size, type, std::string());
-        }
-        m_pTargetModel->SetSymbolTable(syms, cmd.m_uid);
-    }
+        ParseSymlist(splitResp, cmd);
     else if (type == "exmask")
-    {
-        std::string maskStr = splitResp.Split(SEP_CHAR);
-        uint32_t mask;
-        if (!StringParsers::ParseHexString(maskStr.c_str(), mask))
-            return;
-
-        ExceptionMask maskObj;
-        maskObj.m_mask = (uint16_t)mask;
-        m_pTargetModel->SetExceptionMask(maskObj);
-    }
+        ParseExmask(splitResp, cmd);
     else if (type == "memset")
+        ParseMemset(splitResp, cmd);
+    else if (type == "infoym")
+        ParseInfoym(splitResp, cmd);
+    else if (type == "profile")
+        ParseProfile(splitResp, cmd);
+    else if (type == "memfind")
+        ParseMemfind(splitResp, cmd);
+    else if (type == "resetwarm")
     {
-        // check the affected range
-        std::string addrStr = splitResp.Split(SEP_CHAR);
-        std::string sizeStr = splitResp.Split(SEP_CHAR);
-        uint32_t addr;
-        if (!StringParsers::ParseHexString(addrStr.c_str(), addr))
-            return;
-        uint32_t size;
-        if (!StringParsers::ParseHexString(sizeStr.c_str(), size))
-            return;
-
-        m_pTargetModel->NotifyMemoryChanged(addr, size);
+        // Nothing to do now, since the !symbol notifier will clean up for us
     }
     else if (type == "flush")
     {
         Q_ASSERT(0);
     }
     else if (type == "console")
-    {
         // Anything could have happened here!
         m_pTargetModel->ConsoleCommand();
-    }
-    else if (type == "infoym")
-    {
-        YmState state;
-        for (int i = 0; i < YmState::kNumRegs; ++i)
-        {
-            std::string valueStr = splitResp.Split(SEP_CHAR);
-            if (valueStr.size() == 0)
-                return;
-            uint32_t value;
-            if (!StringParsers::ParseHexString(valueStr.c_str(), value))
-                return;
-            state.m_regs[i] = static_cast<uint8_t>(value);
-        }
-        m_pTargetModel->SetYm(state);
-    }
-    else if (type == "profile")
-    {
-        uint32_t enabled = 0;
-        std::string enabledStr = splitResp.Split(SEP_CHAR);
-        if (!StringParsers::ParseHexString(enabledStr.c_str(), enabled))
-            return;
-        m_pTargetModel->ProfileDeltaComplete(static_cast<int>(enabled));
-    }
-    else if (type == "resetwarm")
-    {
-        // Set up an empty symbol table on reset so that we re-request it
-        SymbolSubTable syms;
-        m_pTargetModel->SetSymbolTable(syms, cmd.m_uid);
-    }
-    else if (type == "memfind")
-    {
-        SearchResults results;
-        while (true)
-        {
-            std::string addrStr = splitResp.Split(SEP_CHAR);
-            if (addrStr.size() == 0)
-                break;
-            uint32_t value;
-            if (!StringParsers::ParseHexString(addrStr.c_str(), value))
-                break;
-            results.addresses.push_back(value);
-        }
-        m_pTargetModel->SetSearchResults(cmd.m_uid, results);
-    }
+    else if (type == "savebin")
+       m_pTargetModel->SaveBinComplete(cmd.m_uid, 0U);
+    else if (type == "histget")
+        ParseHistGet(splitResp, cmd);
     else
     {
         // For debugging
@@ -652,19 +559,23 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
     {
         std::string runningStr = s.Split(SEP_CHAR);
         std::string pcStr = s.Split(SEP_CHAR);
+        std::string dspPcStr = s.Split(SEP_CHAR);
         std::string ffwdStr = s.Split(SEP_CHAR);
         uint32_t running;
         uint32_t pc;
+        uint32_t dsp_pc;
         uint32_t ffwd;
         if (!StringParsers::ParseHexString(runningStr.c_str(), running))
             return;
         if (!StringParsers::ParseHexString(pcStr.c_str(), pc))
             return;
+        if (!StringParsers::ParseHexString(dspPcStr.c_str(), dsp_pc))
+            return;
         if (!StringParsers::ParseHexString(ffwdStr.c_str(), ffwd))
             return;
 
         // This call goes off and lots of views insert requests here, so add a flush into the queue
-        m_pTargetModel->SetStatus(running != 0, pc, ffwd);
+        m_pTargetModel->SetStatus(running != 0, pc, dsp_pc, ffwd);
         this->InsertFlush();
     }
     else if (type == "!config")
@@ -672,16 +583,20 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
         std::string machineTypeStr = s.Split(SEP_CHAR);
         std::string cpuLevelStr = s.Split(SEP_CHAR);
         std::string stRamSizeStr = s.Split(SEP_CHAR);
+        std::string dspActiveStr = s.Split(SEP_CHAR);
         uint32_t machineType;
         uint32_t cpuLevel;
         uint32_t stRamSize;
+        uint32_t dspActive;
         if (!StringParsers::ParseHexString(machineTypeStr.c_str(), machineType))
             return;
         if (!StringParsers::ParseHexString(cpuLevelStr.c_str(), cpuLevel))
             return;
         if (!StringParsers::ParseHexString(stRamSizeStr.c_str(), stRamSize))
             return;
-        m_pTargetModel->SetConfig(machineType, cpuLevel, stRamSize);
+        if (!StringParsers::ParseHexString(dspActiveStr.c_str(), dspActive))
+            return;
+        m_pTargetModel->SetConfig(machineType, cpuLevel, stRamSize, dspActive);
         this->InsertFlush();
     }
     else if (type == "!profile")
@@ -721,7 +636,15 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
             lastaddr = newaddr;
             ++numDeltas;
         }
-        m_pTargetModel->ProfileDeltaComplete(static_cast<int>(enabled));
+        // Don't send a signal if no deltas happened...
+        if (numDeltas)
+            m_pTargetModel->ProfileDeltaComplete(static_cast<int>(enabled));
+    }  
+    else if (type == "!symbols")
+    {
+        std::string path = s.Split(SEP_CHAR);
+        std::cout << "New program for symbol table: '" << path << "'" << std::endl;
+        m_pTargetModel->NotifySymbolProgramChanged();
     }
     else if (type == "!programpath")
     {
@@ -734,3 +657,290 @@ void Dispatcher::ReceiveNotification(const RemoteNotification& cmd)
     }
 }
 
+void Dispatcher::ParseRegs(StringSplitter& splitResp, const RemoteCommand& cmd)
+{
+    Registers regs;
+    DspRegisters dspRegs;
+    while (true)
+    {
+        std::string reg = splitResp.Split(SEP_CHAR);
+        if (reg.size() == 0)
+            break;
+        std::string valueStr = splitResp.Split(SEP_CHAR);
+        uint32_t value;
+        if (!StringParsers::ParseHexString(valueStr.c_str(), value))
+            return;
+
+        // Write this value into register structure
+        // NOTE: this is tolerant to not matching the name
+        // since we use "Vars"
+        if (reg.find("D_", 0) == 0)
+        {
+            int reg_id = DspRegNameToEnum(reg.c_str() + 2);
+            if (reg_id != DspRegisters::REG_COUNT)
+                dspRegs.Set(reg_id, value);
+        }
+        else
+        {
+            int reg_id = RegNameToEnum(reg.c_str());
+            if (reg_id != Registers::REG_COUNT)
+                regs.m_value[reg_id] = value;
+        }
+    }
+    m_pTargetModel->SetRegisters(regs, dspRegs, cmd.m_uid);
+}
+
+void Dispatcher::ParseMem(StringSplitter& splitResp, const RemoteCommand& cmd)
+{
+    std::string addrStr = splitResp.Split(SEP_CHAR);
+    std::string sizeStr = splitResp.Split(SEP_CHAR);
+    uint32_t addr;
+    if (!StringParsers::ParseHexString(addrStr.c_str(), addr))
+        return;
+    uint32_t size;
+    if (!StringParsers::ParseHexString(sizeStr.c_str(), size))
+        return;
+
+    // Create a new memory block to pass to the data model
+    Memory* pMem = new Memory(MEM_CPU, addr, size);
+
+    // Now parse the uuencoded data
+    // Each "group" encodes 3 bytes
+    uint32_t numGroups = (size + 2) / 3;        // round up to next block
+
+    uint32_t writePos = 0;
+    for (uint32_t group = 0; group < numGroups; ++group)
+    {
+        uint32_t accum = 0;
+        for (int i = 0; i < 4; ++i)
+        {
+            accum <<= 6;
+            uint32_t value = splitResp.GetNext();
+            assert(value >= 32 && value < 32+64);
+            accum |= (value - 32u);
+        }
+
+        // Now output 3 chars
+        for (int i = 0; i < 3; ++i)
+        {
+            if (writePos == size)
+                break;
+            pMem->Set(writePos++, (accum >> 16) & 0xff);
+            accum <<= 8;
+        }
+    }
+    m_pTargetModel->SetMemory(cmd.m_memorySlot, pMem, cmd.m_uid);
+}
+
+void Dispatcher::ParseDmem(StringSplitter &splitResp, const RemoteCommand &cmd)
+{
+    std::string memspace = splitResp.Split(SEP_CHAR);
+    std::string addrStr = splitResp.Split(SEP_CHAR);
+    std::string sizeStr = splitResp.Split(SEP_CHAR);
+    uint32_t addr;
+    if (!StringParsers::ParseHexString(addrStr.c_str(), addr))
+        return;
+    uint32_t sizeInWords;
+    if (!StringParsers::ParseHexString(sizeStr.c_str(), sizeInWords))
+        return;
+    MemSpace space;
+    switch (memspace[0])
+    {
+        case 'P' : space = MEM_P; break;
+        case 'X' : space = MEM_X; break;
+        case 'Y' : space = MEM_Y; break;
+    default:
+        return;
+    }
+
+    // Create a new memory block to pass to the data model
+    Memory* pMem = new Memory(space, addr, sizeInWords * 3);
+
+    // Now parse the uuencoded data
+    // Each "group" encodes 3 bytes
+    uint32_t numGroups = sizeInWords;        // round up to next block
+
+    uint32_t writePos = 0;
+    uint32_t readPos = splitResp.GetPos();
+    for (uint32_t group = 0; group < numGroups; ++group)
+    {
+        uint32_t accum = 0;
+        for (int i = 0; i < 4; ++i)
+        {
+            accum <<= 6;
+            uint32_t value = cmd.m_response[readPos++];
+            assert(value >= 32 && value < 32+64);
+            accum |= (value - 32u);
+        }
+
+        // Now output 3 chars
+        for (int i = 0; i < 3; ++i)
+        {
+            pMem->Set(writePos++, (accum >> 16) & 0xff);
+            accum <<= 8;
+        }
+    }
+
+    m_pTargetModel->SetMemory(cmd.m_memorySlot, pMem, cmd.m_uid);
+}
+
+void Dispatcher::ParseBplist(StringSplitter& splitResp, const RemoteCommand& cmd)
+{
+    // Breakpoints
+    std::string countStr = splitResp.Split(SEP_CHAR);
+    uint32_t count;
+    if (!StringParsers::ParseHexString(countStr.c_str(), count))
+        return;
+
+    Breakpoints bps;
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        Breakpoint bp;
+
+        std::string procStr = splitResp.Split(SEP_CHAR);
+        std::string idStr = splitResp.Split(SEP_CHAR);
+        bp.SetExpression(splitResp.Split(SEP_CHAR));
+        std::string ccountStr = splitResp.Split(SEP_CHAR);
+        std::string hitsStr = splitResp.Split(SEP_CHAR);
+        std::string onceStr = splitResp.Split(SEP_CHAR);
+        std::string quietStr = splitResp.Split(SEP_CHAR);
+        std::string traceStr = splitResp.Split(SEP_CHAR);
+
+        uint32_t proc;
+        if (!StringParsers::ParseHexString(procStr.c_str(), proc))
+            return;
+        bp.m_proc = proc != 0 ? kProcDsp : kProcCpu;
+
+        if (!StringParsers::ParseHexString(idStr.c_str(), bp.m_id))
+            return;
+        if (!StringParsers::ParseHexString(ccountStr.c_str(), bp.m_conditionCount))
+            return;
+        if (!StringParsers::ParseHexString(hitsStr.c_str(), bp.m_hitCount))
+            return;
+        if (!StringParsers::ParseHexString(onceStr.c_str(), bp.m_once))
+            return;
+        if (!StringParsers::ParseHexString(quietStr.c_str(), bp.m_quiet))
+            return;
+        if (!StringParsers::ParseHexString(traceStr.c_str(), bp.m_trace))
+            return;
+        bps.m_breakpoints.push_back(bp);
+    }
+    m_pTargetModel->SetBreakpoints(bps, cmd.m_uid);
+}
+
+void Dispatcher::ParseSymlist(StringSplitter& splitResp, const RemoteCommand& cmd)
+{
+    // Symbols
+    std::string countStr = splitResp.Split(SEP_CHAR);
+    uint32_t count;
+    if (!StringParsers::ParseHexString(countStr.c_str(), count))
+        return;
+
+    const std::string absType("A");
+    SymbolSubTable syms;
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        std::string name = splitResp.Split(SEP_CHAR);
+        std::string addrStr = splitResp.Split(SEP_CHAR);
+        uint32_t address;
+        if (!StringParsers::ParseHexString(addrStr.c_str(), address))
+            return;
+        std::string type = splitResp.Split(SEP_CHAR);
+        if (type == absType)
+            continue;
+        uint32_t size = 0;
+        syms.AddSymbol(name, address, size, type, std::string());
+    }
+    m_pTargetModel->SetSymbolTable(syms, cmd.m_uid);
+}
+
+void Dispatcher::ParseExmask(StringSplitter &splitResp, const RemoteCommand &cmd)
+{
+    (void)cmd;
+    std::string maskStr = splitResp.Split(SEP_CHAR);
+    uint32_t mask;
+    if (!StringParsers::ParseHexString(maskStr.c_str(), mask))
+        return;
+
+    ExceptionMask maskObj;
+    maskObj.m_mask = (uint16_t)mask;
+    m_pTargetModel->SetExceptionMask(maskObj);
+}
+
+void Dispatcher::ParseMemset(StringSplitter &splitResp, const RemoteCommand &cmd)
+{
+    (void)cmd;
+    // check the affected range
+    std::string addrStr = splitResp.Split(SEP_CHAR);
+    std::string sizeStr = splitResp.Split(SEP_CHAR);
+    uint32_t addr;
+    if (!StringParsers::ParseHexString(addrStr.c_str(), addr))
+        return;
+    uint32_t size;
+    if (!StringParsers::ParseHexString(sizeStr.c_str(), size))
+        return;
+
+    m_pTargetModel->NotifyMemoryChanged(addr, size);
+}
+
+void Dispatcher::ParseInfoym(StringSplitter &splitResp, const RemoteCommand &cmd)
+{
+    (void)cmd;
+    YmState state;
+    for (int i = 0; i < YmState::kNumRegs; ++i)
+    {
+        std::string valueStr = splitResp.Split(SEP_CHAR);
+        if (valueStr.size() == 0)
+            return;
+        uint32_t value;
+        if (!StringParsers::ParseHexString(valueStr.c_str(), value))
+            return;
+        state.m_regs[i] = static_cast<uint8_t>(value);
+    }
+    m_pTargetModel->SetYm(state);
+}
+
+void Dispatcher::ParseProfile(StringSplitter &splitResp, const RemoteCommand &cmd)
+{
+    (void)cmd;
+    uint32_t enabled = 0;
+    std::string enabledStr = splitResp.Split(SEP_CHAR);
+    if (!StringParsers::ParseHexString(enabledStr.c_str(), enabled))
+        return;
+    m_pTargetModel->ProfileDeltaComplete(static_cast<int>(enabled));
+}
+
+void Dispatcher::ParseMemfind(StringSplitter &splitResp, const RemoteCommand &cmd)
+{
+    SearchResults results;
+    while (true)
+    {
+        std::string addrStr = splitResp.Split(SEP_CHAR);
+        if (addrStr.size() == 0)
+            break;
+        uint32_t value;
+        if (!StringParsers::ParseHexString(addrStr.c_str(), value))
+            break;
+        results.addresses.push_back(value);
+    }
+    m_pTargetModel->SetSearchResults(cmd.m_uid, results);
+}
+
+void Dispatcher::ParseHistGet(StringSplitter &splitResp, const RemoteCommand &cmd)
+{
+    History hist;
+    while (true)
+    {
+        std::string cpuStr = splitResp.Split(SEP_CHAR);
+        if (cpuStr.size() == 0)
+            break;
+        std::string addrStr = splitResp.Split(SEP_CHAR);
+        HistoryEntry entry;
+        if (!StringParsers::ParseHexString(cpuStr.c_str(), entry.is_dsp))
+            break;
+        if (!StringParsers::ParseHexString(addrStr.c_str(), entry.pc))
+            break;
+        hist.entries.push_back(entry);
+    }
+    m_pTargetModel->SetHistory(cmd.m_uid, hist);
+}

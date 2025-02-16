@@ -7,8 +7,10 @@ Basic program control:
 | Ctrl+R        | Start/stop                                   |
 | Esc           | Stop                                         |
 | S             | Step (execute next instruction)              |
+| Shift+S       | Step DSP                                     |
 | Ctrl+S        | Skip (jump over instruction                  |
 | N             | Next (execute, but step through bsr/jsr/dbf) |
+| Shift + N     | Next DSP                                     |
 | U             | Run Until RTS/RTE/VBL/HBL/RAM                |
 | Ctrl+Shift+U  | Cycle "Run Until.." choice                   |
 | Ctrl+U, S     | Run To RTS                                   |
@@ -70,6 +72,7 @@ Memory Window focus
 | Cursor kyes   | Move editing cursor                |
 | Page Up/Down  | Move to previous/next page         |
 | Ctrl+F        | Search for text/hexadecimal string |
+| Ctrl+W        | Write memory to file               |
 | Ctrl+Space    | Show Context Menu                  |
 
 Graphics Inspector focus

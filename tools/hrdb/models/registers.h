@@ -130,7 +130,98 @@ public:
     uint32_t	m_value[REG_COUNT];
     // Null-terminated 1:1 array of register names
     static const char* s_names[];
+};
 
+class DspRegisters
+{
+public:
+    DspRegisters();
+
+    // Useful accessors
+    uint64_t Get(uint32_t reg) const
+    {
+        assert(reg < REG_COUNT);
+        return m_value[reg];
+    }
+
+    void Set(uint32_t reg, uint64_t val);
+
+    // Names and text
+    static const char* GetSRBitName(uint32_t bit);
+    static const char* GetOMRBitDesc(uint32_t bit);
+
+    enum
+    {
+        // WARNING this order does not match the Hatari runtime.
+        X1, X0,
+        Y1, Y0,
+        A2, A1, A0,
+        B2, B1, B0,
+        R0, R1, R2, R3,
+        R4, R5, R6, R7,
+        N0, N1, N2, N3,
+        N4, N5, N6, N7,
+        M0, M1, M2, M3,
+        M4, M5, M6, M7,
+        SR,
+        OMR,
+        SP,
+        SSH,
+        SSL,
+        LA,
+        LC,
+
+        // Pseudo registers calculated from the above.
+        A,
+        B,
+        X,
+        Y,
+        PC,
+        REG_COUNT
+    };
+
+    enum SRBits
+    {
+        kLF = 15,   // Loop
+        kDM = 14,   // Double precision multiply?
+        kT = 13,
+        kS1 = 11,
+        kS0 = 10,
+        kI1 = 9,
+        kI0 = 8,
+        kS = 7,     // Scaling
+        kL = 6,
+        kE = 5,
+        kU = 4,
+        kN = 3,
+        kZ = 2,
+        kV = 1,
+        kC = 0
+    };
+
+    enum OMRBits
+    {
+        kMA = 0,        // Operating mode A
+        kMB = 1,        // Operating mode B
+        kDE = 2,        // Data ROM Enable
+        kYD = 3,        // Internal Y Memory Disable
+        kMC = 4,        // Operating mode C
+        kSD = 6         // Stop Delay
+    };
+
+    // Null-terminated 1:1 array of register names
+    static const char* s_names[];
+
+private:
+    uint64_t	m_value[REG_COUNT];
+};
+
+// Wrapper for all available target registers, handy for passing around.
+class AllRegisters
+{
+public:
+    Registers       cpu;
+    DspRegisters    dsp;
 };
 
 #endif // REGISTERS_H

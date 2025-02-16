@@ -7,6 +7,12 @@ SymbolTableModel::SymbolTableModel(QObject *parent, const SymbolTable &symbols) 
 {
 }
 
+void SymbolTableModel::emitChanged()
+{
+    beginResetModel();
+    endResetModel();
+}
+
 int SymbolTableModel::rowCount(const QModelIndex & parent) const
 {
     if (parent.isValid())

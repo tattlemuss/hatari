@@ -3,12 +3,14 @@
 
 #include <QDockWidget>
 #include <QAbstractItemModel>
+#include "savebindialog.h"
 #include "searchdialog.h"
 #include "showaddressactions.h"
 #include "../models/memory.h"
 #include "../models/session.h"
 
 class TargetModel;
+class SymbolTableModel;
 class Dispatcher;
 class QComboBox;
 class QCheckBox;
@@ -45,32 +47,58 @@ public:
 
     struct CursorInfo
     {
-        uint32_t m_address;
-        bool     m_isValid;
+        MemSpace m_cursorSpace;
+        uint32_t m_cursorAddress;
+        bool     m_isCursorValid;
+
+        uint32_t m_startAddress;     // addr of top-left entry
+        uint32_t m_sizeInBytes;
     };
 
-    MemoryWidget(QWidget* parent, Session* pSession, int windowIndex);
+    MemoryWidget(QWidget* parent, Session* pSession, int windowIndex, QAction* pSearchAction, QAction* pSaveAction);
     virtual ~MemoryWidget();
 
     uint32_t GetRowCount() const { return m_rowCount; }
     SizeMode GetSizeMode() const { return m_sizeMode; }
     WidthMode GetWidthMode() const { return m_widthMode; }
+    MemSpace GetSpace() const { return m_address.space; }
+
     const CursorInfo& GetCursorInfo() const { return m_cursorInfo; }
+    bool IsLocked() const { return m_isLocked; }
+
+    // Set only the new space (via UI combo)
+    // Does re-request memory.
+    void SetSpace(MemSpace space);
+
+    // Set space+address, usually a request from another window
+    // Does re-request memory.
+    void SetAddress(MemAddr full);
 
     // Checks expression validity
     bool CanSetExpression(std::string expression) const;
-    // Set the text expression used as the address.
-    // returns false if expression is invalid
-    bool SetExpression(std::string expression);
-    void SetSearchResultAddress(uint32_t addr);
 
+    // Set the text expression used as the address (not including space)
+    // returns false if expression is invalid.
+    // Requests memory.
+    bool SetExpression(std::string expression);
+
+    // Requests memory.
+    void SetSearchResultAddress(MemAddr addr);
+
+    // Requests memory if the lock is turned on!
     void SetLock(bool locked);
+
+    // Does not request memory.
     void SetSizeMode(SizeMode mode);
+
+    // Requests memory.
     void SetWidthMode(WidthMode widthMode);
 
 signals:
     // Flagged when cursor position or memory under cursor changes
     void cursorChangedSignal();
+    void spaceChangedSignal();
+    void lockChangedSignal();
 protected:
     virtual void paintEvent(QPaintEvent*) override;
     virtual void keyPressEvent(QKeyEvent*) override;
@@ -83,7 +111,7 @@ protected:
 private:
     struct ViewState
     {
-        uint32_t address;
+        MemAddr address;
         int rowCount;
         int bytesPerRow;
         SizeMode sizeMode;
@@ -96,6 +124,7 @@ private:
     void otherMemoryChanged(uint32_t address, uint32_t size);
     void symbolTableChanged();
     void settingsChanged();
+    void configChanged();
 
     void CursorUp();
     void CursorDown();
@@ -120,19 +149,36 @@ private:
         kMoveCursor
     };
 
-    void SetAddress(uint32_t address, CursorMode moveCursor);
+    // Update the space in m_address and potentially change column layout.
+    // Does not request memory.
+    void SetSpaceInternal(MemSpace space);
+
+    // Update space and address, and potentially change column layout
+    // Does not request memory.
+    void SetAddressInternal(MemAddr address);
+
+    // Fetch memory in m_address
     void RequestMemory(CursorMode moveCursor);
 
-    // Is we are locked to an expression recalc m_address
+    // Is we are locked to an expression recalc m_address.
+    // Does not request memory.
     void RecalcLockedExpression();
 
-    // Rearrange the layout to match width/format decisions
+    // Parse a CPU or DSP expression, depending on mode
+    bool ParseExpression(bool isCpu, const std::string& expr, uint32_t& result) const;
+
+    // Rearrange the layout to match width/format decisions.
+    // Recalculates text.
     void RecalcColumnLayout();
     void RecalcText();
+
+    // Fit visible rows.
+    // Recalculates text.
     void RecalcRowCount();
 
-    // Calculate number of bytes to fit current window width
-    void RecalcRowWidth();
+    // Calculate number of bytes to fit current window width.
+    // Does not request memory.
+    void RecalcAutoRowWidth();
 
     // Update cursor data and emit cursorChangedSignal
     void RecalcCursorInfo();
@@ -162,7 +208,8 @@ private:
 
     void SetRowCount(int rowCount);
 
-    uint32_t CalcAddress(int row, int col) const;
+    uint32_t CalcAddrOffset(MemAddr addr, int row, int col) const;
+    uint32_t CalcAddress(MemAddr addr, int row, int col) const;
 
     Session*        m_pSession;
     TargetModel*    m_pTargetModel;
@@ -193,10 +240,16 @@ private:
 
     // This block effectively stores the whole current UI state.
     // If anything changes
-    uint32_t    m_address;
+    MemAddr     m_address;
     WidthMode   m_widthMode;
     SizeMode    m_sizeMode;
+
+    uint32_t    m_lastAddresses[MEM_SPACE_MAX];
+
+    // These are calculated from m_widthMode
     int         m_bytesPerRow;
+    int         m_hasAscii;
+
     int         m_rowCount;
     int         m_cursorRow;
     int         m_cursorCol;
@@ -228,7 +281,10 @@ private:
     QFont       m_monoFont;
 
     // Menu actions
-    ShowAddressMenu     m_showAddressMenus[2];   // 0 == "this address", 1 == "referenced address"
+    ShowAddressMenu     m_showThisAddressMenu;   // 0 == "this address", 1 == "referenced address"
+    ShowAddressMenu     m_showPtrAddressMenu[3];
+    QAction*            m_pSearchAction;
+    QAction*            m_pSaveAction;
 
     // Mouse wheel
     float               m_wheelAngleDelta;
@@ -247,22 +303,28 @@ public:
     void saveSettings();
 
 public slots:
-    void requestAddress(Session::WindowType type, int windowIndex, uint32_t address);
+    void requestAddress(Session::WindowType type, int windowIndex, int memorySpace, uint32_t address);
 
     void returnPressedSlot();
     void cursorChangedSlot();
     void textEditedSlot();
     void lockChangedSlot();
+    void spaceComboBoxChangedSlot(int index);
     void sizeModeComboBoxChangedSlot(int index);
     void widthComboBoxChangedSlot(int index);
     void findClickedSlot();
+    void saveBinClickedSlot();
     void nextClickedSlot();
     void gotoClickedSlot();
     void lockClickedSlot();
     void searchResultsSlot(uint64_t responseId);
+    void symbolTableChangedSlot(uint64_t responseId);
+    void syncUiElements();
 
 private:
     QLineEdit*          m_pAddressEdit;
+    QComboBox*          m_pSpaceComboBox;
+
     QComboBox*          m_pSizeModeComboBox;
     QComboBox*          m_pWidthComboBox;
     QCheckBox*          m_pLockCheckBox;
@@ -272,11 +334,12 @@ private:
     Session*            m_pSession;
     TargetModel*        m_pTargetModel;
     Dispatcher*         m_pDispatcher;
-    QAbstractItemModel* m_pSymbolTableModel;
+    SymbolTableModel*   m_pSymbolTableModel;
     int                 m_windowIndex;
 
     SearchSettings      m_searchSettings;
     uint64_t            m_searchRequestId;
+    SaveBinSettings     m_saveBinSettings;
 };
 
 #endif // MEMORYVIEWWIDGET_H

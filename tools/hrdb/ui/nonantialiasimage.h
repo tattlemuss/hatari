@@ -2,6 +2,7 @@
 #define NONANTIALIASIMAGE_H
 
 #include <QWidget>
+#include "memorybitmap.h"
 
 class Session;
 
@@ -14,22 +15,11 @@ public:
     NonAntiAliasImage(QWidget* parent, Session* pSession);
     virtual ~NonAntiAliasImage() override;
 
-    void setPixmap(int width, int height);
-    uint8_t* AllocBitmap(int size);
     void SetRunning(bool runFlag);
-    const QImage& GetImage() const { return m_img; }
-    QVector<QRgb>   m_colours;
 
-    // Describes what's currently under the mouse pointer
-    struct MouseInfo
-    {
-        bool isValid;       // is there a pixel here?
-        int x;
-        int y;
-        int pixelValue;     // currently: palette value, or -1 if invalid
-    };
+    MemoryBitmap m_bitmap;
 
-    const MouseInfo& GetMouseInfo() { return m_pixelInfo; }
+    const MemoryBitmap::PixelInfo& GetMouseInfo() { return m_pixelInfo; }
 
     struct Annotation
     {
@@ -70,17 +60,11 @@ private:
     QPoint BitmapPointFromScreenPoint(const QPoint &bitmapPoint, const QRect &rect) const;
 
     Session*        m_pSession;         // Used for settings change
-    QPixmap         m_pixmap;
+
     QPointF         m_mousePos;
     QRect           m_renderRect;       // rectangle image was last drawn into
 
-    // Underlying bitmap data
-    QImage          m_img;
-
-    uint8_t*        m_pBitmap;
-    int             m_bitmapSize;
-
-    MouseInfo       m_pixelInfo;
+    MemoryBitmap::PixelInfo m_pixelInfo;
     bool            m_bRunningMask;
 
     // Overlays/helpers\s

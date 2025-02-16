@@ -2,9 +2,11 @@
 
 #include <QContextMenuEvent>
 #include "../models/session.h"
+#include "../models/stringformat.h"
 
 ShowAddressActions::ShowAddressActions() :
     m_activeAddress(0),
+    m_memorySpace(MEM_CPU),
     m_pSession(nullptr)
 {
     for (int i = 0; i < kNumDisasmViews; ++i)
@@ -40,32 +42,41 @@ void ShowAddressActions::addActionsToMenu(QMenu* pMenu) const
     pMenu->addAction(m_pGraphicsInspectorAction);
 }
 
-void ShowAddressActions::setAddress(Session* pSession, uint32_t address)
+void ShowAddressActions::setAddress(Session* pSession, int memorySpace, uint32_t address)
 {
     m_activeAddress = address;
+    m_memorySpace = memorySpace;
     m_pSession = pSession;
+
+    // Certain window types only accept CPU memory
+    // e.g. Graphics Inspector
+    bool isCpu = (memorySpace == MEM_CPU);
+    for (int i = 0; i < kNumMemoryViews; ++i)
+        m_pMemoryWindowActions[i]->setVisible(true);
+
+    m_pGraphicsInspectorAction->setVisible(isCpu);
 }
 
 void ShowAddressActions::TriggerDisasmView(int windowIndex)
 {
-    emit m_pSession->addressRequested(Session::kDisasmWindow, windowIndex, m_activeAddress);
+    emit m_pSession->addressRequested(Session::kDisasmWindow, windowIndex, m_memorySpace, m_activeAddress);
 }
 
 void ShowAddressActions::TriggerMemoryView(int windowIndex)
 {
-    emit m_pSession->addressRequested(Session::kMemoryWindow, windowIndex, m_activeAddress);
+    emit m_pSession->addressRequested(Session::kMemoryWindow, windowIndex, m_memorySpace, m_activeAddress);
 }
 
 void ShowAddressActions::TriggerGraphicsInspector()
 {
-    emit m_pSession->addressRequested(Session::kGraphicsInspector, 0, m_activeAddress);
+    emit m_pSession->addressRequested(Session::kGraphicsInspector, 0, m_memorySpace, m_activeAddress);
 }
 
 
 ShowAddressMenu::ShowAddressMenu()
 {
     m_pMenu = new QMenu(nullptr);
-    addActionsToMenu(m_pMenu);
+    m_actions.addActionsToMenu(m_pMenu);
 }
 
 ShowAddressMenu::~ShowAddressMenu()
@@ -73,11 +84,46 @@ ShowAddressMenu::~ShowAddressMenu()
     delete m_pMenu;
 }
 
+void ShowAddressMenu::Set(const QString &title, Session *pSession, int memorySpace, uint32_t address)
+{
+    QString label = title + ": " + Format::to_address(memorySpace, address);
+    m_pMenu->setTitle(label);
+    m_actions.setAddress(pSession, memorySpace, address);
+}
+
+void ShowAddressMenu::AddTo(QMenu *pParent)
+{
+    pParent->addMenu(this->m_pMenu);
+}
+
+ShowAddressMenuDsp::ShowAddressMenuDsp()
+{
+}
+
+ShowAddressMenuDsp::~ShowAddressMenuDsp()
+{
+}
+
+void ShowAddressMenuDsp::Set(const QString &title, Session *pSession, uint32_t address)
+{
+    m_menus[0].Set(title, pSession, MEM_P, address);
+    m_menus[1].Set(title, pSession, MEM_X, address);
+    m_menus[2].Set(title, pSession, MEM_Y, address);
+}
+
+void ShowAddressMenuDsp::AddTo(QMenu *pParent)
+{
+    m_menus[0].AddTo(pParent);
+    m_menus[1].AddTo(pParent);
+    m_menus[2].AddTo(pParent);
+}
+
+
 ShowAddressLabel::ShowAddressLabel(Session *pSession) :
     m_pActions(nullptr)
 {
     m_pActions = new ShowAddressActions();
-    m_pActions->setAddress(pSession, 0);
+    m_pActions->setAddress(pSession, MEM_CPU, 0);
 }
 
 ShowAddressLabel::~ShowAddressLabel()
@@ -85,11 +131,11 @@ ShowAddressLabel::~ShowAddressLabel()
     delete m_pActions;
 }
 
-void ShowAddressLabel::SetAddress(Session* pSession, uint32_t address)
+void ShowAddressLabel::SetAddress(Session* pSession, int memorySpace, uint32_t address)
 {
     this->setText(QString::asprintf("<a href=\"null\">$%x</a>", address));
     this->setTextFormat(Qt::TextFormat::RichText);
-    m_pActions->setAddress(pSession, address);
+    m_pActions->setAddress(pSession, memorySpace, address);
 }
 
 void ShowAddressLabel::contextMenuEvent(QContextMenuEvent *event)
@@ -100,3 +146,4 @@ void ShowAddressLabel::contextMenuEvent(QContextMenuEvent *event)
     m_pActions->addActionsToMenu(&menu);
     menu.exec(event->globalPos());
 }
+

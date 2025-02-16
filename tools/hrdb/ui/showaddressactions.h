@@ -17,7 +17,7 @@ public:
     ShowAddressActions();
     virtual ~ShowAddressActions();
     void addActionsToMenu(QMenu* pMenu) const;
-    void setAddress(Session* pSession, uint32_t address);
+    void setAddress(Session* pSession, int memorySpace, uint32_t address);
 
 private:
     // Functions (invoked via lambdas) when "show in Memory X" etc is selected
@@ -27,6 +27,7 @@ private:
 
     // What address will be set to the Window chosen
     uint32_t     m_activeAddress;
+    int          m_memorySpace;     // see Memory::Space
 
     // Actions to add to the menus
     QAction*     m_pDisasmWindowActions[kNumDisasmViews];
@@ -38,18 +39,36 @@ private:
 };
 
 // Contains the ShowAddressActions, plus a menu item
-class ShowAddressMenu : public ShowAddressActions
+class ShowAddressMenu
 {
 public:
     ShowAddressMenu();
     ~ShowAddressMenu();
 
-    void setTitle(const QString& title)
-    {
-        m_pMenu->setTitle(title);
-    }
+    // Set the label of the whole menu (the address is added automatically),
+    // and set up the sub-actions to point to the correct address.
+    void Set(const QString& title, Session* pSession, int memorySpace, uint32_t address);
 
-    QMenu*      m_pMenu;
+    void AddTo(QMenu* pParent);
+private:
+    QMenu*              m_pMenu;
+    ShowAddressActions  m_actions;
+};
+
+// Wraps up 3 lots of ShowAddressMenu, covering P/X/Y memory spaces.
+class ShowAddressMenuDsp
+{
+public:
+    ShowAddressMenuDsp();
+    ~ShowAddressMenuDsp();
+
+    // Set the label of the whole menu (the address is added automatically),
+    // and set up the sub-actions to point to the correct address.
+    void Set(const QString& title, Session* pSession, uint32_t address);
+    void AddTo(QMenu* pParent);
+
+private:
+    ShowAddressMenu  m_menus[3];
 };
 
 class ShowAddressLabel : public QLabel
@@ -58,7 +77,7 @@ public:
     ShowAddressLabel(Session* pSession);
     ~ShowAddressLabel();
 
-    void SetAddress(Session* pSession, uint32_t address);
+    void SetAddress(Session* pSession, int memorySpace, uint32_t address);
     void contextMenuEvent(QContextMenuEvent *event);
 
     ShowAddressActions*      m_pActions;

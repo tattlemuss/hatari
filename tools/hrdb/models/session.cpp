@@ -44,6 +44,11 @@ Session::~Session()
     delete m_pTcpSocket;
     delete m_pTimer;
     delete m_pFileWatcher;
+    if (m_pHatariProcess)
+    {
+        m_pHatariProcess->detach();
+        delete m_pHatariProcess;
+    }
 }
 
 void Session::Connect()
@@ -140,6 +145,19 @@ void Session::resetWarm()
         m_pDispatcher->Run();
 }
 
+void Session::resetCold()
+{
+    m_pDispatcher->ResetCold();
+
+    // This will re-request from Hatari, which should return
+    // an empty symbol table.
+    m_pDispatcher->ReadSymbols();
+
+    // Restart if in break mode
+    if (!m_pTargetModel->IsRunning())
+        m_pDispatcher->Run();
+}
+
 FileWatcher* Session::createFileWatcherInstance()
 {
         if (!m_pFileWatcher)
@@ -147,4 +165,16 @@ FileWatcher* Session::createFileWatcherInstance()
             m_pFileWatcher=new FileWatcher(this);
         }
         return m_pFileWatcher;
+}
+
+void Session::setHatariProcess(DetachableProcess* pProc)
+{
+    if (m_pHatariProcess)
+    {
+        // Kill any old Hatari process which might be active.
+        if (m_pHatariProcess->state() == QProcess::Running)
+            m_pHatariProcess->terminate();
+        delete m_pHatariProcess;
+    }
+    m_pHatariProcess = pProc;
 }

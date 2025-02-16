@@ -43,9 +43,36 @@ const char* Registers::s_names[] =
     nullptr
 };
 
+const char* DspRegisters::s_names[] =
+{
+    "X1", "X0",
+    "Y1", "Y0",
+    "A2", "A1", "A0",
+    "B2", "B1", "B0",
+    "R0", "R1", "R2", "R3",
+    "R4", "R5", "R6", "R7",
+    "N0", "N1", "N2", "N3",
+    "N4", "N5", "N6", "N7",
+    "M0", "M1", "M2", "M3",
+    "M4", "M5", "M6", "M7",
+    "SR",
+    "OMR",
+    "SP",
+    "SSH",
+    "SSL",
+    "LA",
+    "LC",
+    "A",
+    "B",
+    "X",
+    "Y",
+    "PC",
+    nullptr
+};
+
 Registers::Registers()
 {
-    for (int i = 0; i < Registers::REG_COUNT; ++i)
+    for (int i = 0; i < REG_COUNT; ++i)
         m_value[i] = 0;
 }
 
@@ -83,6 +110,67 @@ const char* Registers::GetCACRBitName(uint32_t bit)
     case CEI: return "Clear Entry in Instruction Cache";
     case FI: return "Freeze Instruction Cache";
     case EI: return "Enable Instruction Cache";
+    }
+    return "";
+}
+
+DspRegisters::DspRegisters()
+{
+    for (int i = 0; i < REG_COUNT; ++i)
+        m_value[i] = 0;
+}
+
+void DspRegisters::Set(uint32_t reg, uint64_t val)
+{
+    m_value[reg] = val;
+
+    // Fix up combined register values
+    switch (reg)
+    {
+    case A0: case A1: case A2:
+        m_value[A] = (m_value[A2] << 48) | (m_value[A1] << 24) | m_value[A0]; break;
+    case B0: case B1: case B2:
+        m_value[B] = (m_value[B2] << 48) | (m_value[B1] << 24) | m_value[B0]; break;
+    case X0: case X1:
+        m_value[X] = (m_value[X1] << 24) | m_value[X0]; break;
+    case Y0: case Y1:
+        m_value[Y] = (m_value[Y1] << 24) | m_value[Y0]; break;
+    }
+}
+
+const char* DspRegisters::GetSRBitName(uint32_t bit)
+{
+    switch (bit)
+    {
+    case kLF: return "Loop Flag";   // Loop
+    case kDM: return "Double-Precision Multiply";
+    case kT : return "Trace";
+    case kS1: return "Scaling 1";
+    case kS0: return "Scaling 0";
+    case kI1: return "Interrupt Level 1";
+    case kI0: return "Interrupt Level 0";
+    case kS : return "Scaling";     // Scaling
+    case kL : return "Limit";
+    case kE : return "Extension";
+    case kU : return "Unnormalized";
+    case kN : return "Negative";
+    case kZ : return "Zero";
+    case kV : return "oVerflow";
+    case kC : return "Carry";
+    }
+    return "";
+}
+
+const char* DspRegisters::GetOMRBitDesc(uint32_t bit)
+{
+    switch (bit)
+    {
+        case kMA: return "MA (Operating mode A)";
+        case kMB: return "MB (Operating mode B)";
+        case kDE: return "DE (Data ROM Enable)";
+        case kYD: return "YD (Internal Y Memory Disable)";
+        case kMC: return "MC (Operating mode C)";
+        case kSD: return "SD (Stop Delay)";
     }
     return "";
 }

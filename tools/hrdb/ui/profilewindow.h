@@ -2,7 +2,7 @@
 #define PROFILEWINDOW_H
 
 #include <QDockWidget>
-#include <QTableView>
+#include <QTreeView>
 #include "showaddressactions.h"
 
 class TargetModel;
@@ -90,12 +90,12 @@ private:
 };
 
 //-----------------------------------------------------------------------------
-class ProfileTableView : public QTableView
+class ProfileTreeView : public QTreeView
 {
     Q_OBJECT
 public:
-    ProfileTableView(QWidget* parent, ProfileTableModel* pModel, Session* pSession);
-    virtual ~ProfileTableView() override;
+    ProfileTreeView(QWidget* parent, ProfileTableModel* pModel, Session* pSession);
+    virtual ~ProfileTreeView() override;
 
 public slots:
 
@@ -145,7 +145,7 @@ private:
     QPushButton*        m_pClearButton;
     QComboBox*          m_pGroupingComboBox;
 
-    ProfileTableView*   m_pTableView;
+    ProfileTreeView*    m_pTreeView;
     ProfileTableModel*  m_pTableModel;
 };
 

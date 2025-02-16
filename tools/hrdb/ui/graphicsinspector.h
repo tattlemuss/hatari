@@ -12,13 +12,14 @@
 
 class QLabel;
 class QLineEdit;
-class QAbstractItemModel;
 class QSpinBox;
 class QCheckBox;
 class QComboBox;
+class QToolButton;
 class ElidedLabel;
 
 class TargetModel;
+class SymbolTableModel;
 class Dispatcher;
 
 class GraphicsInspectorWidget : public QDockWidget
@@ -40,11 +41,12 @@ private:
     void startStopDelayedChanged();
     void memoryChanged(int memorySlot, uint64_t commandId);
     void otherMemoryChanged(uint32_t address, uint32_t size);
+    void symbolTableChanged(uint64_t requestId);
+
     void runningRefreshTimer();
     void bitmapAddressChanged();
     void paletteAddressChanged();
     void lockAddressToVideoChanged();
-    void lockFormatToVideoChanged();
     void overlayDarkenChanged();
     void overlayGridChanged();
     void overlayZoomChanged();
@@ -56,13 +58,14 @@ private slots:
     void paletteChangedSlot(int index);
     void gotoClickedSlot();
     void lockClickedSlot();
-    void widthChangedSlot(int width);
+    void StrideChangedSlot(int width);
+    void leftStrideClicked();
+    void rightStrideClicked();
     void heightChangedSlot(int height);
-    void paddingChangedSlot(int height);
     void saveImageClicked();
 
 private:
-    void mouseOverChanged();
+    void updateInfoLine();
 protected:
     virtual void keyPressEvent(QKeyEvent *ev) override;
     virtual void contextMenuEvent(QContextMenuEvent *event) override;
@@ -70,25 +73,32 @@ protected:
 private:
     enum Mode
     {
-        k4Bitplane,
-        k3Bitplane,
-        k2Bitplane,
-        k1Bitplane
+        // NOTE: these are serialised, so keep values the same
+        kFormat8Bitplane = 7,
+        kFormat4Bitplane = 0,
+        kFormat3Bitplane = 1,
+        kFormat2Bitplane = 2,
+        kFormat1Bitplane = 3,
+        kFormatRegisters = 4,
+        kFormat1BPP = 5,
+        kFormatTruColor = 6       // Falcon 16bpp
     };
 
     enum Palette
     {
-        kGreyscale,
-        kContrast1,
-        kBitplane0,
-        kBitplane1,
-        kBitplane2,
-        kBitplane3,
-        kRegisters,
-        kUserMemory
+        // NOTE: these are serialised, so keep values the same
+        kGreyscale = 0,
+        kContrast1 = 1,
+        kBitplane0 = 2,
+        kBitplane1 = 3,
+        kBitplane2 = 4,
+        kBitplane3 = 5,
+        kRegisters = 6,
+        kUserMemory = 7,
+        kUserMemoryF030 = 8
     };
 
-    void RequestBitmapAddress(Session::WindowType type, int windowIndex, uint32_t address);
+    void RequestBitmapAddress(Session::WindowType type, int windowIndex, int memorySpace, uint32_t address);
 
     // Looks at dirty requests, and issues them in the correct orders
     void UpdateMemoryRequests();
@@ -109,22 +119,22 @@ private:
 
     struct EffectiveData
     {
-        int width;
         int height;
         Mode mode;
         int bytesPerLine;
         int requiredSize;
+        int pixels;
     };
 
     // Get the effective data by checking the "lock to" flags and
     // using them if necessary.
     GraphicsInspectorWidget::Mode GetEffectiveMode() const;
-    int GetEffectiveWidth() const;
+    int GetEffectiveStride() const;
     int GetEffectiveHeight() const;
-    int GetEffectivePadding() const;
     void GetEffectiveData(EffectiveData& data) const;
 
-    static int32_t BytesPerMode(Mode mode);
+    // Calc the size of a 16-pixel chunk depending on mode
+    static int32_t BytesPerChunk(Mode mode);
 
     void UpdateAnnotations();
 
@@ -134,31 +144,31 @@ private:
     void KeyboardContextMenu();
     void ContextMenu(QPoint pos);
 
-    QLineEdit*      m_pBitmapAddressLineEdit;
-    QLineEdit*      m_pPaletteAddressLineEdit;
-    QComboBox*      m_pModeComboBox;
-    QSpinBox*       m_pWidthSpinBox;
-    QSpinBox*       m_pHeightSpinBox;
-    QSpinBox*       m_pPaddingSpinBox;
-    QCheckBox*      m_pLockAddressToVideoCheckBox;
-    QCheckBox*      m_pLockFormatToVideoCheckBox;
-    QComboBox*      m_pPaletteComboBox;
-    ElidedLabel*    m_pInfoLabel;
+    QLineEdit*          m_pBitmapAddressLineEdit;
+    QLineEdit*          m_pPaletteAddressLineEdit;
+    QComboBox*          m_pModeComboBox;
+    QSpinBox*           m_pStrideSpinBox;
+    QToolButton*        m_pLeftStrideButton;
+    QToolButton*        m_pRightStrideButton;
+    QSpinBox*           m_pHeightSpinBox;
+    QCheckBox*          m_pLockAddressToVideoCheckBox;
+    QComboBox*          m_pPaletteComboBox;
+    ElidedLabel*        m_pWidthInfoLabel;
+    ElidedLabel*        m_pMouseInfoLabel;
 
-    NonAntiAliasImage*         m_pImageWidget;
+    NonAntiAliasImage*  m_pImageWidget;
 
-    Session*        m_pSession;
-    TargetModel*    m_pTargetModel;
-    Dispatcher*     m_pDispatcher;
+    Session*            m_pSession;
+    TargetModel*        m_pTargetModel;
+    Dispatcher*         m_pDispatcher;
 
-    QAbstractItemModel* m_pSymbolTableModel;
+    SymbolTableModel*   m_pSymbolTableModel;
 
     // logical UI state shadowing widgets
     Mode            m_mode;
     uint32_t        m_bitmapAddress;
-    int             m_width;            // in "chunks"
-    int             m_height;
-    int             m_padding;          // in bytes
+    int             m_userBytesPerLine;
+    int             m_userHeight;
 
     Palette         m_paletteMode;
     uint32_t        m_paletteAddress;
@@ -166,6 +176,7 @@ private:
     // Cached information when video register fetch happens.
     // Used to control palette when in Mono mode.
     Regs::RESOLUTION    m_cachedResolution;
+    uint16_t            m_cachedFalcResolution; // Copy of SPSHIFT, or 0 for ST
 
     // Stores state of "memory wanted" vs "memory request in flight"
     struct Request
@@ -193,7 +204,7 @@ private:
     Request                         m_requestBitmap;
 
     // Mouseover data
-    NonAntiAliasImage::MouseInfo    m_mouseInfo;            // data from MouseOver in bitmap
+    MemoryBitmap::PixelInfo         m_mouseInfo;            // data from MouseOver in bitmap
     uint32_t                        m_addressUnderMouse;    // ~0U for "invalid"
 
     // Options

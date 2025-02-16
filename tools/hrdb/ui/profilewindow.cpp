@@ -259,8 +259,8 @@ void ProfileTableModel::populateFromEntries()
 
 //-----------------------------------------------------------------------------
 //----------------------------------------------------------------------------
-ProfileTableView::ProfileTableView(QWidget* parent, ProfileTableModel* pModel, Session* pSession) :
-    QTableView(parent),
+ProfileTreeView::ProfileTreeView(QWidget* parent, ProfileTableModel* pModel, Session* pSession) :
+    QTreeView(parent),
     m_pTableModel(pModel),
     m_pSession(pSession),
     m_rightClickRow(-1)
@@ -270,13 +270,13 @@ ProfileTableView::ProfileTableView(QWidget* parent, ProfileTableModel* pModel, S
 }
 
 //-----------------------------------------------------------------------------
-ProfileTableView::~ProfileTableView()
+ProfileTreeView::~ProfileTreeView()
 {
 
 }
 
 //-----------------------------------------------------------------------------
-void ProfileTableView::contextMenuEvent(QContextMenuEvent *event)
+void ProfileTreeView::contextMenuEvent(QContextMenuEvent *event)
 {
     // Right click menus are instantiated on demand, so we can
     // dynamically add to them
@@ -284,7 +284,11 @@ void ProfileTableView::contextMenuEvent(QContextMenuEvent *event)
 
     // Add the default actions
     QMenu* pAddressMenu = nullptr;
-    int rowIdx = this->rowAt(event->y());
+    QModelIndex ind = indexAt(event->pos());
+    if (!ind.isValid())
+        return;
+
+    int rowIdx = ind.row();
     if (rowIdx >= 0)
     {
         const ProfileTableModel::Entry& ent = m_pTableModel->GetEntry(rowIdx);
@@ -293,7 +297,7 @@ void ProfileTableView::contextMenuEvent(QContextMenuEvent *event)
         pAddressMenu->setTitle(QString::asprintf("Address $%08x", ent.address));
 
         m_showAddressActions.addActionsToMenu(pAddressMenu);
-        m_showAddressActions.setAddress(m_pSession, ent.address);
+        m_showAddressActions.setAddress(m_pSession, MEM_CPU, ent.address);
         menu.addMenu(pAddressMenu);
 
         // Run it
@@ -302,13 +306,17 @@ void ProfileTableView::contextMenuEvent(QContextMenuEvent *event)
 }
 
 //-----------------------------------------------------------------------------
-void ProfileTableView::mouseDoubleClickEvent(QMouseEvent *event)
+void ProfileTreeView::mouseDoubleClickEvent(QMouseEvent *event)
 {
-    int rowIdx = this->rowAt(event->y());
+    QModelIndex ind = indexAt(event->pos());
+    if (!ind.isValid())
+        return;
+
+    int rowIdx = ind.row();
     if (rowIdx >= 0)
     {
         const ProfileTableModel::Entry& ent = m_pTableModel->GetEntry(rowIdx);
-        emit m_pSession->addressRequested(Session::kDisasmWindow, 0, ent.address);
+        emit m_pSession->addressRequested(Session::kDisasmWindow, 0, MEM_CPU, ent.address);
     }
 }
 
@@ -333,19 +341,15 @@ ProfileWindow::ProfileWindow(QWidget *parent, Session* pSession) :
     m_pGroupingComboBox = new QComboBox(this);
 
     m_pTableModel = new ProfileTableModel(this, m_pTargetModel, m_pDispatcher);
-    m_pTableView = new ProfileTableView(this, m_pTableModel, m_pSession);
-    m_pTableView->setModel(m_pTableModel);
-    m_pTableView->setSelectionBehavior(QAbstractItemView::SelectionBehavior::SelectRows);
-    m_pTableView->setSelectionMode(QAbstractItemView::SelectionMode::SingleSelection);
-    m_pTableView->verticalHeader()->hide();
-    m_pTableView->verticalHeader()->setTextElideMode(Qt::TextElideMode::ElideRight);
-    m_pTableView->setWordWrap(false);
-    m_pTableView->setSortingEnabled(true);
-    //m_pTableView->setShowGrid(false);
-    m_pTableView->sortByColumn(ProfileTableModel::kColCycles, Qt::SortOrder::DescendingOrder);
-
-    m_pTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeMode::ResizeToContents);
-    m_pTableView->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeMode::ResizeToContents);
+    m_pTreeView = new ProfileTreeView(this, m_pTableModel, m_pSession);
+    m_pTreeView->setModel(m_pTableModel);
+    m_pTreeView->setSelectionBehavior(QAbstractItemView::SelectionBehavior::SelectRows);
+    m_pTreeView->setSelectionMode(QAbstractItemView::SelectionMode::SingleSelection);
+    m_pTreeView->setWordWrap(false);
+    m_pTreeView->setSortingEnabled(true);
+    m_pTreeView->sortByColumn(ProfileTableModel::kColCycles, Qt::SortOrder::DescendingOrder);
+    m_pTreeView->header()->setSectionResizeMode(ProfileTableModel::kColAddress, QHeaderView::ResizeToContents);
+    m_pTreeView->header()->setStretchLastSection(false);
 
     m_pGroupingComboBox->addItem(tr("Symbols"), ProfileTableModel::Grouping::kGroupingSymbol);
     m_pGroupingComboBox->addItem(tr("64 Bytes"), ProfileTableModel::Grouping::kGroupingAddress64);
@@ -360,7 +364,7 @@ ProfileWindow::ProfileWindow(QWidget *parent, Session* pSession) :
     pTopLayout->addStretch();
 
     pMainLayout->addWidget(pTopRegion);
-    pMainLayout->addWidget(m_pTableView);
+    pMainLayout->addWidget(m_pTreeView);
 
     SetMargins(pTopLayout);
     SetMargins(pMainLayout);
@@ -439,7 +443,10 @@ void ProfileWindow::startStopChanged()
 void ProfileWindow::startStopDelayed(int running)
 {
     if (m_pTargetModel->IsConnected() && !running)
+    {
         m_pTableModel->recalc();
+        m_pTreeView->resizeColumnToContents(0);
+    }
 }
 
 void ProfileWindow::profileChanged()
@@ -458,8 +465,7 @@ void ProfileWindow::settingsChanged()
     QFontMetrics fm(m_pSession->GetSettings().m_font);
 
     // Down the side
-    m_pTableView->setFont(m_pSession->GetSettings().m_font);
-    m_pTableView->verticalHeader()->setDefaultSectionSize(fm.height());
+    m_pTreeView->setFont(m_pSession->GetSettings().m_font);
 }
 
 void ProfileWindow::startStopClicked()

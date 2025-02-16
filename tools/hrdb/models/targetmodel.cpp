@@ -26,9 +26,16 @@ void TargetChangedFlags::Clear()
 
 TargetModel::TargetModel() :
     QObject(),
+    m_machineType(MACHINE_ST),
+    m_cpuLevel(0U),
+    m_stRamSize(512 * 1024),
+    m_isDspActive(0),
     m_bConnected(false),
     m_bRunning(true),
     m_bProfileEnabled(0),
+    m_mainUpdateActive(false),
+    m_startStopPc(0),
+    m_startStopDspPc(0),
     m_ffwd(false)
 {
     for (int i = 0; i < MemorySlot::kMemorySlotCount; ++i)
@@ -40,7 +47,13 @@ TargetModel::TargetModel() :
     m_pDelayedUpdateTimer = new QTimer(this);
     m_pRunningRefreshTimer = new QTimer(this);
 
-    m_decodeSettings.cpu_type = CPU_TYPE_68000;
+    m_decodeSettings.cpu_type = hop68::CPU_TYPE_68000;
+
+    // Set up the hardware-specific symbol tables
+    m_symbolTables.m_tables[MEM_CPU].InitHardware(MEM_CPU);
+    m_symbolTables.m_tables[MEM_P].InitHardware(MEM_P);
+    m_symbolTables.m_tables[MEM_X].InitHardware(MEM_X);
+    m_symbolTables.m_tables[MEM_Y].InitHardware(MEM_Y);
 
     connect(m_pDelayedUpdateTimer,  &QTimer::timeout, this, &TargetModel::delayedTimer);
     connect(m_pRunningRefreshTimer, &QTimer::timeout, this, &TargetModel::runningRefreshTimerSignal);
@@ -63,7 +76,7 @@ void TargetModel::SetConnected(int connected)
     if (connected == 0)
     {
         // Clear out lots of data from the model
-        m_symbolTable.Reset();
+        m_symbolTables.m_tables[MEM_CPU].ResetHatari();
 
         Breakpoints dummyBreak;
         SetBreakpoints(dummyBreak, 0);
@@ -75,13 +88,15 @@ void TargetModel::SetConnected(int connected)
         m_pRunningRefreshTimer->stop();
     }
 
+    m_mainUpdateActive = false;
     emit connectChangedSignal();
 }
 
-void TargetModel::SetStatus(bool running, uint32_t pc, bool ffwd)
+void TargetModel::SetStatus(bool running, uint32_t pc, uint32_t dsp_pc, bool ffwd)
 {
     m_bRunning = running;
     m_startStopPc = pc;
+    m_startStopDspPc = dsp_pc;
     m_ffwd = ffwd;
     m_changedFlags.SetChanged(TargetChangedFlags::kPC);
     emit startStopChangedSignal();      // This should really be statusChanged or something
@@ -100,24 +115,26 @@ void TargetModel::SetStatus(bool running, uint32_t pc, bool ffwd)
     }
 }
 
-void TargetModel::SetConfig(uint32_t machineType, uint32_t cpuLevel, uint32_t stRamSize)
+void TargetModel::SetConfig(uint32_t machineType, uint32_t cpuLevel, uint32_t stRamSize, uint32_t dspActive)
 {
     m_machineType = (MACHINETYPE) machineType;
     m_cpuLevel = cpuLevel;
     m_stRamSize = stRamSize;
-
+    m_isDspActive = dspActive;
     static int cpu_types[] =
     {
-        CPU_TYPE_68000,
-        CPU_TYPE_68010,
-        CPU_TYPE_68020,
-        CPU_TYPE_68030,
-        CPU_TYPE_68030,  // 040 Not supported fully yet
-        CPU_TYPE_68030,  // 050 Not supported fully yet
-        CPU_TYPE_68030,  // 060 Not supported fully yet
+        hop68::CPU_TYPE_68000,
+        hop68::CPU_TYPE_68010,
+        hop68::CPU_TYPE_68020,
+        hop68::CPU_TYPE_68030,
+        hop68::CPU_TYPE_68030,  // 040 Not supported fully yet
+        hop68::CPU_TYPE_68030,  // 050 Not supported fully yet
+        hop68::CPU_TYPE_68030,  // 060 Not supported fully yet
     };
     if (cpuLevel < sizeof(cpu_types) / sizeof(cpu_types[0]))
         m_decodeSettings.cpu_type = cpu_types[cpuLevel];
+
+    emit configChangedSignal();
 }
 
 void TargetModel::SetProtocolMismatch(uint32_t hatariProtocol, uint32_t hrdbProtocol)
@@ -125,9 +142,10 @@ void TargetModel::SetProtocolMismatch(uint32_t hatariProtocol, uint32_t hrdbProt
     emit protocolMismatchSignal(hatariProtocol, hrdbProtocol);
 }
 
-void TargetModel::SetRegisters(const Registers& regs, uint64_t commandId)
+void TargetModel::SetRegisters(const Registers& regs, const DspRegisters& dspRegs, uint64_t commandId)
 {
-    m_regs = regs;
+    m_regs.cpu = regs;
+    m_regs.dsp = dspRegs;
     m_changedFlags.SetChanged(TargetChangedFlags::kRegs);
     emit registersChangedSignal(commandId);
 }
@@ -151,7 +169,7 @@ void TargetModel::SetBreakpoints(const Breakpoints& bps, uint64_t commandId)
 
 void TargetModel::SetSymbolTable(const SymbolSubTable& syms, uint64_t commandId)
 {
-    m_symbolTable.SetHatariSubTable(syms);
+    m_symbolTables.m_tables[MEM_CPU].SetHatariSubTable(syms);
     m_changedFlags.SetChanged(TargetChangedFlags::kSymbolTable);
     emit symbolTableChangedSignal(commandId);
 }
@@ -175,10 +193,21 @@ void TargetModel::NotifyMemoryChanged(uint32_t address, uint32_t size)
     emit otherMemoryChangedSignal(address, size);
 }
 
+void TargetModel::NotifySymbolProgramChanged()
+{
+    // When symbol table is updated
+    emit symbolProgramChangedSignal();
+}
+
 void TargetModel::SetSearchResults(uint64_t commmandId, const SearchResults& results)
 {
     m_searchResults = results;
     emit searchResultsChangedSignal(commmandId);
+}
+
+void TargetModel::SaveBinComplete(uint64_t commmandId, uint32_t errorCode)
+{
+    emit saveBinCompleteSignal(commmandId, errorCode);
 }
 
 void TargetModel::AddProfileDelta(const ProfileDelta& delta)
@@ -198,13 +227,17 @@ void TargetModel::ProfileReset()
     emit profileChangedSignal();
 }
 
+void TargetModel::SetHistory(uint64_t commmandId, const History& hist)
+{
+
+}
+
 // User-added console command. Anything can happen, so tell everything
 // to update
 void TargetModel::ConsoleCommand()
 {
     emit otherMemoryChangedSignal(0, 0xffffff);
     emit breakpointsChangedSignal(0);
-    emit symbolTableChangedSignal(0);
     emit exceptionMaskChanged();
 }
 
@@ -219,6 +252,20 @@ void TargetModel::SetProgramPath(const std::string& path)
     m_programPath = path;
 }
 
+uint32_t TargetModel::GetStartStopPC(Processor proc) const
+{
+    if (proc == kProcCpu)
+        return m_startStopPc;
+    else
+        return m_startStopDspPc;
+}
+
+const SymbolTable& TargetModel::GetSymbolTable(MemSpace space) const
+{
+    assert(space <= MEM_SPACE_MAX);
+    return m_symbolTables.m_tables[space];
+}
+
 void TargetModel::GetProfileData(uint32_t addr, uint32_t& count, uint32_t& cycles) const
 {
     m_pProfileData->Get(addr, count, cycles);
@@ -229,7 +276,7 @@ const ProfileData& TargetModel::GetRawProfileData() const
     return *m_pProfileData;
 }
 
-const decode_settings& TargetModel::GetDisasmSettings() const
+const hop68::decode_settings& TargetModel::GetDisasmSettings() const
 {
     return m_decodeSettings;
 }

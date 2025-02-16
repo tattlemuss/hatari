@@ -67,7 +67,7 @@ static int getNumber(const char *str, uint32_t *number, int *nbase)
             base = 16;
             break;
         default:
-            fprintf(stderr, "Unrecognized number prefix in '%s'!\n", start);
+            //fprintf(stderr, "Unrecognized number prefix in '%s'!\n", start);
             return 0;
         }
     }

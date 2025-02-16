@@ -66,6 +66,9 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     m_pExecutableTextEdit = new QLineEdit("hatari", this);
     QPushButton* pExeButton = new QPushButton(tr("Browse..."), this);
 
+    m_pHatariConfigTextEdit = new QLineEdit("", this);
+    QPushButton* pHatariConfigButton = new QPushButton(tr("Browse..."), this);
+
     m_pPrgTextEdit = new QLineEdit("", this);
     QPushButton* pPrgButton = new QPushButton(tr("Browse..."), this);
 
@@ -88,6 +91,7 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     // Customise widgets
     m_pFastLaunchCheckBox->setToolTip("Run with fast-forward until program start");
     m_pWatcherCheckBox->setToolTip(tr("Watch this files/folders for changes and reset hatari if changed"));
+    m_pHatariConfigTextEdit->setPlaceholderText("<any .cfg file, or blank>");
     m_pBreakpointTextEdit->setPlaceholderText("<e.g \"pc=label\">");
     m_pWatcherFilesTextEdit->setPlaceholderText("<watch run program/image>");
     m_pPrgTextEdit->setPlaceholderText("<.prg file or disk image>");
@@ -133,6 +137,12 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     gridLayout->addWidget(pWDButton, row, 4);
     ++row;
 
+    gridLayout->addWidget(new QLabel(tr("Hatari config:"), this), row, 0);
+    gridLayout->addWidget(m_pHatariConfigTextEdit, row, 2);
+    gridLayout->addWidget(pHatariConfigButton, row, 4);
+    ++row;
+
+
     gridLayout->addWidget(new QLabel(tr("Break at:"), this), row, 0);
     gridLayout->addWidget(m_pBreakModeCombo, row, 2);
     ++row;
@@ -153,6 +163,7 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     connect(pPrgButton, &QPushButton::clicked, this, &RunDialog::prgClicked);
     connect(pWDButton, &QPushButton::clicked, this, &RunDialog::workingDirectoryClicked);
     connect(pWatcherButton, &QPushButton::clicked, this, &RunDialog::watcherFilesClicked);
+    connect(pHatariConfigButton, &QPushButton::clicked, this, &RunDialog::hatariConfigClicked);
     connect(m_pWatcherFilesTextEdit, &QLineEdit::textChanged, this, &RunDialog::watcherTextChanged);
     connect(m_pWatcherCheckBox, &QCheckBox::stateChanged, this, &RunDialog::watcherActiveChanged);
     connect(m_pFastLaunchCheckBox, &QCheckBox::stateChanged, this, &RunDialog::fastLaunchChanged);   
@@ -182,6 +193,7 @@ void RunDialog::LoadSettings()
     m_pExecutableTextEdit->setText(m_launchSettings.m_hatariFilename);
     m_pPrgTextEdit->setText(m_launchSettings.m_prgFilename);
     m_pArgsTextEdit->setText(m_launchSettings.m_argsTxt);
+    m_pHatariConfigTextEdit->setText(m_launchSettings.m_hatariConfigFilename);
     m_pWorkingDirectoryTextEdit->setText(m_launchSettings.m_workingDirectory);
     m_pWatcherFilesTextEdit->setText(m_launchSettings.m_watcherFiles);
     m_pWatcherFilesTextEdit->setEnabled(m_launchSettings.m_watcherActive);
@@ -251,7 +263,9 @@ void RunDialog::okClicked()
     }
     else
     {
-        QMessageBox::critical(this, "Error", "Failed to launch.");
+        QMessageBox::critical(this, "Error",
+                              "Failed to launch Hatari.\n"
+                              "You might need to check executable and library paths.");
     }
 }
 
@@ -282,11 +296,13 @@ void RunDialog::exeClicked()
 
 void RunDialog::prgClicked()
 {
+    QFileInfo fi(m_launchSettings.m_prgFilename);
+
     QString filter = "Programs (*.prg *.tos *.ttp *.PRG *.TOS *.TTP);"
             ";Images (*.st *.stx *.msa *.ipf *.ST *.STX *.MSA *.IPF)";
     QString filename = QFileDialog::getOpenFileName(this,
           tr("Choose program or image"),
-          QString(), //dir
+          fi.absolutePath(),
           filter);
     if (filename.size() != 0)
         m_pPrgTextEdit->setText(QDir::toNativeSeparators(filename));
@@ -299,13 +315,28 @@ void RunDialog::workingDirectoryClicked()
 {
     QFileDialog dialog(this);
     dialog.setFileMode(QFileDialog::Directory);
-
+    dialog.setDirectory(m_launchSettings.m_workingDirectory);
     QStringList fileNames;
     if (dialog.exec())
     {
         fileNames = dialog.selectedFiles();
         if (fileNames.length() > 0)
             m_pWorkingDirectoryTextEdit->setText(QDir::toNativeSeparators(fileNames[0]));
+        UpdateInternalSettingsFromUI();
+    }
+}
+
+void RunDialog::hatariConfigClicked()
+{
+    QFileInfo fi(m_launchSettings.m_hatariConfigFilename);
+    QString filter = "Hatari config (*.cfg *.CFG)";
+    QString filename = QFileDialog::getOpenFileName(this,
+          tr("Choose Hatari config file"),
+          fi.absolutePath(), //dir
+          filter);
+    if (filename.size() != 0)
+    {
+        m_pHatariConfigTextEdit->setText(QDir::toNativeSeparators(filename));
         UpdateInternalSettingsFromUI();
     }
 }
@@ -349,6 +380,7 @@ void RunDialog::UpdateInternalSettingsFromUI()
     m_launchSettings.m_argsTxt = m_pArgsTextEdit->text().trimmed();
     m_launchSettings.m_breakMode = static_cast<LaunchSettings::BreakMode>(m_pBreakModeCombo->currentIndex());
     m_launchSettings.m_workingDirectory = m_pWorkingDirectoryTextEdit->text();
+    m_launchSettings.m_hatariConfigFilename = m_pHatariConfigTextEdit->text();
     m_launchSettings.m_watcherFiles = m_pWatcherFilesTextEdit->text();
     m_launchSettings.m_watcherActive = m_pWatcherCheckBox->checkState()==Qt::CheckState::Checked?true:false;
     m_launchSettings.m_hatariFilename = m_pExecutableTextEdit->text();

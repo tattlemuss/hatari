@@ -115,7 +115,7 @@ void AddBreakpointDialog::okClicked()
         if (m_pTraceCheckBox->isChecked())
             flags |= Dispatcher::kBpFlagTrace;
 
-        m_pDispatcher->SetBreakpoint(m_pExpressionEdit->text().toStdString(), flags);
+        m_pDispatcher->SetBreakpoint(kProcCpu, m_pExpressionEdit->text().toStdString(), flags);
     }
 }
 
@@ -127,7 +127,7 @@ void AddBreakpointDialog::useClicked()
     };
 
     uint32_t result;
-    if (StringParsers::ParseExpression(m_pMemoryAddressEdit->text().toStdString().c_str(),
+    if (StringParsers::ParseCpuExpression(m_pMemoryAddressEdit->text().toStdString().c_str(),
                                        result,
                                        m_pTargetModel->GetSymbolTable(),
                                        m_pTargetModel->GetRegs()))

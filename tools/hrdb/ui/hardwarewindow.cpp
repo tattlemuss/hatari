@@ -31,7 +31,7 @@ static bool HasAddressMulti(const TargetModel* pModel, uint32_t address, uint32_
         const Memory* pMem = pModel->GetMemory(static_cast<MemorySlot>(i));
         if (!pMem)
             continue;
-        if (pMem->HasAddressRange(address, numBytes))
+        if (pMem->HasCpuRange(address, numBytes))
             return true;
     }
     return false;
@@ -47,7 +47,7 @@ uint32_t ReadAddressMulti(const TargetModel* pModel, uint32_t address, uint32_t 
         if (!pMem)
             continue;
         uint32_t val;
-        if (!pMem->ReadAddressMulti(address, numBytes, val))
+        if (!pMem->ReadCpuMulti(address, numBytes, val))
             continue;
         return val;
     }
@@ -55,7 +55,7 @@ uint32_t ReadAddressMulti(const TargetModel* pModel, uint32_t address, uint32_t 
 }
 
 //-----------------------------------------------------------------------------
-bool GetField(const TargetModel* pModel, const Regs::FieldDef& def, QString& result)
+bool GetField(const TargetModel* pModel, const stgen::FieldDef& def, QString& result)
 {
     if (!HasAddressMulti(pModel, def.regAddr, def.size))
         return false;
@@ -63,7 +63,7 @@ bool GetField(const TargetModel* pModel, const Regs::FieldDef& def, QString& res
     uint32_t regVal = ReadAddressMulti(pModel, def.regAddr, def.size);
     uint32_t extracted = (regVal >> def.shift) & def.mask;
     if (def.strings)
-        result = QString::asprintf("%s ($%x)", GetString(def.strings, extracted), extracted);
+        result = QString::asprintf("%s ($%x)", stgen::GetString(def.strings, extracted), extracted);
     else
         result = QString::asprintf("%u ($%x)", extracted, extracted);
     return true;
@@ -106,13 +106,13 @@ bool GetRegBinary16(const TargetModel* pModel, uint32_t addr, QString& result)
 }
 
 //-----------------------------------------------------------------------------
-bool GetFieldVal(const Memory& mem, const Regs::FieldDef& def, uint32_t& result)
+bool GetFieldVal(const Memory& mem, const stgen::FieldDef& def, uint32_t& result)
 {
-    if (!mem.HasAddressRange(def.regAddr, def.size))
+    if (!mem.HasCpuRange(def.regAddr, def.size))
         return false;
 
     uint32_t regVal;
-    mem.ReadAddressMulti(def.regAddr, def.size, regVal);
+    mem.ReadCpuMulti(def.regAddr, def.size, regVal);
     uint32_t extracted = (regVal >> def.shift) & def.mask;
     result = extracted;
     return true;
@@ -193,7 +193,7 @@ HardwareField::~HardwareField()
 class HardwareFieldRegEnum : public HardwareField
 {
 public:
-    HardwareFieldRegEnum(const Regs::FieldDef& def) :
+    HardwareFieldRegEnum(const stgen::FieldDef& def) :
         m_def(def)
     {
         m_memAddress = m_def.regAddr;
@@ -202,7 +202,7 @@ public:
 
     bool Update(const TargetModel* pTarget);
 
-    const Regs::FieldDef&   m_def;
+    const stgen::FieldDef&   m_def;
 };
 
 //-----------------------------------------------------------------------------
@@ -241,7 +241,7 @@ public:
 class HardwareFieldMultiField : public HardwareField
 {
 public:
-    HardwareFieldMultiField(const Regs::FieldDef** defs) :
+    HardwareFieldMultiField(const stgen::FieldDef** defs) :
         m_pDefs(defs)
     {
         // Simply use the first register address
@@ -251,7 +251,7 @@ public:
 
     bool Update(const TargetModel* pTarget);
 
-    const Regs::FieldDef**  m_pDefs;
+    const stgen::FieldDef**  m_pDefs;
 };
 
 //-----------------------------------------------------------------------------
@@ -430,10 +430,10 @@ bool HardwareFieldMultiField::Update(const TargetModel* pTarget)
 {
     QString res;
     QTextStream ref(&res);
-    const Regs::FieldDef** pDef = m_pDefs;
+    const stgen::FieldDef** pDef = m_pDefs;
     for (; *pDef; ++pDef)
     {
-        const Regs::FieldDef* pCurrDef = *pDef;
+        const stgen::FieldDef* pCurrDef = *pDef;
         if (!HasAddressMulti(pTarget, pCurrDef->regAddr, 1))
             return false;
         uint32_t regVal = ReadAddressMulti(pTarget, pCurrDef->regAddr, 1);
@@ -450,7 +450,7 @@ bool HardwareFieldMultiField::Update(const TargetModel* pTarget)
         else {
             if (pCurrDef->strings)
             {
-                const char* str = Regs::GetString(pCurrDef->strings, extracted);
+                const char* str = stgen::GetString(pCurrDef->strings, extracted);
                 ref << pCurrDef->name << "=" << str << " ";
             }
             else
@@ -527,7 +527,7 @@ bool HardwareFieldAddr::Update(const TargetModel* pTarget)
     case Type::BasePage:
         if (!memBase)
             break;
-        valid = memBase->ReadAddressMulti(m_address, 4, address);
+        valid = memBase->ReadCpuMulti(m_address, 4, address);
         break;
     case Type::Mfp:
         {
@@ -535,7 +535,7 @@ bool HardwareFieldAddr::Update(const TargetModel* pTarget)
                 break;
             {
                 uint32_t base = memMfp->GetAddress();
-                valid = memMfp->ReadAddressMulti(base + m_address * 4, 4, address);
+                valid = memMfp->ReadCpuMulti(base + m_address * 4, 4, address);
             }
         }
         break;
@@ -660,30 +660,29 @@ HardwareBitmap::~HardwareBitmap()
 }
 
 //-----------------------------------------------------------------------------
+// TODO: this code isn't used now that we switched to a table view!
 bool HardwareBitmapBlitterHalftone::Update(const TargetModel *pTarget)
 {
     const Memory& mem = *pTarget->GetMemory(MemorySlot::kHardwareWindowBlitter);
     uint32_t address = Regs::BLT_HALFTONE_0;
 
-    if (!mem.HasAddressRange(address, 16 * 2U))
+    if (!mem.HasCpuRange(address, 16 * 2U))
         return false;
 
-    uint8_t* pData = m_pImage->AllocBitmap(16 * 16);
-    for (uint y = 0; y < 16; ++y)
+    // Create a temporary image
+    Memory tmpMem(MEM_CPU, address, 16 * 2U);
+    for (uint32_t i = 0; i < 32; ++i)
     {
-        uint32_t data = 0;
-        mem.ReadAddressMulti(address + 2U * y, 2, data);
-        for (int pix = 15; pix >= 0; --pix)
-        {
-            uint8_t val  = (data & 0x8000) ? 1 : 0;
-            *pData++ = val;
-            data <<= 1U;
-        }
+        uint8_t val;
+        mem.ReadCpuByte(address + i, val);
+        tmpMem.Set(i,val);
     }
-    m_pImage->m_colours.resize(2U);
-    m_pImage->m_colours[0] = 0xffffffff;
-    m_pImage->m_colours[1] = 0xff000000;
-    m_pImage->setPixmap(1U, 16);
+
+    MemoryBitmap::Palette pal;
+    pal.resize(2U);
+    pal[0] = 0xffffffff;
+    pal[1] = 0xff000000;
+    m_pImage->m_bitmap.Set1Plane(pal, 2U, 16, &tmpMem);
     return true;
 }
 
@@ -695,7 +694,7 @@ bool HardwareFieldColourST::Update(const TargetModel *pTarget)
     if (!memVid)
         return false;
     uint32_t val;
-    memVid->ReadAddressMulti(m_memAddress, 2, val);
+    memVid->ReadCpuMulti(m_memAddress, 2, val);
 
     QString str = QString::asprintf("$%04x", val);
     m_changed = m_text != str;
@@ -890,8 +889,6 @@ HardwareTreeView::HardwareTreeView(QWidget *parent, Session* pSession) :
     QTreeView(parent),
     m_pSession(pSession)
 {
-    // Right-click menu
-    m_pShowAddressMenu = new QMenu("", this);
 }
 
 //-----------------------------------------------------------------------------
@@ -903,13 +900,11 @@ void HardwareTreeView::contextMenuEvent(QContextMenuEvent *event)
 
     HardwareBase* item = static_cast<HardwareBase*>(ind.internalPointer());
     QMenu menu(this);
-    menu.addMenu(m_pShowAddressMenu);
     uint32_t addr = item->m_memAddress;
     if (addr != ~0U)
     {
-        m_pShowAddressMenu->setTitle(QString::asprintf("Address: $%x", addr));
-        m_showAddressActions.setAddress(m_pSession, addr);
-        m_showAddressActions.addActionsToMenu(m_pShowAddressMenu);
+        m_showAddressMenu.Set("Address", m_pSession, MEM_CPU, addr);
+        m_showAddressMenu.AddTo(&menu);
 
         // Run it
         menu.exec(event->globalPos());
@@ -924,8 +919,8 @@ HardwareWindow::HardwareWindow(QWidget *parent, Session* pSession) :
     m_pSession(pSession),
     m_pTargetModel(pSession->m_pTargetModel),
     m_pDispatcher(pSession->m_pDispatcher),
-    m_videoMem(0, 0),
-    m_mfpMem(0, 0)
+    m_videoMem(MEM_CPU, 0, 0),
+    m_mfpMem(MEM_CPU, 0, 0)
 {
     this->setWindowTitle("Hardware");
     setObjectName("Hardware");
@@ -1334,7 +1329,7 @@ void HardwareWindow::settingsChanged()
 }
 
 //-----------------------------------------------------------------------------
-void HardwareWindow::addField(HardwareBase* pLayout, const QString& title, const Regs::FieldDef &def)
+void HardwareWindow::addField(HardwareBase* pLayout, const QString& title, const stgen::FieldDef &def)
 {
     HardwareFieldRegEnum* pField = new HardwareFieldRegEnum(def);
     addShared(pLayout, title, pField);
@@ -1355,7 +1350,7 @@ void HardwareWindow::addRegSigned16(HardwareBase* pLayout, const QString& title,
 }
 
 //-----------------------------------------------------------------------------
-void HardwareWindow::addMultiField(HardwareBase* pLayout, const QString& title, const Regs::FieldDef** defs)
+void HardwareWindow::addMultiField(HardwareBase* pLayout, const QString& title, const stgen::FieldDef** defs)
 {
     HardwareFieldMultiField* pField = new HardwareFieldMultiField(defs);
     addShared(pLayout, title, pField);

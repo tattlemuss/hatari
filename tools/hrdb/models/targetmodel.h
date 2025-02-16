@@ -11,12 +11,14 @@
 #include "symboltable.h"
 #include "registers.h"
 #include "exceptionmask.h"
+#include "processor.h"
 #include "../hardware/hardware_st.h"
 #include "../hopper/decode.h"
 
 class QTimer;
 class ProfileData;
 struct ProfileDelta;
+struct History;
 
 class TargetChangedFlags
 {
@@ -81,14 +83,14 @@ public:
 
     // These are called by the Dispatcher when notifications/events arrive
     void SetConnected(int running);
-    void SetStatus(bool running, uint32_t pc, bool ffwd);
-    void SetConfig(uint32_t machineType, uint32_t cpuLevel, uint32_t stRamSize);
+    void SetStatus(bool running, uint32_t pc, uint32_t dsp_pc, bool ffwd);
+    void SetConfig(uint32_t machineType, uint32_t cpuLevel, uint32_t stRamSize, uint32_t dspActive);
 
     void SetProtocolMismatch(uint32_t hatariProtocol, uint32_t hrdbProtocol);
 
     // These are called by the Dispatcher when responses arrive
     // emits registersChangedSignal()
-    void SetRegisters(const Registers& regs, uint64_t commandId);
+    void SetRegisters(const Registers& regs, const DspRegisters& dspRegs, uint64_t commandId);
 
     // emits memoryChangedSignal()
     void SetMemory(MemorySlot slot, const Memory* pMem, uint64_t commandId);
@@ -111,8 +113,14 @@ public:
     // emits otherMemoryChangedSignal()
     void NotifyMemoryChanged(uint32_t address, uint32_t size);
 
+    // Called when "new symbols" notification is received.
+    void NotifySymbolProgramChanged();
+
     // emits searchResultsChangedSignal()
     void SetSearchResults(uint64_t commmandId, const SearchResults& results);
+
+    // emits saveBinComplete()
+    void SaveBinComplete(uint64_t commmandId, uint32_t errorCode);
 
     // The following 2 commands are processed as a batch
     // Update profiling data. Does not emit signal
@@ -124,6 +132,9 @@ public:
     // emits profileChangedSignal()
     void ProfileReset();
 
+    // Replaces the CPU/DSP instruction history
+    void SetHistory(uint64_t commmandId, const History& hist);
+
     // User-added console command. Anything can happen!
     void ConsoleCommand();
 
@@ -134,6 +145,14 @@ public:
     // Updates currently-loaded GEMDOS program path.
     void SetProgramPath(const std::string& path);
 
+    void SetMainUpdate(bool active)
+    {
+        assert(active != m_mainUpdateActive);
+        m_mainUpdateActive = active;
+        if (!active)
+            emit mainStateCompletedSignal();
+    }
+
     // =========================== DATA ACCESS =================================
 	// NOTE: all these return copies to avoid data contention
     MACHINETYPE	GetMachineType() const { return m_machineType; }
@@ -141,22 +160,34 @@ public:
 
     // Get RAM size in bytes
     uint32_t GetSTRamSize() const { return m_stRamSize; }
+    int IsDspActive() const { return m_bConnected && m_isDspActive; }
 
     int IsConnected() const { return m_bConnected; }
     int IsRunning() const { return m_bRunning; }
     int IsFastForward() const { return m_ffwd; }
     int IsProfileEnabled() const { return m_bProfileEnabled; }
+    bool IsMainStateUpdating() const { return m_mainUpdateActive; }
 
     // This is the PC from start/stop notifications, so it's not valid when
     // running
-    uint32_t GetStartStopPC() const { return m_startStopPc; }
-	Registers GetRegs() const { return m_regs; }
+    uint32_t GetStartStopPC(Processor proc) const;
+
+    // Basic register access.
+    // NOTE: now uses a const reference like everything else --
+    // clients can take a copy if they wish.
+    const AllRegisters& GetAllRegs() const { return m_regs; }
+    const Registers& GetRegs() const       { return m_regs.cpu; }
+    const DspRegisters& GetDspRegs() const { return m_regs.dsp; }
+
     const Memory* GetMemory(MemorySlot slot) const
     {
         return m_pMemory[slot];
     }
     const Breakpoints& GetBreakpoints() const { return m_breakpoints; }
-    const SymbolTable& GetSymbolTable() const { return m_symbolTable; }
+
+    // This refers to the CPU symbol table
+    const SymbolTable& GetSymbolTable(MemSpace space = MEM_CPU) const;
+
     const SearchResults& GetSearchResults() const { return m_searchResults; }
     const ExceptionMask& GetExceptionMask() const { return m_exceptionMask; }
     YmState GetYm() const { return m_ymState; }
@@ -166,13 +197,16 @@ public:
     const ProfileData& GetRawProfileData() const;
 
     // CPU info for disassembly
-    const decode_settings& GetDisasmSettings() const;
+    const hop68::decode_settings& GetDisasmSettings() const;
 
 public slots:
 
 signals:
     // connect/disconnect change
     void connectChangedSignal();
+
+    // New machine config
+    void configChangedSignal();
 
     // connection failure
     void protocolMismatchSignal(uint32_t hatariProtocol, uint32_t hrdbProtocol);
@@ -200,8 +234,14 @@ signals:
     // When symbol table is updated
     void symbolTableChangedSignal(uint64_t commandId);
 
+    // When symbol table program changed
+    void symbolProgramChangedSignal();
+
     // When search results returned. Use GetSearchResults()
     void searchResultsChangedSignal(uint64_t commandId);
+
+    // When a flle write completed
+    void saveBinCompleteSignal(uint64_t commandId, uint32_t errorCode);
 
     // When exception mask updated
     void exceptionMaskChanged();
@@ -214,6 +254,9 @@ signals:
 
     // Profile data changed
     void profileChangedSignal();
+
+    // The full main state is now available after start/stop.
+    void mainStateCompletedSignal();
 private slots:
 
     // Called shortly after stop notification received
@@ -226,17 +269,23 @@ private:
     MACHINETYPE     m_machineType;	// Hatari MACHINETYPE enum
     uint32_t        m_cpuLevel;		// CPU 0=000, 1=010, 2=020, 3=030, 4=040, 5=060
     uint32_t        m_stRamSize;    // Size of available ST Ram
-    decode_settings m_decodeSettings;
+    uint32_t        m_isDspActive;  // 1 == DSP available and emulated
 
-    int             m_bConnected;   // 0 == disconnected, 1 == connected
-    int             m_bRunning;		// 0 == stopped, 1 == running
-    int             m_bProfileEnabled; // 0 == off, 1 == collecting
-    uint32_t        m_startStopPc;	// PC register (for next instruction)
-    int             m_ffwd;         // 0 == normal, 1 == fast forward mode
+    // TODO: why is this in target settings? Can't remember
+    hop68::decode_settings m_decodeSettings;
 
-    Registers       m_regs;			// Current register values
-    Breakpoints     m_breakpoints;  // Current breakpoint list
-    SymbolTable     m_symbolTable;
+    int             m_bConnected;       // 0 == disconnected, 1 == connected
+    int             m_bRunning;         // 0 == stopped, 1 == running
+    int             m_bProfileEnabled;  // 0 == off, 1 == collecting
+
+    bool            m_mainUpdateActive; // Whether the big Main Window update is active
+    uint32_t        m_startStopPc;      // PC register (for next instruction)
+    uint32_t        m_startStopDspPc;   //  DSPPC register (for next instruction)
+    int             m_ffwd;             // 0 == normal, 1 == fast forward mode
+
+    AllRegisters    m_regs;             // Current register values
+    Breakpoints     m_breakpoints;      // Current breakpoint list
+    AllSymbols      m_symbolTables;
     ExceptionMask   m_exceptionMask;
     YmState         m_ymState;
     ProfileData*    m_pProfileData;

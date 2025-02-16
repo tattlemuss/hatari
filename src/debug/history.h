@@ -13,7 +13,7 @@ typedef enum {
 	HISTORY_TRACK_NONE = 0,
 	HISTORY_TRACK_CPU = 1,
 	HISTORY_TRACK_DSP = 2,
-	HISTORY_TRACK_ALL = 3
+	HISTORY_TRACK_ALL = (HISTORY_TRACK_CPU|HISTORY_TRACK_DSP)
 } history_type_t;
 
 extern history_type_t HistoryTracking;
@@ -30,13 +30,26 @@ static inline bool History_TrackDsp(void)
 /* for debugcpu/dsp.c */
 extern void History_AddCpu(void);
 extern void History_AddDsp(void);
+extern uint32_t History_DisasmAddr(uint32_t pc, uint32_t offset, bool for_dsp);
 
 /* for debugInfo.c */
-extern void History_Show(FILE *fp, Uint32 count);
+extern void History_Show(FILE *fp, uint32_t count);
 
 /* for debugui */
 extern void History_Mark(debug_reason_t reason);
 extern char *History_Match(const char *text, int state);
 extern int History_Parse(int nArgc, char *psArgv[]);
+
+/* for remotedebug */
+typedef struct {
+	bool valid:1;
+	bool for_dsp:1;
+	uint32_t pc;		// Either DSP or CPU
+} history_entry_rdb;
+
+extern void History_Set(history_type_t track, unsigned limit);
+extern unsigned int History_GetCount(void);
+extern void History_Get(unsigned int offset, history_entry_rdb* pEntry);
+
 
 #endif

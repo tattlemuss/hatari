@@ -17,6 +17,7 @@ void LaunchSettings::loadSettings(QSettings& settings)
     m_argsTxt = settings.value("args", QVariant("")).toString();
     m_prgFilename = settings.value("prg", QVariant("")).toString();
     m_workingDirectory = settings.value("workingDirectory", QVariant("")).toString();
+    m_hatariConfigFilename = settings.value("hatariConfigFilename", QVariant("")).toString();
     m_watcherFiles = settings.value("watcherFiles", QVariant("")).toString();
     m_watcherActive = settings.value("watcherActive", QVariant("false")).toBool();
     m_breakMode = settings.value("breakMode", QVariant("0")).toInt();
@@ -32,6 +33,7 @@ void LaunchSettings::saveSettings(QSettings &settings) const
     settings.setValue("args", m_argsTxt);
     settings.setValue("prg", m_prgFilename);
     settings.setValue("workingDirectory", m_workingDirectory);
+    settings.setValue("hatariConfigFilename", m_hatariConfigFilename);
     settings.setValue("watcherFiles", m_watcherFiles);
     settings.setValue("watcherActive", m_watcherActive);
     settings.setValue("breakMode", m_breakMode);
@@ -40,14 +42,23 @@ void LaunchSettings::saveSettings(QSettings &settings) const
     settings.endGroup();
 }
 
-bool LaunchHatari(const LaunchSettings& settings, const Session* pSession)
+bool LaunchHatari(const LaunchSettings& settings, Session* pSession)
 {
     // Create a copy of the args that we can adjust
     QStringList args;
+
     QString otherArgsText = settings.m_argsTxt;
     otherArgsText = otherArgsText.trimmed();
     if (otherArgsText.size() != 0)
         args = otherArgsText.split(" ");
+
+    QString configFilename = settings.m_hatariConfigFilename.trimmed();
+    if (configFilename.size() != 0)
+    {
+        // Prepend the "--configfile N" part (backwards!)
+        args.push_front(configFilename);
+        args.push_front("--configfile");
+    }
 
     if (settings.m_watcherActive)
     {
@@ -138,14 +149,26 @@ bool LaunchHatari(const LaunchSettings& settings, const Session* pSession)
     args.push_back(settings.m_prgFilename);
 
     // Actually launch the program
-    QProcess proc;
-    proc.setProgram(settings.m_hatariFilename);
-    proc.setArguments(args);
+
+    DetachableProcess* pNewProc = new DetachableProcess();
+
+    // This needs to be done straight away so that the old process can be killed
+    // and release any active network connection.
+    pSession->setHatariProcess(pNewProc);
+
+    pNewProc->setProgram(settings.m_hatariFilename);
+    pNewProc->setArguments(args);
 
     // Redirect outputs to NULL so that Hatari's own spew doesn't cause lockups
     // if hrdb is killed and restarted (temp file contention?)
-    proc.setStandardOutputFile(QProcess::nullDevice());
-    proc.setStandardErrorFile(QProcess::nullDevice());
-    proc.setWorkingDirectory(settings.m_workingDirectory);
-    return proc.startDetached();
+    pNewProc->setStandardOutputFile(QProcess::nullDevice());
+    pNewProc->setStandardErrorFile(QProcess::nullDevice());
+    pNewProc->setWorkingDirectory(settings.m_workingDirectory);
+
+    // We now always start the process as attached.
+    // We have a (rather iffy) QDetachableProcess and call detach() when
+    // hrdb itself exits.
+    // The
+    pNewProc->start();
+    return pNewProc->waitForStarted();
 }
