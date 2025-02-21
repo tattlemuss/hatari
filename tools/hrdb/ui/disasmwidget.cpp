@@ -1175,9 +1175,9 @@ void DisasmWidget::CalcAnnotations56()
         valids[0] = Disassembler56::calc_ea(inst.operands[0], addr[0]);
         valids[1] = Disassembler56::calc_ea(inst.operands[1], addr[1]);
         valids[2] = Disassembler56::calc_ea(inst.operands[2], addr[2]);
-        valids[3] = Disassembler56::calc_ea(inst.operands[3], addr[3]);
-        valids[4] = Disassembler56::calc_ea(inst.operands[4], addr[4]);
-        valids[5] = Disassembler56::calc_ea(inst.operands[5], addr[5]);
+        valids[3] = Disassembler56::calc_ea(inst.operands2[0], addr[3]);
+        valids[4] = Disassembler56::calc_ea(inst.operands2[1], addr[4]);
+        valids[5] = Disassembler56::calc_ea(inst.operands2[2], addr[5]);
         valids[6] = Disassembler56::calc_ea(inst.pmoves[0].operands[0], addr[6]);
         valids[7] = Disassembler56::calc_ea(inst.pmoves[0].operands[1], addr[7]);
         valids[8] = Disassembler56::calc_ea(inst.pmoves[1].operands[0], addr[8]);
@@ -1194,7 +1194,7 @@ void DisasmWidget::CalcAnnotations56()
             MEM_L
         };
 
-        while (writeSlot < Line::Annotations::kNumEAs && readSlot < 10)
+        while (writeSlot < Line::Annotations::kNumEAs && readSlot < 8)
         {
             if (valids[readSlot])
             {
