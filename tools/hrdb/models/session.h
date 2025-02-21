@@ -13,6 +13,7 @@ class QFileSystemWatcher;
 class Dispatcher;
 class TargetModel;
 class FileWatcher;
+class ProgramDatabase;
 
 #define VERSION_STRING      "0.009-DSP (August 2024)"
 #define HELP_URL            "http://clarets.org/steve/projects/hrdb.html"
@@ -82,7 +83,7 @@ public:
     void Disconnect();
 
     QTcpSocket*     m_pTcpSocket;
-    QTemporaryFile* m_pStartupFile;         // Debugger commands at Hatari launch
+    QTemporaryFile* m_pStartupFile;             // Debugger commands at Hatari launch
     QTemporaryFile* m_pProgramStartScript;      // Debugger commands run at program start
 
     QTemporaryFile* m_pLoggingFile;
@@ -94,6 +95,9 @@ public:
 
     // Controller Hatari process
     DetachableProcess*       m_pHatariProcess;
+
+    // Line/symbol information
+    ProgramDatabase*    m_pProgramDatabase;
 
     const Settings& GetSettings() const;
     const LaunchSettings& GetLaunchSettings() const;
@@ -131,6 +135,9 @@ private slots:
     // Called shortly after stop notification received
     void connectTimerCallback();
 private:
+
+    void programPathChanged();
+
     QTimer*          m_pTimer;
     bool             m_autoConnect;
 

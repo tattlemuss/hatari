@@ -29,6 +29,7 @@ private:
     void connectChanged();
     void startStopChanged();
     void startStopDelayed(int running);
+    void symbolProgramChanged();
     void settingsChanged();
     void resetClicked();
 

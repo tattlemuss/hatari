@@ -37,6 +37,7 @@ SOURCES += \
     models/launcher.cpp \
     models/memory.cpp \
     models/profiledata.cpp \
+    models/programdatabase.cpp \
     models/registers.cpp \
     models/session.cpp \
     models/stringformat.cpp \
@@ -97,6 +98,7 @@ HEADERS += \
     models/memory.h \
     models/processor.h \
     models/profiledata.h \
+    models/programdatabase.h \
     models/registers.h \
     models/session.h \
     models/stringformat.h \

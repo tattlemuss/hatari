@@ -188,6 +188,9 @@ public:
     // This refers to the CPU symbol table
     const SymbolTable& GetSymbolTable(MemSpace space = MEM_CPU) const;
 
+    // Active GemDOS program path
+    const std::string GetProgramPath() const { return m_programPath; }
+
     const SearchResults& GetSearchResults() const { return m_searchResults; }
     const ExceptionMask& GetExceptionMask() const { return m_exceptionMask; }
     YmState GetYm() const { return m_ymState; }
@@ -236,6 +239,9 @@ signals:
 
     // When symbol table program changed
     void symbolProgramChangedSignal();
+
+    // When Hatari active .prg is changed
+    void programPathChangedSignal();
 
     // When search results returned. Use GetSearchResults()
     void searchResultsChangedSignal(uint64_t commandId);

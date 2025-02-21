@@ -3,9 +3,10 @@
 #include <QTimer>
 #include <QFontDatabase>
 
-#include "targetmodel.h"
 #include "../transport/dispatcher.h"
-#include "../models/filewatcher.h"
+#include "targetmodel.h"
+#include "filewatcher.h"
+#include "programdatabase.h"
 
 Session::Session() :
     QObject(),
@@ -23,6 +24,8 @@ Session::Session() :
     m_pTargetModel = new TargetModel();
     m_pDispatcher = new Dispatcher(m_pTcpSocket, m_pTargetModel);
 
+    m_pProgramDatabase = new ProgramDatabase(this);
+
     m_pTimer = new QTimer(this);
     connect(m_pTimer, &QTimer::timeout, this, &Session::connectTimerCallback);
 
@@ -34,6 +37,9 @@ Session::Session() :
     m_settings.m_profileDisplayMode = Settings::kTotal;
     m_settings.m_liveRefresh = false;
     m_settings.m_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+
+    // Watch for certain things changing on the target
+    connect(m_pTargetModel, &TargetModel::programPathChangedSignal, this, &Session::programPathChanged);
     loadSettings();
 }
 
@@ -129,6 +135,21 @@ void Session::connectTimerCallback()
     {
         QHostAddress qha(QHostAddress::LocalHost);
         m_pTcpSocket->connectToHost(qha, 56001);
+    }
+}
+
+void Session::programPathChanged()
+{
+    std::string progPath = m_pTargetModel->GetProgramPath();
+    if (progPath.size() != 0)
+    {
+        SetMessage(QString("New program: ") + QString::fromStdString(progPath));
+        m_pProgramDatabase->SetPath(progPath);
+    }
+    else
+    {
+        SetMessage("Program unloaded.");
+        m_pProgramDatabase->Clear();
     }
 }
 

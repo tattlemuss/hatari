@@ -249,7 +249,10 @@ void TargetModel::Flush(uint64_t commmandId)
 
 void TargetModel::SetProgramPath(const std::string& path)
 {
+    if (path == m_programPath)
+        return;
     m_programPath = path;
+    emit programPathChangedSignal();
 }
 
 uint32_t TargetModel::GetStartStopPC(Processor proc) const
