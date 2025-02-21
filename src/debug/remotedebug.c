@@ -1012,6 +1012,7 @@ static int RemoteDebug_setstd(int nArgc, char *psArgs[], RemoteDebugState* state
 #ifdef __WINDOWS__
 		strncpy(state->consoleOutputFilename, filename, FILENAME_MAX);
 		state->consoleOutputFilename[FILENAME_MAX] = 0; /* ensure terminator */
+		send_str(state, "OK");
 		return 0;
 #else
 		FILE* outpipe = fopen(filename, "w");
