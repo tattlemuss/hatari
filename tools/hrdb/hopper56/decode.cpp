@@ -309,7 +309,7 @@ namespace hop56
 
 	// Decode short-format "mm rrr" fields used in XY parallel data moves.
 	// NOTE: this is different to LUA "mmmrrr" mode.
-	static int decode_mmrrr(operand& op, Memory mem, uint32_t mm, uint32_t rrr, buffer_reader& buf)
+	static int decode_mmrrr(operand& op, Memory mem, uint32_t mm, uint32_t rrr, buffer_reader& /*buf*/)
 	{
 		op.memory = mem;
 		switch (mm)
@@ -1232,7 +1232,7 @@ namespace hop56
 
 
 	// Decoder for field type '___P__PPPPPPPPPPPPPP'
-	static int decode_nonp_PPPPPPPPPPPPPPP(nonp_context& ctx, Opcode opcode)
+	static int decode_nonp_PPPPPPPPPPPPPPP(nonp_context& ctx, Opcode /*opcode*/)
 	{
 		// This is to handle parallel moves which end up with 0000
 		// in the top 4 bits. These are simply passed through to the
