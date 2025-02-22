@@ -185,12 +185,14 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     this->addDockWidget(Qt::RightDockWidgetArea, m_pHardwareWindow);
     this->addDockWidget(Qt::RightDockWidgetArea, m_pProfileWindow);
 
-    loadSettings();
-
     // Set up menus (reflecting current state)
     createActions();
     createMenus();
     createToolBar();
+
+    // Qt6 fix: only load settings after the UI layout is decided, or
+    // those post-created objects don't get a layout update.
+    loadSettings();
 
     // Listen for target changes
     connect(m_pTargetModel, &TargetModel::startStopChangedSignal,    this, &MainWindow::startStopChanged);
