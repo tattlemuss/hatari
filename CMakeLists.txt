@@ -13,9 +13,18 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 if(APPLE AND CMAKE_BUILD_TYPE STREQUAL "Release")
-	set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Target architectures")
-	set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9" CACHE STRING "Target minimum macOS version")
-endif(APPLE AND CMAKE_BUILD_TYPE STREQUAL "Release")
+  if(DEFINED ENV{HOMEBREW_PREFIX})
+    get_filename_component(_cmake_dir "${CMAKE_COMMAND}" DIRECTORY)
+    if(NOT _cmake_dir MATCHES "$ENV{HOMEBREW_PREFIX}")
+      message(WARNING "CMake (${CMAKE_COMMAND}) is not located under Homebrew's prefix ($ENV{HOMEBREW_PREFIX}). This might lead to unexpected library paths when building with Homebrew.")
+    endif()
+    set(CMAKE_OSX_ARCHITECTURES "${CMAKE_HOST_SYSTEM_PROCESSOR}" CACHE STRING "Target architecture" FORCE)
+  else()
+    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Target architectures")
+  endif()
+
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.14" CACHE STRING "Target macOS Mojave (2018) or newer")
+endif()
 
 project(Hatari C)
 enable_testing()
@@ -106,6 +115,10 @@ else()
 endif(APPLE)
 
 if(ENABLE_OSX_BUNDLE)
+	add_custom_target(clean_frameworks ALL
+		COMMAND ${CMAKE_COMMAND} -P ${CMAKE_SOURCE_DIR}/cmake/RemoveFrameworks.cmake
+		COMMENT "Removing old Frameworks directory before build")
+
 	set(APP_NAME "Hatari")
 else()
 	set(APP_NAME "hatari")
