@@ -23,7 +23,7 @@ if(APPLE AND CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Target architectures")
   endif()
 
-  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9" CACHE STRING "Target minimum macOS version")
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.14" CACHE STRING "Target macOS Mojave (2018) or newer")
 endif()
 
 project(Hatari C)
