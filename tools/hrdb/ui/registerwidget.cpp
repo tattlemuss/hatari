@@ -687,6 +687,16 @@ void RegisterWidget::PopulateRegisters()
 
             const hop56::instruction& inst = m_disasmDsp.lines[0].inst;
             Disassembler56::print_terse(inst, ref);
+
+            bool branchTaken;
+            if (DisAnalyse56::isBranch(inst, m_currDspRegs, branchTaken))
+            {
+                if (branchTaken)
+                    ref << " [TAKEN]";
+                else
+                    ref << " [NOT TAKEN]";
+            }
+
             AddToken(2, row, disasmText, TokenType::kNone, 0, TokenColour::kCode);
             ++row;
         }
