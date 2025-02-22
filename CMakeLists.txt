@@ -115,6 +115,10 @@ else()
 endif(APPLE)
 
 if(ENABLE_OSX_BUNDLE)
+	add_custom_target(clean_frameworks ALL
+		COMMAND ${CMAKE_COMMAND} -P ${CMAKE_SOURCE_DIR}/cmake/RemoveFrameworks.cmake
+		COMMENT "Removing old Frameworks directory before build")
+
 	set(APP_NAME "Hatari")
 else()
 	set(APP_NAME "hatari")
