@@ -27,6 +27,7 @@
 #include "colouring.h"
 #include "quicklayout.h"
 #include "symboltext.h"
+#include "qtversionwrapper.h"
 
 DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex, QAction* pSearchAction):
     QWidget(parent),
@@ -678,7 +679,8 @@ void DisasmWidget::keyPressEvent(QKeyEvent* event)
 
 void DisasmWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    m_mouseRow = GetRowFromPixel(int(event->localPos().y()));
+    QPointF localPos = QTEVENT_GET_LOCAL_POS(event);
+    m_mouseRow = GetRowFromPixel(int(localPos.y()));
     if (m_mouseRow >= m_rowCount)
         m_mouseRow = -1;  // hide if off the bottom
     if (this->underMouse())
@@ -689,9 +691,10 @@ void DisasmWidget::mouseMoveEvent(QMouseEvent *event)
 
 void DisasmWidget::mousePressEvent(QMouseEvent *event)
 {
+    QPointF localPos = QTEVENT_GET_LOCAL_POS(event);
     if (event->button() == Qt::LeftButton)
     {
-        int row = GetRowFromPixel(int(event->localPos().y()));
+        int row = GetRowFromPixel(int(localPos.y()));
         if (row < m_rowCount)
         {
             m_cursorRow = row;

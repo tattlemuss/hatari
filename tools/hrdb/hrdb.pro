@@ -117,6 +117,7 @@ HEADERS += \
     ui/nonantialiasimage.h \
     ui/prefsdialog.h \
     ui/profilewindow.h \
+    ui/qtversionwrapper.h \
     ui/quicklayout.h \
     ui/registerwidget.h \
     ui/rundialog.h \
