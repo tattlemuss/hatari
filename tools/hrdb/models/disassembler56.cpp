@@ -1,6 +1,7 @@
 #include "disassembler56.h"
 #include "hopper56/buffer.h"
 #include "stringformat.h"
+#include "registers.h"
 
 using namespace hop56;
 
@@ -318,7 +319,73 @@ bool DisAnalyse56::isSubroutine(const hop56::instruction &inst)
 
 bool DisAnalyse56::isBranch(const hop56::instruction &inst, const DspRegisters &regs, bool &takeBranch)
 {
-    // TODO
+    uint32_t sr = regs.Get(DspRegisters::SR);
+
+    // See Page A-106 (Jcc) of the user manual
+    // reg names are simplified to match the PDF easily
+    bool L = (sr & (1<< DspRegisters::SRBits::kL)) != 0;
+    bool E = (sr & (1<< DspRegisters::SRBits::kE)) != 0;
+    bool U = (sr & (1<< DspRegisters::SRBits::kU)) != 0;
+    bool N = (sr & (1<< DspRegisters::SRBits::kN)) != 0;
+    bool Z = (sr & (1<< DspRegisters::SRBits::kZ)) != 0;
+    bool V = (sr & (1<< DspRegisters::SRBits::kV)) != 0;
+    bool C = (sr & (1<< DspRegisters::SRBits::kC)) != 0;
+    switch (inst.opcode)
+    {
+        case hop56::Opcode::O_JCC:
+            takeBranch = C == false;
+            return true;
+        case hop56::Opcode::O_JCS:
+            takeBranch = C == true;
+            return true;
+        case hop56::Opcode::O_JEC:
+            takeBranch = E == false;
+            return true;
+        case hop56::Opcode::O_JEQ:
+            takeBranch = Z == true;
+            return true;
+        case hop56::Opcode::O_JES:
+            takeBranch = E == true;
+            return true;
+        case hop56::Opcode::O_JGE:
+            takeBranch = (N ^ V) == false;
+            return true;
+        case hop56::Opcode::O_JGT:
+            takeBranch = (Z | (N ^ V)) == false;
+            return true;
+        case hop56::Opcode::O_JLC:
+            takeBranch = L == false;
+            return true;
+        case hop56::Opcode::O_JLE:
+            takeBranch = (Z | (N ^ V)) == true;
+            return true;
+        case hop56::Opcode::O_JLS:
+            takeBranch = L == true;
+            return true;
+        case hop56::Opcode::O_JLT:
+            takeBranch = (N ^ V) == true;
+            return true;
+        case hop56::Opcode::O_JMI:
+            takeBranch = N == true;
+            return true;
+        case hop56::Opcode::O_JMP:
+            takeBranch = true;
+            return true;
+        case hop56::Opcode::O_JNE:
+            takeBranch = Z == false;
+            return true;
+        case hop56::Opcode::O_JNN:
+            takeBranch = (Z | (!U & !E)) == true;
+            return true;
+        case hop56::Opcode::O_JNR:
+            takeBranch = (Z | (!U & !E)) == false;
+            return true;
+        case hop56::Opcode::O_JPL:
+            takeBranch = !N;
+            return true;
+        default:
+            break;
+    }
     return false;
 }
 
@@ -370,10 +437,10 @@ bool DisAnalyse56::getBranchTarget(const hop56::instruction &inst, uint32_t inst
                 return true;
             }
             return true;
-        case hop56::Opcode::O_REP:
-            target = instAddr + inst.word_count;
-            reversed = true;
-            return true;
+    case hop56::Opcode::O_REP:
+        target = instAddr + inst.word_count;
+        reversed = true;
+        return true;
     default:
         break;
     }
