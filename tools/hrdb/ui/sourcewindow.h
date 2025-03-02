@@ -11,6 +11,7 @@ class QLabel;
 class QTextEdit;
 class QComboBox;
 
+class SourceCache;
 
 class SourceWindow : public QDockWidget
 {
@@ -29,6 +30,7 @@ private:
     void connectChanged();
     void startStopChanged();
     void startStopDelayed(int running);
+    void mainStateCompleted();
     void symbolProgramChanged();
     void settingsChanged();
     void resetClicked();
@@ -38,6 +40,10 @@ private:
     Dispatcher*         m_pDispatcher;
 
     QTextEdit*          m_pSourceTextEdit;
+
+    // Cache of files
+    SourceCache*        m_pSourceCache;
+    QString             m_currFileKey;
 };
 
 #endif // SOURCEWINDOW_H

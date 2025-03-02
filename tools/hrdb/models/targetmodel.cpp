@@ -78,6 +78,9 @@ void TargetModel::SetConnected(int connected)
         // Clear out lots of data from the model
         m_symbolTables.m_tables[MEM_CPU].ResetHatari();
 
+        // Clear DWARF/program info
+        SetProgramPath("");
+
         Breakpoints dummyBreak;
         SetBreakpoints(dummyBreak, 0);
 
