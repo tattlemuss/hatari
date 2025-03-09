@@ -152,6 +152,7 @@ void Session::programPathChanged()
         SetMessage("Program unloaded.");
         m_pProgramDatabase->Clear();
     }
+    emit programDatabaseChanged();
 }
 
 void Session::resetWarm()

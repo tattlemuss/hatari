@@ -130,6 +130,9 @@ signals:
     // Called by UI elements to flag a shared message
     void messageSet(const QString& msg);
 
+    // Flagged when new debug data is loaded.
+    void programDatabaseChanged();
+
 private slots:
 
     // Called shortly after stop notification received

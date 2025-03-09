@@ -102,9 +102,12 @@ private:
     void startStopChanged();
     void startStopDelayed(int running);
     void mainStateCompleted();
-    void symbolProgramChanged();
+
+    void programDatabaseChanged();
     void settingsChanged();
-    void resetClicked();
+
+    void rescanCache();
+    void updateCurrentFile();
 
     Session*            m_pSession;
     TargetModel*        m_pTargetModel;

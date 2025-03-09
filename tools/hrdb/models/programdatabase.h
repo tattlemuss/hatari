@@ -15,6 +15,16 @@ public:
     bool SetPath(std::string path);
     void Clear();
 
+    // TODO: is it best to convert to a base format?
+    const std::vector<fonda::compilation_unit>& GetFileInfo() const
+    {
+        return m_elfInfo.line_info_units;
+    }
+    const QString& GetElfPath() const
+    {
+        return m_elfPath;
+    }
+
     struct CodeInfo
     {
         uint32_t m_address;
@@ -30,6 +40,9 @@ signals:
 
 private:
     bool TryLoadElf(std::string path);
+
+    // Path of elf/prg used to generate the data from.
+    QString m_elfPath;
 
     // How to cross-reference a codepoint in fonda::elf_results
     struct DwarfLookup

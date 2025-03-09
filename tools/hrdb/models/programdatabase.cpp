@@ -20,6 +20,8 @@ ProgramDatabase::ProgramDatabase(QObject *parent)
 
 bool ProgramDatabase::SetPath(std::string path)
 {
+    m_elfPath.clear();
+
     // Find potential matches
     QFileInfo info(QString::fromStdString(path));
     if (info.exists())
@@ -29,24 +31,28 @@ bool ProgramDatabase::SetPath(std::string path)
     }
 
     QString baseName = info.completeBaseName();
-
     const char** pCurrExt = g_elfExtensions;
+    bool found = false;
     while (*pCurrExt)
     {
         QString elfPath = baseName + QString::fromStdString(*pCurrExt);
         QFileInfo elfInfo(info.dir(), elfPath);
-        //qDebug() << elfInfo.filePath();
-        //qDebug() << info.dir().path() << baseName;
         if (elfInfo.exists())
         {
             // Try .elf load here
             bool loaded = TryLoadElf(elfInfo.filePath().toStdString());
             if (loaded)
-                return true;
+            {
+                m_elfPath = elfInfo.absoluteFilePath();
+                qDebug() << "Elf path: " << m_elfPath;
+                found = true;
+                break;
+            }
         }
         ++pCurrExt;
     }
-    return false;
+
+    return found;
 }
 
 void ProgramDatabase::Clear()

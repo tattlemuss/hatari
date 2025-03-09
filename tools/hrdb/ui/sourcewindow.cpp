@@ -8,6 +8,8 @@
 #include <QLabel>
 
 #include <QFile>
+#include <QFileInfo>
+#include <QDir>
 #include <QTextBlock>
 
 #include "../transport/dispatcher.h"
@@ -171,6 +173,8 @@ class SourceFile
 public:
     // ...
     QString key;
+    QString path;       // file on disk
+    bool isLoaded;
     QString text;
 };
 
@@ -180,11 +184,21 @@ class SourceCache
 public:
     SourceCache();
     ~SourceCache();
-    bool GetFile(const std::string& dir, const std::string& file, const SourceFile*& pFileData);
+
+    struct FilePath
+    {
+        std::string dir;
+        std::string file;
+    };
+
+    // Decide on the locations of all files once debug data is loaded.
+    void Rescan(const QVector<FilePath>& paths, const QVector<QString> searchDirs);
+
+    bool GetFile(const std::string& dir, const std::string& file, QString& fileData);
 
     static QString GetKey(const std::string& dir, const std::string& file);
 
-    typedef std::map<QString, SourceFile*> Map;
+    typedef std::map<QString, SourceFile> Map;
 
     Map m_fileMap;
 };
@@ -198,13 +212,42 @@ SourceCache::~SourceCache()
     SourceCache::Map::iterator it = m_fileMap.begin();
     while (it != m_fileMap.end())
     {
-        delete it->second;
+        //delete it->second;
         ++it;
     }
 }
 
+void SourceCache::Rescan(const QVector<FilePath>& paths, const QVector<QString> searchDirs)
+{
+    m_fileMap.clear();
+    QString sep("/");
+    // Build up a list of files and where they live
+    for (int i = 0; i < paths.size(); ++i)
+    {
+        std::string dir = paths[i].dir;
+        std::string file = paths[i].file;
+        for (int j = 0; j < searchDirs.size(); ++j)
+        {
+            QFile testFile(searchDirs[j] + sep + QString::fromStdString(dir) + sep + QString::fromStdString(file));
+            if (testFile.exists())
+            {
+                QFileInfo finfo(testFile);
+                // Create an entry.
+                SourceFile f;
+                f.key = GetKey(dir, file);
+                f.isLoaded = false;
+                f.path = finfo.absoluteFilePath();
+                f.text = QString("");
+                qDebug() << "Found source file " << f.path;
+                m_fileMap.insert(std::make_pair(f.key, f));
+                break;
+            }
+        }
+    }
+}
+
 bool SourceCache::GetFile(const std::string& dir, const std::string& file,
-                          const SourceFile*& pFileData)
+                          QString& fileData)
 {
     /*
      * "Qt uses "/" as a universal directory separator in the same way that "/" is used as a
@@ -212,38 +255,35 @@ bool SourceCache::GetFile(const std::string& dir, const std::string& file,
      * your paths to conform to the underlying operating system.
      */
 
-    pFileData = nullptr;
+    fileData.clear();
     QString fileKey = GetKey(dir, file);
 
     const SourceCache::Map::iterator findIt = m_fileMap.find(fileKey);
     if (findIt != m_fileMap.end())
     {
-        pFileData = findIt->second;
+        SourceFile& sf = findIt->second;
+        // Load the data if needed
+        if (!sf.isLoaded)
+        {
+            // Load the file in and return it
+            QFile testFile(sf.path);
+            if (testFile.open(QFile::ReadOnly))
+            {
+
+                QTextStream in(&testFile);
+                sf.text = in.readAll();
+                sf.isLoaded = true;
+            }
+        }
+
+        fileData = sf.text;
         return true;
     }
 
-    QString basePath("/home/steve/projects/atari/bigbrownbuild-git/barebones/");
-
-    QFile testFile(basePath + fileKey);
-    if (!testFile.exists())
-        return false;
-
-    // Load the file in and return it
-    testFile.open(QFile::ReadOnly);
-
-    QTextStream in(&testFile);
-    QString text = in.readAll();
-
-    SourceFile* pNewFile = new SourceFile();
-    pNewFile->key = fileKey;
-    pNewFile->text = text;
-
-    m_fileMap.insert(std::make_pair(fileKey, pNewFile));
-
-    pFileData = pNewFile;
-    return true;
+    return false;
 }
 
+//-----------------------------------------------------------------------------
 QString SourceCache::GetKey(const std::string& dir, const std::string& file)
 {
     QString fileKey = QString::asprintf("%s/%s", dir.c_str(), file.c_str());
@@ -292,9 +332,10 @@ SourceWindow::SourceWindow(QWidget *parent, Session* pSession) :
     connect(m_pTargetModel,     &TargetModel::connectChangedSignal,     this, &SourceWindow::connectChanged);
     connect(m_pTargetModel,     &TargetModel::startStopChangedSignal,   this, &SourceWindow::startStopChanged);
     connect(m_pTargetModel,     &TargetModel::startStopChangedSignalDelayed,   this, &SourceWindow::startStopDelayed);
-    connect(m_pTargetModel,     &TargetModel::mainStateCompletedSignal,   this, &SourceWindow::mainStateCompleted);
+    connect(m_pTargetModel,     &TargetModel::mainStateCompletedSignal, this, &SourceWindow::mainStateCompleted);
 
     connect(m_pSession,         &Session::settingsChanged,              this, &SourceWindow::settingsChanged);
+    connect(m_pSession,         &Session::programDatabaseChanged,       this, &SourceWindow::programDatabaseChanged);
 
     // Refresh enable state
     connectChanged();
@@ -345,6 +386,58 @@ void SourceWindow::startStopDelayed(int /*running*/)
 
 void SourceWindow::mainStateCompleted()
 {
+    updateCurrentFile();
+}
+
+void SourceWindow::programDatabaseChanged()
+{
+    rescanCache();
+}
+
+void SourceWindow::settingsChanged()
+{
+    // Update visuals
+    const QFont& font = m_pSession->GetSettings().m_font;
+    m_pSourceTextEdit->setFont(font);
+    QFontMetrics info(font);
+    QString padText = QString("W").repeated(4);
+    m_pSourceTextEdit->setTabStopDistance(info.horizontalAdvance(padText));
+
+    // Source directories might have changed, so reload
+    rescanCache();
+    updateCurrentFile();
+}
+
+void SourceWindow::rescanCache()
+{
+    // Create a set of directories and files to find.
+    QVector<SourceCache::FilePath> files;
+    const std::vector<fonda::compilation_unit>& pdb = m_pSession->m_pProgramDatabase->GetFileInfo();
+
+    // Convert from "elf" to a format the SourceCache might like
+    for (size_t i = 0; i < pdb.size(); ++i)
+    {
+        const fonda::compilation_unit& unit = pdb[i];
+        for (size_t j = 0; j < unit.files.size(); ++j)
+        {
+            SourceCache::FilePath fp;
+            fp.dir = unit.dirs[unit.files[j].dir_index];
+            fp.file = unit.files[j].path;
+            files.push_back(fp);
+        }
+    }
+
+    // ... and a set of search paths
+    QVector<QString> searchPaths;
+    QString elfPath = m_pSession->m_pProgramDatabase->GetElfPath();
+    QFileInfo elf(elfPath);
+    searchPaths.push_back(elf.absoluteDir().absolutePath());
+
+    m_pSourceCache->Rescan(files, searchPaths);
+}
+
+void SourceWindow::updateCurrentFile()
+{
     uint32_t textAddr = m_pTargetModel->GetRegs().Get(Registers::TEXT);
     uint32_t dataAddr = m_pTargetModel->GetRegs().Get(Registers::DATA);
     uint32_t pc = m_pTargetModel->GetStartStopPC(kProcCpu);
@@ -362,17 +455,17 @@ void SourceWindow::mainStateCompleted()
                                                info.m_column);
         m_pInfoLabel->setText(txt);
 
-        const SourceFile* pFileData;
+        QString fileText;
         QString key = SourceCache::GetKey(info.m_dir, info.m_file);
         if (key != m_currFileKey)
         {
-            if (!m_pSourceCache->GetFile(info.m_dir, info.m_file, pFileData))
+            if (!m_pSourceCache->GetFile(info.m_dir, info.m_file, fileText))
             {
                 m_pSourceTextEdit->setPlainText("Can't find source file");
                 return;
             }
 
-            m_pSourceTextEdit->setPlainText(pFileData->text);
+            m_pSourceTextEdit->setPlainText(fileText);
             m_currFileKey = key;
         }
         // This is utter garbage, so I need a better approach
@@ -381,7 +474,6 @@ void SourceWindow::mainStateCompleted()
         textCursor.setPosition(b.position() + info.m_column, QTextCursor::MoveAnchor);
         m_pSourceTextEdit->setTextCursor(textCursor);
         m_pSourceTextEdit->setCurrentLine(info.m_line);
-        //m_pSourceTextEdit->moveCursor(QTextCursor::EndOfLine, QTextCursor::KeepAnchor);
         return;
     }
     else
@@ -390,14 +482,6 @@ void SourceWindow::mainStateCompleted()
         m_pSourceTextEdit->setPlainText("No source for this address");
         m_pInfoLabel->setText(txt);
     }
-}
 
-void SourceWindow::settingsChanged()
-{
-    // Update visuals
-    const QFont& font = m_pSession->GetSettings().m_font;
-    m_pSourceTextEdit->setFont(font);
-    QFontMetrics info(font);
-    m_pSourceTextEdit->setTabStopDistance(info.horizontalAdvance("WWWWWWWWWW", 4));
 }
 
