@@ -320,11 +320,6 @@ void SourceWindow::loadSettings()
 
     restoreGeometry(settings.value("geometry").toByteArray());
     settings.endGroup();
-
-    const QFont& font = m_pSession->GetSettings().m_font;
-    m_pSourceTextEdit->setFont(font);
-    QFontMetrics info(font);
-    m_pSourceTextEdit->setTabStopDistance(info.horizontalAdvance("WWWWWWWWWW", 4));
 }
 
 void SourceWindow::saveSettings()
@@ -359,9 +354,8 @@ void SourceWindow::mainStateCompleted()
 
     if (pc < dataAddr && m_pSession->m_pProgramDatabase->FindLowerOrEqual(textOffset, info))
     {
-        txt = QString::asprintf("PC %x maps to > %x %s/%s %d %d\n",
+        txt = QString::asprintf("PC %x maps to %s/%s line: %d col: %d\n",
                                                pc,
-                                               info.m_address + textAddr,
                                                info.m_dir.c_str(),
                                                info.m_file.c_str(),
                                                info.m_line,
@@ -374,7 +368,7 @@ void SourceWindow::mainStateCompleted()
         {
             if (!m_pSourceCache->GetFile(info.m_dir, info.m_file, pFileData))
             {
-                m_pSourceTextEdit->setPlainText("Can't find source");
+                m_pSourceTextEdit->setPlainText("Can't find source file");
                 return;
             }
 
@@ -393,17 +387,17 @@ void SourceWindow::mainStateCompleted()
     else
     {
         m_currFileKey = "";
-        m_pSourceTextEdit->setPlainText("Can't find source");
+        m_pSourceTextEdit->setPlainText("No source for this address");
         m_pInfoLabel->setText(txt);
     }
 }
 
 void SourceWindow::settingsChanged()
 {
-//    QFontMetrics fm(m_pSession->GetSettings().m_font);
-
-    // Down the side
-//    m_pTreeView->setFont(m_pSession->GetSettings().m_font);
-    loadSettings();
+    // Update visuals
+    const QFont& font = m_pSession->GetSettings().m_font;
+    m_pSourceTextEdit->setFont(font);
+    QFontMetrics info(font);
+    m_pSourceTextEdit->setTabStopDistance(info.horizontalAdvance("WWWWWWWWWW", 4));
 }
 
