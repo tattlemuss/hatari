@@ -11,6 +11,7 @@
 Session::Session() :
     QObject(),
     m_pFileWatcher(nullptr),
+    m_pHatariProcess(nullptr),
     m_autoConnect(true)
 {
     m_pStartupFile = new QTemporaryFile(this);

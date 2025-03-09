@@ -230,9 +230,9 @@ void TargetModel::ProfileReset()
     emit profileChangedSignal();
 }
 
-void TargetModel::SetHistory(uint64_t commmandId, const History& hist)
+void TargetModel::SetHistory(uint64_t /*commmandId*/, const History& /*hist*/)
 {
-
+    // (Not yet implemented)
 }
 
 // User-added console command. Anything can happen, so tell everything

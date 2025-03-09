@@ -1019,6 +1019,7 @@ static int RemoteDebug_setstd(int nArgc, char *psArgs[], RemoteDebugState* state
 #ifdef __WINDOWS__
 		strncpy(state->consoleOutputFilename, filename, FILENAME_MAX);
 		state->consoleOutputFilename[FILENAME_MAX] = 0; /* ensure terminator */
+		send_str(state, "OK");
 		return 0;
 #else
 		FILE* outpipe = fopen(filename, "w");
@@ -1845,7 +1846,13 @@ static int RemoteDebugState_InitServer(RemoteDebugState* state)
 	sa.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
 	if (bind(state->SocketFD,(struct sockaddr *)&sa, sizeof sa) == -1) {
-		fprintf(stderr, "Failed to bind socket (%d)\n", GET_SOCKET_ERROR);
+		fprintf(stderr, "Failed to bind socket (bind() error: %d)\n", GET_SOCKET_ERROR);
+#if HAVE_UNIX_DOMAIN_SOCKETS
+		if (GET_SOCKET_ERROR == EADDRINUSE) {
+			fprintf(stderr, "This error might be caused by another Hatari instance "
+				"already running a debug server.\n");
+		}
+#endif
 		RDB_CLOSE(state->SocketFD);
 		state->SocketFD =-1;
 		return 1;

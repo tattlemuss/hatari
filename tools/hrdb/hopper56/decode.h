@@ -4,7 +4,7 @@
 namespace hop56
 {
 	struct instruction;
-	struct buffer_reader;
+	class buffer_reader;
 
 	// Setup for any potential decoder preferences e.g. processor type.
 	struct decode_settings

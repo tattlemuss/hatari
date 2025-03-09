@@ -11,6 +11,7 @@
 #include <QPainter>
 #include <QPushButton>
 #include <QSettings>
+#include <QClipboard>
 
 #include "hopper/buffer.h"
 #include "hopper56/buffer.h"
@@ -26,6 +27,7 @@
 #include "colouring.h"
 #include "quicklayout.h"
 #include "symboltext.h"
+#include "qtversionwrapper.h"
 
 DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex, QAction* pSearchAction):
     QWidget(parent),
@@ -69,6 +71,10 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex, 
     m_pBreakpointAction = new QAction(tr("Toggle Breakpoint"), this);
     m_pSetPcAction = new QAction(tr("Set PC to here"), this);
     m_pNopAction = new QAction(tr("Replace with NOPs"), this);
+    m_pCopyAction = new QAction(tr("Copy"), this);
+    m_pCopyAction->setShortcut(QKeySequence::Copy);
+    m_pCopyAction->setShortcutContext(Qt::WidgetShortcut);
+    this->addAction(m_pCopyAction); // this is needed for keyboard access
 
     m_pEditMenu = new QMenu("Edit", this);
     m_pEditMenu->addAction(m_pNopAction);
@@ -92,6 +98,7 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex, 
     connect(m_pBreakpointAction,     &QAction::triggered, this, &DisasmWidget::toggleBreakpointRightClick);
     connect(m_pSetPcAction,          &QAction::triggered, this, &DisasmWidget::setPCRightClick);
     connect(m_pNopAction,            &QAction::triggered, this, &DisasmWidget::nopRightClick);
+    connect(m_pCopyAction,           &QAction::triggered, this, &DisasmWidget::copyRightClick);
 
     connect(m_pSession, &Session::settingsChanged, this, &DisasmWidget::settingsChangedSlot);
 
@@ -672,7 +679,8 @@ void DisasmWidget::keyPressEvent(QKeyEvent* event)
 
 void DisasmWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    m_mouseRow = GetRowFromPixel(int(event->localPos().y()));
+    QPointF localPos = QTEVENT_GET_LOCAL_POS(event);
+    m_mouseRow = GetRowFromPixel(int(localPos.y()));
     if (m_mouseRow >= m_rowCount)
         m_mouseRow = -1;  // hide if off the bottom
     if (this->underMouse())
@@ -683,9 +691,10 @@ void DisasmWidget::mouseMoveEvent(QMouseEvent *event)
 
 void DisasmWidget::mousePressEvent(QMouseEvent *event)
 {
+    QPointF localPos = QTEVENT_GET_LOCAL_POS(event);
     if (event->button() == Qt::LeftButton)
     {
-        int row = GetRowFromPixel(int(event->localPos().y()));
+        int row = GetRowFromPixel(int(localPos.y()));
         if (row < m_rowCount)
         {
             m_cursorRow = row;
@@ -1169,9 +1178,9 @@ void DisasmWidget::CalcAnnotations56()
         valids[0] = Disassembler56::calc_ea(inst.operands[0], addr[0]);
         valids[1] = Disassembler56::calc_ea(inst.operands[1], addr[1]);
         valids[2] = Disassembler56::calc_ea(inst.operands[2], addr[2]);
-        valids[3] = Disassembler56::calc_ea(inst.operands[3], addr[3]);
-        valids[4] = Disassembler56::calc_ea(inst.operands[4], addr[4]);
-        valids[5] = Disassembler56::calc_ea(inst.operands[5], addr[5]);
+        valids[3] = Disassembler56::calc_ea(inst.operands2[0], addr[3]);
+        valids[4] = Disassembler56::calc_ea(inst.operands2[1], addr[4]);
+        valids[5] = Disassembler56::calc_ea(inst.operands2[2], addr[5]);
         valids[6] = Disassembler56::calc_ea(inst.pmoves[0].operands[0], addr[6]);
         valids[7] = Disassembler56::calc_ea(inst.pmoves[0].operands[1], addr[7]);
         valids[8] = Disassembler56::calc_ea(inst.pmoves[1].operands[0], addr[8]);
@@ -1188,7 +1197,7 @@ void DisasmWidget::CalcAnnotations56()
             MEM_L
         };
 
-        while (writeSlot < Line::Annotations::kNumEAs && readSlot < 10)
+        while (writeSlot < Line::Annotations::kNumEAs && readSlot < 8)
         {
             if (valids[readSlot])
             {
@@ -1377,6 +1386,43 @@ void DisasmWidget::nopRightClick()
     m_rightClickRow = -1;
 }
 
+//-----------------------------------------------------------------------------
+void DisasmWidget::copyRightClick()
+{
+    CalcDisasm();
+    QClipboard *clipboard = QGuiApplication::clipboard();
+    QString newText;
+
+    QTextStream ref(&newText);
+    for (int i = 0; i < m_rowTexts.size(); ++i)
+    {
+        ref.setFieldAlignment(QTextStream::FieldAlignment::AlignLeft);
+        const RowText& line = m_rowTexts[i];
+        if (line.symbol.size() != 0)
+        {
+            ref << line.symbol;
+            ref.setFieldWidth(0);
+            ref << Format::endl;
+        }
+
+        ref.setFieldWidth(15);
+        ref << QString("$") + line.address;
+        ref.setFieldWidth(30);
+        ref << line.disasm;
+
+        if (line.comments.size() != 0)
+        {
+            ref.setFieldWidth(0);
+            ref << QString("; ") + line.comments;
+        }
+
+        ref.setFieldWidth(0);
+        ref << Format::endl;
+    }
+    clipboard->setText(newText);
+    m_pSession->SetMessage("Disassembly copied to clipboard.");
+}
+
 void DisasmWidget::settingsChangedSlot()
 {
     UpdateFont();
@@ -1500,6 +1546,7 @@ void DisasmWidget::ContextMenu(int row, QPoint globalPos)
     }
 
     menu.addAction(m_pSearchAction);
+    menu.addAction(m_pCopyAction);
 
     // Run it
     menu.exec(globalPos);

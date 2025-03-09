@@ -191,12 +191,14 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     this->addDockWidget(Qt::RightDockWidgetArea, m_pProfileWindow);
     this->addDockWidget(Qt::BottomDockWidgetArea, m_pSourceWindow);
 
-    loadSettings();
-
     // Set up menus (reflecting current state)
     createActions();
     createMenus();
     createToolBar();
+
+    // Qt6 fix: only load settings after the UI layout is decided, or
+    // those post-created objects don't get a layout update.
+    loadSettings();
 
     // Listen for target changes
     connect(m_pTargetModel, &TargetModel::startStopChangedSignal,    this, &MainWindow::startStopChanged);
@@ -482,9 +484,12 @@ void MainWindow::nextDspClickedSlot()
     // Step over branches-to-self too
     // TODO needs better "step over" logic here, possibly a specific function.
     uint32_t targetAddr = -1;
-    bool reversed = false;
+    bool reversed = false;  // flags a "DO" reverse loop
     bool isBranch = DisAnalyse56::getBranchTarget(currLine.inst, currLine.address, targetAddr, reversed);
-    if (isBranch && !reversed && targetAddr == currLine.address)
+
+    // The check for JMP is a way to stop it trying to step over a loop that can't be avoided
+    if (isBranch && !reversed && targetAddr == currLine.address &&
+                currLine.inst.opcode != hop56::Opcode::O_JMP)
         shouldStepOver = true;
 
     if (shouldStepOver)

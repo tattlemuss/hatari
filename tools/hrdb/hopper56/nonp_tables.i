@@ -99,12 +99,14 @@ static int decode_idx_03(nonp_context& ctx)
 // Decode with top bits = %100
 static int decode_idx_04(nonp_context& ctx)
 {
+  (void)ctx;
   return 1;
 }
 
 // Decode with top bits = %101
 static int decode_idx_05(nonp_context& ctx)
 {
+  (void)ctx;
   return 1;
 }
 
@@ -239,6 +241,7 @@ static int decode_idx_0f(nonp_context& ctx)
 // Decode with top bits = %10000
 static int decode_idx_10(nonp_context& ctx)
 {
+  (void)ctx;
   return 1;
 }
 
@@ -265,6 +268,7 @@ static int decode_idx_11(nonp_context& ctx)
 // Decode with top bits = %10010
 static int decode_idx_12(nonp_context& ctx)
 {
+  (void)ctx;
   return 1;
 }
 
@@ -823,18 +827,21 @@ static int decode_idx_30(nonp_context& ctx)
 // Decode with top bits = %110001
 static int decode_idx_31(nonp_context& ctx)
 {
+  (void)ctx;
   return 1;
 }
 
 // Decode with top bits = %110010
 static int decode_idx_32(nonp_context& ctx)
 {
+  (void)ctx;
   return 1;
 }
 
 // Decode with top bits = %110011
 static int decode_idx_33(nonp_context& ctx)
 {
+  (void)ctx;
   return 1;
 }
 
@@ -849,18 +856,21 @@ static int decode_idx_34(nonp_context& ctx)
 // Decode with top bits = %110101
 static int decode_idx_35(nonp_context& ctx)
 {
+  (void)ctx;
   return 1;
 }
 
 // Decode with top bits = %110110
 static int decode_idx_36(nonp_context& ctx)
 {
+  (void)ctx;
   return 1;
 }
 
 // Decode with top bits = %110111
 static int decode_idx_37(nonp_context& ctx)
 {
+  (void)ctx;
   return 1;
 }
 
