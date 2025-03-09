@@ -111,6 +111,11 @@ void Session::loadSettings()
     m_settings.m_bDisassHexNumerics = settings.value("disassHexNumerics", QVariant(false)).toBool();
     m_settings.m_liveRefresh = settings.value("liveRefresh", QVariant(false)).toBool();
     m_settings.m_profileDisplayMode = settings.value("profileDisplayMode", QVariant(Settings::kTotal)).toInt();
+    for (int i = 0; i < Settings::kNumSearchDirectories; ++i)
+    {
+        QString key = QString::asprintf("sourceDir%d", i);
+        m_settings.m_sourceSearchDirectories[i] = settings.value(key).toString();
+    }
     settings.endGroup();
 
     m_launchSettings.loadSettings(settings);
@@ -125,6 +130,12 @@ void Session::saveSettings()
     settings.setValue("disassHexNumerics", m_settings.m_bDisassHexNumerics);
     settings.setValue("liveRefresh", m_settings.m_liveRefresh);
     settings.setValue("profileDisplayMode", m_settings.m_profileDisplayMode);
+    for (int i = 0; i < Settings::kNumSearchDirectories; ++i)
+    {
+        QString key = QString::asprintf("sourceDir%d", i);
+        settings.setValue(key, m_settings.m_sourceSearchDirectories[i]);
+    }
+
     settings.endGroup();
 
     m_launchSettings.saveSettings(settings);

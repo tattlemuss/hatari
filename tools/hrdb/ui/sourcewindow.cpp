@@ -429,9 +429,19 @@ void SourceWindow::rescanCache()
 
     // ... and a set of search paths
     QVector<QString> searchPaths;
+
+    // Add the directory containing the .elf/.prg as the default
     QString elfPath = m_pSession->m_pProgramDatabase->GetElfPath();
     QFileInfo elf(elfPath);
     searchPaths.push_back(elf.absoluteDir().absolutePath());
+
+    // Add user paths from settings
+    for (int i = 0; i < Session::Settings::kNumSearchDirectories; ++i)
+    {
+        QString userSearchPath = m_pSession->GetSettings().m_sourceSearchDirectories[i];
+        if (userSearchPath.size() > 0)
+            searchPaths.push_back(userSearchPath);
+    }
 
     m_pSourceCache->Rescan(files, searchPaths);
 }
@@ -478,10 +488,10 @@ void SourceWindow::updateCurrentFile()
     }
     else
     {
-        m_currFileKey = "";
+        m_currFileKey.clear();
         m_pSourceTextEdit->setPlainText("No source for this address");
+        m_pSourceTextEdit->setCurrentLine(-1);
         m_pInfoLabel->setText(txt);
     }
-
 }
 

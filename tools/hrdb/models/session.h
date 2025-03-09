@@ -69,6 +69,10 @@ public:
 
         // LIVE UPDATE
         bool        m_liveRefresh;
+
+        // Source association
+        static const int kNumSearchDirectories = 4;
+        QString     m_sourceSearchDirectories[kNumSearchDirectories];
     };
 
     // DRAWING LAYOUT OPTIONS

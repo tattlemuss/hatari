@@ -8,6 +8,7 @@
 class QCheckBox;
 class QComboBox;
 class QLabel;
+class QLineEdit;
 class TargetModel;
 class Dispatcher;
 class Session;
@@ -37,6 +38,7 @@ private:
     void disassHexNumbersClicked();
     void liveRefreshClicked();
     void fontSelectClicked();
+    void ChooseSourceDir(int index);
 
     // Make the UI reflect the stored settings (copy)
     void UpdateUIElements();
@@ -47,6 +49,9 @@ private:
     QComboBox*      m_pProfileDisplayCombo;
     QCheckBox*      m_pLiveRefresh;
     QLabel*         m_pFontLabel;
+
+    QLineEdit*      m_pSourceDirTextEdit[Session::Settings::kNumSearchDirectories];
+    QPushButton*    m_pSourceDirButton[Session::Settings::kNumSearchDirectories];
 
     // Shared session data pointer (storage for launched process, temp file etc)
     Session*        m_pSession;

@@ -2,6 +2,7 @@
 #include <QCheckBox>
 #include <QCloseEvent>
 #include <QComboBox>
+#include <QFileDialog>
 #include <QFontDialog>
 #include <QLabel>
 #include <QLineEdit>
@@ -32,13 +33,18 @@ PrefsDialog::PrefsDialog(QWidget *parent, Session* pSession) :
     QWidget* pButtonContainer = new QWidget(this);
     pButtonContainer->setLayout(pHLayout);
 
-    // Options grid box
-    QGroupBox* gridGroupBox = new QGroupBox(tr("Options"));
-    QGridLayout *gridLayout = new QGridLayout;
+    QTabWidget* pTabs = new QTabWidget(this);
 
-    gridLayout->setColumnStretch(2, 20);
+    // Options #1 grid box
+    QGroupBox* gridGroupBox1 = new QGroupBox();
+    QGridLayout *gridLayout1 = new QGridLayout;
+    QGroupBox* gridGroupBox2 = new QGroupBox();
+    QGridLayout *gridLayout2 = new QGridLayout;
+    gridGroupBox1->setLayout(gridLayout1);
+    gridGroupBox2->setLayout(gridLayout2);
 
     // Add the options
+    gridLayout1->setColumnStretch(2, 20);
     m_pLiveRefresh = new QCheckBox(tr("Live Refresh"), this);
     m_pGraphicsSquarePixels = new QCheckBox(tr("Graphics Inspector: Square Pixels"), this);
     m_pDisassHexNumerics = new QCheckBox(tr("Disassembly: Use hex address register offsets"), this);
@@ -48,21 +54,41 @@ PrefsDialog::PrefsDialog(QWidget *parent, Session* pSession) :
 
     m_pFontLabel = new QLabel("Font:", this);
     QPushButton* pFontButton = new QPushButton("Select...", this);
-    QLabel* pProfileDisplay = new QLabel("Disassmbly: Profile Display:", this);
+    QLabel* pProfileDisplay = new QLabel("Disassembly: Profile Display:", this);
 
-    gridGroupBox->setLayout(gridLayout);
+    // Tab 1
     int row = 0;
-    gridLayout->addWidget(m_pLiveRefresh, row++, 0, 1, 2);
-    gridLayout->addWidget(m_pGraphicsSquarePixels, row++, 0, 1, 2);
-    gridLayout->addWidget(m_pDisassHexNumerics, row++, 0, 1, 2);
-    gridLayout->addWidget(pProfileDisplay, row, 0);
-    gridLayout->addWidget(m_pProfileDisplayCombo, row++, 1);
-    gridLayout->addWidget(m_pFontLabel, row, 0);
-    gridLayout->addWidget(pFontButton, row++, 1);
+    gridLayout1->addWidget(m_pLiveRefresh, row++, 0, 1, 2);
+    gridLayout1->addWidget(m_pGraphicsSquarePixels, row++, 0, 1, 2);
+    gridLayout1->addWidget(m_pDisassHexNumerics, row++, 0, 1, 2);
+    gridLayout1->addWidget(pProfileDisplay, row, 0);
+    gridLayout1->addWidget(m_pProfileDisplayCombo, row++, 1);
+    gridLayout1->addWidget(m_pFontLabel, row, 0);
+    gridLayout1->addWidget(pFontButton, row++, 1);
+
+    // Tab 2
+    row = 0;
+    gridLayout2->setColumnStretch(1, 20);
+    gridLayout2->addWidget(new QLabel("Source code search directories"), row++, 0, 1, 1);
+    for (int i = 0; i < Session::Settings::kNumSearchDirectories; ++i)
+    {
+        QLabel* pLabel = new QLabel(QString::asprintf("Directory #%d", i+1), this);
+        m_pSourceDirTextEdit[i] = new QLineEdit(this);
+        m_pSourceDirButton[i] = new QPushButton(tr("Browse..."), this);
+
+        gridLayout2->addWidget(pLabel, row, 0, 1, 1);
+        gridLayout2->addWidget(m_pSourceDirTextEdit[i], row, 1, 1, 1);
+        gridLayout2->addWidget(m_pSourceDirButton[i], row, 2, 1, 1);
+        connect(m_pSourceDirButton[i], &QPushButton::clicked, this, [=] () { this->ChooseSourceDir(i); } );
+        ++row;
+    }
+
+    pTabs->addTab(gridGroupBox1, "Appearance");
+    pTabs->addTab(gridGroupBox2, "Source");
 
     // Overall layout (options at top, buttons at bottom)
     QVBoxLayout* pLayout = new QVBoxLayout(this);
-    pLayout->addWidget(gridGroupBox);
+    pLayout->addWidget(pTabs);
     pLayout->addWidget(pButtonContainer);
 
     connect(pOkButton, &QPushButton::clicked, this, &PrefsDialog::okClicked);
@@ -166,6 +192,21 @@ void PrefsDialog::fontSelectClicked()
     }
 }
 
+void PrefsDialog::ChooseSourceDir(int index)
+{
+    QFileDialog dialog(this);
+    dialog.setFileMode(QFileDialog::Directory);
+    dialog.setDirectory(m_settingsCopy.m_sourceSearchDirectories[index]);
+    QStringList fileNames;
+    if (dialog.exec())
+    {
+        fileNames = dialog.selectedFiles();
+        if (fileNames.length() > 0)
+            m_settingsCopy.m_sourceSearchDirectories[index] = fileNames[0];
+        UpdateUIElements();
+    }
+}
+
 void PrefsDialog::UpdateUIElements()
 {
     m_pGraphicsSquarePixels->setChecked(m_settingsCopy.m_bSquarePixels);
@@ -175,4 +216,7 @@ void PrefsDialog::UpdateUIElements()
 
     QFontInfo info(m_settingsCopy.m_font);
     m_pFontLabel->setText(QString("Font: " + m_settingsCopy.m_font.family()));
+
+    for (int i = 0; i < Session::Settings::kNumSearchDirectories; ++i)
+        m_pSourceDirTextEdit[i]->setText(m_settingsCopy.m_sourceSearchDirectories[i]);
 }
