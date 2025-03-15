@@ -68,11 +68,10 @@ PrefsDialog::PrefsDialog(QWidget *parent, Session* pSession) :
 
     // Tab 2
     row = 0;
-    gridLayout2->setColumnStretch(1, 20);
-    gridLayout2->addWidget(new QLabel("Source code search directories"), row++, 0, 1, 1);
+    gridLayout2->addWidget(new QLabel("Source code search directories"), row++, 0, 1, 3);
     for (int i = 0; i < Session::Settings::kNumSearchDirectories; ++i)
     {
-        QLabel* pLabel = new QLabel(QString::asprintf("Directory #%d", i+1), this);
+        QLabel* pLabel = new QLabel(QString::asprintf("Path #%d", i+1), this);
         m_pSourceDirTextEdit[i] = new QLineEdit(this);
         m_pSourceDirButton[i] = new QPushButton(tr("Browse..."), this);
 
@@ -82,6 +81,7 @@ PrefsDialog::PrefsDialog(QWidget *parent, Session* pSession) :
         connect(m_pSourceDirButton[i], &QPushButton::clicked, this, [=] () { this->ChooseSourceDir(i); } );
         ++row;
     }
+    gridLayout2->setColumnStretch(1, 20);
 
     pTabs->addTab(gridGroupBox1, "Appearance");
     pTabs->addTab(gridGroupBox2, "Source");
