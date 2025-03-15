@@ -6,6 +6,7 @@
 #include <QSettings>
 #include <QVBoxLayout>
 #include <QLabel>
+#include <QComboBox>
 
 #include <QFile>
 #include <QFileInfo>
@@ -191,16 +192,25 @@ public:
         std::string file;
     };
 
+    struct File
+    {
+        QString name;
+        QString key;
+    };
+
     // Decide on the locations of all files once debug data is loaded.
     void Rescan(const QVector<FilePath>& paths, const QVector<QString> searchDirs);
 
-    bool GetFile(const std::string& dir, const std::string& file, QString& fileData);
+    // Get the contents for the file, by key
+    bool GetFile(const QString& fileKey, QString& fileData);
 
     static QString GetKey(const std::string& dir, const std::string& file);
 
     typedef std::map<QString, SourceFile> Map;
+    typedef std::vector<File> Vec;
 
     Map m_fileMap;
+    Vec m_fileVec;
 };
 
 SourceCache::SourceCache()
@@ -220,6 +230,9 @@ SourceCache::~SourceCache()
 void SourceCache::Rescan(const QVector<FilePath>& paths, const QVector<QString> searchDirs)
 {
     m_fileMap.clear();
+    m_fileVec.clear();
+    // Qt always uses "/" as a separator.
+
     QString sep("/");
     // Build up a list of files and where they live
     for (int i = 0; i < paths.size(); ++i)
@@ -238,26 +251,24 @@ void SourceCache::Rescan(const QVector<FilePath>& paths, const QVector<QString> 
                 f.isLoaded = false;
                 f.path = finfo.absoluteFilePath();
                 f.text = QString("");
-                qDebug() << "Found source file " << f.path;
+                //qDebug() << "Found source file " << f.path;
                 m_fileMap.insert(std::make_pair(f.key, f));
+
+                // Add to the overall list
+                File f2;
+                f2.key = f.key;
+                f2.name = f.path;
+                m_fileVec.push_back(f2);
                 break;
             }
         }
     }
 }
 
-bool SourceCache::GetFile(const std::string& dir, const std::string& file,
+bool SourceCache::GetFile(const QString& fileKey,
                           QString& fileData)
 {
-    /*
-     * "Qt uses "/" as a universal directory separator in the same way that "/" is used as a
-     * path separator in URLs. If you always use "/" as a directory separator, Qt will translate
-     * your paths to conform to the underlying operating system.
-     */
-
     fileData.clear();
-    QString fileKey = GetKey(dir, file);
-
     const SourceCache::Map::iterator findIt = m_fileMap.find(fileKey);
     if (findIt != m_fileMap.end())
     {
@@ -291,6 +302,57 @@ QString SourceCache::GetKey(const std::string& dir, const std::string& file)
 }
 
 //-----------------------------------------------------------------------------
+// Structures symbol table for display or auto-completion
+class SourceFilesModel : public QAbstractListModel
+{
+public:
+    SourceFilesModel(QObject *parent, const SourceCache& sources);
+    virtual ~SourceFilesModel() {}
+
+    // Flag that the symbol table has changed.
+    // Issue signals so that QCompleter objects don't get broken state.
+    void emitChanged();
+
+    virtual int rowCount(const QModelIndex &parent) const;
+    virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const;
+    const SourceCache& m_sources;
+};
+
+//-----------------------------------------------------------------------------
+SourceFilesModel::SourceFilesModel(QObject *parent, const SourceCache &sources) :
+    QAbstractListModel(parent),
+    m_sources(sources)
+{
+}
+
+//-----------------------------------------------------------------------------
+void SourceFilesModel::emitChanged()
+{
+    beginResetModel();
+    endResetModel();
+}
+
+//-----------------------------------------------------------------------------
+int SourceFilesModel::rowCount(const QModelIndex & parent) const
+{
+    if (parent.isValid())
+        return 0;
+    return (int)m_sources.m_fileMap.size();
+}
+
+//-----------------------------------------------------------------------------
+QVariant SourceFilesModel::data(const QModelIndex &index, int role) const
+{
+    if (role == Qt::EditRole || role == Qt::DisplayRole)
+    {
+        size_t row = index.row();
+        if (row < m_sources.m_fileVec.size())
+            return QString(m_sources.m_fileVec[row].name);
+    }
+    return QVariant();
+}
+
+//-----------------------------------------------------------------------------
 SourceWindow::SourceWindow(QWidget *parent, Session* pSession) :
     QDockWidget(parent),
     m_pSession(pSession),
@@ -301,6 +363,10 @@ SourceWindow::SourceWindow(QWidget *parent, Session* pSession) :
     setObjectName("Source");
 
     m_pSourceCache = new SourceCache();
+    m_pSourceFilesModel = new SourceFilesModel(this, *m_pSourceCache);
+
+    m_pFileSelectCombo = new QComboBox(this);
+    m_pFileSelectCombo->setModel(m_pSourceFilesModel);
     m_pInfoLabel = new QLabel(this);
 
     m_pSourceTextEdit = new CodeEditor(this);
@@ -314,10 +380,11 @@ SourceWindow::SourceWindow(QWidget *parent, Session* pSession) :
     QHBoxLayout* pTopLayout = new QHBoxLayout;
     auto pMainRegion = new QWidget(this);   // whole panel
     auto pTopRegion = new QWidget(this);      // top buttons/edits
-    pTopLayout->addStretch();
 
+    pTopLayout->addWidget(m_pFileSelectCombo);
+    pTopLayout->addWidget(m_pInfoLabel);
+    pTopLayout->addStretch();
     pMainLayout->addWidget(pTopRegion);
-    pMainLayout->addWidget(m_pInfoLabel);
     pMainLayout->addWidget(m_pSourceTextEdit);
 
     SetMargins(pTopLayout);
@@ -374,6 +441,8 @@ void SourceWindow::saveSettings()
 
 void SourceWindow::connectChanged()
 {
+    if (!m_pTargetModel->IsConnected())
+        rescanCache();
 }
 
 void SourceWindow::startStopChanged()
@@ -396,11 +465,13 @@ void SourceWindow::programDatabaseChanged()
 
 void SourceWindow::settingsChanged()
 {
+    const Session::Settings& settings = m_pSession->GetSettings();
+
     // Update visuals
-    const QFont& font = m_pSession->GetSettings().m_font;
+    const QFont& font = settings.m_font;
     m_pSourceTextEdit->setFont(font);
     QFontMetrics info(font);
-    QString padText = QString("W").repeated(4);
+    QString padText = QString("W").repeated(settings.m_sourceTabSize);
     m_pSourceTextEdit->setTabStopDistance(info.horizontalAdvance(padText));
 
     // Source directories might have changed, so reload
@@ -444,6 +515,8 @@ void SourceWindow::rescanCache()
     }
 
     m_pSourceCache->Rescan(files, searchPaths);
+    m_pSourceFilesModel->emitChanged();
+    updateCurrentFile();
 }
 
 void SourceWindow::updateCurrentFile()
@@ -464,34 +537,44 @@ void SourceWindow::updateCurrentFile()
                                                info.m_line,
                                                info.m_column);
         m_pInfoLabel->setText(txt);
-
-        QString fileText;
         QString key = SourceCache::GetKey(info.m_dir, info.m_file);
-        if (key != m_currFileKey)
-        {
-            if (!m_pSourceCache->GetFile(info.m_dir, info.m_file, fileText))
-            {
-                m_pSourceTextEdit->setPlainText("Can't find source file");
-                return;
-            }
 
-            m_pSourceTextEdit->setPlainText(fileText);
-            m_currFileKey = key;
-        }
-        // This is utter garbage, so I need a better approach
-        QTextCursor textCursor = m_pSourceTextEdit->textCursor();
-        QTextBlock b = textCursor.document()->findBlockByNumber(info.m_line - 1);
-        textCursor.setPosition(b.position() + info.m_column, QTextCursor::MoveAnchor);
-        m_pSourceTextEdit->setTextCursor(textCursor);
-        m_pSourceTextEdit->setCurrentLine(info.m_line);
+        setFile(key);
+        setCursorAtLine(info.m_line, info.m_column);
+
+        // This is different -- use "jump to"?
+        m_pSourceTextEdit->setHighlightLine(info.m_line);
         return;
     }
     else
     {
         m_currFileKey.clear();
         m_pSourceTextEdit->setPlainText("No source for this address");
-        m_pSourceTextEdit->setCurrentLine(-1);
+        m_pSourceTextEdit->setHighlightLine(-1);
         m_pInfoLabel->setText(txt);
     }
 }
 
+void SourceWindow::setFile(QString key)
+{
+    if (key != m_currFileKey)
+    {
+        m_currFileKey = key;
+        QString fileText;
+        if (!m_pSourceCache->GetFile(key, fileText))
+        {
+            m_pSourceTextEdit->setPlainText("Can't find source file");
+            return;
+        }
+        m_pSourceTextEdit->setPlainText(fileText);
+    }
+}
+
+void SourceWindow::setCursorAtLine(int line, int column)
+{
+    // This is utter garbage, so I need a better approach
+    QTextCursor textCursor = m_pSourceTextEdit->textCursor();
+    QTextBlock b = textCursor.document()->findBlockByNumber(line - 1);
+    textCursor.setPosition(b.position() + column, QTextCursor::MoveAnchor);
+    m_pSourceTextEdit->setTextCursor(textCursor);
+}

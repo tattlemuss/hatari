@@ -57,9 +57,12 @@ bool ProgramDatabase::SetPath(std::string path)
 
 void ProgramDatabase::Clear()
 {
-
+    m_elfInfo.line_info_units.clear();
+    m_elfInfo.sections.clear();
+    m_elfInfo.symbols.clear();
+    m_addrKeys.clear();
+    m_addressMap.clear();
 }
-
 
 bool ProgramDatabase::FindAddress(uint32_t address, ProgramDatabase::CodeInfo& codePoint) const
 {

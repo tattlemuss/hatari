@@ -12,7 +12,7 @@ class QTextEdit;
 class QComboBox;
 
 class SourceCache;
-
+class SourceFilesModel;
 
 #include <QPlainTextEdit>
 
@@ -38,7 +38,7 @@ public:
     void lineNumberAreaPaintEvent(QPaintEvent *event);
     int lineNumberAreaWidth();
 
-    void setCurrentLine(int line)
+    void setHighlightLine(int line)
     {
         m_currentLine = line;
         highlightCurrentLine();
@@ -109,14 +109,20 @@ private:
     void rescanCache();
     void updateCurrentFile();
 
+    void setFile(QString key);
+    void setCursorAtLine(int line, int column);
+
     Session*            m_pSession;
     TargetModel*        m_pTargetModel;
     Dispatcher*         m_pDispatcher;
 
     CodeEditor*         m_pSourceTextEdit;
+    QComboBox*          m_pFileSelectCombo;
     QLabel*             m_pInfoLabel;
+
     // Cache of files
     SourceCache*        m_pSourceCache;
+    SourceFilesModel*   m_pSourceFilesModel;
     QString             m_currFileKey;
 };
 
