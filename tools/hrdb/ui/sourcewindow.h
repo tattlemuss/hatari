@@ -97,6 +97,8 @@ public:
     void loadSettings();
     void saveSettings();
 
+private slots:
+    void fileSelectComboChanged(int index);
 private:
     void connectChanged();
     void startStopChanged();

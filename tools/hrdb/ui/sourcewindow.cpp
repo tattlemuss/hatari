@@ -396,6 +396,7 @@ SourceWindow::SourceWindow(QWidget *parent, Session* pSession) :
 
     loadSettings();
 
+    connect(m_pFileSelectCombo, SIGNAL(currentIndexChanged(int)),       SLOT(fileSelectComboChanged(int)));
     connect(m_pTargetModel,     &TargetModel::connectChangedSignal,     this, &SourceWindow::connectChanged);
     connect(m_pTargetModel,     &TargetModel::startStopChangedSignal,   this, &SourceWindow::startStopChanged);
     connect(m_pTargetModel,     &TargetModel::startStopChangedSignalDelayed,   this, &SourceWindow::startStopDelayed);
@@ -437,6 +438,16 @@ void SourceWindow::saveSettings()
 
     settings.setValue("geometry", saveGeometry());
     settings.endGroup();
+}
+
+void SourceWindow::fileSelectComboChanged(int index)
+{
+    if (index < m_pSourceCache->m_fileVec.size())
+    {
+        SourceCache::File f = m_pSourceCache->m_fileVec[index];
+        setFile(f.key);
+        setCursorAtLine(0, 0);
+    }
 }
 
 void SourceWindow::connectChanged()
