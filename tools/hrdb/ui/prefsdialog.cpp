@@ -9,6 +9,7 @@
 #include <QProcess>
 #include <QPushButton>
 #include <QSettings>
+#include <QSpinBox>
 #include <QVBoxLayout>
 
 #include "../models/session.h"
@@ -47,6 +48,10 @@ PrefsDialog::PrefsDialog(QWidget *parent, Session* pSession) :
     gridLayout1->setColumnStretch(2, 20);
     m_pLiveRefresh = new QCheckBox(tr("Live Refresh"), this);
     m_pGraphicsSquarePixels = new QCheckBox(tr("Graphics Inspector: Square Pixels"), this);
+    QLabel* pTabSizeLabel = new QLabel("Source tab size:");
+    m_pSourceTabSizeSpinBox = new QSpinBox(this);
+    m_pSourceTabSizeSpinBox->setMinimum(1);
+    m_pSourceTabSizeSpinBox->setMaximum(40);
     m_pDisassHexNumerics = new QCheckBox(tr("Disassembly: Use hex address register offsets"), this);
     m_pProfileDisplayCombo = new QComboBox(this);
     m_pProfileDisplayCombo->insertItem(Session::Settings::kTotal, "Total");
@@ -60,6 +65,8 @@ PrefsDialog::PrefsDialog(QWidget *parent, Session* pSession) :
     int row = 0;
     gridLayout1->addWidget(m_pLiveRefresh, row++, 0, 1, 2);
     gridLayout1->addWidget(m_pGraphicsSquarePixels, row++, 0, 1, 2);
+    gridLayout1->addWidget(pTabSizeLabel, row, 0, 1, 1);
+    gridLayout1->addWidget(m_pSourceTabSizeSpinBox, row++, 1, 1, 1);
     gridLayout1->addWidget(m_pDisassHexNumerics, row++, 0, 1, 2);
     gridLayout1->addWidget(pProfileDisplay, row, 0);
     gridLayout1->addWidget(m_pProfileDisplayCombo, row++, 1);
@@ -95,10 +102,11 @@ PrefsDialog::PrefsDialog(QWidget *parent, Session* pSession) :
     connect(pOkButton, &QPushButton::clicked, this, &PrefsDialog::accept);
     connect(pCancelButton, &QPushButton::clicked, this, &PrefsDialog::reject);
 
-    connect(m_pGraphicsSquarePixels, &QPushButton::clicked, this, &PrefsDialog::squarePixelsClicked);
-    connect(m_pDisassHexNumerics,    &QPushButton::clicked, this, &PrefsDialog::disassHexNumbersClicked);
-    connect(m_pLiveRefresh,          &QPushButton::clicked, this, &PrefsDialog::liveRefreshClicked);
-    connect(pFontButton,             &QPushButton::clicked, this, &PrefsDialog::fontSelectClicked);
+    connect(m_pGraphicsSquarePixels, &QPushButton::clicked,     this, &PrefsDialog::squarePixelsClicked);
+    connect(m_pDisassHexNumerics,    &QPushButton::clicked,     this, &PrefsDialog::disassHexNumbersClicked);
+    connect(m_pSourceTabSizeSpinBox, SIGNAL(valueChanged(int)), SLOT(sourceTabSizeChanged(int)));
+    connect(m_pLiveRefresh,          &QPushButton::clicked,     this, &PrefsDialog::liveRefreshClicked);
+    connect(pFontButton,             &QPushButton::clicked,     this, &PrefsDialog::fontSelectClicked);
 
     // Full signal/slot
     connect(m_pProfileDisplayCombo, SIGNAL(currentIndexChanged(int)),         SLOT(profileDisplayChanged(int)));
@@ -169,6 +177,11 @@ void PrefsDialog::disassHexNumbersClicked()
     m_settingsCopy.m_bDisassHexNumerics = m_pDisassHexNumerics->isChecked();
 }
 
+void PrefsDialog::sourceTabSizeChanged(int value)
+{
+    m_settingsCopy.m_sourceTabSize = value;
+}
+
 void PrefsDialog::liveRefreshClicked()
 {
     m_settingsCopy.m_liveRefresh = m_pLiveRefresh->isChecked();
@@ -213,8 +226,7 @@ void PrefsDialog::UpdateUIElements()
     m_pDisassHexNumerics->setChecked(m_settingsCopy.m_bDisassHexNumerics);
     m_pProfileDisplayCombo->setCurrentIndex(m_settingsCopy.m_profileDisplayMode);
     m_pLiveRefresh->setChecked(m_settingsCopy.m_liveRefresh);
-
-    QFontInfo info(m_settingsCopy.m_font);
+    m_pSourceTabSizeSpinBox->setValue(m_settingsCopy.m_sourceTabSize);
     m_pFontLabel->setText(QString("Font: " + m_settingsCopy.m_font.family()));
 
     for (int i = 0; i < Session::Settings::kNumSearchDirectories; ++i)

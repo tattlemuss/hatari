@@ -73,6 +73,8 @@ public:
         // Source association
         static const int kNumSearchDirectories = 4;
         QString     m_sourceSearchDirectories[kNumSearchDirectories];
+
+        int         m_sourceTabSize;
     };
 
     // DRAWING LAYOUT OPTIONS

@@ -9,6 +9,7 @@ class QCheckBox;
 class QComboBox;
 class QLabel;
 class QLineEdit;
+class QSpinBox;
 class TargetModel;
 class Dispatcher;
 class Session;
@@ -31,6 +32,7 @@ protected:
 
 private slots:
     void profileDisplayChanged(int index);
+    void sourceTabSizeChanged(int value);
 
 private:
     void okClicked();
@@ -45,6 +47,7 @@ private:
 
     // UI elements
     QCheckBox*      m_pGraphicsSquarePixels;
+    QSpinBox*       m_pSourceTabSizeSpinBox;
     QCheckBox*      m_pDisassHexNumerics;
     QComboBox*      m_pProfileDisplayCombo;
     QCheckBox*      m_pLiveRefresh;

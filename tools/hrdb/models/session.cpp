@@ -38,6 +38,7 @@ Session::Session() :
     m_settings.m_profileDisplayMode = Settings::kTotal;
     m_settings.m_liveRefresh = false;
     m_settings.m_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    m_settings.m_sourceTabSize = 8;
 
     // Watch for certain things changing on the target
     connect(m_pTargetModel, &TargetModel::programPathChangedSignal, this, &Session::programPathChanged);
@@ -109,6 +110,7 @@ void Session::loadSettings()
     }
     m_settings.m_bSquarePixels = settings.value("squarePixels", QVariant(false)).toBool();
     m_settings.m_bDisassHexNumerics = settings.value("disassHexNumerics", QVariant(false)).toBool();
+    m_settings.m_sourceTabSize = settings.value("sourceTabSize", QVariant(8)).toInt();
     m_settings.m_liveRefresh = settings.value("liveRefresh", QVariant(false)).toBool();
     m_settings.m_profileDisplayMode = settings.value("profileDisplayMode", QVariant(Settings::kTotal)).toInt();
     for (int i = 0; i < Settings::kNumSearchDirectories; ++i)
@@ -128,6 +130,7 @@ void Session::saveSettings()
     settings.setValue("font", m_settings.m_font.toString());
     settings.setValue("squarePixels", m_settings.m_bSquarePixels);
     settings.setValue("disassHexNumerics", m_settings.m_bDisassHexNumerics);
+    settings.setValue("sourceTabSize", m_settings.m_sourceTabSize);
     settings.setValue("liveRefresh", m_settings.m_liveRefresh);
     settings.setValue("profileDisplayMode", m_settings.m_profileDisplayMode);
     for (int i = 0; i < Settings::kNumSearchDirectories; ++i)
