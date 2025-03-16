@@ -16,6 +16,7 @@ ShowAddressActions::ShowAddressActions() :
         m_pMemoryWindowActions[i] = new QAction(QString::asprintf("Show in Memory %d", i + 1), this);
 
     m_pGraphicsInspectorAction = new QAction("Show in Graphics Inspector", this);
+    m_pSourceWindowAction= new QAction("Show in Source Window", this);
 
     for (int i = 0; i < kNumDisasmViews; ++i)
         connect(m_pDisasmWindowActions[i], &QAction::triggered, this, [=] () { this->TriggerDisasmView(i); } );
@@ -24,6 +25,7 @@ ShowAddressActions::ShowAddressActions() :
         connect(m_pMemoryWindowActions[i], &QAction::triggered, this, [=] () { this->TriggerMemoryView(i); } );
 
     connect(m_pGraphicsInspectorAction, &QAction::triggered, this, [=] () { this->TriggerGraphicsInspector(); } );
+    connect(m_pSourceWindowAction, &QAction::triggered, this, [=] () { this->TriggerSourceWindow(); } );
 }
 
 ShowAddressActions::~ShowAddressActions()
@@ -40,6 +42,7 @@ void ShowAddressActions::addActionsToMenu(QMenu* pMenu) const
         pMenu->addAction(m_pMemoryWindowActions[i]);
 
     pMenu->addAction(m_pGraphicsInspectorAction);
+    pMenu->addAction(m_pSourceWindowAction);
 }
 
 void ShowAddressActions::setAddress(Session* pSession, int memorySpace, uint32_t address)
@@ -55,6 +58,7 @@ void ShowAddressActions::setAddress(Session* pSession, int memorySpace, uint32_t
         m_pMemoryWindowActions[i]->setVisible(true);
 
     m_pGraphicsInspectorAction->setVisible(isCpu);
+    m_pSourceWindowAction->setVisible(isCpu);
 }
 
 void ShowAddressActions::TriggerDisasmView(int windowIndex)
@@ -72,6 +76,10 @@ void ShowAddressActions::TriggerGraphicsInspector()
     emit m_pSession->addressRequested(Session::kGraphicsInspector, 0, m_memorySpace, m_activeAddress);
 }
 
+void ShowAddressActions::TriggerSourceWindow()
+{
+    emit m_pSession->addressRequested(Session::kSourceWindow, 0, m_memorySpace, m_activeAddress);
+}
 
 ShowAddressMenu::ShowAddressMenu()
 {

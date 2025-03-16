@@ -46,7 +46,8 @@ public:
     {
         kDisasmWindow,
         kMemoryWindow,
-        kGraphicsInspector
+        kGraphicsInspector,
+        kSourceWindow
     };
 
     // Settings shared across the app and stored centrally.

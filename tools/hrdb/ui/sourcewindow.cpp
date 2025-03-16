@@ -409,6 +409,7 @@ SourceWindow::SourceWindow(QWidget *parent, Session* pSession) :
 
     connect(m_pSession,         &Session::settingsChanged,              this, &SourceWindow::settingsChanged);
     connect(m_pSession,         &Session::programDatabaseChanged,       this, &SourceWindow::programDatabaseChanged);
+    connect(m_pSession,         &Session::addressRequested,             this, &SourceWindow::addressRequested);
 
     // Refresh enable state
     connectChanged();
@@ -491,6 +492,15 @@ void SourceWindow::settingsChanged()
     // Source directories might have changed, so reload
     rescanCache();
     updateFollowedPC();
+}
+
+void SourceWindow::addressRequested(Session::WindowType type, int windowIndex, int memorySpace, uint32_t address)
+{
+    (void) windowIndex;
+    if (type != Session::WindowType::kSourceWindow)
+        return;
+
+    showFileForAddress(address, true);
 }
 
 void SourceWindow::rescanCache()

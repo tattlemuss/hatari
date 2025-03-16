@@ -5,10 +5,7 @@
 #include <QPlainTextEdit>
 #include "showaddressactions.h"
 #include "models/programdatabase.h"
-
-class TargetModel;
-class Dispatcher;
-class Session;
+#include "models/session.h"
 
 QT_BEGIN_NAMESPACE
 class QLabel;
@@ -20,6 +17,10 @@ class QResizeEvent;
 class QSize;
 class QWidget;
 QT_END_NAMESPACE
+
+
+class TargetModel;
+class Dispatcher;
 
 class SourceCache;
 class SourceFilesModel;
@@ -108,6 +109,7 @@ private:
 
     void programDatabaseChanged();
     void settingsChanged();
+    void addressRequested(Session::WindowType type, int windowIndex, int /*memorySpace*/, uint32_t address);
 
     void rescanCache();
     void updateFollowedPC();

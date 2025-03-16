@@ -24,6 +24,7 @@ private:
     void TriggerDisasmView(int windowIndex);
     void TriggerMemoryView(int windowIndex);
     void TriggerGraphicsInspector();
+    void TriggerSourceWindow();
 
     // What address will be set to the Window chosen
     uint32_t     m_activeAddress;
@@ -33,6 +34,7 @@ private:
     QAction*     m_pDisasmWindowActions[kNumDisasmViews];
     QAction*     m_pMemoryWindowActions[kNumMemoryViews];
     QAction*     m_pGraphicsInspectorAction;
+    QAction*     m_pSourceWindowAction;
 
     // Pointer for signal sending
     Session*     m_pSession;
