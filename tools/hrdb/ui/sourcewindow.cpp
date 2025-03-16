@@ -7,6 +7,7 @@
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QComboBox>
+#include <QCheckBox>
 
 #include <QFile>
 #include <QFileInfo>
@@ -257,7 +258,7 @@ void SourceCache::Rescan(const QVector<FilePath>& paths, const QVector<QString> 
                 // Add to the overall list
                 File f2;
                 f2.key = f.key;
-                f2.name = f.path;
+                f2.name =  QString::fromStdString(file);
                 m_fileVec.push_back(f2);
                 break;
             }
@@ -357,7 +358,8 @@ SourceWindow::SourceWindow(QWidget *parent, Session* pSession) :
     QDockWidget(parent),
     m_pSession(pSession),
     m_pTargetModel(pSession->m_pTargetModel),
-    m_pDispatcher(pSession->m_pDispatcher)
+    m_pDispatcher(pSession->m_pDispatcher),
+    m_bFollowPC(true)
 {
     this->setWindowTitle("Source");
     setObjectName("Source");
@@ -367,7 +369,10 @@ SourceWindow::SourceWindow(QWidget *parent, Session* pSession) :
 
     m_pFileSelectCombo = new QComboBox(this);
     m_pFileSelectCombo->setModel(m_pSourceFilesModel);
-    m_pInfoLabel = new QLabel(this);
+
+    m_pFollowPCCheckBox = new QCheckBox("Follow PC", this);
+    m_pFollowPCCheckBox->setTristate(false);
+    m_pFollowPCCheckBox->setChecked(m_bFollowPC);
 
     m_pSourceTextEdit = new CodeEditor(this);
     m_pSourceTextEdit->setReadOnly(true);
@@ -382,7 +387,7 @@ SourceWindow::SourceWindow(QWidget *parent, Session* pSession) :
     auto pTopRegion = new QWidget(this);      // top buttons/edits
 
     pTopLayout->addWidget(m_pFileSelectCombo);
-    pTopLayout->addWidget(m_pInfoLabel);
+    pTopLayout->addWidget(m_pFollowPCCheckBox);
     pTopLayout->addStretch();
     pMainLayout->addWidget(pTopRegion);
     pMainLayout->addWidget(m_pSourceTextEdit);
@@ -396,11 +401,11 @@ SourceWindow::SourceWindow(QWidget *parent, Session* pSession) :
 
     loadSettings();
 
-    connect(m_pFileSelectCombo, SIGNAL(currentIndexChanged(int)),       SLOT(fileSelectComboChanged(int)));
     connect(m_pTargetModel,     &TargetModel::connectChangedSignal,     this, &SourceWindow::connectChanged);
-    connect(m_pTargetModel,     &TargetModel::startStopChangedSignal,   this, &SourceWindow::startStopChanged);
-    connect(m_pTargetModel,     &TargetModel::startStopChangedSignalDelayed,   this, &SourceWindow::startStopDelayed);
     connect(m_pTargetModel,     &TargetModel::mainStateCompletedSignal, this, &SourceWindow::mainStateCompleted);
+
+    connect(m_pFileSelectCombo, SIGNAL(currentIndexChanged(int)),       SLOT(fileSelectComboChanged(int)));
+    connect(m_pFollowPCCheckBox,&QCheckBox::stateChanged,               this, &SourceWindow::followPCChanged);
 
     connect(m_pSession,         &Session::settingsChanged,              this, &SourceWindow::settingsChanged);
     connect(m_pSession,         &Session::programDatabaseChanged,       this, &SourceWindow::programDatabaseChanged);
@@ -456,17 +461,15 @@ void SourceWindow::connectChanged()
         rescanCache();
 }
 
-void SourceWindow::startStopChanged()
-{
-}
-
-void SourceWindow::startStopDelayed(int /*running*/)
-{
-}
-
 void SourceWindow::mainStateCompleted()
 {
-    updateCurrentFile();
+    updateFollowedPC();
+}
+
+void SourceWindow::followPCChanged()
+{
+    m_bFollowPC = m_pFollowPCCheckBox->isChecked();
+    updateFollowedPC();
 }
 
 void SourceWindow::programDatabaseChanged()
@@ -487,7 +490,7 @@ void SourceWindow::settingsChanged()
 
     // Source directories might have changed, so reload
     rescanCache();
-    updateCurrentFile();
+    updateFollowedPC();
 }
 
 void SourceWindow::rescanCache()
@@ -527,43 +530,45 @@ void SourceWindow::rescanCache()
 
     m_pSourceCache->Rescan(files, searchPaths);
     m_pSourceFilesModel->emitChanged();
-    updateCurrentFile();
+    updateFollowedPC();
 }
 
-void SourceWindow::updateCurrentFile()
+void SourceWindow::updateFollowedPC()
 {
-    uint32_t textAddr = m_pTargetModel->GetRegs().Get(Registers::TEXT);
-    uint32_t dataAddr = m_pTargetModel->GetRegs().Get(Registers::DATA);
-    uint32_t pc = m_pTargetModel->GetStartStopPC(kProcCpu);
-    uint32_t textOffset = pc - textAddr;
+    uint32_t pc = m_pTargetModel->GetRegs().Get(Registers::PC);
+    // Switch visible file if necessary, and jump to the correct line
+    if (m_bFollowPC)
+        showFileForAddress(pc, true);
+
+    // Even if we don't follow PC, update the highlighted line if we are
+    // showing the correct file.
     ProgramDatabase::CodeInfo info;
-    QString txt = "unknown";
-
-    if (pc < dataAddr && m_pSession->m_pProgramDatabase->FindLowerOrEqual(textOffset, info))
+    if (GetLineInfo(info, pc))
     {
-        txt = QString::asprintf("PC %x maps to %s/%s line: %d col: %d\n",
-                                               pc,
-                                               info.m_dir.c_str(),
-                                               info.m_file.c_str(),
-                                               info.m_line,
-                                               info.m_column);
-        m_pInfoLabel->setText(txt);
         QString key = SourceCache::GetKey(info.m_dir, info.m_file);
-
-        setFile(key);
-        setCursorAtLine(info.m_line, info.m_column);
-
-        // This is different -- use "jump to"?
-        m_pSourceTextEdit->setHighlightLine(info.m_line);
-        return;
+        if (key == m_currFileKey)
+        {
+            m_pSourceTextEdit->setHighlightLine(info.m_line);
+        }
     }
-    else
+}
+
+// Returns true if file was found
+bool SourceWindow::showFileForAddress(uint32_t addr, bool jumpCursor)
+{
+    ProgramDatabase::CodeInfo info;
+    if (GetLineInfo(info, addr))
     {
-        m_currFileKey.clear();
-        m_pSourceTextEdit->setPlainText("No source for this address");
-        m_pSourceTextEdit->setHighlightLine(-1);
-        m_pInfoLabel->setText(txt);
+        QString key = SourceCache::GetKey(info.m_dir, info.m_file);
+        setFile(key);
+        if (jumpCursor)
+            setCursorAtLine(info.m_line, info.m_column);
+        return true;
     }
+    m_currFileKey.clear();
+    m_pSourceTextEdit->setPlainText("No source for this address");
+    m_pSourceTextEdit->setHighlightLine(-1);
+    return false;
 }
 
 void SourceWindow::setFile(QString key)
@@ -578,6 +583,8 @@ void SourceWindow::setFile(QString key)
             return;
         }
         m_pSourceTextEdit->setPlainText(fileText);
+        // Clear highlighting
+        m_pSourceTextEdit->setHighlightLine(-1);
     }
 }
 
@@ -588,4 +595,16 @@ void SourceWindow::setCursorAtLine(int line, int column)
     QTextBlock b = textCursor.document()->findBlockByNumber(line - 1);
     textCursor.setPosition(b.position() + column, QTextCursor::MoveAnchor);
     m_pSourceTextEdit->setTextCursor(textCursor);
+}
+
+bool SourceWindow::GetLineInfo(ProgramDatabase::CodeInfo& info, uint32_t addr)
+{
+    uint32_t textAddr = m_pTargetModel->GetRegs().Get(Registers::TEXT);
+    uint32_t dataAddr = m_pTargetModel->GetRegs().Get(Registers::DATA);
+    uint32_t textOffset = addr - textAddr;
+    if (addr < dataAddr && m_pSession->m_pProgramDatabase->FindLowerOrEqual(textOffset, info))
+    {
+        return true;
+    }
+    return false;
 }

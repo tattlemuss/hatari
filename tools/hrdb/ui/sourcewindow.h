@@ -2,27 +2,28 @@
 #define SOURCEWINDOW_H
 
 #include <QDockWidget>
+#include <QPlainTextEdit>
 #include "showaddressactions.h"
+#include "models/programdatabase.h"
 
 class TargetModel;
 class Dispatcher;
 class Session;
+
+QT_BEGIN_NAMESPACE
 class QLabel;
 class QTextEdit;
 class QComboBox;
-
-class SourceCache;
-class SourceFilesModel;
-
-#include <QPlainTextEdit>
-
-QT_BEGIN_NAMESPACE
+class QCheckBox;
 class QPaintEvent;
 class QResizeEvent;
 class QSize;
 class QWidget;
-class QLabel;
 QT_END_NAMESPACE
+
+class SourceCache;
+class SourceFilesModel;
+class CodeEditor;
 
 class LineNumberArea;
 
@@ -84,6 +85,7 @@ private:
 //![extraarea]
 
 
+
 class SourceWindow : public QDockWidget
 {
     Q_OBJECT
@@ -101,18 +103,19 @@ private slots:
     void fileSelectComboChanged(int index);
 private:
     void connectChanged();
-    void startStopChanged();
-    void startStopDelayed(int running);
     void mainStateCompleted();
+    void followPCChanged();
 
     void programDatabaseChanged();
     void settingsChanged();
 
     void rescanCache();
-    void updateCurrentFile();
+    void updateFollowedPC();
 
+    bool showFileForAddress(uint32_t addr, bool jumpCursor);
     void setFile(QString key);
     void setCursorAtLine(int line, int column);
+    bool GetLineInfo(ProgramDatabase::CodeInfo& info, uint32_t addr);
 
     Session*            m_pSession;
     TargetModel*        m_pTargetModel;
@@ -120,12 +123,14 @@ private:
 
     CodeEditor*         m_pSourceTextEdit;
     QComboBox*          m_pFileSelectCombo;
-    QLabel*             m_pInfoLabel;
+    QCheckBox*          m_pFollowPCCheckBox;
 
     // Cache of files
     SourceCache*        m_pSourceCache;
     SourceFilesModel*   m_pSourceFilesModel;
     QString             m_currFileKey;
+
+    bool                m_bFollowPC;
 };
 
 #endif // SOURCEWINDOW_H
