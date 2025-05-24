@@ -629,9 +629,10 @@ void RegisterWidget::PopulateRegisters()
         }
 
         ++row;
-        uint32_t ex = GET_REG(m_currRegs, EX);
-        if (ex != 0)
-            AddToken(4, row, QString::asprintf("EXCEPTION: %s", ExceptionMask::GetName(ex)), TokenType::kNone, 0, TokenColour::kChanged);
+        uint32_t exVec = GET_REG(m_currRegs, EX);
+        if (exVec != 0)
+            AddToken(2, row, QString::asprintf("EXCEPTION: %s (Vector #%d)", ExceptionMask::GetExceptionVectorName(exVec), exVec),
+                     TokenType::kNone, 0, TokenColour::kChanged);
 
         // D-regs // A-regs
         row++;

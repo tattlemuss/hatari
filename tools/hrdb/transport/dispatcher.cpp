@@ -854,7 +854,7 @@ void Dispatcher::ParseExmask(StringSplitter &splitResp, const RemoteCommand &cmd
         return;
 
     ExceptionMask maskObj;
-    maskObj.m_mask = (uint16_t)mask;
+    maskObj.SetFromHatari(mask);
     m_pTargetModel->SetExceptionMask(maskObj);
 }
 

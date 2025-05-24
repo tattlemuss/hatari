@@ -24,9 +24,9 @@ ExceptionDialog::ExceptionDialog(QWidget *parent, TargetModel* pTargetModel, Dis
     pButtonContainer->setLayout(pHLayout);
 
     QVBoxLayout* pLayout = new QVBoxLayout(this);
-    for (int i = 0; i < ExceptionMask::kExceptionCount; ++i)
+    for (uint32_t i = 0; i < ExceptionMask::kExceptionCount; ++i)
     {
-        m_pCheckboxes[i] = new QCheckBox(ExceptionMask::GetName(i + 2), this);
+        m_pCheckboxes[i] = new QCheckBox(ExceptionMask::GetName(ExceptionMask::Type(i)), this);
         pLayout->addWidget(m_pCheckboxes[i]);
     }
     pLayout->addWidget(pButtonContainer);
@@ -46,14 +46,8 @@ ExceptionDialog::~ExceptionDialog()
 void ExceptionDialog::showEvent(QShowEvent *event)
 {
     const ExceptionMask& mask = m_pTargetModel->GetExceptionMask();
-    m_pCheckboxes[0]->setChecked(mask.Get(ExceptionMask::kBus));
-    m_pCheckboxes[1]->setChecked(mask.Get(ExceptionMask::kAddress));
-    m_pCheckboxes[2]->setChecked(mask.Get(ExceptionMask::kIllegal));
-    m_pCheckboxes[3]->setChecked(mask.Get(ExceptionMask::kZeroDiv));
-    m_pCheckboxes[4]->setChecked(mask.Get(ExceptionMask::kChk));
-    m_pCheckboxes[5]->setChecked(mask.Get(ExceptionMask::kTrapv));
-    m_pCheckboxes[6]->setChecked(mask.Get(ExceptionMask::kPrivilege));
-    m_pCheckboxes[7]->setChecked(mask.Get(ExceptionMask::kTrace));
+    for (uint32_t i = 0; i < ExceptionMask::kExceptionCount; ++i)
+        m_pCheckboxes[i]->setChecked(mask.Get(ExceptionMask::Type(i)));
 
     QDialog::showEvent(event);
 }
@@ -61,19 +55,11 @@ void ExceptionDialog::showEvent(QShowEvent *event)
 void ExceptionDialog::okClicked()
 {
     ExceptionMask mask;
-    mask.m_mask = 0;
-
-    if (m_pCheckboxes[0]->isChecked()) mask.Set(ExceptionMask::kBus);
-    if (m_pCheckboxes[1]->isChecked()) mask.Set(ExceptionMask::kAddress);
-    if (m_pCheckboxes[2]->isChecked()) mask.Set(ExceptionMask::kIllegal);
-    if (m_pCheckboxes[3]->isChecked()) mask.Set(ExceptionMask::kZeroDiv);
-    if (m_pCheckboxes[4]->isChecked()) mask.Set(ExceptionMask::kChk);
-    if (m_pCheckboxes[5]->isChecked()) mask.Set(ExceptionMask::kTrapv);
-    if (m_pCheckboxes[6]->isChecked()) mask.Set(ExceptionMask::kPrivilege);
-    if (m_pCheckboxes[7]->isChecked()) mask.Set(ExceptionMask::kTrace);
+    for (uint32_t i = 0; i < ExceptionMask::kExceptionCount; ++i)
+        if (m_pCheckboxes[i]->isChecked()) mask.Set(ExceptionMask::Type(i));
 
     // Send to target
     // NOTE: sending this returns a response with the set exmask,
     // so update in the target model is automatic.
-    m_pDispatcher->SetExceptionMask(mask.m_mask);
+    m_pDispatcher->SetExceptionMask(mask.GetAsHatari());
 }
