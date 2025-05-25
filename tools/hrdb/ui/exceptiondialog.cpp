@@ -12,19 +12,27 @@ ExceptionsGroupBox::ExceptionsGroupBox(QString title, QWidget* parent) :
     QGroupBox(title, parent)
 {
     // Options grid box
+    // Col    Mean
+    //  0     stretch
+    //  1     exceptions pt 1
+    //  2     exceptions pt 2
+    //  3     "all"/"non"
+    //  4     stretch
+
     QGridLayout *pGridLayout = new QGridLayout;
     uint32_t half = (ExceptionMask::kExceptionCount + 1) / 2;
     for (uint32_t i = 0; i < ExceptionMask::kExceptionCount; ++i)
     {
         m_pCheckboxes[i] = new QCheckBox(ExceptionMask::GetName(ExceptionMask::Type(i)), this);
-        pGridLayout->addWidget(m_pCheckboxes[i], i % half, i / half);
+        pGridLayout->addWidget(m_pCheckboxes[i], i % half, 1 + i / half);
     }
 
     m_pSelectAllButton = new QPushButton("All", this);
     m_pSelectNoneButton = new QPushButton("None", this);
-    pGridLayout->addWidget(m_pSelectAllButton, 0, 2);
-    pGridLayout->addWidget(m_pSelectNoneButton, 1, 2);
-
+    pGridLayout->addWidget(m_pSelectAllButton, 0, 3);
+    pGridLayout->addWidget(m_pSelectNoneButton, 1, 3);
+    pGridLayout->setColumnStretch(0, 100);
+    pGridLayout->setColumnStretch(4, 100);
     setLayout(pGridLayout);
 
     connect(m_pSelectAllButton, &QPushButton::clicked, this, &ExceptionsGroupBox::selectAllClicked);
