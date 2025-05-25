@@ -25,7 +25,7 @@ public:
         kLineA = 8,
         kLineF = 9,
         kDsp = 10,
-        kExceptionCount = 11
+        kExceptionCount = 11,
     };
 
     ExceptionMask();
