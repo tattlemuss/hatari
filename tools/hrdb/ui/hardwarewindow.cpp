@@ -21,7 +21,6 @@
 #include "showaddressactions.h"
 #include "symboltext.h"
 
-
 //-----------------------------------------------------------------------------
 // Wrappers to get memory from multiple memory slots
 static bool HasAddressMulti(const TargetModel* pModel, uint32_t address, uint32_t numBytes)
@@ -881,14 +880,38 @@ QModelIndex HardwareTreeModel::createIndex2(HardwareBase *pItem) const
     return ind;
 }
 
+//-----------------------------------------------------------------------------
+static void AddClipboardText(QTextStream& ref, HardwareBase* pNode, int indent)
+{
+    for (int i = 0; i < indent; ++i)
+        ref << "\t";
+
+    ref.setFieldAlignment(QTextStream::FieldAlignment::AlignLeft);
+    ref.setFieldWidth(28);
+    ref << pNode->m_title;
+    ref.setFieldWidth(0);
+    ref << "\t\t" << pNode->m_text << Format::endl;
+
+    for (HardwareBase* pChild : pNode->m_children)
+        AddClipboardText(ref, pChild, indent + 1);
+}
 
 //-----------------------------------------------------------------------------
 // HardwareTreeView
 //-----------------------------------------------------------------------------
-HardwareTreeView::HardwareTreeView(QWidget *parent, Session* pSession) :
+HardwareTreeView::HardwareTreeView(QWidget *parent, Session* pSession, HardwareTreeModel* pModel) :
     QTreeView(parent),
-    m_pSession(pSession)
+    m_pSession(pSession),
+    m_pModel(pModel)
 {
+    setModel(m_pModel);
+
+    m_pCopyAction = new QAction(tr("Copy All"), this);
+    m_pCopyAction->setShortcut(QKeySequence::Copy);
+    m_pCopyAction->setShortcutContext(Qt::WidgetShortcut);
+    this->addAction(m_pCopyAction); // this is needed for keyboard access
+
+    connect(m_pCopyAction,   &QAction::triggered,  this, &HardwareTreeView::copyToClipboard);
 }
 
 //-----------------------------------------------------------------------------
@@ -907,8 +930,22 @@ void HardwareTreeView::contextMenuEvent(QContextMenuEvent *event)
         m_showAddressMenu.AddTo(&menu);
 
         // Run it
-        menu.exec(event->globalPos());
     }
+
+    menu.addAction(m_pCopyAction);
+    menu.exec(event->globalPos());
+}
+
+//-----------------------------------------------------------------------------
+void HardwareTreeView::copyToClipboard()
+{
+    QClipboard *clipboard = QGuiApplication::clipboard();
+    QString newText;
+
+    QTextStream ref(&newText);
+    AddClipboardText(ref, m_pModel->rootItem, 0);
+
+    clipboard->setText(newText);
 }
 
 //-----------------------------------------------------------------------------
@@ -927,6 +964,7 @@ HardwareWindow::HardwareWindow(QWidget *parent, Session* pSession) :
     setObjectName("Hardware");
 
     HardwareBase* m_pRoot = new HardwareBase();
+    m_pRoot->m_title = "Hardware Window";
     m_pModel = new HardwareTreeModel(this, m_pTargetModel);
     m_pModel->rootItem = m_pRoot;
 
@@ -1138,20 +1176,10 @@ HardwareWindow::HardwareWindow(QWidget *parent, Session* pSession) :
     addShared(pExpDmaSnd, "Frame End",          new HardwareFieldAddr(HardwareFieldAddr::DMASndEnd));
     addMultiField(pExpDmaSnd, "DMA Sound Mode", Regs::g_regFieldsDef_DMA_SND_MODE);
 
-    QPushButton* pCopyButton = new QPushButton(tr("Copy"), this);
-
     // Layouts
     QVBoxLayout* pMainLayout = new QVBoxLayout();
     SetMargins(pMainLayout);
-    QHBoxLayout* pTopLayout = new QHBoxLayout;
-    auto pTopRegion = new QWidget(this);      // top buttons/edits
-    SetMargins(pTopLayout);
-    pTopLayout->addWidget(pCopyButton);
-    pTopLayout->addStretch();
-
-    m_pView = new HardwareTreeView(this, m_pSession);
-    m_pView->setModel(m_pModel);
-
+    m_pView = new HardwareTreeView(this, m_pSession, m_pModel);
     m_pView->setExpanded(m_pModel->createIndex2(pExpVec), true);
     m_pView->setExpanded(m_pModel->createIndex2(pExpMmu), true);
     m_pView->setExpanded(m_pModel->createIndex2(pExpVideo), true);
@@ -1160,17 +1188,12 @@ HardwareWindow::HardwareWindow(QWidget *parent, Session* pSession) :
     m_pView->setExpanded(m_pModel->createIndex2(pExpBlt), true);
     m_pView->setExpanded(m_pModel->createIndex2(pExpDmaSnd), true);
 
-    pMainLayout->addWidget(pTopRegion);
     pMainLayout->addWidget(m_pView);
-
     auto pMainRegion = new QWidget(this);   // whole panel
-    pTopRegion->setLayout(pTopLayout);
     pMainRegion->setLayout(pMainLayout);
     setWidget(pMainRegion);
 
     loadSettings();
-
-    connect(pCopyButton,     &QAbstractButton::clicked,            this, &HardwareWindow::copyToClipboard);
 
     connect(m_pTargetModel,  &TargetModel::connectChangedSignal,   this, &HardwareWindow::connectChanged);
     connect(m_pTargetModel,  &TargetModel::startStopChangedSignal, this, &HardwareWindow::startStopChanged);
@@ -1220,34 +1243,6 @@ void HardwareWindow::saveSettings()
 
     settings.setValue("geometry", saveGeometry());
     settings.endGroup();
-}
-
-//-----------------------------------------------------------------------------
-static void AddNode(QTextStream& ref, HardwareBase* pNode, int indent)
-{
-    for (int i = 0; i < indent; ++i)
-        ref << "\t";
-
-    ref.setFieldAlignment(QTextStream::FieldAlignment::AlignLeft);
-    ref.setFieldWidth(28);
-    ref << pNode->m_title;
-    ref.setFieldWidth(0);
-    ref << "\t\t" << pNode->m_text << Format::endl;
-
-    for (HardwareBase* pChild : pNode->m_children)
-        AddNode(ref, pChild, indent + 1);
-}
-
-//-----------------------------------------------------------------------------
-void HardwareWindow::copyToClipboard()
-{
-    QClipboard *clipboard = QGuiApplication::clipboard();
-    QString newText;
-
-    QTextStream ref(&newText);
-    AddNode(ref, m_pModel->rootItem, 0);
-
-    clipboard->setText(newText);
 }
 
 //-----------------------------------------------------------------------------

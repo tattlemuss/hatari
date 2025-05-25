@@ -55,14 +55,18 @@ public:
 class HardwareTreeView : public QTreeView
 {
 public:
-    HardwareTreeView(QWidget* parent, Session* pSession);
+    HardwareTreeView(QWidget* parent, Session* pSession, HardwareTreeModel* pModel);
 
 protected:
     virtual void contextMenuEvent(QContextMenuEvent *event) override;
+    void copyToClipboard();
 
     Session*            m_pSession;
+    HardwareTreeModel*  m_pModel;
+
     // Menu actions
     ShowAddressMenu     m_showAddressMenu;
+    QAction*            m_pCopyAction;
 };
 
 class HardwareWindow : public QDockWidget
@@ -79,7 +83,6 @@ public:
     void saveSettings();
 
 private:
-    void copyToClipboard();
     void connectChanged();
     void startStopChanged();
     void flush(const TargetChangedFlags& flags, uint64_t commandId);
