@@ -29,6 +29,6 @@ jobs:
       - name: build hrdb
         run: |
           cd tools/hrdb
-          qmake .
+          qmake6 .
           make
 
