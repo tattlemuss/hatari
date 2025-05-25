@@ -64,9 +64,12 @@ bool ExceptionMask::Get(Type exceptionType) const
     return (m_mask & (1U << (exceptionType))) != 0;
 }
 
-void ExceptionMask::Set(Type exceptionType)
+void ExceptionMask::Set(Type exceptionType, bool enabled)
 {
-    m_mask |= (1U << (exceptionType));
+    uint32_t shifted = (1U << (exceptionType));
+    m_mask &= ~shifted;
+    if (enabled)
+        m_mask |= shifted;
 }
 
 const char *ExceptionMask::GetName(Type exceptionId)
@@ -108,4 +111,25 @@ const char* ExceptionMask::GetExceptionVectorName(uint32_t exceptionVec)
     default: break;
     }
     return "Unknown";
+}
+
+const char* ExceptionMask::GetAutostartArg(Type exceptionId)
+{
+    // These strings are from log.c
+    switch (exceptionId)
+    {
+    case kBus: return "bus";
+    case kAddress: return "address";
+    case kIllegal: return "illegal";
+    case kZeroDiv: return "zerodiv";
+    case kChk: return "chk";
+    case kTrapv: return "trapv";
+    case kPrivilege: return "privilege";
+    case kTrace: return "trace";
+    case kLineA: return "linea";
+    case kLineF: return "linef";
+    case kDsp: return "dsp";
+    default: break;
+    }
+    return "unknown";
 }

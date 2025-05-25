@@ -30,6 +30,10 @@ public:
 
     ExceptionMask();
 
+    // Raw value access for setting serialisation
+    void SetRaw(uint32_t mask) { m_mask = mask; }
+    uint32_t GetRaw() const { return m_mask; }
+
     // Convert the Hatari raw exmask value to our internal format.
     void SetFromHatari(uint32_t hatariMask);
     // Generate an exmask value that Hatari likes.
@@ -39,13 +43,16 @@ public:
     bool Get(Type exceptionType) const;
 
     // Flag an internal bit that we want the exception type tracked.
-    void Set(Type exceptionType);
+    void Set(Type exceptionType, bool enabled);
 
     // Get name string from internal enum.
     static const char* GetName(Type exceptionId);
 
     // Get name string from the vector number supplied in the "EX" pseudo-register.
     static const char* GetExceptionVectorName(uint32_t exceptionVec);
+
+    // Get string needed to specify for the --debug-except launch argument.
+    static const char* GetAutostartArg(Type exceptionId);
 private:
     uint32_t m_mask;        // Accumulated mask value from set Types
 };

@@ -23,6 +23,8 @@ void LaunchSettings::loadSettings(QSettings& settings)
     m_breakMode = settings.value("breakMode", QVariant("0")).toInt();
     m_fastLaunch = settings.value("fastLaunch", QVariant("false")).toBool();
     m_breakPointTxt = settings.value("breakPointTxt", QVariant("")).toString();
+
+    m_exceptionMask.SetRaw(settings.value("autostartException", QVariant(0)).toUInt());
     settings.endGroup();
 }
 
@@ -39,6 +41,7 @@ void LaunchSettings::saveSettings(QSettings &settings) const
     settings.setValue("breakMode", m_breakMode);
     settings.setValue("fastLaunch", m_fastLaunch);
     settings.setValue("breakPointTxt", m_breakPointTxt);
+    settings.setValue("autostartException", m_exceptionMask.GetRaw());
     settings.endGroup();
 }
 
@@ -143,6 +146,28 @@ bool LaunchHatari(const LaunchSettings& settings, Session* pSession)
             args.push_front(tmp.fileName());
             args.push_front("--parse");
         }
+    }
+
+    // If there are autostart exceptions, generate the string
+    if (settings.m_exceptionMask.GetRaw() != 0)
+    {
+        QString autoStartStr;
+        QTextStream ref(&autoStartStr);
+        bool first = true;
+        for (uint32_t i = 0; i < ExceptionMask::kExceptionCount; ++i)
+        {
+            ExceptionMask::Type t = (ExceptionMask::Type)i;
+            if (settings.m_exceptionMask.Get(t))
+            {
+                if (!first)
+                    ref << ",";
+                ref << QString(ExceptionMask::GetAutostartArg(t));
+                first = false;
+            }
+        }
+        ref << ",autostart";
+        args.push_back("--debug-except");
+        args.push_back(autoStartStr);
     }
 
     // Executable goes as last arg

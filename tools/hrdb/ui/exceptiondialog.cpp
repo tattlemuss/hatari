@@ -8,8 +8,8 @@
 #include "../models/targetmodel.h"
 #include "../transport/dispatcher.h"
 
-ExceptionsGroupBox::ExceptionsGroupBox(QWidget* parent) :
-    QGroupBox("Exception types", parent)
+ExceptionsGroupBox::ExceptionsGroupBox(QString title, QWidget* parent) :
+    QGroupBox(title, parent)
 {
     // Options grid box
     QGridLayout *pGridLayout = new QGridLayout;
@@ -71,7 +71,7 @@ ExceptionDialog::ExceptionDialog(QWidget *parent, TargetModel* pTargetModel, Dis
     QWidget* pButtonContainer = new QWidget(this);
     pButtonContainer->setLayout(pHLayout);
 
-    m_pGroupBox = new ExceptionsGroupBox(this);
+    m_pGroupBox = new ExceptionsGroupBox("Exception Types", this);
 
     QVBoxLayout* pWholeLayout = new QVBoxLayout(this);
     pWholeLayout->addWidget(m_pGroupBox);
@@ -106,8 +106,7 @@ void ExceptionDialog::okClicked()
     for (uint32_t i = 0; i < ExceptionMask::kExceptionCount; ++i)
     {
         ExceptionMask::Type t = (ExceptionMask::Type)i;
-        if (m_pGroupBox->Get(t))
-            mask.Set(t);
+        mask.Set(t, m_pGroupBox->Get(t));
     }
 
     // Send to target

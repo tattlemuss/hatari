@@ -11,6 +11,7 @@ class QComboBox;
 class TargetModel;
 class Dispatcher;
 class Session;
+class ExceptionsGroupBox;
 
 class RunDialog : public QDialog
 {
@@ -57,6 +58,8 @@ private:
     QCheckBox*      m_pWatcherCheckBox; 
     QComboBox*      m_pBreakModeCombo;
     QLineEdit*      m_pBreakpointTextEdit;
+
+    ExceptionsGroupBox* m_pExceptionsGroupBox;
 
     // Current temporary settings to launch with
     LaunchSettings m_launchSettings;

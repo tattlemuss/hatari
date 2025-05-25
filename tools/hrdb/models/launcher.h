@@ -3,6 +3,7 @@
 
 #include <QString>
 #include <QStringList>
+#include "exceptionmask.h"
 
 class QSettings;
 class Session;
@@ -32,6 +33,7 @@ public:
     QString m_breakPointTxt;
     bool m_watcherActive;
     bool m_fastLaunch;              // If true, start with --fast-forward and reset at program start
+    ExceptionMask m_exceptionMask;
 };
 
 // Returns true on success (Qt doesn't offer more options?)

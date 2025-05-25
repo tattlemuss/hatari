@@ -10,11 +10,13 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QMessageBox>
+#include <QTabWidget>
 
 #include <QtGlobal> // for Q_OS_MACOS
 #include "../models/launcher.h"
 #include "../models/session.h"
 #include "quicklayout.h"
+#include "exceptiondialog.h"
 
 #ifdef Q_OS_MACOS
 #define USE_MAC_BUNDLE
@@ -59,8 +61,8 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     pButtonContainer->setLayout(pHLayout);
 
     // Options grid box
-    QGroupBox* gridGroupBox = new QGroupBox(tr("Options"));
-    QGridLayout *gridLayout = new QGridLayout;
+    QWidget* pLaunchOptionsContainer = new QWidget();
+    QGridLayout *launchOptionsGridLayout = new QGridLayout;
 
     // Create widgets in tab order
     m_pExecutableTextEdit = new QLineEdit("hatari", this);
@@ -109,53 +111,59 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     pArgumentLink->setTextFormat(Qt::RichText);
 
     int row = 0;
-    gridLayout->addWidget(new QLabel(tr("Hatari Executable:"), this), row, 0);
-    gridLayout->addWidget(m_pExecutableTextEdit, row, 2);
-    gridLayout->addWidget(pExeButton, row, 4);
+    launchOptionsGridLayout->addWidget(new QLabel(tr("Hatari Executable:"), this), row, 0);
+    launchOptionsGridLayout->addWidget(m_pExecutableTextEdit, row, 2);
+    launchOptionsGridLayout->addWidget(pExeButton, row, 4);
     ++row;
 
-    gridLayout->addWidget(new QLabel(tr("Run Program/Image:"), this), row, 0);
-    gridLayout->addWidget(m_pPrgTextEdit, row, 2);
-    gridLayout->addWidget(pPrgButton, row, 4);
+    launchOptionsGridLayout->addWidget(new QLabel(tr("Run Program/Image:"), this), row, 0);
+    launchOptionsGridLayout->addWidget(m_pPrgTextEdit, row, 2);
+    launchOptionsGridLayout->addWidget(pPrgButton, row, 4);
     ++row;
-    gridLayout->addWidget(m_pFastLaunchCheckBox, row, 2);
+    launchOptionsGridLayout->addWidget(m_pFastLaunchCheckBox, row, 2);
     ++row;
 
     //gridLayout->addWidget(new QLabel(tr("Watch:"), this), row, 0);
-    gridLayout->addWidget(m_pWatcherCheckBox, row, 0);
-    gridLayout->addWidget(m_pWatcherFilesTextEdit, row, 2);
-    gridLayout->addWidget(pWatcherButton, row, 4);
+    launchOptionsGridLayout->addWidget(m_pWatcherCheckBox, row, 0);
+    launchOptionsGridLayout->addWidget(m_pWatcherFilesTextEdit, row, 2);
+    launchOptionsGridLayout->addWidget(pWatcherButton, row, 4);
     ++row;
 
-    gridLayout->addWidget(new QLabel("Additional options:", this), row, 0);
-    gridLayout->addWidget(m_pArgsTextEdit, row, 2);
-    gridLayout->addWidget(pArgumentLink, row, 4);
+    launchOptionsGridLayout->addWidget(new QLabel(tr("Working Directory:"), this), row, 0);
+    launchOptionsGridLayout->addWidget(m_pWorkingDirectoryTextEdit, row, 2);
+    launchOptionsGridLayout->addWidget(pWDButton, row, 4);
     ++row;
 
-    gridLayout->addWidget(new QLabel(tr("Working Directory:"), this), row, 0);
-    gridLayout->addWidget(m_pWorkingDirectoryTextEdit, row, 2);
-    gridLayout->addWidget(pWDButton, row, 4);
+    launchOptionsGridLayout->addWidget(new QLabel(tr("Hatari config:"), this), row, 0);
+    launchOptionsGridLayout->addWidget(m_pHatariConfigTextEdit, row, 2);
+    launchOptionsGridLayout->addWidget(pHatariConfigButton, row, 4);
     ++row;
 
-    gridLayout->addWidget(new QLabel(tr("Hatari config:"), this), row, 0);
-    gridLayout->addWidget(m_pHatariConfigTextEdit, row, 2);
-    gridLayout->addWidget(pHatariConfigButton, row, 4);
+    launchOptionsGridLayout->addWidget(new QLabel("Additional options:", this), row, 0);
+    launchOptionsGridLayout->addWidget(m_pArgsTextEdit, row, 2);
+    launchOptionsGridLayout->addWidget(pArgumentLink, row, 4);
     ++row;
 
-
-    gridLayout->addWidget(new QLabel(tr("Break at:"), this), row, 0);
-    gridLayout->addWidget(m_pBreakModeCombo, row, 2);
+    launchOptionsGridLayout->addWidget(new QLabel(tr("Break at:"), this), row, 0);
+    launchOptionsGridLayout->addWidget(m_pBreakModeCombo, row, 2);
     ++row;
-    gridLayout->addWidget(m_pBreakpointTextEdit, row, 2);
+    launchOptionsGridLayout->addWidget(m_pBreakpointTextEdit, row, 2);
     ++row;
 
-    gridLayout->setColumnStretch(2, 20);
-    gridGroupBox->setSizePolicy(QSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Maximum));
-    gridGroupBox->setLayout(gridLayout);
+    launchOptionsGridLayout->setColumnStretch(2, 20);
+    pLaunchOptionsContainer->setSizePolicy(QSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Maximum));
+    pLaunchOptionsContainer->setLayout(launchOptionsGridLayout);
+
+    m_pExceptionsGroupBox = new ExceptionsGroupBox("Autostart exceptions", nullptr);
+    m_pExceptionsGroupBox->setToolTip("NOTE: These exceptions are only enabled once the specified\n"
+                                    "autostarted program has loaded.");
+    QTabWidget* pTabWidget = new QTabWidget(this);
+    pTabWidget->addTab(pLaunchOptionsContainer, "Launch");
+    pTabWidget->addTab(m_pExceptionsGroupBox, "Exceptions");
 
     // Overall layout (options at top, buttons at bottom)
     QVBoxLayout* pLayout = new QVBoxLayout(this);
-    pLayout->addWidget(gridGroupBox);
+    pLayout->addWidget(pTabWidget);
     pLayout->addStretch();
     pLayout->addWidget(pButtonContainer);
 
@@ -202,6 +210,13 @@ void RunDialog::LoadSettings()
     m_pFastLaunchCheckBox->setChecked(m_launchSettings.m_fastLaunch);
     m_pBreakpointTextEdit->setText(m_launchSettings.m_breakPointTxt);
     m_pBreakpointTextEdit->setVisible(m_launchSettings.m_breakMode == LaunchSettings::kProgramBreakpoint);
+
+    const ExceptionMask& mask = m_launchSettings.m_exceptionMask;
+    for (uint32_t i = 0; i < ExceptionMask::kExceptionCount; ++i)
+    {
+        ExceptionMask::Type t = (ExceptionMask::Type)i;
+        m_pExceptionsGroupBox->Set(t, mask.Get(t));
+    }
 }
 
 void RunDialog::SaveSettings()
@@ -210,6 +225,13 @@ void RunDialog::SaveSettings()
     settings.beginGroup("RunDialog");
     settings.setValue("geometry", saveGeometry());
     settings.endGroup();
+
+    ExceptionMask& mask = m_launchSettings.m_exceptionMask;
+    for (uint32_t i = 0; i < ExceptionMask::kExceptionCount; ++i)
+    {
+        ExceptionMask::Type t = (ExceptionMask::Type)i;
+        mask.Set(t, m_pExceptionsGroupBox->Get(t));
+    }
 
     // Now write the settings back into the session
     m_pSession->SetLaunchSettings(m_launchSettings);

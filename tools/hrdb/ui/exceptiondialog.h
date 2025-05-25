@@ -13,8 +13,7 @@ class ExceptionsGroupBox : public QGroupBox
 {
     Q_OBJECT
 public:
-    ExceptionsGroupBox(QWidget* parent);
-
+    ExceptionsGroupBox(QString title, QWidget* parent);
     void Set(ExceptionMask::Type type, bool enabled);
     bool Get(ExceptionMask::Type type) const;
 
