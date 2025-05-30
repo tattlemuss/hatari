@@ -49,7 +49,7 @@ static QString CreateNumberTooltip(uint32_t value, uint32_t prevValue)
     for (int bit = 3; bit >= 0; --bit)
     {
         unsigned char val = static_cast<unsigned char>(value >> (bit * 8));
-        ref << ((val >= 32 && val < 128) ? QString(val) : ".");
+        ref << ((val >= 32 && val < 128) ? QString::fromUtf8(reinterpret_cast<const char*>(&val), 1) : ".");
     }
     ref << "\"\n";
 
