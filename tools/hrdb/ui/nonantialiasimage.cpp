@@ -6,6 +6,7 @@
 #include <QMenu>
 #include "../models/session.h"
 #include "../models/targetmodel.h"
+#include "qtversionwrapper.h"
 
 NonAntiAliasImage::NonAntiAliasImage(QWidget *parent, Session* pSession)
     : QWidget(parent),
@@ -177,7 +178,7 @@ void NonAntiAliasImage::paintEvent(QPaintEvent* ev)
 
 void NonAntiAliasImage::mouseMoveEvent(QMouseEvent *event)
 {
-    m_mousePos = event->localPos();
+    m_mousePos = QTEVENT_GET_LOCAL_POS(event);
     UpdateMouseInfo();
     emit MouseInfoChanged();
     update();// re-render zoom

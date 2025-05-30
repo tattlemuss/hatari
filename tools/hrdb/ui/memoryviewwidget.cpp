@@ -28,6 +28,7 @@
 #include "quicklayout.h"
 #include "searchdialog.h"
 #include "symboltext.h"
+#include "qtversionwrapper.h"
 
 /*
  * Memory handling in the views
@@ -790,13 +791,14 @@ void MemoryWidget::keyPressEvent(QKeyEvent* event)
 
 void MemoryWidget::mousePressEvent(QMouseEvent *event)
 {
+    QPointF localPos = QTEVENT_GET_LOCAL_POS(event);
     if (m_pTargetModel->IsConnected())
     {
         if (event->button() == Qt::MouseButton::LeftButton)
         {
             // Over a hex char
-            int x = static_cast<int>(event->localPos().x());
-            int y = static_cast<int>(event->localPos().y());
+            int x = static_cast<int>(localPos.x());
+            int y = static_cast<int>(localPos.y());
             int row;
             int col;
             if (CalcRowColFromMouse(x, y, row, col))
