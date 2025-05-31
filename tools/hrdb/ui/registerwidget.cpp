@@ -150,6 +150,7 @@ RegisterWidget::RegisterWidget(QWidget *parent, Session* pSession) :
     m_pSession(pSession),
     m_pDispatcher(pSession->m_pDispatcher),
     m_pTargetModel(pSession->m_pTargetModel),
+    m_cpuRegMask(0),
     m_tokenUnderMouseIndex(-1)
 {
     // The widget is now of fixed size (determined by layout).
@@ -292,6 +293,11 @@ void RegisterWidget::paintEvent(QPaintEvent * ev)
         {
             painter.setPen(col);
         }
+        if (tok.border)
+        {
+            painter.setBrush(Qt::NoBrush);
+            painter.drawRect(QRect(x - 2, y, w + 4, h));
+        }
 
         painter.drawText(x, m_yAscent + y, tok.text);
     }
@@ -420,12 +426,16 @@ void RegisterWidget::mainStateUpdated()
 {
     // Disassemble the first instruction
     m_disasm.lines.clear();
+    m_cpuRegMask = 0;
     const Memory* pMem;
     pMem = m_pTargetModel->GetMemory(MemorySlot::kMainPC);
     if (pMem)
     {
         hop68::buffer_reader disasmBuf(pMem->GetData(), pMem->GetSize(), pMem->GetAddress());
         Disassembler::decode_buf(disasmBuf, m_disasm, m_pTargetModel->GetDisasmSettings(), pMem->GetAddress(), 2);
+        // Update used registers
+        if (m_disasm.lines.size() > 0)
+            m_cpuRegMask = DisAnalyse::getRegisterUsage(m_disasm.lines[0].inst);
     }
 
     m_disasmDsp.lines.clear();
@@ -797,7 +807,7 @@ QString RegisterWidget::FindSymbol(uint32_t addr)
     return DescribeSymbol(m_pTargetModel->GetSymbolTable(), addr & 0xffffff);
 }
 
-int RegisterWidget::AddToken(int x, int y, QString text, TokenType type, uint32_t subIndex, TokenColour colour, bool invert)
+int RegisterWidget::AddToken(int x, int y, QString text, TokenType type, uint32_t subIndex, TokenColour colour, bool invert, bool border)
 {
     Token tok;
     tok.x = x;
@@ -807,6 +817,7 @@ int RegisterWidget::AddToken(int x, int y, QString text, TokenType type, uint32_
     tok.subIndex = subIndex;
     tok.colour = colour;
     tok.invert = invert;
+    tok.border = border;
     m_tokens.push_back(tok);
     // Return X position
     return tok.x + text.size();
@@ -817,21 +828,23 @@ int RegisterWidget::AddReg16(int x, int y, uint32_t regIndex)
     const Registers& prevRegs(m_prevRegs); const Registers& regs(m_currRegs);
     TokenColour highlight = (regs.m_value[regIndex] != prevRegs.m_value[regIndex]) ? kChanged : kNormal;
 
+    bool invert = ((((uint64_t)1) << regIndex) & m_cpuRegMask);
     QString label = QString::asprintf("%s:",  Registers::s_names[regIndex]);
     QString value = QString::asprintf("%04x", regs.m_value[regIndex]);
     AddToken(x, y, label, TokenType::kRegister, regIndex, TokenColour::kNormal);
-    return AddToken(x + label.size() + 1, y, value, TokenType::kRegister, regIndex, highlight);
+    return AddToken(x + label.size() + 1, y, value, TokenType::kRegister, regIndex, highlight, false, invert);
 }
 
 int RegisterWidget::AddReg32(int x, int y, uint32_t regIndex)
 {
     const Registers& prevRegs(m_prevRegs); const Registers& regs(m_currRegs);
     TokenColour highlight = (regs.m_value[regIndex] != prevRegs.m_value[regIndex]) ? kChanged : kNormal;
+    bool invert = ((((uint64_t)1) << regIndex) & m_cpuRegMask);
 
     QString label = QString::asprintf("%s:",  Registers::s_names[regIndex]);
     QString value = QString::asprintf("%08x", regs.m_value[regIndex]);
     AddToken(x, y, label, TokenType::kRegister, regIndex, TokenColour::kNormal);
-    return AddToken(x + label.size() + 1, y, value, TokenType::kRegister, regIndex, highlight);
+    return AddToken(x + label.size() + 1, y, value, TokenType::kRegister, regIndex, highlight, false, invert);
 }
 
 int RegisterWidget::AddDspReg24(int x, int y, uint32_t regIndex)
@@ -997,3 +1010,16 @@ int RegisterWidget::GetRowFromPixel(int y) const
         return 0;
     return ((y - Session::kWidgetBorderY) / m_lineHeight) + 1;
 }
+
+
+RegisterWidget::Token::Token() :
+    x(0), y(0),
+    type(TokenType::kNone),
+    colour(TokenColour::kCode),
+    invert(false),
+    border(false)
+{
+}
+
+
+

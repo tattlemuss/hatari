@@ -51,29 +51,36 @@ int Disassembler::decode_buf(buffer_reader& buf, disassembly& disasm, const deco
 //	INSTRUCTION ANALYSIS
 // ----------------------------------------------------------------------------
 
-static uint32_t GetIndexRegisterVal(const Registers& regs, IndexRegister indexReg)
+// Convert index register to our internal Registers enum
+static uint32_t GetIndexRegister(IndexRegister indexReg)
 {
     switch (indexReg)
     {
-    case IndexRegister::INDEX_REG_A0: return regs.A0;
-    case IndexRegister::INDEX_REG_A1: return regs.A1;
-    case IndexRegister::INDEX_REG_A2: return regs.A2;
-    case IndexRegister::INDEX_REG_A3: return regs.A3;
-    case IndexRegister::INDEX_REG_A4: return regs.A4;
-    case IndexRegister::INDEX_REG_A5: return regs.A5;
-    case IndexRegister::INDEX_REG_A6: return regs.A6;
-    case IndexRegister::INDEX_REG_A7: return regs.A7;
-    case IndexRegister::INDEX_REG_D0: return regs.D0;
-    case IndexRegister::INDEX_REG_D1: return regs.D1;
-    case IndexRegister::INDEX_REG_D2: return regs.D2;
-    case IndexRegister::INDEX_REG_D3: return regs.D3;
-    case IndexRegister::INDEX_REG_D4: return regs.D4;
-    case IndexRegister::INDEX_REG_D5: return regs.D5;
-    case IndexRegister::INDEX_REG_D6: return regs.D6;
-    case IndexRegister::INDEX_REG_D7: return regs.D7;
+    case IndexRegister::INDEX_REG_A0: return Registers::A0;
+    case IndexRegister::INDEX_REG_A1: return Registers::A1;
+    case IndexRegister::INDEX_REG_A2: return Registers::A2;
+    case IndexRegister::INDEX_REG_A3: return Registers::A3;
+    case IndexRegister::INDEX_REG_A4: return Registers::A4;
+    case IndexRegister::INDEX_REG_A5: return Registers::A5;
+    case IndexRegister::INDEX_REG_A6: return Registers::A6;
+    case IndexRegister::INDEX_REG_A7: return Registers::A7;
+    case IndexRegister::INDEX_REG_D0: return Registers::D0;
+    case IndexRegister::INDEX_REG_D1: return Registers::D1;
+    case IndexRegister::INDEX_REG_D2: return Registers::D2;
+    case IndexRegister::INDEX_REG_D3: return Registers::D3;
+    case IndexRegister::INDEX_REG_D4: return Registers::D4;
+    case IndexRegister::INDEX_REG_D5: return Registers::D5;
+    case IndexRegister::INDEX_REG_D6: return Registers::D6;
+    case IndexRegister::INDEX_REG_D7: return Registers::D7;
+    case IndexRegister::INDEX_REG_PC: return Registers::PC;
     default: break;
     }
     return 0;
+}
+
+static uint32_t GetIndexRegisterVal(const Registers& regs, IndexRegister indexReg)
+{
+    return regs.m_value[GetIndexRegister(indexReg)];
 }
 
 // ----------------------------------------------------------------------------
@@ -758,4 +765,91 @@ bool DisAnalyse::getBranchTarget(uint32_t instAddr, const instruction &inst, uin
             break;
     }
     return false;
+}
+
+// Functions to generate the reg usage masks
+static uint64_t getRegUsageBit(int reg)
+{
+    assert(reg < Registers::REG_COUNT);
+    return ((uint64_t)1) << reg;
+}
+
+static uint64_t getRegUsageDBit(int reg)
+{
+    return getRegUsageBit(reg + Registers::D0);
+}
+
+static uint64_t getRegUsageABit(int reg)
+{
+    return getRegUsageBit(reg + Registers::A0);
+}
+
+static uint64_t getRegisterUsage(const hop68::operand& op)
+{
+    switch (op.type)
+    {
+        case OpType::D_DIRECT:
+            return getRegUsageDBit(op.d_register.reg);
+        case OpType::A_DIRECT:
+            return getRegUsageABit(op.a_register.reg);
+        case OpType::INDIRECT:
+            return getRegUsageABit(op.indirect.reg);
+        case OpType::INDIRECT_POSTINC:
+            return getRegUsageABit(op.indirect_postinc.reg);
+        case OpType::INDIRECT_PREDEC:
+            return getRegUsageABit(op.indirect_predec.reg);
+        case OpType::INDIRECT_DISP:
+            return getRegUsageABit(op.indirect_disp.reg);
+        case OpType::INDIRECT_INDEX:
+            return getRegUsageABit(op.indirect_index.a_reg) |
+                    getRegUsageBit(GetIndexRegister(op.indirect_index.indirect_info.index_reg));
+        case OpType::ABSOLUTE_WORD:
+        case OpType::ABSOLUTE_LONG:
+        case OpType::RELATIVE_BRANCH:
+        case OpType::IMMEDIATE:
+            return 0;
+        case OpType::PC_DISP:
+            return getRegUsageBit(Registers::PC);
+        case OpType::PC_DISP_INDEX:
+            return getRegUsageBit(Registers::PC) |
+                    getRegUsageBit(GetIndexRegister(op.pc_disp_index.indirect_info.index_reg));
+        case OpType::MOVEM_REG:
+        {
+            // NOTE: assumes d0-d7/a0-a7 order in Registers
+            uint64_t mask = 0;
+            for (int i = 0; i < 16; ++i)
+                if ((1U << i) & op.movem_reg.reg_mask)
+                    mask |= getRegUsageBit(Registers::D0 + i);
+            return mask;
+        }
+        case OpType::SR:
+            return getRegUsageBit(Registers::SR);
+        case OpType::USP:
+            return getRegUsageBit(Registers::USP);
+        case OpType::CCR:
+            return getRegUsageBit(Registers::SR);
+        case OpType::NO_MEMORY_INDIRECT:
+        case OpType::MEMORY_INDIRECT:
+        case OpType::INDIRECT_POSTINDEXED:
+        case OpType::INDIRECT_PREINDEXED:
+        {
+            uint64_t mask = 0;
+            if (op.indirect_index_68020.used[1])
+                mask |= getRegUsageBit(GetIndexRegister(op.indirect_index_68020.base_register));
+            if (op.indirect_index_68020.used[2])
+                mask |= getRegUsageBit(GetIndexRegister(op.indirect_index_68020.index.index_reg));
+            return mask;
+        }
+        default:
+            return 0;
+    }
+}
+
+uint64_t DisAnalyse::getRegisterUsage(const hop68::instruction& inst)
+{
+    uint64_t mask = 0;
+    mask |= ::getRegisterUsage(inst.op0);
+    mask |= ::getRegisterUsage(inst.op1);
+    mask |= ::getRegisterUsage(inst.op2);
+    return mask;
 }

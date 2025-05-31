@@ -66,6 +66,7 @@ private:
 
     struct Token
     {
+        Token();
         int x;
         int y;
         QString text;
@@ -74,6 +75,7 @@ private:
         uint32_t subIndex;      // subIndex e.g "4" for D4, 0x12345 for symbol address, bitnumber for SR field
         TokenColour colour;     // how to draw it
         bool invert;            // swap back + front
+        bool border;
         QRectF rect;            // bounding rectangle, updated when rendered
     };
 
@@ -86,7 +88,7 @@ private:
     QString FindSymbol(uint32_t addr);
 
     int AddToken(int x, int y, QString text, TokenType type, uint32_t subIndex = 0, TokenColour colour = TokenColour::kNormal,
-                 bool invert = false);
+                 bool invert = false, bool border = false);
     int AddReg16(int x, int y, uint32_t regIndex);
     int AddReg32(int x, int y, uint32_t regIndex);
     int AddDspReg24(int x, int y, uint32_t regIndex);
@@ -131,6 +133,7 @@ private:
     Registers                   m_currRegs;     // current regs
     Registers                   m_prevRegs;     // regs when PC started
     Disassembler::disassembly   m_disasm;
+    uint64_t                    m_cpuRegMask;   // registers used in disassembly line
 
     DspRegisters                m_currDspRegs;
     DspRegisters                m_prevDspRegs;

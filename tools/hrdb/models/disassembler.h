@@ -70,6 +70,9 @@ public:
 
     // See if this is a branch instruction and where it points (i.e. its effective address)
     static bool getBranchTarget(uint32_t instAddr, const hop68::instruction &inst, uint32_t& target);
+
+    // Set a bitmask of all the registers used by the instruction.
+    static uint64_t getRegisterUsage(const hop68::instruction& inst);
 };
 
 #endif // DISASSEMBLER_H
