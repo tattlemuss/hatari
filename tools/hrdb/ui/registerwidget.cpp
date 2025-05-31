@@ -995,5 +995,5 @@ int RegisterWidget::GetRowFromPixel(int y) const
 {
     if (!m_lineHeight)
         return 0;
-    return (y - Session::kWidgetBorderY) / m_lineHeight;
+    return ((y - Session::kWidgetBorderY) / m_lineHeight) + 1;
 }
