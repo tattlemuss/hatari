@@ -149,22 +149,26 @@ bool LaunchHatari(const LaunchSettings& settings, Session* pSession)
     }
 
     // If there are autostart exceptions, generate the string
-    if (settings.m_exceptionMask.GetRaw() != 0)
+    // We have to check each bit manually, since the GetRaw() value
+    // can have non-user bits set (like autostart)
+    QString autoStartStr;
+    QTextStream ref(&autoStartStr);
+    bool first = true;
+    for (uint32_t i = 0; i < ExceptionMask::kExceptionCount; ++i)
     {
-        QString autoStartStr;
-        QTextStream ref(&autoStartStr);
-        bool first = true;
-        for (uint32_t i = 0; i < ExceptionMask::kExceptionCount; ++i)
+        ExceptionMask::Type t = (ExceptionMask::Type)i;
+        if (settings.m_exceptionMask.Get(t))
         {
-            ExceptionMask::Type t = (ExceptionMask::Type)i;
-            if (settings.m_exceptionMask.Get(t))
-            {
-                if (!first)
-                    ref << ",";
-                ref << QString(ExceptionMask::GetAutostartArg(t));
-                first = false;
-            }
+            if (!first)
+                ref << ",";
+            ref << QString(ExceptionMask::GetAutostartArg(t));
+            first = false;
         }
+    }
+    // Only add to command line if a bit was set
+    if (!first)
+    {
+        // Found some flags
         ref << ",autostart";
         args.push_back("--debug-except");
         args.push_back(autoStartStr);
