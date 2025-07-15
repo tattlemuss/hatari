@@ -30,7 +30,8 @@ static uint32_t emToHatariBits[] =
     EXCEPT_DSP,
 };
 
-static_assert(sizeof(emToHatariBits) == ExceptionMask::kExceptionCount * sizeof(uint32_t));
+// Disable until I figure out Windows build support with qmake
+//static_assert(sizeof(emToHatariBits) == ExceptionMask::kExceptionCount * sizeof(uint32_t));
 
 ExceptionMask::ExceptionMask()
 {
