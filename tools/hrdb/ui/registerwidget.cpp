@@ -16,7 +16,6 @@
 #include "../hardware/tos.h"
 #include "symboltext.h"
 #include "qtversionwrapper.h"
-#include "hopper56/buffer.h"
 
 static QString CreateNumberTooltip(uint32_t value, uint32_t prevValue)
 {
