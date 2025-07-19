@@ -93,7 +93,10 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     m_userHeight(200),
     m_paletteMode(kRegisters),
     m_cachedResolution(Regs::RESOLUTION::LOW),
-    m_annotateRegisters(false)
+    m_cachedVideoCurr(0U),
+    m_cachedVideoBase(0U),
+    m_annotateRegisters(false),
+    m_annotateVideo(false)
 {
     m_paletteAddress = Regs::VID_PAL_0;
 
@@ -236,11 +239,14 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     m_pOverlayZoomAction->setCheckable(true);
     m_pOverlayRegistersAction = new QAction("Address Registers", this);
     m_pOverlayRegistersAction->setCheckable(true);
+    m_pOverlayVideoAction = new QAction("Video Addresses", this);
+    m_pOverlayVideoAction->setCheckable(true);
 
     m_pOverlayMenu->addAction(m_pOverlayDarkenAction);
     m_pOverlayMenu->addAction(m_pOverlayGridAction);
     m_pOverlayMenu->addAction(m_pOverlayZoomAction);
     m_pOverlayMenu->addAction(m_pOverlayRegistersAction);
+    m_pOverlayMenu->addAction(m_pOverlayVideoAction);
 
     // Keyboard shortcuts
     new QShortcut(QKeySequence("Ctrl+G"),         this, SLOT(gotoClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
@@ -275,6 +281,7 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     connect(m_pOverlayGridAction,           &QAction::triggered,          this, &GraphicsInspectorWidget::overlayGridChanged);
     connect(m_pOverlayZoomAction,           &QAction::triggered,          this, &GraphicsInspectorWidget::overlayZoomChanged);
     connect(m_pOverlayRegistersAction,      &QAction::triggered,          this, &GraphicsInspectorWidget::overlayRegistersChanged);
+    connect(m_pOverlayVideoAction,          &QAction::triggered,          this, &GraphicsInspectorWidget::overlayVideoChanged);
 
     loadSettings();
     UpdateUIElements();
@@ -316,6 +323,7 @@ void GraphicsInspectorWidget::loadSettings()
     m_pImageWidget->SetGrid(grid);
     m_pImageWidget->SetZoom(zoom);
     m_annotateRegisters = settings.value("annotateRegisters", QVariant(false)).toBool();
+    m_annotateVideo = settings.value("annotateVideo", QVariant(false)).toBool();
 
     UpdateUIElements();
     settings.endGroup();
@@ -337,6 +345,7 @@ void GraphicsInspectorWidget::saveSettings()
     settings.setValue("grid", m_pImageWidget->GetGrid());
     settings.setValue("zoom", m_pImageWidget->GetZoom());
     settings.setValue("annotateRegisters", m_annotateRegisters);
+    settings.setValue("annotateVideo", m_annotateVideo);
     settings.endGroup();
 }
 
@@ -458,6 +467,12 @@ void GraphicsInspectorWidget::memoryChanged(int /*memorySlot*/, uint64_t command
             if (m_pTargetModel->GetMachineType() == MACHINE_FALCON &&
                     pMem->ReadCpuMulti(Regs::FALC_SPSHIFT, 2U, falcVal))
                 m_cachedFalcResolution = static_cast<uint16_t>(falcVal);
+
+            m_cachedVideoCurr = 0;
+            HardwareST::GetVideoCurrent(*pMem, m_cachedVideoCurr);
+
+            m_cachedVideoBase = 0;
+            HardwareST::GetVideoBase(*pMem, m_pTargetModel->GetMachineType(), m_cachedVideoBase);
         }
 
         // See if bitmap etc can now be requested
@@ -544,6 +559,12 @@ void GraphicsInspectorWidget::overlayZoomChanged()
 void GraphicsInspectorWidget::overlayRegistersChanged()
 {
     m_annotateRegisters = m_pOverlayRegistersAction->isChecked();
+    UpdateAnnotations();
+}
+
+void GraphicsInspectorWidget::overlayVideoChanged()
+{
+    m_annotateVideo = m_pOverlayVideoAction->isChecked();
     UpdateAnnotations();
 }
 
@@ -997,6 +1018,7 @@ void GraphicsInspectorWidget::UpdateUIElements()
     m_pOverlayGridAction->setChecked(m_pImageWidget->GetGrid());
     m_pOverlayZoomAction->setChecked(m_pImageWidget->GetZoom());
     m_pOverlayRegistersAction->setChecked(m_annotateRegisters);
+    m_pOverlayVideoAction->setChecked(m_annotateVideo);
     DisplayAddress();
 
     EffectiveData data;
@@ -1150,6 +1172,21 @@ void GraphicsInspectorWidget::UpdateAnnotations()
 
             uint32_t dregAddr = m_pTargetModel->GetRegs().GetDReg(i);
             if (CreateAnnotation(annot, dregAddr, data, Registers::s_names[Registers::D0 + i]))
+                annots.append(annot);
+        }
+    }
+
+    if (m_annotateVideo)
+    {
+        NonAntiAliasImage::Annotation annot;
+        if (m_cachedVideoCurr)
+        {
+            if (CreateAnnotation(annot, m_cachedVideoCurr, data, "VID_CURR"))
+                annots.append(annot);
+        }
+        if (m_cachedVideoBase)
+        {
+            if (CreateAnnotation(annot, m_cachedVideoBase, data, "VID_BASE"))
                 annots.append(annot);
         }
     }

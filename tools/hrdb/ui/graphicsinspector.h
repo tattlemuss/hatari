@@ -51,6 +51,7 @@ private:
     void overlayGridChanged();
     void overlayZoomChanged();
     void overlayRegistersChanged();
+    void overlayVideoChanged();
 
 private slots:
     // These are genuine slots
@@ -178,6 +179,9 @@ private:
     Regs::RESOLUTION    m_cachedResolution;
     uint16_t            m_cachedFalcResolution; // Copy of SPSHIFT, or 0 for ST
 
+    uint32_t            m_cachedVideoCurr;
+    uint32_t            m_cachedVideoBase;
+
     // Stores state of "memory wanted" vs "memory request in flight"
     struct Request
     {
@@ -209,6 +213,7 @@ private:
 
     // Options
     bool                            m_annotateRegisters;
+    bool                            m_annotateVideo;
 
     // Context menu actions
     QAction*                        m_pSaveImageAction;
@@ -217,6 +222,7 @@ private:
     QAction*                        m_pOverlayGridAction;
     QAction*                        m_pOverlayZoomAction;
     QAction*                        m_pOverlayRegistersAction;
+    QAction*                        m_pOverlayVideoAction;
 
     // "Show memory for $x" top-level menus:
     // [0] Show Base Address
