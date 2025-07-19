@@ -16,15 +16,13 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software Foundation,
-	51 Franklin Street, Fifth Floor, Boston, MA 02110-1335 USA
+	along with this program; if not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <ctype.h>
 
 #include "main.h"
 #include "sysdeps.h"
-#include "newcpu.h"
 #include "memorySnapShot.h"
 #include "ioMem.h"
 #include "dsp.h"
@@ -369,7 +367,7 @@ uint32_t DSP_ReadMemory(uint16_t address, char space_id, const char **mem_str)
 	static const char *spaces[3][4] = {
 		{ "X ram", "X rom", "X", "X periph" },
 		{ "Y ram", "Y rom", "Y", "Y periph" },
-		{ "P ram", "P ram", "P ext memory", "P ext memory" }
+		{ "P ram", "P rom", "P ext memory", "P ext memory" }
 	};
 	int idx, space;
 
@@ -392,12 +390,6 @@ uint32_t DSP_ReadMemory(uint16_t address, char space_id, const char **mem_str)
 	}
 	address &= 0xFFFF;
 
-	/* Internal RAM ? */
-	if (address < 0x100) {
-		*mem_str = spaces[idx][0];
-		return dsp_core.ramint[space][address];
-	}
-
 	if (space == DSP_SPACE_P) {
 		/* Internal RAM ? */
 		if (address < 0x200) {
@@ -407,6 +399,12 @@ uint32_t DSP_ReadMemory(uint16_t address, char space_id, const char **mem_str)
 		/* External RAM, mask address to available ram size */
 		*mem_str = spaces[idx][2];
 		return dsp_core.ramext[address & (DSP_RAMSIZE-1)];
+	}
+
+	/* Internal RAM ? */
+	if (address < 0x100) {
+		*mem_str = spaces[idx][0];
+		return dsp_core.ramint[space][address];
 	}
 
 	/* Internal ROM ? */
@@ -538,26 +536,45 @@ void DSP_DisasmRegisters(FILE *fp)
 {
 #if ENABLE_DSP_EMU
 	uint32_t i;
+	char stack_disasm[16][20];
 
-	fprintf(fp, "A: A2: %02x  A1: %06x  A0: %06x\n",
-		dsp_core.registers[DSP_REG_A2], dsp_core.registers[DSP_REG_A1], dsp_core.registers[DSP_REG_A0]);
-	fprintf(fp, "B: B2: %02x  B1: %06x  B0: %06x\n",
-		dsp_core.registers[DSP_REG_B2], dsp_core.registers[DSP_REG_B1], dsp_core.registers[DSP_REG_B0]);
-
-	fprintf(fp, "X: X1: %06x  X0: %06x\n", dsp_core.registers[DSP_REG_X1], dsp_core.registers[DSP_REG_X0]);
-	fprintf(fp, "Y: Y1: %06x  Y0: %06x\n", dsp_core.registers[DSP_REG_Y1], dsp_core.registers[DSP_REG_Y0]);
-
-	for (i=0; i<8; i++) {
-		fprintf(fp, "R%01x: %04x   N%01x: %04x   M%01x: %04x\n",
-			i, dsp_core.registers[DSP_REG_R0+i],
-			i, dsp_core.registers[DSP_REG_N0+i],
-			i, dsp_core.registers[DSP_REG_M0+i]);
+	/* Prepare the stack disasm */
+	for (i=0; i<16; i++) {
+               if ((dsp_core.registers[DSP_REG_SP] & BITMASK(4)) == i)
+			sprintf(stack_disasm[i], " >%02d:  %04x   %04x\n", i, dsp_core.stack[0][i], dsp_core.stack[1][i]);
+		else
+			sprintf(stack_disasm[i], "  %02d:  %04x   %04x\n", i, dsp_core.stack[0][i], dsp_core.stack[1][i]);
 	}
 
-	fprintf(fp, "LA: %04x   LC: %04x   PC: %04x\n", dsp_core.registers[DSP_REG_LA], dsp_core.registers[DSP_REG_LC], dsp_core.pc);
-	fprintf(fp, "SR: %04x  OMR: %02x\n", dsp_core.registers[DSP_REG_SR], dsp_core.registers[DSP_REG_OMR]);
-	fprintf(fp, "SP: %02x    SSH: %04x  SSL: %04x\n",
-		dsp_core.registers[DSP_REG_SP], dsp_core.registers[DSP_REG_SSH], dsp_core.registers[DSP_REG_SSL]);
+	/* Display the DSP registers and stack state */
+	fprintf(fp, "\t\t\t\t|  SP   SSH    SSL\n");
+
+	fprintf(fp, "A2: %02x  A1: %06x  A0: %06x\t|%s",
+		dsp_core.registers[DSP_REG_A2], dsp_core.registers[DSP_REG_A1], dsp_core.registers[DSP_REG_A0], stack_disasm[0]);
+	fprintf(fp, "B2: %02x  B1: %06x  B0: %06x\t|%s",
+		dsp_core.registers[DSP_REG_B2], dsp_core.registers[DSP_REG_B1], dsp_core.registers[DSP_REG_B0], stack_disasm[1]);
+	fprintf(fp, "        X1: %06x  X0: %06x\t|%s",
+		dsp_core.registers[DSP_REG_X1], dsp_core.registers[DSP_REG_X0], stack_disasm[2]);
+	fprintf(fp, "        Y1: %06x  Y0: %06x\t|%s",
+		dsp_core.registers[DSP_REG_Y1], dsp_core.registers[DSP_REG_Y0], stack_disasm[3]);
+	fprintf(fp, "\t\t\t\t|%s", stack_disasm[4]);
+
+	for (i=0; i<8; i++) {
+		fprintf(fp, "R%01x: %04x   N%01x: %04x   M%01x: %04x\t|%s",
+			i, dsp_core.registers[DSP_REG_R0+i],
+			i, dsp_core.registers[DSP_REG_N0+i],
+			i, dsp_core.registers[DSP_REG_M0+i],
+			stack_disasm[i+5]);
+	}
+
+	fprintf(fp, "\t\t\t\t|%s", stack_disasm[13]);
+
+	fprintf(fp, "LA: %04x   LC: %04x   PC: %04x\t|%s",
+		dsp_core.registers[DSP_REG_LA], dsp_core.registers[DSP_REG_LC], dsp_core.pc, stack_disasm[14]);
+	fprintf(fp, "SR: %04x   OMR: %02x    SP: %02x\t|%s",
+		dsp_core.registers[DSP_REG_SR], dsp_core.registers[DSP_REG_OMR], dsp_core.registers[DSP_REG_SP], stack_disasm[15]);
+
+	fprintf(fp, "\n");
 #endif
 }
 
@@ -632,12 +649,13 @@ int DSP_GetRegisterAddress(const char *regname, uint32_t **addr, uint32_t *mask)
 		{ "R6",  &dsp_core.registers[DSP_REG_R6],  32, BITMASK(16) },
 		{ "R7",  &dsp_core.registers[DSP_REG_R7],  32, BITMASK(16) },
 
-		{ "SSH", &dsp_core.registers[DSP_REG_SSH], 32, BITMASK(16) },
-		{ "SSL", &dsp_core.registers[DSP_REG_SSL], 32, BITMASK(16) },
 		{ "SP",  &dsp_core.registers[DSP_REG_SP],  32, BITMASK(6) },
 
 		/* 16-bit status register */
 		{ "SR",  &dsp_core.registers[DSP_REG_SR],  32, 0xefff },
+
+		{ "SSH", &dsp_core.registers[DSP_REG_SSH], 32, BITMASK(16) },
+		{ "SSL", &dsp_core.registers[DSP_REG_SSL], 32, BITMASK(16) },
 
 		/* 48-bit X register */
 		{ "X0",  &dsp_core.registers[DSP_REG_X0],  32, BITMASK(24) },

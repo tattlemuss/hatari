@@ -31,12 +31,14 @@ const char TOS_fileid[] = "Hatari tos.c";
 #include "nvram.h"
 #include "stMemory.h"
 #include "str.h"
+#include "symbols.h"
 #include "tos.h"
 #include "lilo.h"
 #include "vdi.h"
 #include "falcon/dsp.h"
 #include "clocks_timings.h"
 #include "video.h"
+#include "keymap.h"
 
 #include "faketosData.c"
 
@@ -814,7 +816,7 @@ static void TOS_CheckSysConfig(void)
 	{
 		Log_AlertDlg(LOG_ERROR, "TOS versions 1.06 and 1.62 are for Atari STE only.\n"
 		             " ==> Switching to STE mode now.\n");
-		IoMem_UnInit();
+		IoMem_UnInit(ConfigureParams.System.nMachineType);
 		ConfigureParams.System.nMachineType = MACHINE_STE;
 		ClocksTimings_InitMachine ( ConfigureParams.System.nMachineType );
 		Video_SetTimings ( ConfigureParams.System.nMachineType , ConfigureParams.System.VideoTimingMode );
@@ -826,7 +828,7 @@ static void TOS_CheckSysConfig(void)
 	{
 		Log_AlertDlg(LOG_ERROR, "TOS versions 3.0x are for Atari TT only.\n"
 		             " ==> Switching to TT mode now.\n");
-		IoMem_UnInit();
+		IoMem_UnInit(ConfigureParams.System.nMachineType);
 		ConfigureParams.System.nMachineType = MACHINE_TT;
 		ClocksTimings_InitMachine ( ConfigureParams.System.nMachineType );
 		Video_SetTimings ( ConfigureParams.System.nMachineType , ConfigureParams.System.VideoTimingMode );
@@ -841,7 +843,7 @@ static void TOS_CheckSysConfig(void)
 		             " ==> Switching to Falcon mode now.\n",
 		             TosVersion >> 8, TosVersion & 0xff);
 		Ide_UnInit();
-		IoMem_UnInit();
+		IoMem_UnInit(ConfigureParams.System.nMachineType);
 		ConfigureParams.System.nMachineType = MACHINE_FALCON;
 		ClocksTimings_InitMachine ( ConfigureParams.System.nMachineType );
 		Video_SetTimings ( ConfigureParams.System.nMachineType , ConfigureParams.System.VideoTimingMode );
@@ -860,7 +862,7 @@ static void TOS_CheckSysConfig(void)
 		Log_AlertDlg(LOG_ERROR, "TOS versions <= 1.4 work only in\n"
 		             "ST mode and with a 68000 CPU.\n"
 		             " ==> Switching to ST mode with 68000 now.\n");
-		IoMem_UnInit();
+		IoMem_UnInit(ConfigureParams.System.nMachineType);
 		ConfigureParams.System.nMachineType = MACHINE_ST;
 		ClocksTimings_InitMachine ( ConfigureParams.System.nMachineType );
 		Video_SetTimings ( ConfigureParams.System.nMachineType , ConfigureParams.System.VideoTimingMode );
@@ -874,7 +876,7 @@ static void TOS_CheckSysConfig(void)
 	{
 		Log_AlertDlg(LOG_ERROR, "This TOS version does not work in TT/Falcon mode.\n"
 		             " ==> Switching to STE mode now.\n");
-		IoMem_UnInit();
+		IoMem_UnInit(ConfigureParams.System.nMachineType);
 		ConfigureParams.System.nMachineType = MACHINE_STE;
 		ClocksTimings_InitMachine ( ConfigureParams.System.nMachineType );
 		Video_SetTimings ( ConfigureParams.System.nMachineType , ConfigureParams.System.VideoTimingMode );
@@ -913,6 +915,9 @@ static void TOS_CheckSysConfig(void)
 			ConfigureParams.System.bMMU = false;
 		}
 		M68000_CheckCpuSettings();
+
+		/* Ensure MMU has default values when changing machine's type before calling memory_init() later */
+		STMemory_Reset ( true );
 	}
 	else if (ConfigureParams.System.nCpuLevel != oldCpuLevel
 		 || ConfigureParams.System.n_FPUType != oldFpuType)
@@ -1053,6 +1058,9 @@ static uint8_t *TOS_LoadImage(void)
 		}
 	}
 
+	/* try to load (Emu)TOS symbols from <tos>.sym */
+	Symbols_LoadTOS(ConfigureParams.Rom.szTosImageFileName, TosAddress+TosSize);
+
 	return pTosFile;
 }
 
@@ -1192,6 +1200,7 @@ int TOS_InitImage(void)
 			   countrycode, TOS_LanguageName(countrycode),
 			   (osconf & 1) ? "PAL" : "NTSC");
 	}
+	Keymap_SetCountry(countrycode);
 
 	/*
 	 * patch some values into the "Draw logo" patch.
@@ -1222,8 +1231,7 @@ int TOS_InitImage(void)
 			           psTestPrg, TEST_PRG_START);
 			if (GemDOS_LoadAndReloc(psTestPrg, TEST_PRG_BASEPAGE, true))
 			{
-				fprintf(stderr, "Failed to load '%s'\n", psTestPrg);
-				exit(1);
+				Main_ErrorExit("Failed to load:", psTestPrg, 1);
 			}
 		}
 		else
@@ -1259,8 +1267,11 @@ static const struct {
 	{ TOS_LANG_NL,    "nl",    "Holland" },
 	{ TOS_LANG_CS,    "cs",    "Czech Republic" },
 	{ TOS_LANG_HU,    "hu",    "Hungary" },
+	{ TOS_LANG_PL,    "pl",    "Poland" },
 	{ TOS_LANG_RU,    "ru",    "Russia" },
 	{ TOS_LANG_GR,    "gr",    "Greece" },
+	{ TOS_LANG_RO,    "ro",    "Romania" },
+	{ TOS_LANG_CA,    "ca",    "Catalan" },
 };
 
 /**
@@ -1281,8 +1292,12 @@ void TOS_ShowCountryCodes(void)
 {
 	fprintf(stderr, "\nTOS v4 supports:\n");
 	for (int i = 0; i < ARRAY_SIZE(countries); i++) {
-		if (i == 7)
-			fprintf(stderr, "\nEmuTOS 1024k (v1.1.x) supports also:\n");
+		if (countries[i].value == TOS_LANG_CH_FR)
+			fprintf(stderr, "\nEmuTOS 1024k supports also:\n");
+		if (countries[i].value == TOS_LANG_RO)
+			fprintf(stderr, "\nEmuTOS 1024k >1.2.1 also:\n");
+		if (countries[i].value == TOS_LANG_CA)
+			fprintf(stderr, "\nEmuTOS 1024k >1.3.0 also:\n");
 		fprintf(stderr, "- %s : %s\n",
 			countries[i].code, countries[i].name);
 	}

@@ -1,7 +1,7 @@
 #
 # Classes for the Hatari UI dialogs
 #
-# Copyright (C) 2008-2023 by Eero Tamminen
+# Copyright (C) 2008-2025 by Eero Tamminen
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -13,18 +13,14 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-import os
 import gi
 # use correct version of gtk
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
-from gi.repository import Gdk
 from gi.repository import GdkPixbuf
-from gi.repository import Pango
 
 from uihelpers import UInfo, HatariTextInsert, create_table_dialog, \
-     table_add_entry_row, table_add_widget_row, table_add_separator, \
-     table_add_combo_row, table_add_radio_rows, create_button, \
+     table_add_widget_row, table_add_combo_row, create_button, \
      FselEntry, FselAndEjectFactory
 
 
@@ -37,9 +33,9 @@ class HatariUIDialog:
         self.parent = parent
         self.dialog = None
 
-    def run(self):
+    def run(self, _dummy = None):
         """run() -> response. Shows dialog and returns response,
-subclasses overriding run() require also an argument."""
+subclasses overriding run() require also argument(s)."""
         response = self.dialog.run()
         self.dialog.hide()
         return response
@@ -85,22 +81,23 @@ class AskDialog(HatariUIDialog):
 
 class AboutDialog(HatariUIDialog):
     def __init__(self, parent):
+        info = UInfo()
         dialog = Gtk.AboutDialog()
         dialog.set_transient_for(parent)
-        dialog.set_name(UInfo.name)
-        dialog.set_version(UInfo.version)
-        dialog.set_website("http://hatari.tuxfamily.org/")
-        dialog.set_website_label("Hatari emulator www-site")
+        dialog.set_name(info.name)
+        dialog.set_version(info.version)
+        dialog.set_website("https://www.hatari-emu.org")
+        dialog.set_website_label("Hatari emulator website")
         dialog.set_authors(["Eero Tamminen"])
         dialog.set_artists(["The logo is from Hatari"])
-        dialog.set_logo(GdkPixbuf.Pixbuf.new_from_file(UInfo.logo))
+        dialog.set_logo(GdkPixbuf.Pixbuf.new_from_file(info.logo))
         dialog.set_translator_credits("translator-credits")
-        dialog.set_copyright(UInfo.copyright)
+        dialog.set_copyright(info.copyright)
         dialog.set_license("""
 This software is licensed under GPL v2 or later.
 
 You can see the whole license at:
-    http://www.gnu.org/licenses/info/GPLv2.html""")
+    https://spdx.org/licenses/GPL-2.0-or-later.html""")
         self.dialog = dialog
 
 
@@ -587,10 +584,16 @@ class PeripheralDialog(HatariUIDialog):
         printer = Gtk.CheckButton("Enable printer output")
         printer.set_active(config.get_printer())
 
-        rs232 = Gtk.CheckButton("Enable MFP RS232 (ST/MegaST/STE/MegaSTE/TT)")
+        rs232 = Gtk.CheckButton("Enable RS232/MFP (!Falcon)")
         rs232.set_active(config.get_rs232())
 
-        sccb = Gtk.CheckButton("Enable SCC-B RS232 output (MegaSTE/TT/Falcon")
+        scca = Gtk.CheckButton("Enable RS232/SCC-A output (MegaSTE/TT/Falcon)")
+        scca.set_active(config.get_scca())
+
+        scca_lan = Gtk.CheckButton("Enable RS232/sCC-A Lan output (MegaSTE/TT/Falcon)")
+        scca_lan.set_active(config.get_scca_lan())
+
+        sccb = Gtk.CheckButton("Enable RS232/SCC-B output (MegaSTE/TT/Falcon)")
         sccb.set_active(config.get_sccb())
 
         dialog = Gtk.Dialog("Peripherals", self.parent,
@@ -600,12 +603,16 @@ class PeripheralDialog(HatariUIDialog):
         dialog.vbox.add(midi)
         dialog.vbox.add(printer)
         dialog.vbox.add(rs232)
+        dialog.vbox.add(scca)
+        dialog.vbox.add(scca_lan)
         dialog.vbox.add(sccb)
         dialog.vbox.show_all()
 
         self.dialog = dialog
         self.printer = printer
         self.rs232 = rs232
+        self.scca = scca
+        self.scca_lan = scca_lan
         self.sccb = sccb
         self.midi = midi
 
@@ -621,6 +628,8 @@ class PeripheralDialog(HatariUIDialog):
             config.set_midi(self.midi.get_active())
             config.set_printer(self.printer.get_active())
             config.set_rs232(self.rs232.get_active())
+            config.set_scca(self.scca.get_active())
+            config.set_scca_lan(self.scca_lan.get_active())
             config.set_sccb(self.sccb.get_active())
             config.flush_updates()
 
@@ -632,9 +641,10 @@ class PathDialog(HatariUIDialog):
     def _create_dialog(self, config):
         paths = config.get_paths()
         table, self.dialog = create_table_dialog(self.parent, "File path settings", len(paths), 2)
-        paths.sort()
         row = 0
         self.paths = []
+        # sort by path label
+        paths.sort(key=lambda info: info[2])
         for (key, path, label) in paths:
             label = "%s:" % label
             fsel = FselEntry(self.dialog, title=label, validate=self._validate_fname, data=key)
@@ -796,6 +806,7 @@ class TraceDialog(HatariUIDialog):
         "scc",
         "scsi_cmd",
         "scsidrv",
+        "scu",
         "vdi",
         "videl",
         "video_addr",
@@ -807,7 +818,6 @@ class TraceDialog(HatariUIDialog):
         "video_ste",
         "video_sync",
         "video_vbl",
-        "vme",
         "xbios"
     ]
     def __init__(self, parent):
@@ -933,10 +943,13 @@ class MachineDialog(HatariUIDialog):
         vbox2 = Gtk.VBox()
         self.compatible = Gtk.CheckButton("Prefetch emulation")
         self.compatible.set_tooltip_text("Needed for overscan and other timing sensitive things to work correctly. Uses more host CPU")
-        self.exact = Gtk.CheckButton("Cycle exact with cache emulation")
-        self.exact.set_tooltip_text("Cycle exactness increases emulation accuracy and 680x0 cache emulation increases emulated code performance, but requires significantly more host CPU")
+        self.cache = Gtk.CheckButton(">=030 data cache emulation")
+        self.cache.set_tooltip_text("Data cache emulation increases emulated code performance, but uses significantly more host CPU")
+        self.exact = Gtk.CheckButton("Cycle exact emulation")
+        self.exact.set_tooltip_text("Cycle exactness increases emulation accuracy, but uses more host CPU")
         self.mmu = Gtk.CheckButton("MMU emulation")
         vbox2.add(self.compatible)
+        vbox2.add(self.cache)
         vbox2.add(self.exact)
         vbox2.add(self.mmu)
         table_add_widget_row(table, row, col, None, vbox2, fullspan)
@@ -968,7 +981,7 @@ class MachineDialog(HatariUIDialog):
 
         ttram = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 1024, 4)
         ttram.set_digits(0)
-        ttram.set_tooltip_text("TT-RAM needs Falcon/TT and requires 32-bit addressing.  0 = disabled, 24-bit addressing.")
+        ttram.set_tooltip_text("TT-RAM requires Falcon/TT and its use disables 24-bit addressing.")
         self.ttram = table_add_widget_row(table, row, col, "TT-RAM:", ttram, fullspan)
         row += 1
 
@@ -993,6 +1006,7 @@ class MachineDialog(HatariUIDialog):
         self.timerd.set_active(config.get_timerd())
         self.cpulevel.set_active(config.get_cpulevel())
         self.compatible.set_active(config.get_compatible())
+        self.cache.set_active(config.get_data_cache())
         self.exact.set_active(config.get_cycle_exact())
         self.mmu.set_active(config.get_mmu())
         self.clocks.set_active(config.get_cpuclock())
@@ -1006,13 +1020,6 @@ class MachineDialog(HatariUIDialog):
         if tos:
             self.tos.set_filename(tos)
 
-    def _get_active_radio(self, radios):
-        idx = 0
-        for radio in radios:
-            if radio.get_active():
-                return idx
-            idx += 1
-
     def _set_config(self, config):
         config.lock_updates()
         config.set_machine(self.machine.get_active())
@@ -1020,6 +1027,7 @@ class MachineDialog(HatariUIDialog):
         config.set_timerd(self.timerd.get_active())
         config.set_cpulevel(self.cpulevel.get_active())
         config.set_compatible(self.compatible.get_active())
+        config.set_data_cache(self.cache.get_active())
         config.set_cycle_exact(self.exact.get_active())
         config.set_mmu(self.mmu.get_active())
         config.set_cpuclock(self.clocks.get_active())
@@ -1028,7 +1036,8 @@ class MachineDialog(HatariUIDialog):
         config.set_dsp(self.dsp.get_active())
         config.set_monitor(self.monitors.get_active())
         config.set_memory(self.memory.get_active())
-        config.set_ttram(self.ttram.get_value())
+        # changes 24/32-bit addressing based on TT-RAM & machine type
+        config.set_ttram(self.ttram.get_value(), self.machine.get_active())
         config.set_tos(self.tos.get_filename())
         config.flush_updates()
 

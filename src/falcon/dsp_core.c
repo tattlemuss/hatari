@@ -15,8 +15,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software Foundation,
-	51 Franklin Street, Fifth Floor, Boston, MA 02110-1335 USA
+	along with this program; if not, see <https://www.gnu.org/licenses/>.
 */
 
 #ifdef HAVE_CONFIG_H
@@ -623,19 +622,15 @@ void dsp_core_reset(void)
 	dsp_core.periph[DSP_SPACE_X][DSP_HOST_HSR]=(1<<DSP_HOST_HSR_HTDE);
 	dsp_set_interrupt(DSP_INTER_HOST_TRX_DATA, 1);
 
-
-	/* host port init, dsp side */
-	dsp_core.periph[DSP_SPACE_X][DSP_HOST_HSR]=(1<<DSP_HOST_HSR_HTDE);
-
-	/* host port init, hreq */
-	dsp_host_interrupt(0);
-
 	/* host port init, cpu side */
 	dsp_core.hostport[CPU_HOST_ICR] = 0x0;
 	dsp_core.hostport[CPU_HOST_CVR] = 0x12;
 	dsp_core.hostport[CPU_HOST_ISR] = (1<<CPU_HOST_ISR_TRDY)|(1<<CPU_HOST_ISR_TXDE);
 	dsp_core.hostport[CPU_HOST_IVR] = 0x0f;
 	dsp_core.hostport[CPU_HOST_RX0] = 0x0;
+
+	/* host port init, hreq */
+	dsp_host_interrupt(0);
 
 	/* SSI registers */
 	dsp_core.periph[DSP_SPACE_X][DSP_SSI_SR]=1<<DSP_SSI_SR_TDE;
@@ -650,6 +645,12 @@ void dsp_core_reset(void)
 	/* Other hardware registers */
 	dsp_core.periph[DSP_SPACE_X][DSP_IPR]=0;
 	dsp_core.periph[DSP_SPACE_X][DSP_BCR]=0xffff;
+
+	/* AGU pipeline reset */
+	for (i=0; i<2; i++) {
+		dsp_core.agu_pipeline_reg[i] = 0;
+		dsp_core.agu_pipeline_val[i] = 0;
+	}
 
 	/* Misc */
 	dsp_core.loop_rep = 0;
@@ -1066,6 +1067,27 @@ void dsp_core_write_host(int addr, uint8_t value)
 			/* Set HF1 and HF0 accordingly on the host side */
 			dsp_core.periph[DSP_SPACE_X][DSP_HOST_HSR] &= 0xff-((1<<DSP_HOST_HSR_HF1)|(1<<DSP_HOST_HSR_HF0));
 			dsp_core.periph[DSP_SPACE_X][DSP_HOST_HSR] |= dsp_core.hostport[CPU_HOST_ICR] & ((1<<DSP_HOST_HSR_HF1)|(1<<DSP_HOST_HSR_HF0));
+			/* If requested, initialize host interface */
+			if (dsp_core.hostport[CPU_HOST_ICR] & (1<<CPU_HOST_ICR_INIT)) {
+				if (dsp_core.hostport[CPU_HOST_ICR] & (1<<CPU_HOST_ICR_RREQ)) {
+					dsp_core.hostport[CPU_HOST_ISR] &= ~(1<<CPU_HOST_ISR_RXDF);
+					dsp_core.periph[DSP_SPACE_X][DSP_HOST_HSR] |= (1<<DSP_HOST_HSR_HTDE);
+					dsp_set_interrupt(DSP_INTER_HOST_TRX_DATA, 1);
+				}
+				if (dsp_core.hostport[CPU_HOST_ICR] & (1<<CPU_HOST_ICR_TREQ)) {
+					dsp_core.hostport[CPU_HOST_ISR] |= (1<<CPU_HOST_ISR_TXDE);
+					dsp_core.periph[DSP_SPACE_X][DSP_HOST_HSR] &= ~(1<<DSP_HOST_HSR_HRDF);
+					dsp_set_interrupt(DSP_INTER_HOST_RCV_DATA, 0);
+				}
+				dsp_core.hostport[CPU_HOST_ICR] &= ~(1<<CPU_HOST_ICR_INIT);
+			}
+			/* This stops the bootstrap loader and starts normal execution */
+			if (!dsp_core.running && (dsp_core.hostport[CPU_HOST_ICR] & (1<<CPU_HOST_ICR_HF0))) {
+				LOG_TRACE(TRACE_DSP_STATE, "Dsp: stop waiting bootstrap\n");
+				dsp_core.registers[DSP_REG_R0] = dsp_core.bootstrap_pos;
+				dsp_core.registers[DSP_REG_OMR] = 0x02;
+				dsp_core.running = 1;
+			}
 			dsp_core_hostport_update_hreq();
 			break;
 		case CPU_HOST_CVR:
@@ -1112,6 +1134,8 @@ void dsp_core_write_host(int addr, uint8_t value)
 
 				if (++dsp_core.bootstrap_pos == 0x200) {
 					LOG_TRACE(TRACE_DSP_STATE, "Dsp: wait bootstrap done\n");
+					dsp_core.registers[DSP_REG_R0] = dsp_core.bootstrap_pos;
+					dsp_core.registers[DSP_REG_OMR] = 0x02;
 					dsp_core.running = 1;
 				}
 			} else {
@@ -1126,6 +1150,7 @@ void dsp_core_write_host(int addr, uint8_t value)
 
 					/* Set HRDF bit to say that DSP can read */
 					dsp_core.periph[DSP_SPACE_X][DSP_HOST_HSR] |= 1<<DSP_HOST_HSR_HRDF;
+					dsp_set_interrupt(DSP_INTER_HOST_RCV_DATA, 1);
 
 					LOG_TRACE(TRACE_DSP_HOST_INTERFACE, "Dsp: (Host->DSP): Dsp HRDF set\n");
 				}

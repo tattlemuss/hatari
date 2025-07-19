@@ -211,10 +211,10 @@ bool INF_SetAutoStart(const char *name, int opt_id)
 			/* A:NAME.PRG -> A:\NAME.PRG */
 			prgname[offset] = '\\';
 			/* copy/upcase file part */
-			Str_Filename2TOSname(name+offset, prgname+offset+1);
+			Str_Filename_Host2Atari(name+offset, prgname+offset+1);
 		} else {
 			/* copy/upcase file part */
-			Str_Filename2TOSname(name+offset, prgname+offset);
+			Str_Filename_Host2Atari(name+offset, prgname+offset);
 		}
 	}
 	else if (strchr(name, '\\'))
@@ -228,7 +228,7 @@ bool INF_SetAutoStart(const char *name, int opt_id)
 		/* just program -> add path */
 		prgname = Str_Alloc(3 + len);
 		strcpy(prgname, "C:\\");
-		Str_Filename2TOSname(name, prgname+3);
+		Str_Filename_Host2Atari(name, prgname+3);
 	}
 	if (TosOverride.prgname)
 		free(TosOverride.prgname);
@@ -722,24 +722,17 @@ static FILE* write_inf_file(const char *contents, int size, int res, int res_col
 	int offset, off_prg, off_rez, endcheck;
 	FILE *fp;
 
-#if defined(WIN32)	/* unfortunately tmpfile() needs administrative privileges on windows, so this needs special care */
-	char *ptr = WinTmpFile();
-	if (ptr != NULL)
-		fp = fopen(ptr,"w+b");
-	else
-		fp = NULL;
-#else
-# if INF_DEBUG
+#if INF_DEBUG
 	{
 		/* insecure file path + leaving it behind for debugging */
 		const char *debugfile = "/tmp/hatari-desktop-inf.txt";
 		fprintf(stderr, "Virtual INF file: '%s'\n", debugfile);
 		fp = fopen(debugfile, "w+b");
 	}
-# else
-	fp = tmpfile();
-# endif
+#else
+	fp = File_OpenTempFile(NULL);
 #endif
+
 	prgname = TosOverride.prgname;
 	infname = TosOverride.infname;
 

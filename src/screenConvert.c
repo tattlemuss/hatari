@@ -31,7 +31,10 @@ static struct screen_zoom_s screen_zoom;
 static bool bTTSampleHold = false;		/* TT special video mode */
 static int nSampleHoldIdx;
 static uint32_t nScreenBaseAddr;		/* address of screen in STRam */
-
+int ConvertW = 0;
+int ConvertH = 0;
+int ConvertBPP = 1;
+int ConvertNextLine = 0;
 
 /* TOS palette (bpp < 16) to SDL color mapping */
 static struct
@@ -48,6 +51,11 @@ void Screen_SetPaletteColor(Uint8 idx, Uint8 red, Uint8 green, Uint8 blue)
 	palette.standard[idx].b = blue;
 	// convert the color to native
 	palette.native[idx] = SDL_MapRGB(sdlscrn->format, red, green, blue);
+}
+
+SDL_Color Screen_GetPaletteColor(Uint8 idx)
+{
+	return palette.standard[idx];
 }
 
 void Screen_RemapPalette(void)
@@ -278,7 +286,7 @@ static void ScreenConv_BitplaneTo32bppNoZoom(Uint16 *fvram_line, Uint8 *hvram,
 static void ScreenConv_HiColorTo32bppNoZoom(Uint16 *fvram_line, Uint8 *hvram,
                                             int scrwidth, int scrheight,
                                             int vw, int vh, int vbpp,
-                                            int nextline, int hscrolloffset,
+                                            int nextline,
                                             int leftBorder, int rightBorder,
                                             int upperBorder, int lowBorder)
 {
@@ -352,6 +360,7 @@ static void Screen_ConvertWithoutZoom(Uint16 *fvram, int vw, int vh, int vbpp, i
 	if (hscrolloffset) {
 		/* Yes, so we need to adjust offset to next line: */
 		nextline += vbpp;
+		ConvertNextLine = nextline * 2;
 	}
 
 	/* The sample-hold feature exists only on the TT */
@@ -414,7 +423,7 @@ static void Screen_ConvertWithoutZoom(Uint16 *fvram, int vw, int vh, int vbpp, i
 		/* Falcon TC (High Color) */
 		ScreenConv_HiColorTo32bppNoZoom(fvram, hvram,
 		                                scrwidth, scrheight, vw, vh,
-		                                vbpp, nextline, hscrolloffset,
+		                                vbpp, nextline,
 		                                leftBorder, rightBorderSize,
 		                                upperBorder, lowBorderSize);
 	}
@@ -504,7 +513,7 @@ static void ScreenConv_BitplaneTo32bppZoomed(Uint16 *fvram, Uint8 *hvram,
 static void ScreenConv_HiColorTo32bppZoomed(Uint16 *fvram, Uint8 *hvram,
                                             int scrwidth, int scrheight,
                                             int vw, int vh, int vbpp,
-                                            int nextline, int hscrolloffset,
+                                            int nextline,
                                             int leftBorder, int rightBorder,
                                             int upperBorder, int lowerBorder,
                                             int coefx, int coefy)
@@ -610,6 +619,7 @@ static void Screen_ConvertWithZoom(Uint16 *fvram, int vw, int vh, int vbpp, int 
 	if (hscrolloffset) {
 		/* Yes, so we need to adjust offset to next line: */
 		nextline += vbpp;
+		ConvertNextLine = nextline * 2;
 	}
 
 	/* Integer zoom coef ? */
@@ -669,7 +679,7 @@ static void Screen_ConvertWithZoom(Uint16 *fvram, int vw, int vh, int vbpp, int 
 	} else {
 		/* Falcon high-color (16-bit) mode */
 		ScreenConv_HiColorTo32bppZoomed(fvram, hvram, scrwidth, scrheight,
-		                                vw, vh, vbpp, nextline, hscrolloffset,
+		                                vw, vh, vbpp, nextline,
 		                                leftBorder, rightBorder, upperBorder,
 		                                lowerBorder, coefx, coefy);
 	}
@@ -681,6 +691,16 @@ void Screen_GenConvert(uint32_t vaddr, void *fvram, int vw, int vh,
                        int upperBorderSize, int lowerBorderSize)
 {
 	nScreenBaseAddr = vaddr;
+	ConvertW = vw;
+	ConvertH = vh;
+	ConvertBPP = vbpp;
+	ConvertNextLine = nextline * 2;	/* bytes per line */
+
+	/* Override drawing palette for screenshots */
+	ConvertPalette = palette.native;
+	ConvertPaletteSize = 1 << vbpp;
+	if (ConvertPaletteSize > 256)
+		ConvertPaletteSize = 256;
 
 	if (nScreenZoomX * nScreenZoomY != 1) {
 		Screen_ConvertWithZoom(fvram, vw, vh, vbpp, nextline, hscroll,

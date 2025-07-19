@@ -15,8 +15,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software Foundation,
-	51 Franklin Street, Fifth Floor, Boston, MA 02110-1335 USA
+	along with this program; if not, see <https://www.gnu.org/licenses/>.
 */
 
 #ifdef HAVE_CONFIG_H
@@ -48,7 +47,7 @@
 /* Current instruction */
 static uint32_t cur_inst;
 static uint16_t disasm_cur_inst_len;
-static char str_instr[80];
+static char str_instr[90];
 static char str_instr2[120];
 static char parallelmove_name[64];
 
@@ -80,7 +79,7 @@ static const char *registers_name[64]={
 	"x0","x1","y0","y1",
 	"a0","b0","a2","b2",
 	"a1","b1","a","b",
-	
+
 	"r0","r1","r2","r3",
 	"r4","r5","r6","r7",
 	"n0","n1","n2","n3",
@@ -205,7 +204,7 @@ static const dsp_emul_t opcodes8h[512] = {
 	dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined,
 	dsp_undefined, dsp_undefined, dsp_div, dsp_div, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined,
 	dsp_norm, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined,
-	
+
 	/* 0x40 - 0x7f */
 	dsp_tcc, dsp_tcc, dsp_tcc, dsp_tcc, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined,
 	dsp_tcc, dsp_tcc, dsp_tcc, dsp_tcc, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined,
@@ -218,23 +217,23 @@ static const dsp_emul_t opcodes8h[512] = {
 
 	/* 0x80 - 0xbf */
 	dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined,
-	dsp_lua, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_movec_reg, dsp_undefined, dsp_undefined, 
+	dsp_lua, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_movec_reg, dsp_undefined, dsp_undefined,
 	dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined,
-	dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_movec_reg, dsp_undefined, dsp_undefined, 
+	dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_movec_reg, dsp_undefined, dsp_undefined,
 	dsp_undefined, dsp_movec_aa, dsp_undefined, dsp_movec_aa, dsp_undefined, dsp_movec_imm, dsp_undefined, dsp_undefined,
 	dsp_undefined, dsp_movec_ea, dsp_undefined, dsp_movec_ea, dsp_undefined, dsp_movec_imm, dsp_undefined, dsp_undefined,
 	dsp_undefined, dsp_movec_aa, dsp_undefined, dsp_movec_aa, dsp_undefined, dsp_movec_imm, dsp_undefined, dsp_undefined,
 	dsp_undefined, dsp_movec_ea, dsp_undefined, dsp_movec_ea, dsp_undefined, dsp_movec_imm, dsp_undefined, dsp_undefined,
-	
+
 	/* 0xc0 - 0xff */
-	dsp_do_aa, dsp_rep_aa, dsp_do_aa, dsp_rep_aa, dsp_do_imm, dsp_rep_imm, dsp_undefined, dsp_undefined, 
-	dsp_do_ea, dsp_rep_ea, dsp_do_ea, dsp_rep_ea, dsp_do_imm, dsp_rep_imm, dsp_undefined, dsp_undefined, 
-	dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_do_imm, dsp_rep_imm, dsp_undefined, dsp_undefined, 
-	dsp_do_reg, dsp_rep_reg, dsp_undefined, dsp_undefined, dsp_do_imm, dsp_rep_imm, dsp_undefined, dsp_undefined, 
-	dsp_movem_aa, dsp_movem_aa, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, 
-	dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_movem_ea, dsp_movem_ea, dsp_undefined, dsp_undefined, 
-	dsp_movem_aa, dsp_movem_aa, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, 
-	dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_movem_ea, dsp_movem_ea, dsp_undefined, dsp_undefined, 
+	dsp_do_aa, dsp_rep_aa, dsp_do_aa, dsp_rep_aa, dsp_do_imm, dsp_rep_imm, dsp_undefined, dsp_undefined,
+	dsp_do_ea, dsp_rep_ea, dsp_do_ea, dsp_rep_ea, dsp_do_imm, dsp_rep_imm, dsp_undefined, dsp_undefined,
+	dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_do_imm, dsp_rep_imm, dsp_undefined, dsp_undefined,
+	dsp_do_reg, dsp_rep_reg, dsp_undefined, dsp_undefined, dsp_do_imm, dsp_rep_imm, dsp_undefined, dsp_undefined,
+	dsp_movem_aa, dsp_movem_aa, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined,
+	dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_movem_ea, dsp_movem_ea, dsp_undefined, dsp_undefined,
+	dsp_movem_aa, dsp_movem_aa, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined,
+	dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_movem_ea, dsp_movem_ea, dsp_undefined, dsp_undefined,
 
 	/* 0x100 - 0x13f */
 	dsp_pm_class2, dsp_pm_class2, dsp_pm_class2, dsp_pm_class2, dsp_pm_class2, dsp_pm_class2, dsp_pm_class2, dsp_pm_class2,
@@ -258,23 +257,23 @@ static const dsp_emul_t opcodes8h[512] = {
 
 	/* 0x180 - 0x1bf */
 	dsp_jmp_imm, dsp_jmp_imm, dsp_jmp_imm, dsp_jmp_imm, dsp_jmp_imm, dsp_jmp_imm, dsp_jmp_imm, dsp_jmp_imm,
-	dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, 
-	dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, 
-	dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, 
-	dsp_jsr_imm, dsp_jsr_imm, dsp_jsr_imm, dsp_jsr_imm, dsp_jsr_imm, dsp_jsr_imm, dsp_jsr_imm, dsp_jsr_imm, 
-	dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, 
-	dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, 
-	dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, 
+	dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined,
+	dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined,
+	dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined,
+	dsp_jsr_imm, dsp_jsr_imm, dsp_jsr_imm, dsp_jsr_imm, dsp_jsr_imm, dsp_jsr_imm, dsp_jsr_imm, dsp_jsr_imm,
+	dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined,
+	dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined,
+	dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined, dsp_undefined,
 
 	/* 0x1c0 - 0x1ff */
-	dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, 
-	dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, 
-	dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, 
-	dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, 
-	dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, 
-	dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, 
-	dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, 
-	dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, 
+	dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm,
+	dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm,
+	dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm,
+	dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm, dsp_jcc_imm,
+	dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm,
+	dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm,
+	dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm,
+	dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm, dsp_jscc_imm,
 };
 
 static const char* opcodes_alu[256] = {
@@ -287,7 +286,7 @@ static const char* opcodes_alu[256] = {
 	"add x,b"  , "adc x,b", "asr b" , "lsr b", "sub x,b"  , "sbc x,b"  , "abs b" , "ror b",
 	"add y,a"  , "adc y,a", "asl a" , "lsl a", "sub y,a"  , "sbc y,a"  , "neg a" , "rol a",
 	"add y,b"  , "adc y,b", "asl b" , "lsl b", "sub y,b"  , "sbc y,b"  , "neg b" , "rol b",
-	
+
 	/* 0x40 - 0x7f */
 	"add x0,a", "tfr x0,a", "or x0,a", "eor x0,a", "sub x0,a", "cmp x0,a", "and x0,a", "cmpm x0,a",
 	"add x0,b", "tfr x0,b", "or x0,b", "eor x0,b", "sub x0,b", "cmp x0,b", "and x0,b", "cmpm x0,b",
@@ -395,7 +394,7 @@ static const char *cc_name[16] = {
 	"ec",
 	"lc",
 	"gt",
-	
+
 	"cs",
 	"lt",
 	"eq",
@@ -419,7 +418,7 @@ void dsp56k_disasm_reg_compare(FILE *fp)
 	int i;
 	bool bRegA = false;
 	bool bRegB = false;
-	
+
 	for (i=4; i<64; i++) {
 		if (registers_save[i] == dsp_core.registers[i]) {
 			continue;
@@ -531,7 +530,7 @@ uint16_t dsp56k_disasm(dsp_trace_disasm_t mode, FILE *fp)
 		opcodes8h[value]();
 	} else {
 		dsp_pm();
-		snprintf(str_instr, sizeof(str_instr), "%s %s", opcodes_alu[cur_inst & BITMASK(8)], parallelmove_name);
+		snprintf(str_instr, sizeof(str_instr), "%-16s %s", opcodes_alu[cur_inst & BITMASK(8)], parallelmove_name);
 	}
 	return disasm_cur_inst_len;
 }
@@ -561,12 +560,12 @@ const char* dsp56k_getInstructionText(void)
 		        percentage, count, cycles, cycle_diff);
 	}
 	return str_instr2;
-} 
+}
 
 static void dsp_pm_class2(void) {
 	dsp_pm();
-	snprintf(str_instr, sizeof(str_instr), "%s %s", opcodes_alu[cur_inst & BITMASK(8)], parallelmove_name);
-} 
+	snprintf(str_instr, sizeof(str_instr), "%-16s %s", opcodes_alu[cur_inst & BITMASK(8)], parallelmove_name);
+}
 
 static uint32_t read_memory(uint32_t currPc)
 {
@@ -721,7 +720,7 @@ static void dsp_bchg_aa(void)
 	/* bchg #n,y:aa */
 	char name[16];
 	uint32_t memspace, value, numbit;
-	
+
 	memspace = (cur_inst>>6) & 1;
 	value = (cur_inst>>8) & BITMASK(6);
 	numbit = cur_inst & BITMASK(5);
@@ -741,7 +740,7 @@ static void dsp_bchg_ea(void)
 	/* bchg #n,y:ea */
 	char name[18], addr_name[16];
 	uint32_t memspace, value, numbit;
-	
+
 	memspace = (cur_inst>>6) & 1;
 	value = (cur_inst>>8) & BITMASK(6);
 	numbit = cur_inst & BITMASK(5);
@@ -762,7 +761,7 @@ static void dsp_bchg_pp(void)
 	/* bchg #n,y:pp */
 	char name[16];
 	uint32_t memspace, value, numbit;
-	
+
 	memspace = (cur_inst>>6) & 1;
 	value = (cur_inst>>8) & BITMASK(6);
 	numbit = cur_inst & BITMASK(5);
@@ -780,7 +779,7 @@ static void dsp_bchg_reg(void)
 {
 	/* bchg #n,R */
 	uint32_t value, numbit;
-	
+
 	value = (cur_inst>>8) & BITMASK(6);
 	numbit = cur_inst & BITMASK(5);
 
@@ -793,7 +792,7 @@ static void dsp_bclr_aa(void)
 	/* bclr #n,y:aa */
 	char name[16];
 	uint32_t memspace, value, numbit;
-	
+
 	memspace = (cur_inst>>6) & 1;
 	value = (cur_inst>>8) & BITMASK(6);
 	numbit = cur_inst & BITMASK(5);
@@ -813,7 +812,7 @@ static void dsp_bclr_ea(void)
 	/* bclr #n,y:ea */
 	char name[18], addr_name[16];
 	uint32_t memspace, value, numbit;
-	
+
 	memspace = (cur_inst>>6) & 1;
 	value = (cur_inst>>8) & BITMASK(6);
 	numbit = cur_inst & BITMASK(5);
@@ -834,7 +833,7 @@ static void dsp_bclr_pp(void)
 	/* bclr #n,y:pp */
 	char name[16];
 	uint32_t memspace, value, numbit;
-	
+
 	memspace = (cur_inst>>6) & 1;
 	value = (cur_inst>>8) & BITMASK(6);
 	numbit = cur_inst & BITMASK(5);
@@ -852,7 +851,7 @@ static void dsp_bclr_reg(void)
 {
 	/* bclr #n,R */
 	uint32_t value, numbit;
-	
+
 	value = (cur_inst>>8) & BITMASK(6);
 	numbit = cur_inst & BITMASK(5);
 
@@ -865,7 +864,7 @@ static void dsp_bset_aa(void)
 	/* bset #n,y:aa */
 	char name[16];
 	uint32_t memspace, value, numbit;
-	
+
 	memspace = (cur_inst>>6) & 1;
 	value = (cur_inst>>8) & BITMASK(6);
 	numbit = cur_inst & BITMASK(5);
@@ -885,7 +884,7 @@ static void dsp_bset_ea(void)
 	/* bset #n,y:ea */
 	char name[18], addr_name[16];
 	uint32_t memspace, value, numbit;
-	
+
 	memspace = (cur_inst>>6) & 1;
 	value = (cur_inst>>8) & BITMASK(6);
 	numbit = cur_inst & BITMASK(5);
@@ -906,7 +905,7 @@ static void dsp_bset_pp(void)
 	/* bset #n,y:pp */
 	char name[16];
 	uint32_t memspace, value, numbit;
-	
+
 	memspace = (cur_inst>>6) & 1;
 	value = (cur_inst>>8) & BITMASK(6);
 	numbit = cur_inst & BITMASK(5);
@@ -924,7 +923,7 @@ static void dsp_bset_reg(void)
 {
 	/* bset #n,R */
 	uint32_t value, numbit;
-	
+
 	value = (cur_inst>>8) & BITMASK(6);
 	numbit = cur_inst & BITMASK(5);
 
@@ -937,7 +936,7 @@ static void dsp_btst_aa(void)
 	/* btst #n,y:aa */
 	char name[16];
 	uint32_t memspace, value, numbit;
-	
+
 	memspace = (cur_inst>>6) & 1;
 	value = (cur_inst>>8) & BITMASK(6);
 	numbit = cur_inst & BITMASK(5);
@@ -957,7 +956,7 @@ static void dsp_btst_ea(void)
 	/* btst #n,y:ea */
 	char name[18], addr_name[16];
 	uint32_t memspace, value, numbit;
-	
+
 	memspace = (cur_inst>>6) & 1;
 	value = (cur_inst>>8) & BITMASK(6);
 	numbit = cur_inst & BITMASK(5);
@@ -978,7 +977,7 @@ static void dsp_btst_pp(void)
 	/* btst #n,y:pp */
 	char name[16];
 	uint32_t memspace, value, numbit;
-	
+
 	memspace = (cur_inst>>6) & 1;
 	value = (cur_inst>>8) & BITMASK(6);
 	numbit = cur_inst & BITMASK(5);
@@ -996,7 +995,7 @@ static void dsp_btst_reg(void)
 {
 	/* btst #n,R */
 	uint32_t value, numbit;
-	
+
 	value = (cur_inst>>8) & BITMASK(6);
 	numbit = cur_inst & BITMASK(5);
 
@@ -1006,7 +1005,7 @@ static void dsp_btst_reg(void)
 static void dsp_div(void)
 {
 	uint32_t srcreg=DSP_REG_NULL, destreg;
-	
+
 	switch((cur_inst>>4) & BITMASK(2)) {
 		case 0:
 			srcreg = DSP_REG_X0;
@@ -1058,7 +1057,7 @@ static void dsp_do_ea(void)
 {
 	char addr_name[16], name[18];
 	uint32_t ea_mode;
-	
+
 	disasm_cur_inst_len++;
 
 	ea_mode = (cur_inst>>8) & BITMASK(6);
@@ -1070,7 +1069,7 @@ static void dsp_do_ea(void)
 		snprintf(name, sizeof(name), "x:%.12s", addr_name);
 	}
 
-	snprintf(str_instr, sizeof(str_instr), "do %s,p:$%04x", 
+	snprintf(str_instr, sizeof(str_instr), "do %s,p:$%04x",
 		name,
 		read_memory(dsp_core.pc+1)
 	);
@@ -1100,10 +1099,10 @@ static void dsp_jcc_ea(void)
 {
 	char cond_name[16], addr_name[16];
 	uint32_t cc_code=0;
-	
+
 	dsp_calc_ea((cur_inst >>8) & BITMASK(6), addr_name, sizeof(addr_name));
 	cc_code=cur_inst & BITMASK(4);
-	dsp_calc_cc(cc_code, cond_name);	
+	dsp_calc_cc(cc_code, cond_name);
 
 	snprintf(str_instr, sizeof(str_instr), "j%s p:%s", cond_name, addr_name);
 }
@@ -1112,10 +1111,10 @@ static void dsp_jcc_imm(void)
 {
 	char cond_name[16], addr_name[16];
 	uint32_t cc_code=0;
-	
+
 	snprintf(addr_name, sizeof(addr_name), "$%04x", cur_inst & BITMASK(12));
 	cc_code=(cur_inst>>12) & BITMASK(4);
-	dsp_calc_cc(cc_code, cond_name);	
+	dsp_calc_cc(cc_code, cond_name);
 
 	snprintf(str_instr, sizeof(str_instr), "j%s p:%s", cond_name, addr_name);
 }
@@ -1126,7 +1125,7 @@ static void dsp_jclr_aa(void)
 	/* jclr #n,y:aa,p:xx */
 	char srcname[16];
 	uint32_t memspace, value, numbit;
-	
+
 	disasm_cur_inst_len++;
 
 	memspace = (cur_inst>>6) & 1;
@@ -1152,7 +1151,7 @@ static void dsp_jclr_ea(void)
 	/* jclr #n,y:ea,p:xx */
 	char srcname[18], addr_name[16];
 	uint32_t memspace, value, numbit;
-	
+
 	disasm_cur_inst_len++;
 
 	memspace = (cur_inst>>6) & 1;
@@ -1179,7 +1178,7 @@ static void dsp_jclr_pp(void)
 	/* jclr #n,y:pp,p:xx */
 	char srcname[16];
 	uint32_t memspace, value, numbit;
-	
+
 	disasm_cur_inst_len++;
 
 	memspace = (cur_inst>>6) & 1;
@@ -1204,7 +1203,7 @@ static void dsp_jclr_reg(void)
 {
 	/* jclr #n,R,p:xx */
 	uint32_t value, numbit;
-	
+
 	disasm_cur_inst_len++;
 
 	value = (cur_inst>>8) & BITMASK(6);
@@ -1235,22 +1234,22 @@ static void dsp_jscc_ea(void)
 {
 	char cond_name[16], addr_name[16];
 	uint32_t cc_code=0;
-	
+
 	dsp_calc_ea((cur_inst>>8) & BITMASK(6), addr_name, sizeof(addr_name));
 	cc_code=cur_inst & BITMASK(4);
-	dsp_calc_cc(cc_code, cond_name);	
+	dsp_calc_cc(cc_code, cond_name);
 
 	snprintf(str_instr, sizeof(str_instr), "js%s p:%s", cond_name, addr_name);
 }
-	
+
 static void dsp_jscc_imm(void)
 {
 	char cond_name[16], addr_name[16];
 	uint32_t cc_code=0;
-	
+
 	snprintf(addr_name, sizeof(addr_name), "$%04x", cur_inst & BITMASK(12));
 	cc_code=(cur_inst>>12) & BITMASK(4);
-	dsp_calc_cc(cc_code, cond_name);	
+	dsp_calc_cc(cc_code, cond_name);
 
 	snprintf(str_instr, sizeof(str_instr), "js%s p:%s", cond_name, addr_name);
 }
@@ -1261,7 +1260,7 @@ static void dsp_jsclr_aa(void)
 	/* jsclr #n,y:aa,p:xx */
 	char srcname[16];
 	uint32_t memspace, value, numbit;
-	
+
 	disasm_cur_inst_len++;
 
 	memspace = (cur_inst>>6) & 1;
@@ -1287,7 +1286,7 @@ static void dsp_jsclr_ea(void)
 	/* jsclr #n,y:ea,p:xx */
 	char srcname[18], addr_name[16];
 	uint32_t memspace, value, numbit;
-	
+
 	disasm_cur_inst_len++;
 
 	memspace = (cur_inst>>6) & 1;
@@ -1314,7 +1313,7 @@ static void dsp_jsclr_pp(void)
 	/* jsclr #n,y:pp,p:xx */
 	char srcname[16];
 	uint32_t memspace, value, numbit;
-	
+
 	disasm_cur_inst_len++;
 
 	memspace = (cur_inst>>6) & 1;
@@ -1339,7 +1338,7 @@ static void dsp_jsclr_reg(void)
 {
 	/* jsclr #n,R,p:xx */
 	uint32_t value, numbit;
-	
+
 	disasm_cur_inst_len++;
 
 	value = (cur_inst>>8) & BITMASK(6);
@@ -1358,7 +1357,7 @@ static void dsp_jset_aa(void)
 	/* jset #n,y:aa,p:xx */
 	char srcname[16];
 	uint32_t memspace, value, numbit;
-	
+
 	disasm_cur_inst_len++;
 
 	memspace = (cur_inst>>6) & 1;
@@ -1384,7 +1383,7 @@ static void dsp_jset_ea(void)
 	/* jset #n,y:ea,p:xx */
 	char srcname[18], addr_name[16];
 	uint32_t memspace, value, numbit;
-	
+
 	disasm_cur_inst_len++;
 
 	memspace = (cur_inst>>6) & 1;
@@ -1411,7 +1410,7 @@ static void dsp_jset_pp(void)
 	/* jset #n,y:pp,p:xx */
 	char srcname[16];
 	uint32_t memspace, value, numbit;
-	
+
 	disasm_cur_inst_len++;
 
 	memspace = (cur_inst>>6) & 1;
@@ -1436,7 +1435,7 @@ static void dsp_jset_reg(void)
 {
 	/* jset #n,R,p:xx */
 	uint32_t value, numbit;
-	
+
 	disasm_cur_inst_len++;
 
 	value = (cur_inst>>8) & BITMASK(6);
@@ -1469,7 +1468,7 @@ static void dsp_jsset_aa(void)
 	/* jsset #n,y:aa,p:xx */
 	char srcname[16];
 	uint32_t memspace, value, numbit;
-	
+
 	disasm_cur_inst_len++;
 
 	memspace = (cur_inst>>6) & 1;
@@ -1495,7 +1494,7 @@ static void dsp_jsset_ea(void)
 	/* jsset #n,y:ea,p:xx */
 	char srcname[18], addr_name[16];
 	uint32_t memspace, value, numbit;
-	
+
 	disasm_cur_inst_len++;
 
 	memspace = (cur_inst>>6) & 1;
@@ -1522,7 +1521,7 @@ static void dsp_jsset_pp(void)
 	/* jsset #n,y:pp,p:xx */
 	char srcname[16];
 	uint32_t memspace, value, numbit;
-	
+
 	disasm_cur_inst_len++;
 
 	memspace = (cur_inst>>6) & 1;
@@ -1547,7 +1546,7 @@ static void dsp_jsset_reg(void)
 {
 	/* jsset #n,r,p:xx */
 	uint32_t value, numbit;
-	
+
 	disasm_cur_inst_len++;
 
 	value = (cur_inst>>8) & BITMASK(6);
@@ -1566,7 +1565,7 @@ static void dsp_lua(void)
 
 	dsp_calc_ea((cur_inst>>8) & BITMASK(5), addr_name, sizeof(addr_name));
 	numreg = cur_inst & BITMASK(3);
-	
+
 	if (cur_inst & (1<<3))
 		snprintf(str_instr, sizeof(str_instr), "lua %s,n%d", addr_name, numreg);
 	else
@@ -1763,7 +1762,7 @@ static void dsp_movep_0(void)
 static void dsp_movep_1(void)
 {
 	char srcname[18] = "", dstname[18] = "", name[16] = "";
-	uint32_t addr, memspace; 
+	uint32_t addr, memspace;
 
 	/* p:ea,x:pp */
 	/* x:pp,p:ea */
@@ -1802,7 +1801,7 @@ static void dsp_movep_1(void)
 static void dsp_movep_23(void)
 {
 	char srcname[18] = "", dstname[18] = "", name[16] = "";
-	uint32_t addr, memspace, easpace, retour; 
+	uint32_t addr, memspace, easpace, retour;
 
 	/* x:ea,x:pp */
 	/* y:ea,x:pp */
@@ -1957,7 +1956,7 @@ static void dsp_stop(void)
 {
 	snprintf(str_instr, sizeof(str_instr), "stop");
 }
-	
+
 static void dsp_swi(void)
 {
 	snprintf(str_instr, sizeof(str_instr), "swi");
@@ -2011,32 +2010,27 @@ static void dsp_pm(void)
 
 static void dsp_pm_0(void)
 {
-	char space_name[16], addr_name[16];
-	uint32_t memspace, numreg1, numreg2;
+	char addr_name[16];
+	static char parallel_instr1[32], parallel_instr2[32];
+
+	uint32_t memspace, numreg;
 /*
 	0000 100d 00mm mrrr S,x:ea	x0,D
-	0000 100d 10mm mrrr S,y:ea	y0,D
+	0000 100d 10mm mrrr y0,D	S,y:ea
 */
 	memspace = (cur_inst>>15) & 1;
-	numreg1 = DSP_REG_A+((cur_inst>>16) & 1);
+	numreg = DSP_REG_A+((cur_inst>>16) & 1);
 	dsp_calc_ea((cur_inst>>8) & BITMASK(6), addr_name, sizeof(addr_name));
 
 	if (memspace) {
-		strcpy(space_name,"y");
-		numreg2 = DSP_REG_Y0;
+		snprintf(parallel_instr1, sizeof(parallel_instr1), "y0,%s", registers_name[numreg]);
+		snprintf(parallel_instr2, sizeof(parallel_instr2), "%s,y:%s", registers_name[numreg], addr_name);
 	} else {
-		strcpy(space_name,"x");
-		numreg2 = DSP_REG_X0;
+		snprintf(parallel_instr1, sizeof(parallel_instr1), "%s,x:%s", registers_name[numreg], addr_name);
+		snprintf(parallel_instr2, sizeof(parallel_instr2), "x0,%s", registers_name[numreg]);
 	}
 
-	snprintf(parallelmove_name, sizeof(parallelmove_name),
-		"%s,%s:%s %s,%s",
-		registers_name[numreg1],
-		space_name,
-		addr_name,
-		registers_name[numreg2],
-		registers_name[numreg1]
-	);
+	snprintf(parallelmove_name, sizeof(parallelmove_name), "%-16s %s", parallel_instr1, parallel_instr2);
 }
 
 static void dsp_pm_1(void)
@@ -2051,6 +2045,8 @@ static void dsp_pm_1(void)
 */
 
 	char addr_name[16];
+	static char parallel_instr1[32], parallel_instr2[32];
+
 	uint32_t memspace, write_flag, retour, s1reg, s2reg, d1reg, d2reg;
 
 	memspace = (cur_inst>>14) & 1;
@@ -2073,29 +2069,17 @@ static void dsp_pm_1(void)
 			/* Write D2 */
 
 			if (retour) {
-				snprintf(parallelmove_name, sizeof(parallelmove_name), "%s,%s #%s,%s",
-					registers_name[s1reg],
-					registers_name[d1reg],
-					addr_name,
-					registers_name[d2reg]
-				);
+				snprintf(parallel_instr1, sizeof(parallel_instr1), "%s,%s", registers_name[s1reg], registers_name[d1reg]);
+				snprintf(parallel_instr2, sizeof(parallel_instr2), "#%s,%s", addr_name, registers_name[d2reg]);
 			} else {
-				snprintf(parallelmove_name, sizeof(parallelmove_name), "%s,%s y:%s,%s",
-					registers_name[s1reg],
-					registers_name[d1reg],
-					addr_name,
-					registers_name[d2reg]
-				);
+				snprintf(parallel_instr1, sizeof(parallel_instr1), "%s,%s", registers_name[s1reg], registers_name[d1reg]);
+				snprintf(parallel_instr2, sizeof(parallel_instr2), "y:%s,%s", addr_name, registers_name[d2reg]);
 			}
 		} else {
 			/* Read S2 */
-			snprintf(parallelmove_name, sizeof(parallelmove_name), "%s,%s %s,y:%s",
-				registers_name[s1reg],
-				registers_name[d1reg],
-				registers_name[s2reg],
-				addr_name
-			);
-		}		
+			snprintf(parallel_instr1, sizeof(parallel_instr1), "%s,%s", registers_name[s1reg], registers_name[d1reg]);
+			snprintf(parallel_instr2, sizeof(parallel_instr2), "%s,y:%s", registers_name[s2reg], addr_name);
+		}
 
 	} else {
 		s1reg = d1reg = DSP_REG_X0;
@@ -2113,31 +2097,21 @@ static void dsp_pm_1(void)
 			/* Write D1 */
 
 			if (retour) {
-				snprintf(parallelmove_name, sizeof(parallelmove_name), "#%s,%s %s,%s",
-					addr_name,
-					registers_name[d1reg],
-					registers_name[s2reg],
-					registers_name[d2reg]
-				);
+				snprintf(parallel_instr1, sizeof(parallel_instr1), "#%s,%s", addr_name, registers_name[d1reg]);
+				snprintf(parallel_instr2, sizeof(parallel_instr2), "%s,%s", registers_name[s2reg], registers_name[d2reg]);
 			} else {
-				snprintf(parallelmove_name, sizeof(parallelmove_name), "x:%s,%s %s,%s",
-					addr_name,
-					registers_name[d1reg],
-					registers_name[s2reg],
-					registers_name[d2reg]
-				);
+				snprintf(parallel_instr1, sizeof(parallel_instr1), "x:%s,%s", addr_name, registers_name[d1reg]);
+				snprintf(parallel_instr2, sizeof(parallel_instr2), "%s,%s", registers_name[s2reg], registers_name[d2reg]);
 			}
 		} else {
 			/* Read S1 */
-			snprintf(parallelmove_name, sizeof(parallelmove_name), "%s,x:%s %s,%s",
-				registers_name[s1reg],
-				addr_name,
-				registers_name[s2reg],
-				registers_name[d2reg]
-			);
-		}		
-	
+			snprintf(parallel_instr1, sizeof(parallel_instr1), "%s,x:%s", registers_name[s1reg], addr_name);
+			snprintf(parallel_instr2, sizeof(parallel_instr2), "%s,%s", registers_name[s2reg], registers_name[d2reg]);
+		}
+
 	}
+
+	snprintf(parallelmove_name, sizeof(parallelmove_name), "%-16s %s", parallel_instr1, parallel_instr2);
 }
 
 static void dsp_pm_2(void)
@@ -2163,7 +2137,7 @@ static void dsp_pm_2(void)
 	if (((cur_inst >> 8) & 0xfc00) == 0x2000) {
 		numreg1 = (cur_inst>>13) & BITMASK(5);
 		numreg2 = (cur_inst>>8) & BITMASK(5);
-		snprintf(parallelmove_name, sizeof(parallelmove_name), "%s,%s", registers_name[numreg1], registers_name[numreg2]); 
+		snprintf(parallelmove_name, sizeof(parallelmove_name), "%s,%s", registers_name[numreg1], registers_name[numreg2]);
 		return;
 	}
 
@@ -2199,7 +2173,7 @@ static void dsp_pm_4(void)
 	if ((value>>2)==0) {
 		/* L: memory move */
 		if (cur_inst & (1<<14)) {
-			retour = dsp_calc_ea(ea_mode, addr_name, sizeof(addr_name));	
+			retour = dsp_calc_ea(ea_mode, addr_name, sizeof(addr_name));
 		} else {
 			snprintf(addr_name, sizeof(addr_name), "$%04x", ea_mode);
 			retour = 0;
@@ -2226,7 +2200,7 @@ static void dsp_pm_4(void)
 
 	memspace = (cur_inst>>19) & 1;
 	if (cur_inst & (1<<14)) {
-		retour = dsp_calc_ea(ea_mode, addr_name, sizeof(addr_name));	
+		retour = dsp_calc_ea(ea_mode, addr_name, sizeof(addr_name));
 	} else {
 		snprintf(addr_name, sizeof(addr_name), "$%04x", ea_mode);
 		retour = 0;
@@ -2241,12 +2215,12 @@ static void dsp_pm_4(void)
 			if (retour) {
 				snprintf(parallelmove_name, sizeof(parallelmove_name), "#%s,%s", addr_name, registers_name[value]);
 			} else {
-				snprintf(parallelmove_name, sizeof(parallelmove_name), "y:%s,%s", addr_name, registers_name[value]);
+				snprintf(parallelmove_name, sizeof(parallelmove_name), "                 y:%s,%s", addr_name, registers_name[value]);
 			}
 
 		} else {
 			/* Read S */
-			snprintf(parallelmove_name, sizeof(parallelmove_name), "%s,y:%s", registers_name[value], addr_name);
+			snprintf(parallelmove_name, sizeof(parallelmove_name), "                 %s,y:%s", registers_name[value], addr_name);
 		}
 	} else {
 		/* X: */
@@ -2268,10 +2242,12 @@ static void dsp_pm_4(void)
 
 static void dsp_pm_8(void)
 {
-	char addr1_name[16], addr2_name[16];
+	static char addr1_name[16], addr2_name[16];
+	static char parallel_instr1[32], parallel_instr2[32];
+
 	uint32_t ea_mode1, ea_mode2, numreg1, numreg2;
 /*
-	1wmm eeff WrrM MRRR x:ea,D1		y:ea,D2	
+	1wmm eeff WrrM MRRR 			x:ea,D1		y:ea,D2
 						x:ea,D1		S2,y:ea
 						S1,x:ea		y:ea,D2
 						S1,x:ea		S2,y:ea
@@ -2307,38 +2283,24 @@ static void dsp_pm_8(void)
 
 	dsp_calc_ea(ea_mode1, addr1_name, sizeof(addr1_name));
 	dsp_calc_ea(ea_mode2, addr2_name, sizeof(addr2_name));
-	
+
 	if (cur_inst & (1<<15)) {
 		if (cur_inst & (1<<22)) {
-			snprintf(parallelmove_name, sizeof(parallelmove_name), "x:%s,%s y:%s,%s",
-				addr1_name,
-				registers_name[numreg1],
-				addr2_name,
-				registers_name[numreg2]
-			);
+			snprintf(parallel_instr1, sizeof(parallel_instr1), "x:%s,%s", addr1_name, registers_name[numreg1]);
+			snprintf(parallel_instr2, sizeof(parallel_instr2), "y:%s,%s", addr2_name, registers_name[numreg2]);
 		} else {
-			snprintf(parallelmove_name, sizeof(parallelmove_name), "x:%s,%s %s,y:%s",
-				addr1_name,
-				registers_name[numreg1],
-				registers_name[numreg2],
-				addr2_name
-			);
+			snprintf(parallel_instr1, sizeof(parallel_instr1), "x:%s,%s", addr1_name, registers_name[numreg1]);
+			snprintf(parallel_instr2, sizeof(parallel_instr2), "%s,y:%s", registers_name[numreg2], addr2_name);
 		}
 	} else {
 		if (cur_inst & (1<<22)) {
-			snprintf(parallelmove_name, sizeof(parallelmove_name), "%s,x:%s y:%s,%s",
-				registers_name[numreg1],
-				addr1_name,
-				addr2_name,
-				registers_name[numreg2]
-			);
+			snprintf(parallel_instr1, sizeof(parallel_instr1), "%s,x:%s", registers_name[numreg1], addr1_name);
+			snprintf(parallel_instr2, sizeof(parallel_instr2), "y:%s,%s", addr2_name, registers_name[numreg2]);
 		} else {
-			snprintf(parallelmove_name, sizeof(parallelmove_name), "%s,x:%s %s,y:%s",
-				registers_name[numreg1],
-				addr1_name,
-				registers_name[numreg2],
-				addr2_name
-			);
+			snprintf(parallel_instr1, sizeof(parallel_instr1), "%s,x:%s", registers_name[numreg1], addr1_name);
+			snprintf(parallel_instr2, sizeof(parallel_instr2), "%s,y:%s", registers_name[numreg2], addr2_name);
 		}
-	}	
+	}
+
+	snprintf(parallelmove_name, sizeof(parallelmove_name), "%-16s %s", parallel_instr1, parallel_instr2);
 }

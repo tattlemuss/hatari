@@ -15,23 +15,24 @@
  */
 
 /* CPU exception flags
- * is catching needed also for: traps 0, 3-12, 15? (MonST catches them)
  */
-#define	EXCEPT_BUS	 (1<<0)
-#define	EXCEPT_ADDRESS 	 (1<<1)
-#define	EXCEPT_ILLEGAL	 (1<<2)
-#define	EXCEPT_ZERODIV	 (1<<3)
-#define	EXCEPT_CHK	 (1<<4)
-#define	EXCEPT_TRAPV	 (1<<5)
-#define	EXCEPT_PRIVILEGE (1<<6)
-#define	EXCEPT_TRACE     (1<<7)
-#define	EXCEPT_NOHANDLER (1<<8)
+#define	EXCEPT_NOHANDLER (1<<0)
+#define	EXCEPT_BUS	 (1<<1)
+#define	EXCEPT_ADDRESS 	 (1<<2)
+#define	EXCEPT_ILLEGAL	 (1<<3)
+#define	EXCEPT_ZERODIV	 (1<<4)
+#define	EXCEPT_CHK	 (1<<5)
+#define	EXCEPT_TRAPV	 (1<<6)
+#define	EXCEPT_PRIVILEGE (1<<7)
+#define	EXCEPT_TRACE     (1<<8)
+#define	EXCEPT_LINEA     (1<<9)
+#define	EXCEPT_LINEF     (1<<10)
 
 /* DSP exception flags */
-#define EXCEPT_DSP	 (1<<9)
+#define EXCEPT_DSP	 (1<<30)
 
 /* whether to enable exception debugging on autostart */
-#define EXCEPT_AUTOSTART (1<<10)
+#define EXCEPT_AUTOSTART (1<<31)
 
 /* general flags */
 #define	EXCEPT_NONE	 (0)
@@ -177,6 +178,8 @@ enum {
 
 	TRACE_BIT_SCSIDRV,
 
+	TRACE_BIT_SCU,
+
 	TRACE_BIT_VIDEL,
 
 	TRACE_BIT_VIDEO_ADDR,
@@ -187,9 +190,7 @@ enum {
 	TRACE_BIT_VIDEO_RES,
 	TRACE_BIT_VIDEO_STE,
 	TRACE_BIT_VIDEO_SYNC,
-	TRACE_BIT_VIDEO_VBL,
-
-	TRACE_BIT_VME
+	TRACE_BIT_VIDEO_VBL
 };
 
 #define TRACE_ACIA               (1ll<<TRACE_BIT_ACIA)
@@ -262,6 +263,8 @@ enum {
 
 #define TRACE_SCSIDRV            (1ll<<TRACE_BIT_SCSIDRV)
 
+#define TRACE_SCU                (1ll<<TRACE_BIT_SCU)
+
 #define TRACE_VIDEL              (1ll<<TRACE_BIT_VIDEL)
 
 #define TRACE_VIDEO_ADDR         (1ll<<TRACE_BIT_VIDEO_ADDR)
@@ -273,8 +276,6 @@ enum {
 #define TRACE_VIDEO_STE          (1ll<<TRACE_BIT_VIDEO_STE)
 #define TRACE_VIDEO_SYNC         (1ll<<TRACE_BIT_VIDEO_SYNC)
 #define TRACE_VIDEO_VBL          (1ll<<TRACE_BIT_VIDEO_VBL)
-
-#define TRACE_VME                (1ll<<TRACE_BIT_VME)
 
 #define	TRACE_NONE		 (0)
 #define	TRACE_ALL		 (~0ll)
@@ -309,11 +310,19 @@ extern uint64_t LogTraceFlags;
 #define	LOG_TRACE(level, ...) \
 	if (LOG_TRACE_LEVEL(level))	{ Log_Trace(__VA_ARGS__); }
 
+#define LOG_TRACE_VAR
+
 #else		/* ENABLE_TRACING */
 
 #define LOG_TRACE(level, ...)	{}
 
 #define LOG_TRACE_LEVEL( level )	(0)
+
+#ifdef __GNUC__
+#define LOG_TRACE_VAR __attribute__((unused))
+#else
+#define LOG_TRACE_VAR
+#endif
 
 #endif		/* ENABLE_TRACING */
 

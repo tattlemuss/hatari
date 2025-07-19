@@ -38,6 +38,7 @@ const char Configuration_fileid[] = "Hatari configuration.c";
 #include "falcon/crossbar.h"
 #include "stMemory.h"
 #include "tos.h"
+#include "screenSnapShot.h"
 
 
 CNF_PARAMS ConfigureParams;                 /* List of configuration for the emulator */
@@ -63,6 +64,7 @@ static const struct Config_Tag configs_Debugger[] =
 	{ "nNumberBase", Int_Tag, &ConfigureParams.Debugger.nNumberBase },
 	{ "nSymbolLines", Int_Tag, &ConfigureParams.Debugger.nSymbolLines },
 	{ "nMemdumpLines", Int_Tag, &ConfigureParams.Debugger.nMemdumpLines },
+	{ "nFindLines", Int_Tag, &ConfigureParams.Debugger.nFindLines },
 	{ "nDisasmLines", Int_Tag, &ConfigureParams.Debugger.nDisasmLines },
 	{ "nBacktraceLines", Int_Tag, &ConfigureParams.Debugger.nBacktraceLines },
 	{ "nExceptionDebugMask", Int_Tag, &ConfigureParams.Debugger.nExceptionDebugMask },
@@ -97,6 +99,7 @@ static const struct Config_Tag configs_Screen[] =
 	{ "nMaxHeight", Int_Tag, &ConfigureParams.Screen.nMaxHeight },
 	{ "nZoomFactor", Float_Tag, &ConfigureParams.Screen.nZoomFactor },
 	{ "bUseSdlRenderer", Bool_Tag, &ConfigureParams.Screen.bUseSdlRenderer },
+	{ "ScreenShotFormat", Int_Tag, &ConfigureParams.Screen.ScreenShotFormat },
 	{ "bUseVsync", Bool_Tag, &ConfigureParams.Screen.bUseVsync },
 	{ NULL , Error_Tag, NULL }
 };
@@ -137,7 +140,7 @@ static const struct Config_Tag configs_Joystick1[] =
 	{ NULL , Error_Tag, NULL }
 };
 
-/* Used to load/save joystick 2 options */
+/* Used to load/save joystick 2 options (joypad A) */
 static const struct Config_Tag configs_Joystick2[] =
 {
 	{ "nJoystickMode", Int_Tag, &ConfigureParams.Joysticks.Joy[2].nJoystickMode },
@@ -152,10 +155,26 @@ static const struct Config_Tag configs_Joystick2[] =
 	{ "kLeft", Key_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeLeft },
 	{ "kRight", Key_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeRight },
 	{ "kFire", Key_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeFire },
+	{ "kButtonB", Key_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeB },
+	{ "kButtonC", Key_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeC },
+	{ "kButtonOption", Key_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeOption },
+	{ "kButtonPause", Key_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodePause },
+	{ "kButtonStar", Key_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeStar },
+	{ "kButtonHash", Key_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeHash },
+	{ "kButton0", Key_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeNum[0] },
+	{ "kButton1", Key_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeNum[1] },
+	{ "kButton2", Key_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeNum[2] },
+	{ "kButton3", Key_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeNum[3] },
+	{ "kButton4", Key_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeNum[4] },
+	{ "kButton5", Key_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeNum[5] },
+	{ "kButton6", Key_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeNum[6] },
+	{ "kButton7", Key_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeNum[7] },
+	{ "kButton8", Key_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeNum[8] },
+	{ "kButton9", Key_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeNum[9] },
 	{ NULL , Error_Tag, NULL }
 };
 
-/* Used to load/save joystick 3 options */
+/* Used to load/save joystick 3 options (joypad B) */
 static const struct Config_Tag configs_Joystick3[] =
 {
 	{ "nJoystickMode", Int_Tag, &ConfigureParams.Joysticks.Joy[3].nJoystickMode },
@@ -170,6 +189,22 @@ static const struct Config_Tag configs_Joystick3[] =
 	{ "kLeft", Key_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeLeft },
 	{ "kRight", Key_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeRight },
 	{ "kFire", Key_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeFire },
+	{ "kButtonB", Key_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeB },
+	{ "kButtonC", Key_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeC },
+	{ "kButtonOption", Key_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeOption },
+	{ "kButtonPause", Key_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodePause },
+	{ "kButtonStar", Key_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeStar },
+	{ "kButtonHash", Key_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeHash },
+	{ "kButton0", Key_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeNum[0] },
+	{ "kButton1", Key_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeNum[1] },
+	{ "kButton2", Key_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeNum[2] },
+	{ "kButton3", Key_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeNum[3] },
+	{ "kButton4", Key_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeNum[4] },
+	{ "kButton5", Key_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeNum[5] },
+	{ "kButton6", Key_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeNum[6] },
+	{ "kButton7", Key_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeNum[7] },
+	{ "kButton8", Key_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeNum[8] },
+	{ "kButton9", Key_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeNum[9] },
 	{ NULL , Error_Tag, NULL }
 };
 
@@ -212,12 +247,19 @@ static const struct Config_Tag configs_Joystick5[] =
 /* Used to load/save keyboard options */
 static const struct Config_Tag configs_Keyboard[] =
 {
-	{ "bDisableKeyRepeat", Bool_Tag, &ConfigureParams.Keyboard.bDisableKeyRepeat },
+	{ "bFastForwardKeyRepeat", Bool_Tag, &ConfigureParams.Keyboard.bFastForwardKeyRepeat },
 	{ "nKeymapType", Int_Tag, &ConfigureParams.Keyboard.nKeymapType },
 	{ "nCountryCode", Int_Tag, &ConfigureParams.Keyboard.nCountryCode },
 	{ "nKbdLayout", Int_Tag, &ConfigureParams.Keyboard.nKbdLayout },
 	{ "nLanguage", Int_Tag, &ConfigureParams.Keyboard.nLanguage },
 	{ "szMappingFileName", String_Tag, ConfigureParams.Keyboard.szMappingFileName },
+	{ NULL , Error_Tag, NULL }
+};
+
+static bool bDisableKeyRepeat;
+static const struct Config_Tag configs_keyboard_old[] =
+{
+	{ "bDisableKeyRepeat", Bool_Tag, &bDisableKeyRepeat },
 	{ NULL , Error_Tag, NULL }
 };
 
@@ -384,27 +426,35 @@ static const struct Config_Tag configs_Scsi[] =
 	{ "bUseDevice0", Bool_Tag, &ConfigureParams.Scsi[0].bUseDevice },
 	{ "sDeviceFile0", String_Tag, ConfigureParams.Scsi[0].sDeviceFile },
 	{ "nBlockSize0", Int_Tag, &ConfigureParams.Scsi[0].nBlockSize },
+	{ "nScsiVersion0", Int_Tag, &ConfigureParams.Scsi[0].nScsiVersion },
 	{ "bUseDevice1", Bool_Tag, &ConfigureParams.Scsi[1].bUseDevice },
 	{ "sDeviceFile1", String_Tag, ConfigureParams.Scsi[1].sDeviceFile },
 	{ "nBlockSize1", Int_Tag, &ConfigureParams.Scsi[1].nBlockSize },
+	{ "nScsiVersion1", Int_Tag, &ConfigureParams.Scsi[1].nScsiVersion },
 	{ "bUseDevice2", Bool_Tag, &ConfigureParams.Scsi[2].bUseDevice },
 	{ "sDeviceFile2", String_Tag, ConfigureParams.Scsi[2].sDeviceFile },
 	{ "nBlockSize2", Int_Tag, &ConfigureParams.Scsi[2].nBlockSize },
+	{ "nScsiVersion2", Int_Tag, &ConfigureParams.Scsi[2].nScsiVersion },
 	{ "bUseDevice3", Bool_Tag, &ConfigureParams.Scsi[3].bUseDevice },
 	{ "sDeviceFile3", String_Tag, ConfigureParams.Scsi[3].sDeviceFile },
 	{ "nBlockSize3", Int_Tag, &ConfigureParams.Scsi[3].nBlockSize },
+	{ "nScsiVersion3", Int_Tag, &ConfigureParams.Scsi[3].nScsiVersion },
 	{ "bUseDevice4", Bool_Tag, &ConfigureParams.Scsi[4].bUseDevice },
 	{ "sDeviceFile4", String_Tag, ConfigureParams.Scsi[4].sDeviceFile },
 	{ "nBlockSize4", Int_Tag, &ConfigureParams.Scsi[4].nBlockSize },
+	{ "nScsiVersion4", Int_Tag, &ConfigureParams.Scsi[4].nScsiVersion },
 	{ "bUseDevice5", Bool_Tag, &ConfigureParams.Scsi[5].bUseDevice },
 	{ "sDeviceFile5", String_Tag, ConfigureParams.Scsi[5].sDeviceFile },
 	{ "nBlockSize5", Int_Tag, &ConfigureParams.Scsi[5].nBlockSize },
+	{ "nScsiVersion5", Int_Tag, &ConfigureParams.Scsi[5].nScsiVersion },
 	{ "bUseDevice6", Bool_Tag, &ConfigureParams.Scsi[6].bUseDevice },
 	{ "sDeviceFile6", String_Tag, ConfigureParams.Scsi[6].sDeviceFile },
 	{ "nBlockSize6", Int_Tag, &ConfigureParams.Scsi[6].nBlockSize },
+	{ "nScsiVersion6", Int_Tag, &ConfigureParams.Scsi[6].nScsiVersion },
 	{ "bUseDevice7", Bool_Tag, &ConfigureParams.Scsi[7].bUseDevice },
 	{ "sDeviceFile7", String_Tag, ConfigureParams.Scsi[7].sDeviceFile },
 	{ "nBlockSize7", Int_Tag, &ConfigureParams.Scsi[7].nBlockSize },
+	{ "nScsiVersion7", Int_Tag, &ConfigureParams.Scsi[7].nScsiVersion },
 	{ NULL , Error_Tag, NULL }
 };
 
@@ -452,9 +502,15 @@ static const struct Config_Tag configs_Rs232[] =
 	{ "bEnableRS232", Bool_Tag, &ConfigureParams.RS232.bEnableRS232 },
 	{ "szOutFileName", String_Tag, ConfigureParams.RS232.szOutFileName },
 	{ "szInFileName", String_Tag, ConfigureParams.RS232.szInFileName },
-	{ "bEnableSccB", Bool_Tag, &ConfigureParams.RS232.bEnableSccB },
-	{ "sSccBOutFileName", String_Tag, ConfigureParams.RS232.sSccBOutFileName },
-//	{ "sSccBInFileName", String_Tag, ConfigureParams.RS232.sSccBInFileName },
+	{ "EnableSccA", Bool_Tag, &ConfigureParams.RS232.EnableScc[CNF_SCC_CHANNELS_A_SERIAL] },
+	{ "SccAOutFileName", String_Tag, ConfigureParams.RS232.SccOutFileName[CNF_SCC_CHANNELS_A_SERIAL] },
+	{ "SccAInFileName", String_Tag, ConfigureParams.RS232.SccInFileName[CNF_SCC_CHANNELS_A_SERIAL] },
+	{ "EnableSccALan", Bool_Tag, &ConfigureParams.RS232.EnableScc[CNF_SCC_CHANNELS_A_LAN] },
+	{ "SccALanOutFileName", String_Tag, ConfigureParams.RS232.SccOutFileName[CNF_SCC_CHANNELS_A_LAN] },
+	{ "SccALanInFileName", String_Tag, ConfigureParams.RS232.SccInFileName[CNF_SCC_CHANNELS_A_LAN] },
+	{ "EnableSccB", Bool_Tag, &ConfigureParams.RS232.EnableScc[CNF_SCC_CHANNELS_B] },
+	{ "SccBOutFileName", String_Tag, ConfigureParams.RS232.SccOutFileName[CNF_SCC_CHANNELS_B] },
+	{ "SccBInFileName", String_Tag, ConfigureParams.RS232.SccInFileName[CNF_SCC_CHANNELS_B] },
 	{ NULL , Error_Tag, NULL }
 };
 
@@ -495,13 +551,13 @@ static const struct Config_Tag configs_System[] =
 	{ "nModelType", Int_Tag, &ConfigureParams.System.nMachineType },
 	{ "bBlitter", Bool_Tag, &ConfigureParams.System.bBlitter },
 	{ "nDSPType", Int_Tag, &ConfigureParams.System.nDSPType },
-	{ "nVMEType", Int_Tag, &ConfigureParams.System.nVMEType },
 	{ "nRtcYear", Int_Tag, &ConfigureParams.System.nRtcYear },
 	{ "bPatchTimerD", Bool_Tag, &ConfigureParams.System.bPatchTimerD },
 	{ "bFastBoot", Bool_Tag, &ConfigureParams.System.bFastBoot },
 	{ "bFastForward", Bool_Tag, &ConfigureParams.System.bFastForward },
 	{ "bAddressSpace24", Bool_Tag, &ConfigureParams.System.bAddressSpace24 },
 	{ "bCycleExactCpu", Bool_Tag, &ConfigureParams.System.bCycleExactCpu },
+	{ "bCpuDataCache", Bool_Tag, &ConfigureParams.System.bCpuDataCache },
 	{ "n_FPUType", Int_Tag, &ConfigureParams.System.n_FPUType },
 /* JIT	{ "bCompatibleFPU", Bool_Tag, &ConfigureParams.System.bCompatibleFPU }, */
 	{ "bSoftFloatFPU", Bool_Tag, &ConfigureParams.System.bSoftFloatFPU },
@@ -549,6 +605,7 @@ void Configuration_SetDefault(void)
 	ConfigureParams.Debugger.nNumberBase = 10;
 	ConfigureParams.Debugger.nSymbolLines = -1; /* <0: use terminal size */
 	ConfigureParams.Debugger.nMemdumpLines = -1; /* <0: use terminal size */
+	ConfigureParams.Debugger.nFindLines = -1; /* <0: use terminal size */
 	ConfigureParams.Debugger.nDisasmLines = -1; /* <0: use terminal size */
 	ConfigureParams.Debugger.nBacktraceLines = 0; /* <=0: show all */
 	ConfigureParams.Debugger.nExceptionDebugMask = DEFAULT_EXCEPTIONS;
@@ -609,6 +666,7 @@ void Configuration_SetDefault(void)
 		ConfigureParams.Scsi[i].bUseDevice = false;
 		strcpy(ConfigureParams.Scsi[i].sDeviceFile, psWorkingDir);
 		ConfigureParams.Scsi[i].nBlockSize = 512;
+		ConfigureParams.Scsi[i].nScsiVersion = 1;
 	}
 	/* IDE */
 	for (i = 0; i < MAX_IDE_DEVS; i++)
@@ -635,6 +693,16 @@ void Configuration_SetDefault(void)
 		ConfigureParams.Joysticks.Joy[i].nKeyCodeRight = SDLK_RIGHT;
 		ConfigureParams.Joysticks.Joy[i].nKeyCodeFire = SDLK_RCTRL;
 	}
+
+	for (i = 0; i <= 9; i++)
+		ConfigureParams.Joysticks.Joy[JOYID_JOYPADA].nKeyCodeNum[i] = SDLK_0 + i;
+	ConfigureParams.Joysticks.Joy[JOYID_JOYPADA].nKeyCodeB = SDLK_b;
+	ConfigureParams.Joysticks.Joy[JOYID_JOYPADA].nKeyCodeC = SDLK_c;
+	ConfigureParams.Joysticks.Joy[JOYID_JOYPADA].nKeyCodeOption = SDLK_o;
+	ConfigureParams.Joysticks.Joy[JOYID_JOYPADA].nKeyCodePause = SDLK_p;
+	ConfigureParams.Joysticks.Joy[JOYID_JOYPADA].nKeyCodeHash = SDLK_HASH;
+	ConfigureParams.Joysticks.Joy[JOYID_JOYPADA].nKeyCodeStar = SDLK_PLUS;
+
 	if (SDL_NumJoysticks() > 0)
 	{
 		/* ST Joystick #1 is default joystick */
@@ -645,7 +713,7 @@ void Configuration_SetDefault(void)
 	}
 
 	/* Set defaults for Keyboard */
-	ConfigureParams.Keyboard.bDisableKeyRepeat = false;
+	ConfigureParams.Keyboard.bFastForwardKeyRepeat = true;
 	ConfigureParams.Keyboard.nKeymapType = KEYMAP_SYMBOLIC;
 	ConfigureParams.Keyboard.nCountryCode = TOS_LANG_UNKNOWN;
 	ConfigureParams.Keyboard.nKbdLayout = TOS_LANG_UNKNOWN;
@@ -702,9 +770,15 @@ void Configuration_SetDefault(void)
 	strcpy(ConfigureParams.RS232.szOutFileName, "/dev/modem");
 	strcpy(ConfigureParams.RS232.szInFileName, "/dev/modem");
 	/* Set defaults for SCC RS232 ( MegaSTE/TT/Falcon) */
-	ConfigureParams.RS232.bEnableSccB = false;
-	strcpy(ConfigureParams.RS232.sSccBOutFileName, "/dev/modem");
-//	strcpy(ConfigureParams.RS232.sSccBInFileName, "/dev/modem");
+	ConfigureParams.RS232.EnableScc[CNF_SCC_CHANNELS_A_SERIAL] = false;
+	strcpy(ConfigureParams.RS232.SccOutFileName[CNF_SCC_CHANNELS_A_SERIAL], "/dev/modem");
+	strcpy(ConfigureParams.RS232.SccInFileName[CNF_SCC_CHANNELS_A_SERIAL], "/dev/modem");
+	ConfigureParams.RS232.EnableScc[CNF_SCC_CHANNELS_A_LAN] = false;
+	strcpy(ConfigureParams.RS232.SccOutFileName[CNF_SCC_CHANNELS_A_LAN], "/dev/modem");
+	strcpy(ConfigureParams.RS232.SccInFileName[CNF_SCC_CHANNELS_A_LAN], "/dev/modem");
+	ConfigureParams.RS232.EnableScc[CNF_SCC_CHANNELS_B] = false;
+	strcpy(ConfigureParams.RS232.SccOutFileName[CNF_SCC_CHANNELS_B], "/dev/modem");
+	strcpy(ConfigureParams.RS232.SccInFileName[CNF_SCC_CHANNELS_B], "/dev/modem");
 
 	/* Set defaults for MIDI */
 	ConfigureParams.Midi.bEnableMidi = false;
@@ -741,6 +815,11 @@ void Configuration_SetDefault(void)
 	ConfigureParams.Screen.nZoomFactor = 1.0;
 	ConfigureParams.Screen.bUseSdlRenderer = true;
 	ConfigureParams.Screen.bUseVsync = false;
+#if HAVE_LIBPNG
+	ConfigureParams.Screen.ScreenShotFormat = SCREEN_SNAPSHOT_PNG;
+#else
+	ConfigureParams.Screen.ScreenShotFormat = SCREEN_SNAPSHOT_BMP;
+#endif
 
 	/* Set defaults for Sound */
 	ConfigureParams.Sound.bEnableMicrophone = true;
@@ -779,13 +858,13 @@ void Configuration_SetDefault(void)
 	ConfigureParams.System.nCpuLevel = 0;
 	ConfigureParams.System.nCpuFreq = 8;	nCpuFreqShift = 0;
 	ConfigureParams.System.nDSPType = DSP_TYPE_NONE;
-	ConfigureParams.System.nVMEType = VME_TYPE_DUMMY; /* for TOS MegaSTE detection */
 	ConfigureParams.System.nRtcYear = 0;
 	ConfigureParams.System.bAddressSpace24 = true;
 	ConfigureParams.System.n_FPUType = FPU_NONE;
 	ConfigureParams.System.bCompatibleFPU = true; /* JIT */
 	ConfigureParams.System.bSoftFloatFPU = false;
 	ConfigureParams.System.bMMU = false;
+	ConfigureParams.System.bCpuDataCache = true;
 	ConfigureParams.System.bCycleExactCpu = true;
 	ConfigureParams.System.VideoTimingMode = VIDEO_TIMING_MODE_WS3;
 	ConfigureParams.System.bCompatibleCpu = true;
@@ -896,6 +975,22 @@ void Configuration_Apply(bool bReset)
 	M68000_CheckCpuSettings();
 //fprintf (stderr,"M68000_CheckCpuSettings conf 2\n" );
 
+	/* Disable invalid joystick mappings */
+	for (i = 0; i < JOYSTICK_COUNT; i++)
+	{
+		int joyid = ConfigureParams.Joysticks.Joy[i].nJoyId;
+		if (joyid < 0 || joyid >= JOYSTICK_COUNT)
+		{
+			if (ConfigureParams.Joysticks.Joy[i].nJoystickMode == JOYSTICK_REALSTICK)
+			{
+				Log_Printf(LOG_WARN, "Selected real Joystick %d unavailable, disabling ST joystick %d\n", joyid, i);
+				ConfigureParams.Joysticks.Joy[i].nJoystickMode = JOYSTICK_DISABLED;
+			}
+			/* otherwise it may result in invalid array access */
+			ConfigureParams.Joysticks.Joy[i].nJoyId = 0;
+		}
+	}
+
 	/* Clean file and directory names */
 	File_MakeAbsoluteName(ConfigureParams.Rom.szTosImageFileName);
 	if (strlen(ConfigureParams.Rom.szCartridgeImageFileName) > 0)
@@ -931,8 +1026,12 @@ void Configuration_Apply(bool bReset)
 	File_MakeAbsoluteSpecialName(ConfigureParams.Log.sTraceFileName);
 	File_MakeAbsoluteSpecialName(ConfigureParams.RS232.szInFileName);
 	File_MakeAbsoluteSpecialName(ConfigureParams.RS232.szOutFileName);
-//	File_MakeAbsoluteSpecialName(ConfigureParams.RS232.sSccBInFileName);
-	File_MakeAbsoluteSpecialName(ConfigureParams.RS232.sSccBOutFileName);
+	File_MakeAbsoluteSpecialName(ConfigureParams.RS232.SccInFileName[CNF_SCC_CHANNELS_A_SERIAL]);
+	File_MakeAbsoluteSpecialName(ConfigureParams.RS232.SccOutFileName[CNF_SCC_CHANNELS_A_SERIAL]);
+	File_MakeAbsoluteSpecialName(ConfigureParams.RS232.SccInFileName[CNF_SCC_CHANNELS_A_LAN]);
+	File_MakeAbsoluteSpecialName(ConfigureParams.RS232.SccOutFileName[CNF_SCC_CHANNELS_A_LAN]);
+	File_MakeAbsoluteSpecialName(ConfigureParams.RS232.SccInFileName[CNF_SCC_CHANNELS_B]);
+	File_MakeAbsoluteSpecialName(ConfigureParams.RS232.SccOutFileName[CNF_SCC_CHANNELS_B]);
 	File_MakeAbsoluteSpecialName(ConfigureParams.Midi.sMidiInFileName);
 	File_MakeAbsoluteSpecialName(ConfigureParams.Midi.sMidiOutFileName);
 	File_MakeAbsoluteSpecialName(ConfigureParams.Printer.szPrintToFileName);
@@ -1013,6 +1112,10 @@ void Configuration_Load(const char *psFileName)
 	}
 	Configuration_LoadSection(psFileName, configs_HardDisk_Old, "[HardDisk]");
 
+	Configuration_LoadSection(psFileName, configs_keyboard_old, "[Keyboard]");
+	if (bDisableKeyRepeat)
+		ConfigureParams.Keyboard.bFastForwardKeyRepeat = false;
+
 	/* Now the regular loading of the sections:
 	 * Start with Log so that logging works as early as possible */
 	Configuration_LoadSection(psFileName, configs_Log, "[Log]");
@@ -1043,6 +1146,12 @@ void Configuration_Load(const char *psFileName)
 	Configuration_LoadSection(psFileName, configs_Midi, "[Midi]");
 	Configuration_LoadSection(psFileName, configs_System, "[System]");
 	Configuration_LoadSection(psFileName, configs_Video, "[Video]");
+
+	/* Some more legacy handling: */
+	if (ConfigureParams.Keyboard.nKeymapType >= KEYMAP_OLD_LOADED)
+	{
+		ConfigureParams.Keyboard.nKeymapType = KEYMAP_SYMBOLIC;
+	}
 }
 
 
@@ -1161,17 +1270,16 @@ void Configuration_MemorySnapShot_Capture(bool bSave)
 	MemorySnapShot_Store(&ConfigureParams.System.nMachineType, sizeof(ConfigureParams.System.nMachineType));
 	MemorySnapShot_Store(&ConfigureParams.System.bBlitter, sizeof(ConfigureParams.System.bBlitter));
 	MemorySnapShot_Store(&ConfigureParams.System.nDSPType, sizeof(ConfigureParams.System.nDSPType));
-	/* TODO: enable after VME/SCU interrupt emulation is implemented
-	MemorySnapShot_Store(&ConfigureParams.System.nVMEType, sizeof(ConfigureParams.System.nVMEType));
-	 */
-	MemorySnapShot_Store(&bOldRealTimeClock, sizeof(bOldRealTimeClock));	/* TODO: Can be removed later */
 	MemorySnapShot_Store(&ConfigureParams.System.bPatchTimerD, sizeof(ConfigureParams.System.bPatchTimerD));
 	MemorySnapShot_Store(&ConfigureParams.System.bAddressSpace24, sizeof(ConfigureParams.System.bAddressSpace24));
 
+	MemorySnapShot_Store(&ConfigureParams.System.bCpuDataCache, sizeof(ConfigureParams.System.bCpuDataCache));
 	MemorySnapShot_Store(&ConfigureParams.System.bCycleExactCpu, sizeof(ConfigureParams.System.bCycleExactCpu));
 	MemorySnapShot_Store(&ConfigureParams.System.n_FPUType, sizeof(ConfigureParams.System.n_FPUType));
 	MemorySnapShot_Store(&ConfigureParams.System.bCompatibleFPU, sizeof(ConfigureParams.System.bCompatibleFPU));
 	MemorySnapShot_Store(&ConfigureParams.System.bMMU, sizeof(ConfigureParams.System.bMMU));
+
+	MemorySnapShot_Store(&MachineClocks,sizeof(MachineClocks));
 
 	MemorySnapShot_Store(&ConfigureParams.DiskImage.FastFloppy, sizeof(ConfigureParams.DiskImage.FastFloppy));
 

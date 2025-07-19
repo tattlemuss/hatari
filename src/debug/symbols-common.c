@@ -1,7 +1,7 @@
 /*
  * Hatari - symbols-common.c
  *
- * Copyright (C) 2010-2023 by Eero Tamminen
+ * Copyright (C) 2010-2025 by Eero Tamminen
  * Copyright (C) 2017,2021,2023 by Thorsten Otto
  *
  * This file is distributed under the GNU General Public License, version 2
@@ -33,10 +33,13 @@ typedef struct {
 } prg_section_t;
 
 typedef struct {
+	/* shared by debugger & gst2ascii */
 	symtype_t notypes;
 	bool no_files;
 	bool no_gccint;
 	bool no_local;
+	bool no_dups;
+	/* gst2ascii specific options */
 	bool sort_name;
 } symbol_opts_t;
 
@@ -60,12 +63,84 @@ typedef struct {
 #define ATARI_PROGRAM_MAGIC 0x601A
 
 
+/* ------- heuristic helpers for name comparisons ------- */
+
+/**
+ * return true if given symbol name is (anonymous/numbered) local one
+ */
+static bool is_local_symbol(const char *name)
+{
+	return (name[0] == '.' && name[1] == 'L');
+}
+
+/**
+ * return true if given symbol name is object/library/file name
+ */
+static bool is_file_name(const char *name)
+{
+	int len = strlen(name);
+	/* object (.a or .o) file name? */
+	if (len > 2 && ((name[len-2] == '.' && (name[len-1] == 'a' || name[len-1] == 'o')))) {
+		    return true;
+	}
+	/* some other file name? */
+	const char *slash = strchr(name, '/');
+	/* not just overloaded '/' operator? */
+	if (slash && slash[1] != '(') {
+		return true;
+	}
+	return false;
+}
+
+/**
+ * Return true if symbol name matches internal GCC symbol name
+ */
+static bool is_gcc_internal(const char *name)
+{
+	static const char *gcc_sym[] = {
+		"___gnu_compiled_c",
+		"gcc2_compiled."
+	};
+	int i;
+	/* useless symbols GCC (v2) seems to add to every object? */
+	for (i = 0; i < ARRAY_SIZE(gcc_sym); i++) {
+		if (strcmp(name, gcc_sym[i]) == 0) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * Return true if symbol name seems to be C/C++ one,
+ * i.e. is unlikely to be assembly one
+ */
+static bool is_cpp_symbol(const char *name)
+{
+	/* normally C symbols start with underscore */
+	if (name[0] == '_') {
+		return true;
+	}
+	/* C++ method signatures can include '::' or spaces */
+	if (strchr(name, ' ') || strchr(name, ':')) {
+		return true;
+	}
+	return false;
+}
+
+
 /* ------------------ symbol comparisons ------------------ */
 
 /**
- * compare function for qsort() to sort according to
- * symbol type & address.  Code section symbols will
- * be sorted first.
+ * compare function for qsort(), to sort symbols by their
+ * type, address, and finally name.
+ *
+ * Code symbols are sorted first, so that later phase can
+ * split symbol table to separate code and data symbol lists.
+ *
+ * For symbols with same address, heuristics are used to sort
+ * most useful name first, so that later phase can filter
+ * the following, less useful names, out for that address.
  */
 static int symbols_by_address(const void *s1, const void *s2)
 {
@@ -86,7 +161,47 @@ static int symbols_by_address(const void *s1, const void *s2)
 	if (sym1->address > sym2->address) {
 		return 1;
 	}
-	return 0;
+
+	/* and by name when addresses are equal */
+	const char *name1 = sym1->name;
+	const char *name2 = sym2->name;
+
+	/* first check for less desirable symbol names,
+	 * from most useless, to somewhat useful
+	 */
+	bool (*sym_check[])(const char *) = {
+		is_gcc_internal,
+		is_local_symbol,
+		is_file_name,
+	};
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(sym_check); i++) {
+		bool unwanted1 = sym_check[i](name1);
+		bool unwanted2 = sym_check[i](name2);
+		if (!unwanted1 && unwanted2) {
+			return -1;
+		}
+		if (unwanted1 && !unwanted2) {
+			return 1;
+		}
+	}
+	/* => both symbol names look useful */
+
+	bool is_cpp1 = is_cpp_symbol(name1);
+	bool is_cpp2 = is_cpp_symbol(name2);
+	int len1 = strlen(name1);
+	int len2 = strlen(name2);
+
+	/* prefer shorter names for C/C++ symbols, as
+	 * this often avoid '___' C-function prefixes,
+	 * and C++ symbols can be *very* long
+	 */
+	if (is_cpp1 || is_cpp2) {
+		return len1 - len2;
+	}
+	/* otherwise prefer longer symbols (e.g. ASM) */
+	return len2 - len1;
 }
 
 /**
@@ -109,49 +224,119 @@ static int symbols_by_name(const void *s1, const void *s2)
 }
 
 /**
- * Check for duplicate addresses in symbol list
- * (called separately for code & data symbols)
+ * Remove duplicate addresses from name list symbols, and trim its
+ * allocation to remaining symbols.
+ *
+ * NOTE: symbols list *must* be *address-sorted* when this is called,
+ * with the preferred symbol name being first, so this needs just to
+ * remove symbols with duplicate addresses that follow it!
+ *
+ * Return number of removed address duplicates.
+ */
+static int symbols_trim_names(symbol_list_t* list)
+{
+	symbol_t *sym = list->names;
+	int i, next, count, skip, dups = 0;
+
+	count = list->namecount;
+	for (i = 0; i < count - 1; i++) {
+		if (sym[i].type == SYMTYPE_ABS) {
+			/* value, not an address */
+			continue;
+		}
+
+		/* count duplicates */
+		for (next = i+1; next < count; next++) {
+			if (sym[i].address != sym[next].address ||
+			    sym[next].type == SYMTYPE_ABS) {
+				break;
+			}
+			/* free this duplicate's name */
+			if (sym[next].name_allocated) {
+				free(sym[next].name);
+			}
+		}
+		if (next == i+1) {
+			continue;
+		}
+
+		/* drop counted duplicates */
+		memmove(sym+i+1, sym+next, (count-next) * sizeof(symbol_t));
+		skip = next - i - 1;
+		count -= skip;
+		dups += skip;
+	}
+
+	if (dups || list->namecount < list->symbols) {
+		list->names = realloc(list->names, count * sizeof(symbol_t));
+		assert(list->names);
+		list->namecount = count;
+	}
+	return dups;
+}
+
+/**
+ * Check for duplicate addresses in address-sorted symbol list
+ * (called separately for code & data symbol parts)
  * Return number of duplicates
  */
 static int symbols_check_addresses(const symbol_t *syms, int count)
 {
-	int i, j, dups = 0;
+	int i, j, total = 0;
 
 	for (i = 0; i < (count - 1); i++) {
 		/* absolute symbols have values, not addresses */
 		if (syms[i].type == SYMTYPE_ABS) {
 			continue;
 		}
+		bool has_dup = false;
 		for (j = i + 1; j < count && syms[i].address == syms[j].address; j++) {
 			if (syms[j].type == SYMTYPE_ABS) {
 				continue;
 			}
-			fprintf(stderr, "WARNING: symbols '%s' & '%s' have the same 0x%x address.\n",
-				syms[i].name, syms[j].name, syms[i].address);
-			dups++;
+			if (!total) {
+				fprintf(stderr, "WARNING, following symbols have same address:\n");
+			}
+			if (!has_dup) {
+				fprintf(stderr, "- 0x%x: '%s'", syms[i].address, syms[i].name);
+				has_dup = true;
+			}
+			fprintf(stderr, ", '%s'", syms[j].name);
+			total++;
 			i = j;
 		}
+		if (has_dup) {
+			fprintf(stderr, "\n");
+		}
 	}
-	return dups;
+	return total;
 }
 
 /**
- * Check for duplicate names in symbol list
+ * Check for duplicate names in name-sorted symbol list
  * Return number of duplicates
  */
 static int symbols_check_names(const symbol_t *syms, int count)
 {
-	int i, j, dups = 0;
+	bool has_title = false;
+	int i, j, dtotal = 0;
 
 	for (i = 0; i < (count - 1); i++) {
+		int dcount = 1;
 		for (j = i + 1; j < count && strcmp(syms[i].name, syms[j].name) == 0; j++) {
-			fprintf(stderr, "WARNING: addresses 0x%x & 0x%x have the same '%s' name.\n",
-				syms[i].address, syms[j].address, syms[i].name);
-			dups++;
+			dtotal++;
+			dcount++;
 			i = j;
 		}
+		if (dcount > 1) {
+			if (!has_title) {
+				fprintf(stderr, "WARNING, following symbols have multiple addresses:\n");
+				has_title = true;
+			}
+			fprintf(stderr, "- %s: %d\n", syms[i].name, dcount);
+		}
 	}
-	return dups;
+	return dtotal;
 }
 
 
@@ -297,9 +482,12 @@ static int read_pc_debug_names(FILE *fp, symbol_list_t *list, uint32_t offset)
 	uint32_t strtable_offset;
 	struct pdb_h pdb_h;
 
-	fseek(fp, 0, SEEK_END);
-	filesize = ftell(fp);
-	fseek(fp, 0, SEEK_SET);
+	if (fseek(fp, 0, SEEK_END) < 0)
+		return 0;
+	if ((long)(filesize = ftell(fp)) < 0)
+		return 0;
+	if (fseek(fp, 0, SEEK_SET) < 0)
+		return 0;
 
 	buf = malloc(filesize);
 	if (buf == NULL) {
@@ -435,44 +623,6 @@ static int read_pc_debug_names(FILE *fp, symbol_list_t *list, uint32_t offset)
 /* ---------- symbol ignore count handling ------------- */
 
 /**
- * return true if given symbol name is object/library/file name
- */
-static bool is_file_name(const char *name)
-{
-	int len = strlen(name);
-	/* object (.a or .o) file name? */
-	if (len > 2 && ((name[len-2] == '.' && (name[len-1] == 'a' || name[len-1] == 'o')))) {
-		    return true;
-	}
-	/* some other file name? */
-	const char *slash = strchr(name, '/');
-	/* not just overloaded '/' operator? */
-	if (slash && slash[1] != '(') {
-		return true;
-	}
-	return false;
-}
-
-/**
- * Return true if symbol name matches internal GCC symbol name
- */
-static bool is_gcc_internal(const char *name)
-{
-	static const char *gcc_sym[] = {
-		"___gnu_compiled_c",
-		"gcc2_compiled."
-	};
-	int i;
-	/* useless symbols GCC (v2) seems to add to every object? */
-	for (i = 0; i < ARRAY_SIZE(gcc_sym); i++) {
-		if (strcmp(name, gcc_sym[i]) == 0) {
-			return true;
-		}
-	}
-	return false;
-}
-
-/**
  * Return true if symbol should be ignored based on its name & type
  * and given options, and increase appropriate ignore count
  */
@@ -483,7 +633,7 @@ static bool ignore_symbol(const char *name, symtype_t symtype, const symbol_opts
 		return true;
 	}
 	if (opts->no_local) {
-		if (name[0] == '.' && name[1] == 'L') {
+		if (is_local_symbol(name)) {
 			counts->locals++;
 			return true;
 		}
@@ -717,7 +867,7 @@ static symbol_list_t* symbols_load_gnu(FILE *fp, const prg_section_t *sections, 
 	symbol_t *sym;
 	symtype_t symtype;
 	uint32_t address;
-	uint32_t nread;
+	size_t nread;
 	symbol_list_t *list;
 	unsigned char n_type;
 	unsigned char n_other;
@@ -731,7 +881,7 @@ static symbol_list_t* symbols_load_gnu(FILE *fp, const prg_section_t *sections, 
 		return NULL;
 	}
 
-	list->strtab = (char *)malloc(tablesize + strsize);
+	list->strtab = (char *)malloc(tablesize + strsize + 1);
 
 	if (list->strtab == NULL) {
 		symbol_list_free(list);
@@ -744,6 +894,7 @@ static symbol_list_t* symbols_load_gnu(FILE *fp, const prg_section_t *sections, 
 		symbol_list_free(list);
 		return NULL;
 	}
+	list->strtab[tablesize + strsize] = 0;
 
 	p = (unsigned char *)list->strtab;
 	sym = list->names;
@@ -981,7 +1132,7 @@ static symbol_list_t* symbols_load_elf(FILE *fp, const prg_section_t *sections,
 	symbol_t *sym;
 	symtype_t symtype;
 	uint32_t address;
-	uint32_t nread;
+	size_t nread;
 	symbol_list_t *list;
 	uint32_t st_size;
 	unsigned char st_info;
@@ -998,7 +1149,7 @@ static symbol_list_t* symbols_load_elf(FILE *fp, const prg_section_t *sections,
 		return NULL;
 	}
 
-	list->strtab = (char *)malloc(strsize);
+	list->strtab = (char *)malloc(strsize + 1);
 	symtab = (unsigned char *)malloc(tablesize);
 
 	if (list->strtab == NULL || symtab == NULL) {
@@ -1030,6 +1181,7 @@ static symbol_list_t* symbols_load_elf(FILE *fp, const prg_section_t *sections,
 		symbol_list_free(list);
 		return NULL;
 	}
+	list->strtab[strsize] = 0;
 
 	p = (unsigned char *)symtab;
 	sym = list->names;
@@ -1104,15 +1256,18 @@ static symbol_list_t* symbols_load_elf(FILE *fp, const prg_section_t *sections,
 					shdr = &headers[st_shndx];
 
 					if (shdr->sh_type == SHT_NOBITS) {
-						symtype = ELF_ST_BIND(st_info) == STB_WEAK ? SYMTYPE_WEAK : SYMTYPE_BSS;
+						symtype = SYMTYPE_BSS;
 						section = &(sections[2]);
 
 					} else if (shdr->sh_flags & SHF_EXECINSTR) {
+						/* symbol post-processing requirement:
+						 * only code symbols differentiated weak aliasing
+						 */
 						symtype = ELF_ST_BIND(st_info) == STB_WEAK ? SYMTYPE_WEAK : SYMTYPE_TEXT;
 						section = &(sections[0]);
 
 					} else {
-						symtype = ELF_ST_BIND(st_info) == STB_WEAK ? SYMTYPE_WEAK : SYMTYPE_DATA;
+						symtype = SYMTYPE_DATA;
 						section = &(sections[1]);
 					}
 				}
@@ -1129,6 +1284,11 @@ static symbol_list_t* symbols_load_elf(FILE *fp, const prg_section_t *sections,
 		default:
 			fprintf(stderr, "WARNING: ignoring symbol '%s' in slot %u of unknown type 0x%x.\n", name, (unsigned int)i, st_info);
 			ignore.invalid++;
+			continue;
+		}
+
+		/* whether to ignore symbol based on options and its name & type */
+		if (ignore_symbol(name, symtype, opts, &ignore)) {
 			continue;
 		}
 
@@ -1230,7 +1390,7 @@ static symbol_list_t* symbols_load_binary(FILE *fp, const symbol_opts_t *opts,
 {
 	uint32_t textlen, datalen, bsslen, tablesize, tabletype, prgflags;
 	prg_section_t sections[3];
-	int reads = 0;
+	size_t reads = 0;
 	uint16_t relocflag;
 	symbol_list_t* symbols;
 	uint32_t symoff = 0;
@@ -1258,7 +1418,7 @@ static symbol_list_t* symbols_load_binary(FILE *fp, const symbol_opts_t *opts,
 	reads += fread(&prgflags, sizeof(prgflags), 1, fp);
 	prgflags = be_swap32(prgflags);
 	reads += fread(&relocflag, sizeof(relocflag), 1, fp);
-	relocflag = be_swap32(relocflag);
+	relocflag = be_swap16(relocflag);
 
 	if (reads != 7) {
 		fprintf(stderr, "ERROR: program header reading failed!\n");

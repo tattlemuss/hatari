@@ -362,7 +362,7 @@ uint8_t *STX_ReadDisk(int Drive, const char *pszFileName, long *pImageSize, int 
 /**
  * Save .STX file from memory buffer. Returns true if all OK.
  * We create a file based on the initial filename by replacing the ".stx" extension
- * with ".wd1172".
+ * with ".wd1772".
  * We save all sectors, then all tracks.
  * If there're no sector and no track to save, return true and don't create
  * the save file
@@ -822,7 +822,7 @@ bool	STX_Insert ( int Drive , const char *FilenameSTX , uint8_t *pImageBuffer , 
 	if ( ( STX_FileNameToSave ( FilenameSTX , FilenameSave ) )
 	  && ( File_Exists ( FilenameSave ) ) )
 	{
-		Log_Printf ( LOG_INFO , "STX : STX_Insert drive=%d file=%s buf=%p size=%ld load wd1172 %s\n" , Drive , FilenameSTX , pImageBuffer , ImageSize , FilenameSave );
+		Log_Printf ( LOG_INFO , "STX : STX_Insert drive=%d file=%s buf=%p size=%ld load wd1772 %s\n" , Drive , FilenameSTX , pImageBuffer , ImageSize , FilenameSave );
 		if ( STX_LoadSaveFile ( Drive , FilenameSave ) == false )
 		{
 			Log_AlertDlg ( LOG_ERROR , "Can't read the STX save file '%s'. Ignore it" , FilenameSave );
@@ -1464,7 +1464,7 @@ static STX_SECTOR_STRUCT	*STX_FindSector_By_Position ( uint8_t Drive , uint8_t T
  * for different protections)
  * NOTE : Although STX format was supposed to handle only DD floppies, some tools like HxC
  * allow to convert a HD floppy image to an STX equivalent. In that case
- * TrackSize will be approximatively 2 x FDC_TRACK_BYTES_STANDARD
+ * TrackSize will be approximately 2 x FDC_TRACK_BYTES_STANDARD
  */
 int	FDC_GetBytesPerTrack_STX ( uint8_t Drive , uint8_t Track , uint8_t Side )
 {
@@ -1711,7 +1711,7 @@ uint8_t	FDC_ReadSector_STX ( uint8_t Drive , uint8_t Track , uint8_t Sector , ui
 		{
 			Byte = pStxSector->pData[ i ];
 			if ( pStxSector->pFuzzyData )
-				Byte = ( Byte & pStxSector->pFuzzyData[ i ] ) | ( rand() & ~pStxSector->pFuzzyData[ i ] );
+				Byte = ( Byte & pStxSector->pFuzzyData[ i ] ) | ( Hatari_rand() & ~pStxSector->pFuzzyData[ i ] );
 		}
 
 		else							/* Use data from 'write sector' */
@@ -1944,7 +1944,7 @@ uint8_t	FDC_ReadTrack_STX ( uint8_t Drive , uint8_t Track , uint8_t Side )
 	{
 		Log_Printf ( LOG_WARN , "fdc stx : track info not found for read track drive=%d track=%d side=%d, returning random bytes\n" , Drive , Track , Side );
 		for ( i=0 ; i<FDC_GetBytesPerTrack_STX ( Drive , Track , Side ) ; i++ )
-			FDC_Buffer_Add ( rand() & 0xff );		/* Fill the track buffer with random bytes */
+			FDC_Buffer_Add ( Hatari_rand() & 0xff );	/* Fill the track buffer with random bytes */
 		return 0;
 	}
 
@@ -1982,7 +1982,7 @@ uint8_t	FDC_ReadTrack_STX ( uint8_t Drive , uint8_t Track , uint8_t Side )
 		{
 			Log_Printf ( LOG_WARN , "fdc stx : no track image and no sector for read track drive=%d track=%d side=%d, building an unformatted track\n" , Drive , Track , Side );
 			for ( i=0 ; i<TrackSize ; i++ )
-				FDC_Buffer_Add ( rand() & 0xff );	/* Fill the track buffer with random bytes */
+				FDC_Buffer_Add ( Hatari_rand() & 0xff ); /* Fill the track buffer with random bytes */
 			return 0;
 		}
 

@@ -19,6 +19,7 @@ const char HDC_fileid[] = "Hatari hdc.c";
 #include "hdc.h"
 #include "ioMem.h"
 #include "log.h"
+#include "m68000.h"
 #include "memorySnapShot.h"
 #include "mfp.h"
 #include "ncr5380.h"
@@ -229,6 +230,7 @@ static void HDC_Cmd_Inquiry(SCSI_CTRLR *ctr)
 	 * Peripheral Device Type according to the SCSI standard */
 	buf[0] = HDC_GetLUN(ctr) == 0 ? 0 : 0x7F;
 
+	buf[2] = dev->scsi_version;
 	buf[4] = count - 5;
 
 	ctr->status = HD_STATUS_OK;
@@ -251,13 +253,13 @@ static void HDC_Cmd_RequestSense(SCSI_CTRLR *ctr)
 
 	LOG_TRACE(TRACE_SCSI_CMD, "HDC: REQUEST SENSE (%s).\n", HDC_CmdInfoStr(ctr));
 
-	if ((nRetLen < 4 && nRetLen != 0) || nRetLen > 22)
+	if ((nRetLen < 4 && nRetLen != 0) || nRetLen > 252)
 	{
 		Log_Printf(LOG_WARN, "HDC: *** Strange REQUEST SENSE ***!\n");
 	}
 
 	/* Limit to sane length */
-	if (nRetLen <= 0)
+	if (nRetLen == 0 && dev->scsi_version == 1)
 	{
 		nRetLen = 4;
 	}
@@ -401,6 +403,13 @@ static void HDC_Cmd_ModeSense(SCSI_CTRLR *ctr)
 
 	dev->bSetLastBlockAddr = false;
 
+	// Subpages are not supported
+	if(ctr->command[3]) {
+		ctr->status = HD_STATUS_ERROR;
+		dev->nLastError = HD_REQSENS_INVARG;
+		return;
+	}
+
 	switch(ctr->command[2])
 	{
 	 case 0x00:
@@ -421,7 +430,7 @@ static void HDC_Cmd_ModeSense(SCSI_CTRLR *ctr)
 		buf = HDC_PrepRespBuf(ctr, 44);
 		HDC_CmdModeSense0x04(dev, ctr, buf + 4);
 		HDC_CmdModeSense0x00(dev, ctr, buf + 28);
-		buf[0] = 44;
+		buf[0] = 43;
 		buf[1] = 0;
 		buf[2] = 0;
 		buf[3] = 0;
@@ -885,8 +894,9 @@ off_t HDC_CheckAndGetSize(const char *hdtype, const char *filename, unsigned lon
 /**
  * Open a disk image file
  */
-int HDC_InitDevice(const char *hdtype, SCSI_DEV *dev, char *filename, unsigned long blockSize)
+int HDC_InitDevice(const char *hdtype, SCSI_DEV *dev, CNF_SCSIDEV *conf)
 {
+	const char *filename = conf->sDeviceFile;
 	off_t filesize;
 	FILE *fp;
 
@@ -894,7 +904,7 @@ int HDC_InitDevice(const char *hdtype, SCSI_DEV *dev, char *filename, unsigned l
 	Log_Printf(LOG_INFO, "Mounting %s HD image '%s'\n", hdtype, filename);
 
 	/* Check size for sanity */
-	filesize = HDC_CheckAndGetSize(hdtype, filename, blockSize);
+	filesize = HDC_CheckAndGetSize(hdtype, filename, conf->nBlockSize);
 	if (filesize < 0)
 		return filesize;
 
@@ -917,7 +927,8 @@ int HDC_InitDevice(const char *hdtype, SCSI_DEV *dev, char *filename, unsigned l
 		return -ENOLCK;
 	}
 
-	dev->blockSize = blockSize;
+	dev->scsi_version = conf->nScsiVersion;
+	dev->blockSize = conf->nBlockSize;
 	dev->hdSize = filesize / dev->blockSize;
 	dev->image_file = fp;
 	dev->enabled = true;
@@ -948,7 +959,7 @@ bool HDC_Init(void)
 	{
 		if (!ConfigureParams.Acsi[i].bUseDevice)
 			continue;
-		if (HDC_InitDevice("ACSI", &AcsiBus.devs[i], ConfigureParams.Acsi[i].sDeviceFile, ConfigureParams.Acsi[i].nBlockSize) == 0)
+		if (HDC_InitDevice("ACSI", &AcsiBus.devs[i], &ConfigureParams.Acsi[i]) == 0)
 		{
 			nAcsiPartitions += HDC_PartitionCount(AcsiBus.devs[i].image_file, TRACE_SCSI_CMD, NULL);
 			bAcsiEmuOn = true;
@@ -1128,6 +1139,10 @@ static void Acsi_DmaTransfer(void)
 
 	FDC_SetDMAStatus(AcsiBus.bDmaError);	/* Mark DMA error */
 	FDC_SetIRQ(FDC_IRQ_SOURCE_HDC);
+
+	/* For the MegaSTE, using the HDC DMA will flush the external cache */
+	if ( ConfigureParams.System.nMachineType == MACHINE_MEGA_STE )
+		MegaSTE_Cache_Flush ();
 }
 
 static void Acsi_WriteCommandByte(int addr, uint8_t byte)

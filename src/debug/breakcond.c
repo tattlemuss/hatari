@@ -1,7 +1,7 @@
 /*
   Hatari - breakcond.c
 
-  Copyright (c) 2009-2016 by Eero Tamminen
+  Copyright (c) 2009-2024 by Eero Tamminen
 
   This file is distributed under the GNU General Public License, version 2
   or at your option any later version. Read the file gpl.txt for details.
@@ -72,7 +72,7 @@ typedef struct {
 	char *filename;	/* file where to read commands to do on hit */
 	int skip;	/* how many times to hit before breaking */
 	bool once;	/* remove after hit&break */
-	bool quiet;	/* no output from setting & hitting */
+	bool quiet;	/* set / hit breakpoint quietly */
 	bool trace;	/* trace mode, don't break */
 	bool noinit;	/* prevent debugger inits on break */
 	bool lock;	/* tracing + show locked info */
@@ -252,7 +252,7 @@ static void BreakCond_UpdateTracked(bc_condition_t *condition, uint32_t value)
 		addr = condition->lvalue.value.number;
 		fprintf(stderr, "  $%x = $%x\n", addr, value);
 	} else {
-		/* register tms. */
+		/* register etc. */
 		fprintf(stderr, "  $%x\n", value);
 	}
 }
@@ -350,7 +350,8 @@ static bool BreakCond_MatchBreakPoints(bc_breakpoints_t *bps)
 					DebugInfo_ShowSessionInfo();
 				}
 				if (bp->options.filename) {
-					DebugUI_ParseFile(bp->options.filename, reinit);
+					bool verbose = !bp->options.quiet;
+					DebugUI_ParseFile(bp->options.filename, reinit, verbose);
 					changes = true;
 				}
 			}
@@ -678,7 +679,7 @@ static bool BreakCond_ParseMaskModifier(parser_state_t *pstate, bc_value_t *bc_v
 		fprintf(stderr, "WARNING: plain numbers shouldn't need masks.\n");
 	}
 	pstate->arg++;
-	if (!Eval_Number(pstate->argv[pstate->arg], &(bc_value->mask))) {
+	if (!Eval_Number(pstate->argv[pstate->arg], &(bc_value->mask), NUM_TYPE_NORMAL)) {
 		pstate->error = "invalid dec/hex/bin value";
 		EXITFUNC(("arg:%d -> false\n", pstate->arg));
 		return false;
@@ -747,7 +748,7 @@ static bool BreakCond_ParseValue(parser_state_t *pstate, bc_value_t *bc_value)
 		}
 	} else {
 		/* a number */
-		if (!Eval_Number(str, &(bc_value->value.number))) {
+		if (!Eval_Number(str, &(bc_value->value.number), NUM_TYPE_NORMAL)) {
 			pstate->error = "invalid dec/hex/bin value";
 			EXITFUNC(("arg:%d -> false\n", pstate->arg));
 			return false;
@@ -1477,7 +1478,7 @@ const char BreakCond_Description[] =
 	"\t- 'noinit', no debugger inits on hit, useful for stack tracing\n"
 	"\t- 'file <file>', execute debugger commands from given <file>\n"
 	"\t- 'once', delete the breakpoint after it's hit\n"
-	"\t- 'quiet', no output from setting & hitting breakpoint\n"
+	"\t- 'quiet', set / hit breakpoint quietly\n"
 	"\t- '<count>', break only on every <count> hit";
 
 /**
@@ -1624,7 +1625,7 @@ const char BreakAddr_Description[] =
 	"\t- 'trace', print the breakpoint match without stopping\n"
 	"\t- 'lock', print the debugger entry info without stopping\n"
 	"\t- 'once', delete the breakpoint after it's hit\n"
-	"\t- 'quiet', no output from setting & hitting breakpoint\n"
+	"\t- 'quiet', set / hit breakpoint quietly\n"
 	"\t- '<count>', break only on every <count> hit\n"
 	"\n"
 	"\tUse conditional breakpoint commands to manage the created\n"

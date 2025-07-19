@@ -27,22 +27,8 @@
 #define M68000_EXC_SRC_AUTOVEC	2	/* Auto-vector exception (e.g. VBL) */
 #define M68000_EXC_SRC_INT_MFP	3	/* MFP interrupt exception */
 #define M68000_EXC_SRC_INT_DSP	4	/* DSP interrupt exception */
+#define M68000_EXC_SRC_INT_SCC	5	/* SCC interrupt exception */
 
-
-/* Special flags (from custom.h) */
-#define SPCFLAG_DEBUGGER 1
-#define SPCFLAG_STOP 2
-#define SPCFLAG_BUSERROR 4
-#define SPCFLAG_INT 8
-#define SPCFLAG_BRK 0x10
-#define SPCFLAG_EXTRA_CYCLES 0x20
-#define SPCFLAG_TRACE 0x40
-#define SPCFLAG_DOTRACE 0x80
-#define SPCFLAG_DOINT 0x100
-#define SPCFLAG_MFP 0x200
-#define SPCFLAG_EXEC 0x400
-#define SPCFLAG_MODE_CHANGE 0x800
-#define SPCFLAG_DSP 0x1000
 #endif
 
 #ifndef SET_CFLG
@@ -126,7 +112,9 @@ extern cpuop_func *loop_mode_table[];
 
 extern uae_u32 REGPARAM3 op_illg(uae_u32) REGPARAM;
 extern void REGPARAM3 op_illg_noret(uae_u32) REGPARAM;
+void REGPARAM3 op_illg_1_noret(uae_u32 opcode) REGPARAM;
 extern void REGPARAM3 op_unimpl(uae_u32) REGPARAM;
+void REGPARAM3 op_unimpl_1_noret(uae_u32 opcode) REGPARAM;
 
 typedef uae_u8 flagtype;
 
@@ -237,6 +225,7 @@ struct regstruct
 	int exception;
 	int intmask;
 	int ipl[2], ipl_pin, ipl_pin_p;
+	int lastipl;
 	evt_t ipl_pin_change_evt, ipl_pin_change_evt_p;
 	evt_t ipl_evt, ipl_evt_pre;
 	int ipl_evt_pre_mode;
@@ -352,6 +341,34 @@ extern bool m68k_interrupt_delay;
 extern bool cpu_bus_rmw;			// WINUAE_FOR_HATARI
 
 extern void safe_interrupt_set(int, int, bool);
+
+#define SPCFLAG_CPUINRESET 2
+#define SPCFLAG_INT 8
+#define SPCFLAG_BRK 16
+#define SPCFLAG_UAEINT 32
+#define SPCFLAG_TRACE 64
+#define SPCFLAG_DOTRACE 128
+#define SPCFLAG_DOINT 256 /* arg, JIT fails without this.. */
+//#define SPCFLAG_BLTNASTY 512
+#define SPCFLAG_EXEC 1024
+//#define SPCFLAG_ACTION_REPLAY 2048
+//#define SPCFLAG_TRAP 4096 /* enforcer-hack */
+#define SPCFLAG_MODE_CHANGE 8192
+#ifdef JIT
+#define SPCFLAG_END_COMPILE 16384
+#endif
+#define SPCFLAG_CHECK 32768
+#define SPCFLAG_MMURESTART 65536
+
+#ifdef WINUAE_FOR_HATARI
+// Hatari's specific flags
+#define SPCFLAG_DEBUGGER 0x1000000
+#define SPCFLAG_STOP 0x2000000
+#define SPCFLAG_BUSERROR 0x4000000
+#define SPCFLAG_EXTRA_CYCLES 0x8000000
+#define SPCFLAG_MFP 0x10000000
+#define SPCFLAG_DSP 0x20000000			// TODO : remove with do_specialties_interrupt()
+#endif
 
 #ifndef WINUAE_FOR_HATARI
 STATIC_INLINE void set_special_exter(uae_u32 x)
@@ -730,6 +747,7 @@ extern void m68k_disasm (uaecptr addr, uaecptr *nextpc, uaecptr lastpc, int cnt)
 extern uae_u32 m68k_disasm_2(TCHAR *buf, int bufsize, uaecptr pc, uae_u16 *bufpc, int bufpccount, uaecptr *nextpc, int cnt, uae_u32 *seaddr, uae_u32 *deaddr, uaecptr lastpc, int safemode);
 #ifdef WINUAE_FOR_HATARI
 extern void m68k_disasm_file (FILE *f, uaecptr addr, uaecptr *nextpc, uaecptr lastpc, int cnt);
+extern void m68k_disasm_file_wrapper (FILE *f, uaecptr addr, uaecptr *nextpc, uaecptr lastpc, int cnt);
 #endif
 extern void sm68k_disasm (TCHAR*, TCHAR*, uaecptr addr, uaecptr *nextpc, uaecptr lastpc);
 extern int m68k_asm(TCHAR *buf, uae_u16 *out, uaecptr pc);
@@ -772,7 +790,6 @@ extern void m68k_dumpstate(uaecptr *, uaecptr);
 extern void m68k_dumpstate_file (FILE *f, uaecptr *nextpc, uaecptr prevpc);
 #endif
 extern void m68k_dumpcache(bool);
-extern bool m68k_readcache(uaecptr memaddr, bool dc, uae_u32* valp);
 extern int getMulu68kCycles(uae_u16 src);
 extern int getMuls68kCycles(uae_u16 src);
 extern int getDivu68kCycles (uae_u32 dividend, uae_u16 divisor);
@@ -786,7 +803,7 @@ extern void protect_roms (bool);
 extern void unprotect_maprom (void);
 extern bool is_hardreset(void);
 extern bool is_keyboardreset(void);
-extern void Exception_build_stack_frame_common(uae_u32 oldpc, uae_u32 currpc, uae_u32 ssw, int nr);
+extern void Exception_build_stack_frame_common(uae_u32 oldpc, uae_u32 currpc, uae_u32 ssw, int nr, int vector_nr);
 extern void Exception_build_stack_frame(uae_u32 oldpc, uae_u32 currpc, uae_u32 ssw, int nr, int format);
 extern void Exception_build_68000_address_error_stack_frame(uae_u16 mode, uae_u16 opcode, uaecptr fault_addr, uaecptr pc);
 extern uae_u32 exception_pc(int nr);
@@ -967,5 +984,8 @@ extern FILE *console_out_FILE;
 
 /*** Hatari ***/
 #endif
+
+const struct cputbl *uaegetjitcputbl(void);
+const struct cputbl *getjitcputbl(int cpulvl, int direct);
 
 #endif /* UAE_NEWCPU_H */

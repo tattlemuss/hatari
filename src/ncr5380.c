@@ -312,7 +312,6 @@ static void raw_scsi_set_signal_phase(struct raw_scsi *rs, bool busy, bool selec
 			}
 #if RAW_SCSI_DEBUG
 			if (rs->target_id < 0) {
-				int i;
 				for (i = 0; i < 8; i++) {
 					if (i == rs->initiator_id)
 						continue;
@@ -1037,7 +1036,7 @@ bool Ncr5380_Init(void)
 	{
 		if (!ConfigureParams.Scsi[i].bUseDevice)
 			continue;
-		if (HDC_InitDevice("SCSI", &ScsiBus.devs[i], ConfigureParams.Scsi[i].sDeviceFile, ConfigureParams.Scsi[i].nBlockSize) == 0)
+		if (HDC_InitDevice("SCSI", &ScsiBus.devs[i], &ConfigureParams.Scsi[i]) == 0)
 		{
 			nScsiPartitions += HDC_PartitionCount(ScsiBus.devs[i].image_file, TRACE_SCSI_CMD, NULL);
 			bScsiEmuOn = true;

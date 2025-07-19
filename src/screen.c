@@ -76,6 +76,10 @@ Uint32 ST2RGB[4096];          /* Table to convert ST 0x777 / STe 0xfff palette t
 Uint8 *pSTScreen;
 FRAMEBUFFER *pFrameBuffer;    /* Pointer into current 'FrameBuffer' */
 
+/* extern for screen snapshot palettes */
+Uint32* ConvertPalette = STRGBPalette;
+int ConvertPaletteSize = 0;
+
 uint16_t HBLPalettes[HBL_PALETTE_LINES];          /* 1x16 colour palette per screen line, +1 line just in case write after line 200 */
 uint16_t *pHBLPalettes;                           /* Pointer to current palette lists, one per HBL */
 uint32_t HBLPaletteMasks[HBL_PALETTE_MASKS];      /* Bit mask of palette colours changes, top bit set is resolution change */
@@ -92,7 +96,7 @@ static int PCScreenOffsetX;         /* how many pixels to skip from left when dr
 static int PCScreenOffsetY;         /* how many pixels to skip from top when drawing */
 static SDL_Rect STScreenRect;       /* screen size without statusbar */
 
-static int STScreenLineOffset[NUM_VISIBLE_LINES];  /* Offsets for ST screen lines eg, 0,160,320... */
+int STScreenLineOffset[NUM_VISIBLE_LINES];         /* Offsets for ST screen lines eg, 0,160,320... */
 static Uint16 HBLPalette[16], PrevHBLPalette[16];  /* Current palette for line, also copy of first line */
 
 static void (*ScreenDrawFunctionsNormal[3])(void); /* Screen draw functions */
@@ -266,7 +270,7 @@ static void Screen_SetSTScreenOffsets(void)
  * Return true if Falcon/TT/VDI generic screen convert functions
  * need to be used instead of the ST/STE functions.
  */
-static bool Screen_UseGenConvScreen(void)
+bool Screen_UseGenConvScreen(void)
 {
 	return Config_IsMachineFalcon() || Config_IsMachineTT()
 		|| bUseHighRes || bUseVDIRes;
@@ -367,9 +371,9 @@ void Screen_SetTextureScale(int width, int height, int win_width, int win_height
 					       width, height);
 		if (!sdlTexture)
 		{
-			fprintf(stderr, "ERROR: Failed to create %dx%d@%d texture!\n",
-			       width, height, sdlscrn->format->BitsPerPixel);
-			exit(-3);
+			fprintf(stderr, "%dx%d@%d texture\n",
+				width, height, sdlscrn->format->BitsPerPixel);
+			Main_ErrorExit("Failed to create texture:", SDL_GetError(), -3);
 		}
 	}
 }
@@ -460,10 +464,8 @@ static bool Screen_SetSDLVideoSize(int width, int height, bool bForceChange)
 		bPrevUseVsync = ConfigureParams.Screen.bUseVsync;
 	}
 
-#ifdef SDL_HINT_WINDOWS_NO_CLOSE_ON_ALT_F4		/* requires sdl >= 2.0.4 */
 	/* Disable closing Hatari with alt+F4 under Windows as alt+F4 can be used by some emulated programs */
 	SDL_SetHintWithPriority(SDL_HINT_WINDOWS_NO_CLOSE_ON_ALT_F4, "1", SDL_HINT_OVERRIDE);
-#endif
 
 	/* Set new video mode */
 	DEBUGPRINT(("SDL screen request: %d x %d (%s) -> window: %d x %d\n", width, height,
@@ -479,12 +481,11 @@ static bool Screen_SetSDLVideoSize(int width, int height, bool bForceChange)
 		sdlWindow = SDL_CreateWindow("Hatari", SDL_WINDOWPOS_UNDEFINED,
 		                             SDL_WINDOWPOS_UNDEFINED,
 		                             win_width, win_height, sdlVideoFlags);
-	}
-	if (!sdlWindow)
-	{
-		fprintf(stderr, "ERROR: Failed to create %dx%d window!\n",
-		        win_width, win_height);
-		exit(-1);
+		if (!sdlWindow)
+		{
+			fprintf(stderr, "%dx%d window\n", win_width, win_height);
+			Main_ErrorExit("Failed to create window:", SDL_GetError(), -1);
+		}
 	}
 	if (bUseSdlRenderer)
 	{
@@ -494,9 +495,8 @@ static bool Screen_SetSDLVideoSize(int width, int height, bool bForceChange)
 		sdlRenderer = SDL_CreateRenderer(sdlWindow, -1, 0);
 		if (!sdlRenderer)
 		{
-			fprintf(stderr, "ERROR: Failed to create %dx%d renderer!\n",
-			        win_width, win_height);
-			exit(1);
+			fprintf(stderr, "%dx%d renderer\n", win_width, win_height);
+			Main_ErrorExit("Failed to create renderer:", SDL_GetError(), 1);
 		}
 
 		if (bInFullScreen)
@@ -528,9 +528,7 @@ static bool Screen_SetSDLVideoSize(int width, int height, bool bForceChange)
 	/* Exit if we can not open a screen */
 	if (!sdlscrn)
 	{
-		fprintf(stderr, "ERROR: Could not set video mode:\n %s\n", SDL_GetError() );
-		SDL_Quit();
-		exit(-2);
+		Main_ErrorExit("Could not set video mode:", SDL_GetError(), -2);
 	}
 
 	DEBUGPRINT(("SDL screen granted: %d x %d @ %d\n", sdlscrn->w, sdlscrn->h,
@@ -711,8 +709,7 @@ void Screen_Init(void)
 	FrameBuffer.pSTScreenCopy = malloc(MAX_VDI_BYTES);
 	if (!FrameBuffer.pSTScreen || !FrameBuffer.pSTScreenCopy)
 	{
-		fprintf(stderr, "ERROR: Failed to allocate frame buffer memory.\n");
-		exit(-1);
+		Main_ErrorExit("Failed to allocate frame buffer memory", NULL, -1);
 	}
 	pFrameBuffer = &FrameBuffer;  /* TODO: Replace pFrameBuffer with FrameBuffer everywhere */
 
@@ -735,7 +732,7 @@ void Screen_Init(void)
 	}
 
 	/* Configure some SDL stuff: */
-	SDL_ShowCursor(SDL_DISABLE);
+	Main_ShowCursor(false);
 }
 
 
@@ -748,6 +745,8 @@ void Screen_UnInit(void)
 	/* Free memory used for copies */
 	free(FrameBuffer.pSTScreen);
 	free(FrameBuffer.pSTScreenCopy);
+	FrameBuffer.pSTScreen = NULL;
+	FrameBuffer.pSTScreenCopy = NULL;
 
 	Screen_FreeSDL2Resources();
 	if (sdlWindow)
@@ -1263,6 +1262,11 @@ static bool Screen_DrawFrame(bool bForceFlip)
 		Screen_SetFullUpdateMask();
 		bPrevFrameWasSpec512 = false;
 	}
+
+	/* Store palette for screenshots
+	 * pDrawFunction may override this if it calls Screen_GenConvert */
+	ConvertPalette = STRGBPalette;
+	ConvertPaletteSize = (STRes == ST_MEDIUM_RES) ? 4 : 16;
 
 	if (pDrawFunction)
 		CALL_VAR(pDrawFunction);

@@ -27,6 +27,7 @@ const char HatariGlue_fileid[] = "Hatari hatari-glue.c";
 #include "psg.h"
 #include "mfp.h"
 #include "fdc.h"
+#include "nf_scsidrv.h"
 #include "memorySnapShot.h"
 
 #include "sysdeps.h"
@@ -68,11 +69,16 @@ void customreset(void)
 
 	/* Reset the FDC */
 	FDC_Reset ( false );
+
+#if defined(__linux__)
+	/* Reset the native SCSI Driver */
+	nf_scsidrv_reset();
+#endif
 }
 
 
 /**
- * Return interrupt number (1 - 7), -1 means no interrupt.
+ * Return highest interrupt number (1 - 7), 0 means no interrupt.
  * Note that the interrupt stays pending if it can't be executed yet
  * due to the interrupt level field in the SR.
  */
@@ -80,12 +86,16 @@ int intlev(void)
 {
 	if ( pendingInterrupts & (1 << 6) )		/* MFP/DSP interrupt ? */
 		return 6;
+	else if ( pendingInterrupts & (1 << 5) )	/* SCC interrupt ? */
+		return 5;
 	else if ( pendingInterrupts & (1 << 4) )	/* VBL interrupt ? */
 		return 4;
 	else if ( pendingInterrupts & (1 << 2) )	/* HBL interrupt ? */
 		return 2;
+	else if ( pendingInterrupts & (1 << 1) )	/* SCU soft interrupt on MegaSTE/TT ? */
+		return 1;
 
-	return -1;
+	return 0;
 }
 
 

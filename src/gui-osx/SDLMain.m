@@ -31,7 +31,6 @@
 #import "video.h"
 #import "avi_record.h"
 #import "debugui.h"
-#import "clocks_timings.h"
 #import "change.h"
 
 extern void Main_RequestQuit(int exitval) ;
@@ -166,14 +165,14 @@ char szPath[FILENAME_MAX] ;											// for general use
 /*----------------------------------------------------------------------*/
 - (IBAction)warmReset:(id)sender
 {
-	if ([NSApp myAlerte:NSInformationalAlertStyle Txt:localize(@"Warm reset!") firstB:localize(@"OK") alternateB:localize(@"Cancel")
+	if ([NSApp myAlerte:NSAlertStyleInformational Txt:localize(@"Warm reset!") firstB:localize(@"OK") alternateB:localize(@"Cancel")
 			otherB:nil informativeTxt:localize(@"Really reset the emulator?")] == NSAlertFirstButtonReturn )
 		Reset_Warm();
 } 
 /*----------------------------------------------------------------------*/
 - (IBAction)coldReset:(id)sender
 {
-	if ([NSApp myAlerte:NSInformationalAlertStyle Txt:localize(@"Cold reset") firstB:localize(@"OK") alternateB:localize(@"Cancel")
+	if ([NSApp myAlerte:NSAlertStyleInformational Txt:localize(@"Cold reset") firstB:localize(@"OK") alternateB:localize(@"Cancel")
 			otherB:nil informativeTxt:localize(@"Really reset the emulator?")] == NSAlertFirstButtonReturn )
 		Reset_Cold();
 }
@@ -283,12 +282,7 @@ char szPath[FILENAME_MAX] ;											// for general use
 
 		if(path) {
 			GuiOsx_ExportPathString(path, ConfigureParams.Video.AviRecordFile, sizeof(ConfigureParams.Video.AviRecordFile));
-			Avi_StartRecording ( ConfigureParams.Video.AviRecordFile , ConfigureParams.Screen.bCrop ,
-					ConfigureParams.Video.AviRecordFps == 0 ?
-					ClocksTimings_GetVBLPerSec ( ConfigureParams.System.nMachineType , nScreenRefreshRate ) :
-					ClocksTimings_GetVBLPerSec ( ConfigureParams.System.nMachineType , ConfigureParams.Video.AviRecordFps ) ,
-				1 << CLOCKS_TIMINGS_SHIFT_VBL ,
-				ConfigureParams.Video.AviRecordVcodec );
+			Avi_StartRecording_WithConfig ();
 		}
 	} else {
 		Avi_StopRecording();
@@ -438,7 +432,7 @@ char szPath[FILENAME_MAX] ;											// for general use
 
 		// Refresh all the controls to match ConfigureParams
 		if (Change_DoNeedReset(&CurrentParams, &ConfigureParams))
-		 	applyChanges = [NSApp myAlerte:NSInformationalAlertStyle Txt:localize(@"Reset the emulator") firstB:localize(@"Don't reset")
+			applyChanges = [NSApp myAlerte:NSAlertStyleInformational Txt:localize(@"Reset the emulator") firstB:localize(@"Don't reset")
 				alternateB:localize(@"Reset") otherB:nil informativeTxt:@"" ] == NSAlertSecondButtonReturn ;
 		if (applyChanges)
 			Change_CopyChangedParamsToConfiguration(&CurrentParams, &ConfigureParams, true); 	// Ok with Reset
@@ -457,19 +451,19 @@ char szPath[FILENAME_MAX] ;											// for general use
 
 @end
 /*----------------------------------------------------------------------*/
-static int IsRootCwd()
+static int IsRootCwd(void)
 {
 	char buf[MAXPATHLEN];
 	char *cwd = getcwd(buf, sizeof (buf));
 	return (cwd && (strcmp(cwd, "/") == 0));
 }
 /*----------------------------------------------------------------------*/
-static int IsTenPointNineOrLater()
+static int IsTenPointNineOrLater(void)
 {
 	// OK for 10.9, but before ??
 	NSOperatingSystemVersion systemVersion = [[NSProcessInfo processInfo] operatingSystemVersion];
-	return ((systemVersion.majorVersion == 10) && (systemVersion.minorVersion>=9)
-			|| systemVersion.majorVersion > 10);
+	return (systemVersion.majorVersion == 10 && systemVersion.minorVersion >= 9)
+			|| systemVersion.majorVersion > 10;
 }
 /*----------------------------------------------------------------------*/
 static int IsFinderLaunch(const int argc, char **argv)

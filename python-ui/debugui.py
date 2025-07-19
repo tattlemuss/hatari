@@ -1,8 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 #
 # A Debug UI for the Hatari, part of Python Gtk Hatari UI
 #
-# Copyright (C) 2008-2022 by Eero Tamminen
+# Copyright (C) 2008-2025 by Eero Tamminen
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,12 +20,11 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 from gi.repository import Gdk
-from gi.repository import Pango
 
 from config import ConfigStore
 from uihelpers import UInfo, create_button, create_toggle, \
      create_table_dialog, table_add_entry_row, table_add_widget_row, \
-     get_save_filename, FselEntry
+     FselEntry
 from dialogs import TodoDialog, ErrorDialog, AskDialog, KillDialog
 
 
@@ -278,12 +277,9 @@ class MemoryAddress:
         output = self.hatari.get_lines(self.debug_output)
         if not self.first:
             # 2nd last line has first PC in 1st column, last line next PC in 2nd column
-            self.second = int(output[-1][output[-1].find(":")+2:], 16)
-            # OldUAE CPU core has ':' in both
-            offset = output[-2].find(":")
-            if offset < 0:
-                # WinUAE CPU core only in one
-                offset = output[-2].find(" ")
+            offset = output[-1].find(":")
+            self.second = int(output[-1][offset+2:], 16)
+            offset = output[-2].find(" ")
             if offset < 0:
                 print("ERROR: unable to parse register dump line:\n\t'%s'", output[-2])
                 return output
@@ -415,7 +411,8 @@ class HatariDebugUI:
             window.connect("delete_event", self.quit)
         else:
             window.connect("delete_event", self.hide)
-        window.set_icon_from_file(UInfo.icon)
+        info = UInfo()
+        window.set_icon_from_file(info.icon)
         window.set_title(title)
         window.add(vbox)
         return window
@@ -576,7 +573,6 @@ def main():
         args = None
     hatariobj.run(args)
 
-    info = UInfo()
     debugui = HatariDebugUI(hatariobj, True)
     debugui.window.show_all()
     Gtk.main()

@@ -52,11 +52,32 @@ typedef enum {
 static bool bSendEmbedInfo;
 /* Pausing triggered remotely (battery save pause) */
 static bool bRemotePaused;
+/* two-way socket to which Hatari connects, reads control commands
+ * from, and where the command responses (if any) are written to
+ */
+static int ControlSocket;
 
 
 /*-----------------------------------------------------------------------*/
 /**
- * Parse key command and synthetize key press/release
+ * Send new window size to remote end if requested to do so
+ */
+static void Control_SendEmbedSize(int width, int height)
+{
+	if (!(bSendEmbedInfo && ControlSocket))
+		return;
+
+	char buffer[12]; /* 32-bits in hex (+ '\r') + '\n' + '\0' */
+
+	sprintf(buffer, "%dx%d", width, height);
+	if (write(ControlSocket, buffer, strlen(buffer)) < 0)
+		perror("Control_ReparentWindow write error");
+}
+
+
+/*-----------------------------------------------------------------------*/
+/**
+ * Parse key command and synthesize key press/release
  * corresponding to given keycode or character.
  * Return false if parsing failed, true otherwise
  * 
@@ -121,7 +142,7 @@ static bool Control_InsertKey(const char *event)
 
 /*-----------------------------------------------------------------------*/
 /**
- * Parse event name and synthetize corresponding event to emulation
+ * Parse event name and synthesize corresponding event to emulation
  * Return false if name parsing failed, true otherwise
  * 
  * This can be used by external Hatari UI(s) on devices which input
@@ -180,7 +201,9 @@ static bool Control_DeviceAction(const char *name, action_t action)
 	} item[] = {
 		{ "printer", &ConfigureParams.Printer.bEnablePrinting, Printer_Init, Printer_UnInit, NULL },
 		{ "rs232",   &ConfigureParams.RS232.bEnableRS232, RS232_Init, RS232_UnInit, NULL },
-		{ "sccb",    &ConfigureParams.RS232.bEnableSccB, SCC_Init, SCC_UnInit, NULL },
+		{ "scca",    &ConfigureParams.RS232.EnableScc[CNF_SCC_CHANNELS_A_SERIAL], SCC_Init, SCC_UnInit, NULL },
+		{ "sccalan", &ConfigureParams.RS232.EnableScc[CNF_SCC_CHANNELS_A_LAN], SCC_Init, SCC_UnInit, NULL },
+		{ "sccb",    &ConfigureParams.RS232.EnableScc[CNF_SCC_CHANNELS_B], SCC_Init, SCC_UnInit, NULL },
 		{ "midi",    &ConfigureParams.Midi.bEnableMidi, Midi_Init, Midi_UnInit, Midi_Reset },
 		{ NULL, NULL, NULL, NULL }
 	};
@@ -242,8 +265,12 @@ static bool Control_SetPath(char *name)
 		{ "soundout", ConfigureParams.Sound.szYMCaptureFileName },
 		{ "rs232in",  ConfigureParams.RS232.szInFileName },
 		{ "rs232out", ConfigureParams.RS232.szOutFileName },
-//		{ "sccbin",   ConfigureParams.RS232.sSccBInFileName },
-		{ "sccbout",  ConfigureParams.RS232.sSccBOutFileName },
+		{ "sccain",   ConfigureParams.RS232.SccInFileName[CNF_SCC_CHANNELS_A_SERIAL] },
+		{ "sccaout",  ConfigureParams.RS232.SccOutFileName[CNF_SCC_CHANNELS_A_SERIAL] },
+		{ "sccalanin",ConfigureParams.RS232.SccInFileName[CNF_SCC_CHANNELS_A_LAN] },
+		{ "sccalanout",ConfigureParams.RS232.SccOutFileName[CNF_SCC_CHANNELS_A_LAN] },
+		{ "sccbin",   ConfigureParams.RS232.SccInFileName[CNF_SCC_CHANNELS_B] },
+		{ "sccbout",  ConfigureParams.RS232.SccOutFileName[CNF_SCC_CHANNELS_B] },
 		{ NULL, NULL }
 	};
 	int i;
@@ -256,7 +283,7 @@ static bool Control_SetPath(char *name)
 		*arg = '\0';
 		value = Str_Trim(arg+1);
 	} else {
-		return false;
+		value = "";
 	}
 	
 	for (i = 0; item[i].name; i++)
@@ -283,7 +310,7 @@ static bool Control_SetPath(char *name)
  */
 static bool Control_Usage(const char *cmd)
 {
-	fprintf(stderr, "ERROR: unrecognized hatari command: '%s'!\n", cmd);
+	fprintf(stderr, "ERROR: missing arg or unrecognized command: '%s'!\n", cmd);
 	fprintf(stderr,
 		"Supported commands are:\n"
 		"- hatari-debug <Debug UI command>\n"
@@ -355,6 +382,10 @@ void Control_ProcessBuffer(const char *orig)
 			if (strcmp(cmd, "hatari-embed-info") == 0) {
 				fprintf(stderr, "Embedded window ID change messages = ON\n");
 				bSendEmbedInfo = true;
+				if (sdlscrn) {
+					/* initial size */
+					Control_SendEmbedSize(sdlscrn->w, sdlscrn->h);
+				}
 			} else if (strcmp(cmd, "hatari-stop") == 0) {
 				Main_PauseEmulation(true);
 				bRemotePaused = true;
@@ -379,11 +410,6 @@ void Control_ProcessBuffer(const char *orig)
 static char *FifoPath;
 static int ControlFifo;
 
-/* two-way socket to which Hatari connects, reads control commands
- * from, and where the command responses (if any) are written to
- */
-static int ControlSocket;
-
 /* pre-declared local functions */
 static int Control_GetUISocket(void);
 
@@ -397,8 +423,8 @@ static int Control_GetUISocket(void);
  */
 bool Control_CheckUpdates(void)
 {
-	/* just using all trace options with +/- are about 300 chars */
-	char buffer[400];
+	/* setting all trace options, or paths takes a lot of space */
+	char buffer[4096];
 	struct timeval tv;
 	fd_set readfds;
 	ssize_t bytes;
@@ -620,12 +646,14 @@ void Control_ReparentWindow(int width, int height, bool noembed)
 	parent_win = strtol(parent_win_id, NULL, 0);
 	if (!parent_win) {
 		Log_Printf(LOG_WARN, "Invalid PARENT_WIN_ID value '%s'\n", parent_win_id);
+		bSendEmbedInfo = false;
 		return;
 	}
 
 	SDL_VERSION(&info.version);
 	if (!SDL_GetWindowWMInfo(sdlWindow, &info)) {
 		Log_Printf(LOG_WARN, "Failed to get SDL_GetWMInfo()\n");
+		bSendEmbedInfo = false;
 		return;
 	}
 
@@ -647,17 +675,12 @@ void Control_ReparentWindow(int width, int height, bool noembed)
 			/* reparent main Hatari window to given parent */
 			XReparentWindow(display, sdl_win, parent_win, 0, 0);
 		}
-		/* whether to send new window size */
-		if (bSendEmbedInfo && ControlSocket)
-		{
-			char buffer[12]; /* 32-bits in hex (+ '\r') + '\n' + '\0' */
 
-			Log_Printf(LOG_INFO, "New %dx%d SDL window with ID: %lx\n",
-				width, height, sdl_win);
-			sprintf(buffer, "%dx%d", width, height);
-			if (write(ControlSocket, buffer, strlen(buffer)) < 0)
-				perror("Control_ReparentWindow write error");
-		}
+		Log_Printf(LOG_INFO, "New %dx%d SDL window with ID: %lx\n",
+			   width, height, sdl_win);
+
+		/* inform remote end of new window size if requested */
+		Control_SendEmbedSize(width, height);
 	}
 
 	XSync(display, false);

@@ -137,11 +137,11 @@ static bool File_IsRootFileName(const char *pszFileName)
 #endif
 
 #ifdef GEKKO
-	if (strlen(pszFileName) > 2 && pszFileName[2] == ':')	// sd:
+	if (strlen(pszFileName) > 2 && pszFileName[2] == ':')	/* sd: */
 		return true;
-	if (strlen(pszFileName) > 3 && pszFileName[3] == ':')	// fat:
+	if (strlen(pszFileName) > 3 && pszFileName[3] == ':')	/* fat: */
 		return true;
-	if (strlen(pszFileName) > 4 && pszFileName[4] == ':')	// fat3:
+	if (strlen(pszFileName) > 4 && pszFileName[4] == ':')	/* fat3: */
 		return true;
 #endif
 
@@ -682,7 +682,7 @@ FILE *File_Open(const char *path, const char *mode)
 	FILE *fp;
 
 	/* empty name signifies file that shouldn't be opened/enabled */
-	if (!*path)
+	if (!path || !*path)
 		return NULL;
 
 	/* special "stdout" and "stderr" files can be used
@@ -1066,7 +1066,7 @@ static TCHAR szTempFileName[MAX_PATH];
 /**
  * Get temporary filename for Windows
  */
-char* WinTmpFile(void)
+static char* WinTmpFile(void)
 {
 	DWORD dwRetVal = 0;
 	UINT uRetVal   = 0;
@@ -1094,3 +1094,33 @@ char* WinTmpFile(void)
 	return (char*)szTempFileName;
 }
 #endif
+
+/**
+ * Open a temporary file. This is a wrapper for tmpfile() that can be used
+ * on Windows, too. If *psFileName gets set by this function, the caller
+ * should delete the file manually when it is not needed anymore.
+ */
+FILE *File_OpenTempFile(char **psFileName)
+{
+	FILE *fh;
+	char *psTmpName = NULL;
+
+	fh = tmpfile();            /* Open temporary file */
+
+#if defined(WIN32)
+	if (!fh)
+	{
+		/* Unfortunately tmpfile() needs administrative privileges on
+		 * Windows, so if it failed, let's work around this issue. */
+		psTmpName = WinTmpFile();
+		fh = fopen(psTmpName, "w+b");
+	}
+#endif
+
+	if (psFileName)
+	{
+		*psFileName = psTmpName;
+	}
+
+	return fh;
+}

@@ -1521,7 +1521,7 @@ static bool fault_if_68040_integer_nonmaskable(uae_u16 opcode, uae_u16 extra, ua
 	return false;
 }
 
-static int get_fp_value(uae_u32 opcode, uae_u16 extra, fpdata *src, uaecptr oldpc, uae_u32 *adp, bool *adsetp)
+static int get_fp_value(uae_u32 opcode, uae_u16 extra, fpdata *src, uaecptr oldpc, uaecptr *adp, bool *adsetp)
 {
 	int size, mode, reg;
 	uae_u32 ad = 0;
@@ -1754,7 +1754,7 @@ static int get_fp_value(uae_u32 opcode, uae_u16 extra, fpdata *src, uaecptr oldp
 	return 1;
 }
 
-static int put_fp_value2(fpdata *value, uae_u32 opcode, uae_u16 extra, uaecptr oldpc, uae_u32 *adp, bool *adsetp)
+static int put_fp_value2(fpdata *value, uae_u32 opcode, uae_u16 extra, uaecptr oldpc, uaecptr *adp, bool *adsetp)
 {
 	int size, mode, reg;
 	uae_u32 ad = 0;
@@ -2030,7 +2030,7 @@ static int get_fp_ad (uae_u32 opcode, uae_u32 *ad, bool *adset)
 	return 1;
 }
 
-static int put_fp_value(fpdata *value, uae_u32 opcode, uae_u16 extra, uaecptr oldpc, uae_u32 *adp, bool *adsetp)
+static int put_fp_value(fpdata *value, uae_u32 opcode, uae_u16 extra, uaecptr oldpc, uaecptr *adp, bool *adsetp)
 {
 	int v = put_fp_value2(value, opcode, extra, oldpc, adp, adsetp);
 	if (v == -2) {
@@ -3694,7 +3694,7 @@ void fpu_reset (void)
 {
 #ifndef CPU_TESTER
 	currprefs.fpu_mode = changed_prefs.fpu_mode;
-//fprintf(stderr, "fpu_reset %d\n" , currprefs.fpu_mode );
+//fprintf(stderr, "fpu_reset model=%d mode=%d\n" , currprefs.fpu_model , currprefs.fpu_mode );
 	if (currprefs.fpu_mode > 0) {
 #ifdef WITH_SOFTFLOAT
 		fp_init_softfloat(currprefs.fpu_model);
@@ -3754,8 +3754,8 @@ uae_u8 *restore_fpu (uae_u8 *src)
 	int i;
 	uae_u32 flags;
 
-	fpu_reset();
 	changed_prefs.fpu_model = currprefs.fpu_model = restore_u32 ();
+	fpu_reset();
 	flags = restore_u32 ();
 	for (i = 0; i < 8; i++) {
 		w1 = restore_u16 () << 16;

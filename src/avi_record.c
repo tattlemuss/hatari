@@ -82,18 +82,21 @@ const char AVIRecord_fileid[] = "Hatari avi_record.c";
 
 #include <SDL.h>
 #include <SDL_endian.h>
+#include <assert.h>
 #include <sys/types.h>  /* For off_t */
 
 #include "main.h"
 #include "version.h"
 #include "audio.h"
 #include "configuration.h"
+#include "clocks_timings.h"
 #include "file.h"
 #include "log.h"
 #include "screen.h"
 #include "screenSnapShot.h"
 #include "sound.h"
 #include "statusbar.h"
+#include "video.h"
 #include "avi_record.h"
 
 /* after above that brings in config.h */
@@ -420,7 +423,7 @@ typedef struct {
 
 
 
-bool		bRecordingAvi = false;
+static bool bRecordingAvi = false;
 
 
 static RECORD_AVI_PARAMS	AviParams;
@@ -459,6 +462,7 @@ static void	Avi_BuildFileHeader ( RECORD_AVI_PARAMS *pAviParams , AVI_FILE_HEADE
 static bool	Avi_StartRecording_WithParams ( RECORD_AVI_PARAMS *pAviParams , char *AviFileName );
 static bool	Avi_StopRecording_WithParams ( RECORD_AVI_PARAMS *pAviParams );
 
+static bool	Avi_StartRecording ( char *FileName , bool CropGui , uint32_t Fps , uint32_t Fps_scale , int VideoCodec );
 
 
 static void	Avi_StoreU8 ( uint8_t *p , uint8_t val )
@@ -886,6 +890,8 @@ static bool	Avi_RecordVideoStream_BMP ( RECORD_AVI_PARAMS *pAviParams )
 	int		NeedLock;
 	uint8_t		*LineBuf = alloca(3 * pAviParams->Width);		/* temp buffer to convert to 24-bit BGR format */
 
+	assert(pAviParams->Surface->format->BytesPerPixel == 4);
+
 	SizeImage = Avi_GetBmpSize ( pAviParams->Width , pAviParams->Height , pAviParams->BitCount );
 
 	/* Write the video frame header */
@@ -917,16 +923,7 @@ static bool	Avi_RecordVideoStream_BMP ( RECORD_AVI_PARAMS *pAviParams )
 			+ pAviParams->CropLeft * pAviParams->Surface->format->BytesPerPixel;
 
 		pBitmapOut = LineBuf;
-		switch ( pAviParams->Surface->format->BytesPerPixel ) {
-		 case 2:
-			PixelConvert_16to24Bits_BGR(LineBuf, (uint16_t *)pBitmapIn, pAviParams->Width, pAviParams->Surface);
-			break;
-		 case 4:
-			PixelConvert_32to24Bits_BGR(LineBuf, (uint32_t *)pBitmapIn, pAviParams->Width, pAviParams->Surface);
-			break;
-		 default:
-			abort();
-		}
+		PixelConvert_32to24Bits_BGR(LineBuf, (uint32_t *)pBitmapIn, pAviParams->Width, pAviParams->Surface);
 
 		if ( NeedLock )
 			SDL_UnlockSurface ( pAviParams->Surface );
@@ -1438,7 +1435,6 @@ bool	Avi_AreWeRecording ( void )
         return bRecordingAvi;
 }
 
-
 /* PNG compression level, 0-9 */
 static int compression_level = 9;
 
@@ -1459,7 +1455,7 @@ bool Avi_SetCompressionLevel(const char *str)
 }
 
 
-bool	Avi_StartRecording ( char *FileName , bool CropGui , uint32_t Fps , uint32_t Fps_scale , int VideoCodec )
+static bool	Avi_StartRecording ( char *FileName , bool CropGui , uint32_t Fps , uint32_t Fps_scale , int VideoCodec )
 {
 	memset ( &AviParams , 0 , sizeof ( AviParams ) );
 
@@ -1503,6 +1499,17 @@ void Avi_SetSurface(SDL_Surface *surf)
 	AviParams.Surface = surf;
 }
 
+bool	Avi_StartRecording_WithConfig ( void )
+{
+	return Avi_StartRecording( ConfigureParams.Video.AviRecordFile ,
+				   ConfigureParams.Screen.bCrop ,
+				   ConfigureParams.Video.AviRecordFps == 0 ?
+				     ClocksTimings_GetVBLPerSec ( ConfigureParams.System.nMachineType , nScreenRefreshRate ) :
+				     ClocksTimings_GetVBLPerSec ( ConfigureParams.System.nMachineType , ConfigureParams.Video.AviRecordFps ) ,
+				   1 << CLOCKS_TIMINGS_SHIFT_VBL ,
+				   ConfigureParams.Video.AviRecordVcodec );
+}
+
 bool	Avi_StopRecording ( void )
 {
 	if (Avi_StopRecording_WithParams ( &AviParams ))
@@ -1513,4 +1520,12 @@ bool	Avi_StopRecording ( void )
 	return false;
 }
 
-
+bool Avi_StopRecording_WithMsg(void)
+{
+	if (!bRecordingAvi)
+		return true;
+	/* cleanly close the AVI file */
+	Statusbar_AddMessage("Finishing AVI file...", 100);
+	Statusbar_Update(sdlscrn, true);
+	return Avi_StopRecording();
+}

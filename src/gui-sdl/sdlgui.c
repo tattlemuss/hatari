@@ -490,7 +490,7 @@ static void SDLGui_DrawRadioButton(const SGOBJ *rdlg, int objnum)
 	else
 		str[0]=SGRADIOBUTTON_NORMAL;
 	str[1]=' ';
-	strcpy(&str[2], rdlg[objnum].txt);
+	Str_Copy(&str[2], rdlg[objnum].txt, sizeof(str) - 2);
 
 	SDLGui_TextInt(x, y, str, true);
 }
@@ -514,7 +514,7 @@ static void SDLGui_DrawCheckBox(const SGOBJ *cdlg, int objnum)
 	else
 		str[0]=SGCHECKBOX_NORMAL;
 	str[1]=' ';
-	strcpy(&str[2], cdlg[objnum].txt);
+	Str_Copy(&str[2], cdlg[objnum].txt, sizeof(str) - 2);
 
 	SDLGui_TextInt(x, y, str, true);
 }
@@ -1057,28 +1057,51 @@ static int SDLGui_HandleShortcut(SGOBJ *dlg, int key)
 }
 
 /**
- * Scale mouse coordinates in case we've got a re-sized SDL2 window
+ * Scale mouse state coordinates in case we've got a re-sized SDL2 window
+ *
+ * NOTE: while scaling done here fixes SDL2 reported mouse coords to
+ * match Hatari framebuffer coords in scaled SDL2 windows, there's
+ * another issue with (mouse _state_) coords in _fullscreen_.
+ *
+ * SDL2 deducts fullscreen letterboxing borders from those coords,
+ * but not from the values returns by SDL2 window size functions
+ * (and there's no function providing the letterbox border size).
+ *
+ * Atari resolutions are more narrow than today's widescreen monitor
+ * resolutions, so typically fullscreen letterboxing borders are on
+ * the sides => y-coord gets scaled OK, x-coord will be too small.
+ */
+void SDLGui_ScaleMouseStateCoordinates(int *x, int *y)
+{
+	int win_width, win_height;
+	SDL_GetWindowSize(sdlWindow, &win_width, &win_height);
+
+	*x = *x * pSdlGuiScrn->w / win_width;
+	*y = *y * pSdlGuiScrn->h / win_height;
+}
+
+/**
+ * Scale mouse event coordinates in case we've got a re-sized SDL2 window
  */
 static void SDLGui_ScaleMouseButtonCoordinates(SDL_MouseButtonEvent *bev)
 {
-	int win_width, win_height;
-
 	if (bInFullScreen)
 		return;
 
-	SDL_GetWindowSize(sdlWindow, &win_width, &win_height);
-	bev->x = bev->x * pSdlGuiScrn->w / win_width;
-	bev->y = bev->y * pSdlGuiScrn->h / win_height;
+	int x = bev->x, y = bev->y;
+	SDLGui_ScaleMouseStateCoordinates(&x, &y);
+	bev->x = x; bev->y = y;
 }
 
 /*-----------------------------------------------------------------------*/
 /**
  * Show and process a dialog.
  *
- * Dialogs using a scrollbar, must return the previous return value
- * in 'current_object' arg, as the same dialog is displayed in a loop
- * to handle scrolling. Other dialogs should give zero as 'current_object'
- * (ie no object selected at start when displaying the dialog)
+ * Dialogs using a scrollbar, or other objects with SG_REPEAT flag,
+ * must return the previous return value in 'current_object' arg, as
+ * the same dialog is displayed in a loop to handle scrolling. Other
+ * dialogs should give zero as 'current_object' (ie no object
+ * selected at start when displaying the dialog)
  *
  * Returns either:
  * - index of the GUI item that was invoked
@@ -1093,13 +1116,15 @@ int SDLGui_DoDialogExt(SGOBJ *dlg, bool (*isEventOut)(SDL_EventType), SDL_Event 
 {
 	int oldbutton = SDLGUI_NOTFOUND;
 	int retbutton = SDLGUI_NOTFOUND;
-	int i, j, b, value, obj;
+	int b, x, y, value, obj;
 	SDL_Keycode key;
 	int focused;
 	SDL_Event sdlEvent;
 	SDL_Surface *pBgSurface;
 	SDL_Rect dlgrect, bgrect;
 	SDL_Joystick *joy = NULL;
+	const Uint8 *keystates;
+	bool ignore_first_keyup;
 
 	/* either both, or neither of these should be present */
 	assert((isEventOut && pEventOut) || (!isEventOut && !pEventOut));
@@ -1122,13 +1147,13 @@ int SDLGui_DoDialogExt(SGOBJ *dlg, bool (*isEventOut)(SDL_EventType), SDL_Event 
 	/* Save background */
 	pBgSurface = SDL_CreateRGBSurface(SDL_SWSURFACE, dlgrect.w, dlgrect.h, pSdlGuiScrn->format->BitsPerPixel,
 	                                  pSdlGuiScrn->format->Rmask, pSdlGuiScrn->format->Gmask, pSdlGuiScrn->format->Bmask, pSdlGuiScrn->format->Amask);
-	if (pSdlGuiScrn->format->palette != NULL)
-	{
-		SDL_SetPaletteColors(pBgSurface->format->palette, pSdlGuiScrn->format->palette->colors, 0, pSdlGuiScrn->format->palette->ncolors-1);
-	}
 
 	if (pBgSurface != NULL)
 	{
+		if (pSdlGuiScrn->format->palette != NULL)
+		{
+			SDL_SetPaletteColors(pBgSurface->format->palette, pSdlGuiScrn->format->palette->colors, 0, pSdlGuiScrn->format->palette->ncolors-1);
+		}
 		SDL_BlitSurface(pSdlGuiScrn,  &dlgrect, pBgSurface, &bgrect);
 	}
 	else
@@ -1154,13 +1179,30 @@ int SDLGui_DoDialogExt(SGOBJ *dlg, bool (*isEventOut)(SDL_EventType), SDL_Event 
 	/* (Re-)draw the dialog */
 	SDLGui_DrawDialog(dlg);
 
+	/* If one of the keys that could exit the dialog is already held
+	 * before we start, then ignore the first keyup event since the
+	 * key press does not belong to the dialog, but rather to whatever
+	 * happened before the dialog.
+	 *
+	 * Cannot be used when asked to return already on key down
+	 * (e.g. with file selector).
+	 */
+	keystates = SDL_GetKeyboardState(NULL);
+	ignore_first_keyup = !(isEventOut && isEventOut(SDL_KEYDOWN)) && (
+	                     keystates[SDL_GetScancodeFromKey(SDLK_RETURN)] ||
+	                     keystates[SDL_GetScancodeFromKey(SDLK_KP_ENTER)] ||
+	                     keystates[SDL_GetScancodeFromKey(SDLK_SPACE)] ||
+	                     keystates[SDL_GetScancodeFromKey(SDLK_ESCAPE)]
+	);
+
 	/* Is the left mouse button still pressed? Yes -> Handle TOUCHEXIT objects here */
 	SDL_PumpEvents();
-	b = SDL_GetMouseState(&i, &j);
+	b = SDL_GetMouseState(&x, &y);
 
-	/* If current object is the scrollbar, and mouse is still down, we can scroll it */
-	/* also if the mouse pointer has left the scrollbar */
-	if (current_object >= 0 && dlg[current_object].type == SGSCROLLBAR) {
+	/* Report repeat objects until mouse button is released,
+	 * regardless of mouse position.  Used for scrollbar
+	 * object interactions */
+	if (current_object >= 0 && (dlg[current_object].flags & SG_REPEAT)) {
 		obj = current_object;
 		oldbutton = obj;
 		if (b & SDL_BUTTON(1))
@@ -1172,10 +1214,10 @@ int SDLGui_DoDialogExt(SGOBJ *dlg, bool (*isEventOut)(SDL_EventType), SDL_Event 
 		{
 			dlg[obj].state &= ~SG_MOUSEDOWN;
 		}
-	}
-	else {
-		obj = SDLGui_FindObj(dlg, i, j);
-		current_object = obj;
+	} else {
+		SDLGui_ScaleMouseStateCoordinates(&x, &y);
+		obj = SDLGui_FindObj(dlg, x, y);
+
 		if (obj != SDLGUI_NOTFOUND && (dlg[obj].flags&SG_TOUCHEXIT) )
 		{
 			oldbutton = obj;
@@ -1312,6 +1354,7 @@ int SDLGui_DoDialogExt(SGOBJ *dlg, bool (*isEventOut)(SDL_EventType), SDL_Event 
 
 			 case SDL_JOYBALLMOTION:
 			 case SDL_MOUSEMOTION:
+			 case SDL_KEYMAPCHANGED:
 				break;
 
 			 case SDL_KEYDOWN:                     /* Key pressed */
@@ -1377,9 +1420,19 @@ int SDLGui_DoDialogExt(SGOBJ *dlg, bool (*isEventOut)(SDL_EventType), SDL_Event 
 				 case SDLK_SPACE:
 				 case SDLK_RETURN:
 				 case SDLK_KP_ENTER:
+					if (ignore_first_keyup)
+					{
+						ignore_first_keyup = false;
+						break;
+					}
 					retbutton = SDLGui_HandleSelection(dlg, focused, focused);
 					break;
 				 case SDLK_ESCAPE:
+					if (ignore_first_keyup)
+					{
+						ignore_first_keyup = false;
+						break;
+					}
 					retbutton = SDLGui_SearchFlags(dlg, SG_CANCEL);
 					break;
 				 default:

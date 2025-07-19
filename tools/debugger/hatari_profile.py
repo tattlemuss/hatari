@@ -1,8 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 #
 # Hatari profile data processor
 #
-# 2013-2023 (C) Eero Tamminen, licensed under GPL v2+
+# 2013-2025 (C) Eero Tamminen, licensed under GPL v2+
 #
 # TODO:
 #
@@ -411,7 +411,7 @@ class ProfileSymbols(Output):
     # profile file field name for program text/code address range
     text_area = "PROGRAM_TEXT"
     # default emulation memory address range name
-    default_area = "RAM"
+    default_area = "RAM?"
 
     def __init__(self):
         Output.__init__(self)
@@ -424,7 +424,7 @@ class ProfileSymbols(Output):
         self.rel_aliases = {}   # (name:addr) dict of replaced relative symbols
         self.symbols_need_sort = False
         self.symbols_sorted = None	# sorted list of symbol addresses
-        # Non-overlapping memory areas that may be specified in profile file
+        # memory areas that may be specified in profile file
         # (checked if instruction is before any of the symbol addresses)
         self.areas = {}		# (name:(start,end))
         # memory area format:
@@ -435,6 +435,8 @@ class ProfileSymbols(Output):
         # [0x]<hex> [<type>] <symbol/objectfile name>
         # Note: C++ symbols contain almost any chars
         self.r_symbol = re.compile("^(0x)?([a-fA-F0-9]+) ([aAbBdDrRtTvVwW]) ([$]?[._a-zA-Z(][^$?@;]*)$")
+        # weak C++ symbols can be data members, match them to ignore
+        self.r_datasym = re.compile("^.*::[_a-zA-Z][_a-zA-Z0-9]*$")
 
     def parse_areas(self, fobj, parsed):
         "parse memory area lines from data and post-process earlier read symbols data"
@@ -462,9 +464,11 @@ class ProfileSymbols(Output):
 
     def get_area(self, addr):
         "return memory area name + offset (used if no symbol matches)"
-        for key, value in self.areas.items():
+        # PROGRAM_TEXT may overlap with ST_RAM / TT_RAM, check it first
+        for name in sorted(self.areas.keys()):
+            value = self.areas[name]
             if value[1] and value[0] <= addr <= value[1]:
-                return (key, addr - value[0])
+                return (name, addr - value[0])
         return (self.default_area, addr)
 
     def _check_symbol(self, addr, name, symbols, aliases):
@@ -483,8 +487,9 @@ class ProfileSymbols(Output):
             if '/' in oldname or oldname.endswith('.o') or oldname.endswith('.a'):
                 aliases[oldname] = addr
                 return True
-            # C/C++ or asm symbol?
-            if (name.startswith('_') or '::' in name or ' ' in name):
+            # either of the names is C/C++ symbol?
+            if (name.startswith('_') or '::' in name or ' ' in name or
+                oldname.startswith('_') or '::' in oldname or ' ' in oldname):
                 # prefer shorter names for C/C++ symbols
                 if len(name) > len(oldname):
                     aliases[name] = addr
@@ -543,7 +548,7 @@ class ProfileSymbols(Output):
         old_aliases = len(self.aliases)
         old_renames = self.renames
 
-        unknown = lines = 0
+        unknown = lines = cppdata = 0
         for line in fobj.readlines():
             lines += 1
             line = line.strip()
@@ -554,10 +559,17 @@ class ProfileSymbols(Output):
                 dummy, addr, kind, name = match.groups()
                 if kind not in ('t', 'T', 'W'):
                     continue
-                if kind == 'W':
-                    if name.startswith("vtable ") or name.startswith("typeinfo "):
-                        # data, not code (should have been 'V'?)
-                        continue
+                if (name.startswith("typeinfo ") or
+                    name.startswith("vtable ") or
+                    name.startswith("VTT ")):
+                    # C++ meta data, could be also in text section
+                    cppdata += 1
+                    continue
+                match = self.r_datasym.match(name)
+                if match:
+                    # C++ data members
+                    cppdata += 1
+                    continue
                 addr = int(addr, 16)
                 if self._check_symbol(addr, name, symbols, aliases):
                     symbols[addr] = name
@@ -569,6 +581,9 @@ class ProfileSymbols(Output):
         self.message("%d lines with %d code symbols/addresses parsed, %d unknown." % info)
         info = (len(aliases) - old_aliases, self.renames - old_renames)
         self.message("%d (new) symbols were aliased, with %d significant renames." % info)
+        if cppdata:
+            self.message("%d C++ data member symbols ignored." % cppdata)
+            
 
     def _rename_symbol(self, addr, name):
         "return symbol name, potentially renamed if there were conflicts"
@@ -703,7 +718,7 @@ class Callinfo:
             self.flags = flags.strip()
         # cost of these calls including further function calls
         self._parse_totals(0, intotal)
-        # costs exclusing further function calls
+        # costs excluding further function calls
         self._parse_totals(1, extotal)
 
     def _parse_totals(self, idx, totalstr):
@@ -1151,7 +1166,7 @@ class EmulatorProfile(Output):
         "parse profile disassembly"
         self.message("parsing disassembly...")
         prev_addr = 0
-        discontinued = False
+        discontinued = True
         function = FunctionStats(None, -1, 0, self.stats.items)
         while True:
             if not line:
@@ -1409,7 +1424,7 @@ class ProfileStats(ProfileOutput):
             name, offset = symbols.get_preceeding_symbol(addr)
             if name:
                 if offset:
-                    name = " in %s+%d" % (name, offset)
+                    name = " in %s%+d" % (name, offset)
                 else:
                     name = " in %s" % name
             self.write("* %s:\n" % stats.names[i])
@@ -1786,7 +1801,7 @@ label="%s";
 
             pname = self._get_short_name(self.profile[paddr].name)
             if offset:
-                label = "%s+%d\\n($%x)" % (pname, offset, laddr)
+                label = "%s%+d\\n($%x)" % (pname, offset, laddr)
             else:
                 label = pname
             if edge.calls != calls:

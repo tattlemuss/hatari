@@ -92,11 +92,15 @@ extern Uint8 *pSTScreen;
 extern SDL_Surface *sdlscrn;
 extern Uint32 STRGBPalette[16];
 extern Uint32 ST2RGB[4096];
+extern Uint32* ConvertPalette;
+extern int ConvertPaletteSize;
+
 
 extern uint16_t HBLPalettes[HBL_PALETTE_LINES];
 extern uint16_t *pHBLPalettes;
 extern uint32_t HBLPaletteMasks[HBL_PALETTE_MASKS];
 extern uint32_t *pHBLPaletteMasks;
+extern int STScreenLineOffset[NUM_VISIBLE_LINES];
 
 extern void Screen_Init(void);
 extern void Screen_UnInit(void);
@@ -114,5 +118,6 @@ extern void Screen_SetGenConvSize(int width, int height, bool bForceChange);
 extern void Screen_GenConvUpdate(SDL_Rect *extra, bool forced);
 extern Uint32 Screen_GetGenConvWidth(void);
 extern Uint32 Screen_GetGenConvHeight(void);
+extern bool Screen_UseGenConvScreen(void);
 
 #endif  /* ifndef HATARI_SCREEN_H */

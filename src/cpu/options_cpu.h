@@ -16,7 +16,7 @@
 
 
 
-#define UAEMAJOR 5
+#define UAEMAJOR 6
 #define UAEMINOR 0
 #define UAESUBREV 0
 
@@ -420,6 +420,7 @@ struct rtgboardconfig
 	uae_u32 rtgmem_size;
 	int device_order;
 	int monitor_id;
+	bool autoswitch;
 };
 struct boardloadfile
 {
@@ -453,6 +454,7 @@ struct ramboard
 	bool nodma;
 	bool force16bit;
 	bool chipramtiming;
+	int fault;
 	struct boardloadfile lf;
 };
 struct expansion_params
@@ -491,6 +493,7 @@ struct uae_prefs {
 	TCHAR config_all_path[MAX_DPATH];
 	TCHAR config_path[MAX_DPATH];
 	TCHAR config_window_title[256];
+	int got_fs2_hdf2;
 
 	bool illegal_mem;
 	bool debug_mem;
@@ -616,6 +619,7 @@ struct uae_prefs {
 	int genlock_scale;
 	int genlock_aspect;
 	int genlock_effects;
+	int genlock_offset_x, genlock_offset_y;
 	uae_u64 ecs_genlock_features_colorkey_mask[4];
 	uae_u8 ecs_genlock_features_plane_mask;
 	bool genlock_alpha;
@@ -723,6 +727,7 @@ struct uae_prefs {
 	int cs_eclocksync;
 	bool cs_memorypatternfill;
 	bool cs_ipldelay;
+	bool cs_floppydatapullup;
 	uae_u32 seed;
 
 	struct boardromconfig expansionboard[MAX_EXPANSION_BOARDS];
@@ -748,6 +753,7 @@ struct uae_prefs {
 	struct cdslot cdslots[MAX_TOTAL_SCSI_DEVICES];
 	TCHAR quitstatefile[MAX_DPATH];
 	TCHAR statefile[MAX_DPATH];
+	TCHAR statefile_path[MAX_DPATH];
 	TCHAR inprecfile[MAX_DPATH];
 	TCHAR trainerfile[MAX_DPATH];
 	bool inprec_autoplay;
@@ -903,6 +909,8 @@ struct uae_prefs {
 	bool win32_filesystem_mangle_reserved_names;
 	bool win32_shutdown_notification;
 	bool win32_warn_exit;
+	win32_gui_control;
+	win32_videograb_balance;
 	bool right_control_is_right_win_key;
 #ifdef WITH_SLIRP
 	struct slirp_redir slirp_redirs[MAX_SLIRP_REDIRS];

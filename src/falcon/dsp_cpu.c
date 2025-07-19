@@ -15,8 +15,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software Foundation,
-	51 Franklin Street, Fifth Floor, Boston, MA 02110-1335 USA
+	along with this program; if not, see <https://www.gnu.org/licenses/>.
 */
 
 /*
@@ -97,14 +96,6 @@ static uint32_t num_inst;
 #define SIGN_PLUS  0
 #define SIGN_MINUS 1
 
-/* Defines some bits values for access to external memory (X, Y, P) */
-/* These values will set/unset the corresponding bits in the variable access_to_ext_memory */
-/* to detect how many access to the external memory were done for a single instruction */
-#define EXT_X_MEMORY 0
-#define EXT_Y_MEMORY 1
-#define EXT_P_MEMORY 2
-
-
 /**********************************
  *	Variables
  **********************************/
@@ -122,7 +113,10 @@ static uint16_t access_to_ext_memory;
 /* If yes, stack overflow, underflow and illegal instructions messages are not displayed */
 static bool isDsp_in_disasm_mode;
 
-static char   str_disasm_memory[2][50]; 	/* Buffer for memory change text in disasm mode */
+/* Disasm mode : buffer for memory change */
+/* 12 slots are needed when tracing RESET instruction (it can change up to 12 addresses at once) */
+static char   str_disasm_memory[12][50];
+
 static uint16_t disasm_memory_ptr;		/* Pointer for memory change in disasm mode */
 
 /**********************************
@@ -154,9 +148,9 @@ static void dsp_compute_ssh_ssl(void);
 
 static void opcode8h_0(void);
 
-static void dsp_update_rn(uint32_t numreg, int16_t modifier);
-static void dsp_update_rn_bitreverse(uint32_t numreg);
-static void dsp_update_rn_modulo(uint32_t numreg, int16_t modifier);
+static void dsp_update_rn(uint32_t numreg, uint32_t reg_value, int16_t reg_mofifier, uint16_t reg_modulo);
+static void dsp_update_rn_bitreverse(uint32_t numreg, uint32_t reg_value, int16_t reg_mofifier);
+static void dsp_update_rn_modulo(uint32_t numreg, uint32_t reg_value, int16_t reg_mofifier, uint16_t reg_modulo);
 static int dsp_calc_ea(uint32_t ea_mode, uint32_t *dst_addr);
 static int dsp_calc_cc(uint32_t cc_code);
 
@@ -706,13 +700,6 @@ const char *dsp_interrupt_name[32] = {
 	"Unknown", "Unknown", "Unknown", "Illegal"
 };
 
-static struct {
-	int limit;
-	int count;
-	uint32_t inst;
-	uint16_t pc;
-} dsp_error;
-
 
 /**********************************
  *	Emulator kernel
@@ -722,8 +709,6 @@ void dsp56k_init_cpu(void)
 {
 	dsp56k_disasm_init();
 	isDsp_in_disasm_mode = false;
-	memset(&dsp_error, 0, sizeof(dsp_error));
-	dsp_error.limit = 1;
 #if DSP_COUNT_IPS
 	start_time = SDL_GetTicks();
 	num_inst = 0;
@@ -775,6 +760,7 @@ void dsp56k_execute_instruction(void)
 	disasm_memory_ptr = 0;
 
 	/* Initialise the number of access to the external memory for this instruction */
+	/* for cycles counting */
 	access_to_ext_memory = 0;
 
 	/* Init the indirect AGU move instruction flag */
@@ -818,13 +804,29 @@ void dsp56k_execute_instruction(void)
 	/* Add the waitstate due to external memory access */
 	/* (2 extra cycles per extra access to the external memory after the first one */
 	if (access_to_ext_memory != 0) {
-		value = access_to_ext_memory & 1;
-		value += (access_to_ext_memory & 2) >> 1;
-		value += (access_to_ext_memory & 4) >> 2;
+		value  = (access_to_ext_memory >> DSP_SPACE_X) & 1;
+		value += (access_to_ext_memory >> DSP_SPACE_Y) & 1;
+		value += (access_to_ext_memory >> DSP_SPACE_P) & 1;
 
 		if (value > 1)
 			dsp_core.instr_cycle += (value - 1) * 2;
 	}
+
+	/* Process the AGU pipeline */
+	dsp_core.agu_pipeline_reg[0] = 0;
+
+	if (dsp_core.agu_pipeline_reg[1] != 0 ) {
+		dsp_core.agu_pipeline_reg[0] = dsp_core.agu_pipeline_reg[1];
+		dsp_core.agu_pipeline_val[0] = dsp_core.agu_pipeline_val[1];
+		dsp_core.agu_pipeline_reg[1] = 0;
+	}
+
+	/* Process the PC */
+	dsp_postexecute_update_pc();
+
+	/* Process Interrupts */
+	dsp_postexecute_interrupts();
+
 
 	/* Disasm current instruction ? (trace mode only) */
 	if (LOG_TRACE_LEVEL(TRACE_DSP_DISASM)) {
@@ -852,11 +854,6 @@ void dsp56k_execute_instruction(void)
 		}
 	}
 
-	/* Process the PC */
-	dsp_postexecute_update_pc();
-
-	/* Process Interrupts */
-	dsp_postexecute_interrupts();
 
 #if DSP_COUNT_IPS
 	++num_inst;
@@ -1025,8 +1022,19 @@ static void dsp_postexecute_interrupts(void)
 				dsp_core.pc = dsp_core.interrupt_instr_fetch;
 
 				/* is it a LONG interrupt ? */
+
+				/* Extract from Motorola doc
+				   A long interrupt is formed if one of the interrupt instructions fetched is a JSR instruction.
+				   The PC is immediately released, the SR and the PC are saved in the stack, and the jump instruction
+				   controls where the next instruction is fetched from. While either an unconditional jump or
+				   conditional jump can be used to form a long interrupt, they do not store the PC on the stack;
+				   therefore, there is no return path.
+				*/
+
 				instr = read_memory_p(dsp_core.interrupt_instr_fetch);
-				if ( ((instr & 0xfff000) == 0x0d0000) || ((instr & 0xffc0ff) == 0x0bc080) ) {
+				// JSR or JMP ?
+				if ( ((instr & 0xfff000) == 0x0d0000) || ((instr & 0xffc0ff) == 0x0bc080) ||		/* JSR pattern */
+				     ((instr & 0xfff000) == 0x0c0000) || ((instr & 0xffc0ff) == 0x0ac080) ) {		/* JMP pattern */
 					dsp_core.interrupt_state = DSP_INTERRUPT_LONG;
 					dsp_stack_push(dsp_core.interrupt_save_pc, dsp_core.registers[DSP_REG_SR], 0);
 					dsp_core.registers[DSP_REG_SR] &= BITMASK(16)-((1<<DSP_SR_LF)|(1<<DSP_SR_T)  |
@@ -1040,7 +1048,8 @@ static void dsp_postexecute_interrupts(void)
 				/* Prefetch interrupt instruction 2, if first one was single word */
 				if (dsp_core.pc == dsp_core.interrupt_instr_fetch+1) {
 					instr = read_memory_p(dsp_core.pc);
-					if ( ((instr & 0xfff000) == 0x0d0000) || ((instr & 0xffc0ff) == 0x0bc080) ) {
+					if ( ((instr & 0xfff000) == 0x0d0000) || ((instr & 0xffc0ff) == 0x0bc080) ||		/* JSR pattern */
+					     ((instr & 0xfff000) == 0x0c0000) || ((instr & 0xffc0ff) == 0x0ac080) ) {		/* JMP pattern */
 						dsp_core.interrupt_state = DSP_INTERRUPT_LONG;
 						dsp_stack_push(dsp_core.interrupt_save_pc, dsp_core.registers[DSP_REG_SR], 0);
 						dsp_core.registers[DSP_REG_SR] &= BITMASK(16)-((1<<DSP_SR_LF)|(1<<DSP_SR_T)  |
@@ -1206,13 +1215,14 @@ static void dsp_ccr_update_e_u_n_z(uint32_t reg0, uint32_t reg1, uint32_t reg2)
 
 static uint32_t read_memory_disasm(int space, uint16_t address)
 {
+	/* Program memory space ? */
+	if (space==DSP_SPACE_P) {
+		return read_memory_p(address);
+	}
+
 	/* Internal RAM ? */
 	if (address<0x100) {
 		return dsp_core.ramint[space][address] & BITMASK(24);
-	}
-
-	if (space==DSP_SPACE_P) {
-		return read_memory_p(address);
 	}
 
 	/* Internal ROM? */
@@ -1235,7 +1245,7 @@ static uint32_t read_memory_disasm(int space, uint16_t address)
 	/* Falcon: External RAM, map X to upper 16K of matching space in Y,P */
 	address &= (DSP_RAMSIZE>>1) - 1;
 	if (space == DSP_SPACE_X) {
-		address += DSP_RAMSIZE>>1;
+		address |= DSP_RAMSIZE>>1;
 	}
 
 	/* Falcon: External RAM, finally map X,Y to P */
@@ -1250,7 +1260,7 @@ static inline uint32_t read_memory_p(uint16_t address)
 	}
 
 	/* Access to the external P memory */
-	access_to_ext_memory |= 1 << EXT_P_MEMORY;
+	access_to_ext_memory |= 1 << DSP_SPACE_P;
 
 	/* External RAM, mask address to available ram size */
 	return dsp_core.ramext[address & (DSP_RAMSIZE-1)] & BITMASK(24);
@@ -1260,13 +1270,14 @@ static uint32_t read_memory(int space, uint16_t address)
 {
 	uint32_t value;
 
-		/* Internal RAM ? */
-	if (address < 0x100) {
-		return dsp_core.ramint[space][address] & BITMASK(24);
-	}
-
+	/* Program memory space ? */
 	if (space == DSP_SPACE_P) {
 		return read_memory_p(address);
+	}
+
+	/* Internal RAM ? */
+	if (address < 0x100) {
+		return dsp_core.ramint[space][address] & BITMASK(24);
 	}
 
 	/* Internal ROM ? */
@@ -1291,21 +1302,16 @@ static uint32_t read_memory(int space, uint16_t address)
 		return value;
 	}
 
+	/* Access to external memory */
+	access_to_ext_memory |= 1 << space;
+
 	/* Falcon: External X or Y RAM access */
 	address &= (DSP_RAMSIZE>>1) - 1;
 
 	if (space == DSP_SPACE_X) {
 		/* Map X to upper 16K of matching space in Y,P */
-		address += DSP_RAMSIZE>>1;
-
-		/* Set one access to the X external memory */
-		access_to_ext_memory |= 1 << EXT_X_MEMORY;
+		address |= DSP_RAMSIZE>>1;
 	}
-	else {
-		/* Access to the Y external memory */
-		access_to_ext_memory |= 1 << EXT_Y_MEMORY;
-	}
-
 
 	/* Falcon: External RAM, finally map X,Y to P */
 	return dsp_core.ramext[address & (DSP_RAMSIZE-1)] & BITMASK(24);
@@ -1413,24 +1419,18 @@ static void write_memory_raw(int space, uint16_t address, uint32_t value)
 		}
 	}
 
+	/* Access to external memory */
+	access_to_ext_memory |= 1 << space;
+
 	/* Access to X, Y or P external RAM */
 
-	if (space == DSP_SPACE_P) {
-		/* Access to the P external RAM */
-		access_to_ext_memory |= 1 << EXT_P_MEMORY;
-	}
-	else {
+	if (space != DSP_SPACE_P) {
 		address &= (DSP_RAMSIZE>>1) - 1;
 
 		if (space == DSP_SPACE_X) {
 			/* Access to the X external RAM */
 			/* map X to upper 16K of matching space in Y,P */
-			address += DSP_RAMSIZE>>1;
-			access_to_ext_memory |= 1;
-		}
-		else {
-			/* Access to the Y external RAM */
-			access_to_ext_memory |= 1 << EXT_Y_MEMORY;
+			address |= DSP_RAMSIZE>>1;
 		}
 	}
 
@@ -1504,6 +1504,13 @@ static void dsp_write_reg(uint32_t numreg, uint32_t value)
 		case DSP_REG_M5:
 		case DSP_REG_M6:
 		case DSP_REG_M7:
+			/* Indirect move instructions (LUA, MOVEC, MOVEP, Tcc, parallel moves)
+			   to registers Rn, Nn, or Mn are delayed by one instruction
+			*/
+			if (dsp_core.agu_move_indirect_instr == 1) {
+				dsp_core.agu_pipeline_reg[1] = numreg;
+				dsp_core.agu_pipeline_val[1] = dsp_core.registers[numreg];
+			}
 			dsp_core.registers[numreg] = value & BITMASK(16);
 			break;
 		case DSP_REG_OMR:
@@ -1519,7 +1526,7 @@ static void dsp_write_reg(uint32_t numreg, uint32_t value)
 				dsp_set_interrupt(DSP_INTER_STACK_ERROR, 1);
 				dsp_core.registers[DSP_REG_SP] = value & (3<<DSP_SP_SE);
 				if (!isDsp_in_disasm_mode)
-					fprintf(stderr,"Dsp: Stack Overflow or Underflow\n");
+					Log_Printf(LOG_WARN, "Dsp: Stack Overflow or Underflow\n");
 				if (ExceptionDebugMask & EXCEPT_DSP)
 					DebugUI(REASON_DSP_EXCEPTION);
 			}
@@ -1562,7 +1569,7 @@ static void dsp_stack_push(uint32_t curpc, uint32_t cursr, uint16_t sshOnly)
 		/* Stack full, raise interrupt */
 		dsp_set_interrupt(DSP_INTER_STACK_ERROR, 1);
 		if (!isDsp_in_disasm_mode)
-			fprintf(stderr,"Dsp: Stack Overflow\n");
+			Log_Printf(LOG_WARN, "Dsp: Stack Overflow\n");
 		if (ExceptionDebugMask & EXCEPT_DSP)
 			DebugUI(REASON_DSP_EXCEPTION);
 	}
@@ -1599,7 +1606,7 @@ static void dsp_stack_pop(uint32_t *newpc, uint32_t *newsr)
 		/* Stack empty*/
 		dsp_set_interrupt(DSP_INTER_STACK_ERROR, 1);
 		if (!isDsp_in_disasm_mode)
-			fprintf(stderr,"Dsp: Stack underflow\n");
+			Log_Printf(LOG_WARN, "Dsp: Stack underflow\n");
 		if (ExceptionDebugMask & EXCEPT_DSP)
 			DebugUI(REASON_DSP_EXCEPTION);
 	}
@@ -1627,35 +1634,36 @@ static void dsp_compute_ssh_ssl(void)
  *	Effective address calculation
  **********************************/
 
-static void dsp_update_rn(uint32_t numreg, int16_t modifier)
+static void dsp_update_rn(uint32_t numreg, uint32_t reg_value, int16_t reg_mofifier, uint16_t reg_modulo)
 {
 	uint32_t value;
-	uint16_t m_reg;
 
-	m_reg = (uint16_t) dsp_core.registers[DSP_REG_M0+numreg];
-	if (m_reg == 65535) {
-		/* Linear addressing mode */
-		value = dsp_core.registers[DSP_REG_R0+numreg]|0x10000;
-		value += modifier;
+	if (reg_modulo == 0xffff) {
+		/* Linear addressing mode (ie Mx=$ffff)  */
+		value = reg_value|0x10000;
+		value += reg_mofifier;
 		dsp_core.registers[DSP_REG_R0+numreg] = value & BITMASK(16);
-	} else if (m_reg == 0) {
+	}
+	else if (reg_modulo == 0) {
 		/* Bit reversed carry update */
-		dsp_update_rn_bitreverse(numreg);
-	} else if (m_reg<=32767) {
+		dsp_update_rn_bitreverse(numreg, reg_value, reg_mofifier);
+	}
+	else if (reg_modulo <= 32767) {
 		/* Modulo update */
-		dsp_update_rn_modulo(numreg, modifier);
-	} else {
+		dsp_update_rn_modulo(numreg, reg_value, reg_mofifier, reg_modulo);
+	}
+	else {
 		/* Undefined */
 	}
 }
 
-static void dsp_update_rn_bitreverse(uint32_t numreg)
+static void dsp_update_rn_bitreverse(uint32_t numreg, uint32_t reg_value, int16_t reg_mofifier)
 {
 	int revbits, i;
 	uint32_t value, r_reg;
 
 	/* Check how many bits to reverse */
-	value = dsp_core.registers[DSP_REG_N0+numreg];
+	value = reg_mofifier;
 	for (revbits=0;revbits<16;revbits++) {
 		if (value & (1<<revbits)) {
 			break;
@@ -1664,7 +1672,7 @@ static void dsp_update_rn_bitreverse(uint32_t numreg)
 	revbits++;
 
 	/* Reverse Rn bits */
-	r_reg = dsp_core.registers[DSP_REG_R0+numreg];
+	r_reg = reg_value;
 	value = r_reg & (BITMASK(16)-BITMASK(revbits));
 	for (i=0;i<revbits;i++) {
 		if (r_reg & (1<<i)) {
@@ -1690,14 +1698,13 @@ static void dsp_update_rn_bitreverse(uint32_t numreg)
 	dsp_core.registers[DSP_REG_R0+numreg] = value;
 }
 
-static void dsp_update_rn_modulo(uint32_t numreg, int16_t modifier)
+static void dsp_update_rn_modulo(uint32_t numreg, uint32_t reg_value, int16_t reg_mofifier, uint16_t reg_modulo)
 {
 	uint16_t bufsize, bufmask, modulo, abs_modifier;
 	uint32_t r_reg, lobound, hibound;
 
-	r_reg = dsp_core.registers[DSP_REG_R0+numreg]|0x10000;
-	modulo = dsp_core.registers[DSP_REG_M0+numreg]+1;
-
+	r_reg = reg_value|0x10000;
+	modulo = reg_modulo+1;
 
 	bufsize = 1;
 	while (bufsize < modulo) {
@@ -1710,28 +1717,27 @@ static void dsp_update_rn_modulo(uint32_t numreg, int16_t modifier)
 	hibound = lobound + modulo - 1;
 
 
-	if (modifier<0) {
-		abs_modifier = -modifier;
+	if (reg_mofifier<0) {
+		abs_modifier = -reg_mofifier;
 	} else {
-		abs_modifier = modifier;
+		abs_modifier = reg_mofifier;
 	}
 
 
-	if (abs_modifier>modulo) {
-		if (abs_modifier&bufmask) {
-			fprintf(stderr,"Dsp: Modulo addressing result unpredictable\n");
+	if (abs_modifier&bufmask) {
+		if (abs_modifier>modulo) {
+			Log_Printf(LOG_WARN, "Dsp: Modulo addressing result unpredictable\n");
 		} else {
-			r_reg += modifier;
+			r_reg += reg_mofifier;
+
+			if (r_reg>hibound) {
+				r_reg -= modulo;
+			} else if (r_reg<lobound) {
+				r_reg += modulo;
+			}
 		}
 	} else {
-		r_reg += modifier;
-
-
-		if (r_reg>hibound) {
-			r_reg -= modulo;
-		} else if (r_reg<lobound) {
-			r_reg += modulo;
-		}
+		r_reg += reg_mofifier;
 	}
 
 	dsp_core.registers[DSP_REG_R0+numreg] = r_reg & BITMASK(16);
@@ -1740,39 +1746,66 @@ static void dsp_update_rn_modulo(uint32_t numreg, int16_t modifier)
 static int dsp_calc_ea(uint32_t ea_mode, uint32_t *dst_addr)
 {
 	uint32_t value, numreg, curreg;
+	uint32_t reg_r, reg_n, reg_m;
 
 	value = (ea_mode >> 3) & BITMASK(3);
 	numreg = ea_mode & BITMASK(3);
+
+	/*
+	   Get AGU values for registers R, N and M.
+	   If previous instruction was a parallel move, there's a 1 instruction delay
+	   before using the new value of R, N or M as an address pointer
+	*/
+
+	/* Registers R0 -> R7 */
+	if (dsp_core.agu_pipeline_reg[0] == DSP_REG_R0+numreg)
+		reg_r = dsp_core.agu_pipeline_val[0];
+	else
+		reg_r = dsp_core.registers[DSP_REG_R0+numreg];
+
+	/* Registers N0 -> N7 */
+	if (dsp_core.agu_pipeline_reg[0] == DSP_REG_N0+numreg)
+		reg_n = dsp_core.agu_pipeline_val[0];
+	else
+		reg_n = dsp_core.registers[DSP_REG_N0+numreg];
+
+	/* Registers M0 -> M7 */
+	if (dsp_core.agu_pipeline_reg[0] == DSP_REG_M0+numreg)
+		reg_m = dsp_core.agu_pipeline_val[0];
+	else
+		reg_m = dsp_core.registers[DSP_REG_M0+numreg];
+
+
 	switch (value) {
 		case 0:
 			/* (Rx)-Nx */
-			*dst_addr = dsp_core.registers[DSP_REG_R0+numreg];
-			dsp_update_rn(numreg, -dsp_core.registers[DSP_REG_N0+numreg]);
+			*dst_addr = reg_r;
+			dsp_update_rn(numreg, reg_r, -reg_n, reg_m);
 			break;
 		case 1:
 			/* (Rx)+Nx */
-			*dst_addr = dsp_core.registers[DSP_REG_R0+numreg];
-			dsp_update_rn(numreg, dsp_core.registers[DSP_REG_N0+numreg]);
+			*dst_addr = reg_r;
+			dsp_update_rn(numreg, reg_r, +reg_n, reg_m);
 			break;
 		case 2:
 			/* (Rx)- */
-			*dst_addr = dsp_core.registers[DSP_REG_R0+numreg];
-			dsp_update_rn(numreg, -1);
+			*dst_addr = reg_r;
+			dsp_update_rn(numreg, reg_r, -1, reg_m);
 			break;
 		case 3:
 			/* (Rx)+ */
-			*dst_addr = dsp_core.registers[DSP_REG_R0+numreg];
-			dsp_update_rn(numreg, 1);
+			*dst_addr = reg_r;
+			dsp_update_rn(numreg, reg_r, +1, reg_m);
 			break;
 		case 4:
 			/* (Rx) */
-			*dst_addr = dsp_core.registers[DSP_REG_R0+numreg];
+			*dst_addr = reg_r;
 			break;
 		case 5:
 			/* (Rx+Nx) */
 			dsp_core.instr_cycle += 2;
 			curreg = dsp_core.registers[DSP_REG_R0+numreg];
-			dsp_update_rn(numreg, dsp_core.registers[DSP_REG_N0+numreg]);
+			dsp_update_rn(numreg, reg_r, reg_n, reg_m);
 			*dst_addr = dsp_core.registers[DSP_REG_R0+numreg];
 			dsp_core.registers[DSP_REG_R0+numreg] = curreg;
 			break;
@@ -1788,7 +1821,7 @@ static int dsp_calc_ea(uint32_t ea_mode, uint32_t *dst_addr)
 		case 7:
 			/* -(Rx) */
 			dsp_core.instr_cycle += 2;
-			dsp_update_rn(numreg, -1);
+			dsp_update_rn(numreg, reg_r, -1, reg_m);
 			*dst_addr = dsp_core.registers[DSP_REG_R0+numreg];
 			break;
 	}
@@ -1915,28 +1948,11 @@ static void dsp_undefined(void)
 {
 	if (isDsp_in_disasm_mode == false) {
 		cur_inst_len = 0;
+		Log_Printf(LOG_WARN, "Dsp: 0x%04x: 0x%06x Illegal instruction\n",dsp_core.pc, cur_inst);
 		/* Add some artificial CPU cycles to avoid being stuck in an infinite loop */
 		dsp_core.instr_cycle += 100;
-
-		/* Rate limit identical messages. Required to make
-		 * "Terrorize your soul" demo run at usable speed
-		 */
-		dsp_error.count++;
-		if (cur_inst != dsp_error.inst || dsp_core.pc != dsp_error.pc ||
-		    dsp_error.count >= dsp_error.limit) {
-			dsp_error.inst = cur_inst;
-			dsp_error.pc = dsp_core.pc;
-			fprintf(stderr, "Dsp: 0x%04hx: 0x%06x Illegal instruction (%dx times)\n",
-				dsp_error.pc, dsp_error.inst, dsp_error.count);
-			if (dsp_error.count >= dsp_error.limit) {
-				/* next message after 2x more hits */
-				dsp_error.limit *= 2;
-			} else {
-				dsp_error.limit = 1;
-			}
-			dsp_error.count = 0;
-		}
-	} else {
+	}
+	else {
 		cur_inst_len = 1;
 		dsp_core.instr_cycle = 0;
 	}
@@ -3119,7 +3135,11 @@ static void dsp_movem_aa(void)
 	if  (cur_inst & (1<<15)) {
 		/* Write D */
 		value = read_memory_p(addr);
-		dsp_core.agu_move_indirect_instr = 1;
+		/* [LS] According to Motorola doc, MOVEM is said to be a parallel move instruction.
+		   But tests seems to contradict this.
+		   Next line should stay commented for now.
+		*/
+		//dsp_core.agu_move_indirect_instr = 1;
 		dsp_write_reg(numreg, value);
 	} else {
 		/* Read S */
@@ -3149,7 +3169,11 @@ static void dsp_movem_ea(void)
 	if  (cur_inst & (1<<15)) {
 		/* Write D */
 		value = read_memory_p(addr);
-		dsp_core.agu_move_indirect_instr = 1;
+		/* [LS] According to Motorola doc, MOVEM is said to be a parallel move instruction.
+		   But tests seems to contradict this.
+		   Next line should stay commented for now.
+		*/
+		//dsp_core.agu_move_indirect_instr = 1;
 		dsp_write_reg(numreg, value);
 	} else {
 		/* Read S */
@@ -3527,7 +3551,6 @@ static void dsp_tcc(void)
 		if (cur_inst & (1<<16)) {
 			regsrc2 = DSP_REG_R0+((cur_inst>>8) & BITMASK(3));
 			regdest2 = DSP_REG_R0+(cur_inst & BITMASK(3));
-
 			dsp_core.agu_move_indirect_instr = 1;
 			dsp_write_reg(regdest2, dsp_core.registers[regsrc2]);
 		}

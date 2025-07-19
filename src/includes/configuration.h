@@ -30,6 +30,7 @@ typedef struct
   int nNumberBase;
   int nSymbolLines;
   int nMemdumpLines;
+  int nFindLines;
   int nDisasmLines;
   int nBacktraceLines;
   int nExceptionDebugMask;
@@ -78,15 +79,19 @@ typedef struct
 
 
 
-/* RS232 configuration */
+/* RS232 / SCC configuration */
+#define CNF_SCC_CHANNELS_MAX		3
+#define CNF_SCC_CHANNELS_A_SERIAL	0
+#define CNF_SCC_CHANNELS_A_LAN		1
+#define CNF_SCC_CHANNELS_B		2
 typedef struct
 {
   bool bEnableRS232;
-  bool bEnableSccB;
   char szOutFileName[FILENAME_MAX];
   char szInFileName[FILENAME_MAX];
-  char sSccBInFileName[FILENAME_MAX];
-  char sSccBOutFileName[FILENAME_MAX];
+  bool EnableScc[CNF_SCC_CHANNELS_MAX];
+  char SccInFileName[CNF_SCC_CHANNELS_MAX][FILENAME_MAX];
+  char SccOutFileName[CNF_SCC_CHANNELS_MAX][FILENAME_MAX];
 } CNF_RS232;
 
 
@@ -95,12 +100,12 @@ typedef enum
 {
   KEYMAP_SYMBOLIC,  /* Use keymapping with symbolic (ASCII) key codes */
   KEYMAP_SCANCODE,  /* Use keymapping with PC keyboard scancodes */
-  KEYMAP_LOADED     /* Use keymapping with a map configuration file */
+  KEYMAP_OLD_LOADED /* Used for config file in former versions */
 } KEYMAPTYPE;
 
 typedef struct
 {
-  bool bDisableKeyRepeat;
+  bool bFastForwardKeyRepeat;
   KEYMAPTYPE nKeymapType;
   int nCountryCode;
   int nKbdLayout;
@@ -172,14 +177,16 @@ typedef struct
   int nJoyId;
   int nJoyButMap[JOYSTICK_BUTTONS];
   int nKeyCodeUp, nKeyCodeDown, nKeyCodeLeft, nKeyCodeRight, nKeyCodeFire;
+  int nKeyCodeB, nKeyCodeC, nKeyCodeOption, nKeyCodePause;
+  int nKeyCodeStar, nKeyCodeHash, nKeyCodeNum[10];
 } JOYSTICK;
 
 enum
 {
 	JOYID_JOYSTICK0,
 	JOYID_JOYSTICK1,
-	JOYID_STEPADA,
-	JOYID_STEPADB,
+	JOYID_JOYPADA,
+	JOYID_JOYPADB,
 	JOYID_PARPORT1,
 	JOYID_PARPORT2,
 	JOYSTICK_COUNT
@@ -251,6 +258,7 @@ typedef struct
   bool bUseDevice;
   char sDeviceFile[FILENAME_MAX];
   int nBlockSize;
+  int nScsiVersion;
 } CNF_SCSIDEV;
 
 typedef enum
@@ -288,6 +296,7 @@ typedef enum
   MONITOR_TYPE_TV
 } MONITORTYPE;
 
+
 /* Screen configuration */
 typedef struct
 {
@@ -306,6 +315,7 @@ typedef struct
   bool bResizable;
   bool bUseVsync;
   bool bUseSdlRenderer;
+  int ScreenShotFormat;
   float nZoomFactor;
   int nSpec512Threshold;
   int nVdiColors;
@@ -357,12 +367,6 @@ typedef enum
 
 typedef enum
 {
-  VME_TYPE_NONE,
-  VME_TYPE_DUMMY
-} VMETYPE;
-
-typedef enum
-{
   FPU_NONE = 0,
   FPU_68881 = 68881,
   FPU_68882 = 68882,
@@ -386,7 +390,6 @@ typedef struct
   MACHINETYPE nMachineType;
   bool bBlitter;                  /* TRUE if Blitter is enabled */
   DSPTYPE nDSPType;               /* how to "emulate" DSP */
-  VMETYPE nVMEType;               /* how to "emulate" SCU/VME */
   int nRtcYear;
   bool bPatchTimerD;
   bool bFastBoot;                 /* Enable to patch TOS for fast boot */
@@ -395,6 +398,7 @@ typedef struct
   VIDEOTIMINGMODE VideoTimingMode;
 
   bool bCycleExactCpu;
+  bool bCpuDataCache;
   FPUTYPE n_FPUType;
   bool bCompatibleFPU;            /* More compatible FPU */
   bool bSoftFloatFPU;

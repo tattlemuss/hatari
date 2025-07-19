@@ -54,7 +54,7 @@ like this:
 
 Before running that, tos/ subdirectory should have (symbolic links to)
 TOS images you want to test, at least EmuTOS etos1024k.img image.
-Or add this before above command:
+Or add this to above command:
 	TOSDIR=<path to TOS images dir>
 
 Alternatively, you can call the TOS tester directly and specify
@@ -76,9 +76,10 @@ supports:
 
 * ST, MegaST, STE, MegaSTE, TT and Falcon machine types
 
-  EmuTOS 512k is tested for all the machine types.  EmuTOS 256k and
-  TOS v2.x are tested with all machine types except TT / Falcon.
-  Rest of TOSes are tested only with a single machine type.
+  - EmuTOS 512k & 1024k are tested for all the machine types
+  - EmuTOS 256k & TOS v2.x are tested with all machine types,
+    except TT / Falcon
+  - Rest of TOSes are tested only with a single machine type
 
 * TV, VGA, RGB and monochrome monitors and 1, 2 & 4 plane VDI modes
 
@@ -125,8 +126,8 @@ And following monitor configurations:
 Memory configurations:
   ST:   0.5 &  2 MB
   STE:    1 &  4 MB
-  TT:     2 & 10 MB ST-RAM, 0 & 32 MB TT-RAM
-  Falcon: 4 & 14 MB ST-RAM, 0 & 32 MB TT-RAM
+  TT:     2 & 10 MB ST-RAM, 0 & 32 MB TT-RAM, MMU on/off
+  Falcon: 4 & 14 MB ST-RAM, 0 & 32 MB TT-RAM, MMU on/off
 
 And both with GEMDOS HD and just floppy.  For EmuTOS, also ACSI (with
 ST/STe/TT), IDE (with Falcon) and SCSI (with Falcon/TT).
@@ -142,13 +143,22 @@ compatibility, you can use --fast option to speed up TOS bootup a lot.
 Potential TODOs
 ---------------
 
-Extend GEMDOS test program to test also:
+If all TOS versions support it, extend GEMDOS test program to test also:
 * starting another program
 * file redirection
 
-But only if all TOS versions support that properly.
+Testing a HD disk having also MiNT, with and without MMU.
 
--
+Current "screenshot-report.sh" script assumes that Hatari will always
+create identical screenshots for the same screen content.  This might
+not be true if underlying libpng gets updated, so it would be better
+to have some e.g. SDL (pygame?) program that loads two images,
+compares their uncompressed content and either reports that, or shows
+the difference.
+
+
+Discarded ideas
+---------------
 
 Add testing of ASCI, IDE and SCSI drives with normal TOS in addition
 to the GEMDOS HD and floppy tests.
@@ -165,18 +175,11 @@ without partition table at all.  That's why it can be already tested.)
 
 -
 
-Testing a HD disk having also MiNT (= WinUAE / MMU testing at the same time).
-
--
-
 Machine type specific test programs e.g. for:
 * ST color resolution overscan
 * STE blitter and overscan
 * TT FPU operations, could output e.g. speed
 * Falcon DSP operations
-
-If pre-existing demo programs are used for these, it's better
-if they're small.
 
 Such programs also needs to have some static screen which doesn't
 automatically advance so that a screenshot can be taken of it.
@@ -184,14 +187,6 @@ Alternatively, test program could be accompanied with debugger
 script(s) that stop the program at suitable point and take a
 screenshot.
 
--
-
-Current screenshot-report.sh script assumes that Hatari will always
-create identical screenshots for the same screen content.  This might
-not be true if underlying libpng gets updated, so it would be better
-to have some e.g. SDL binary that loads two images, compares their
-uncompressed content and either reports that, or shows the difference.
-
--
-
 Tester for DMA sound output and comparison for the produced sound.
+
+IMHO these belong more to the regular Atari tests run with "make test".
