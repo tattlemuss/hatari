@@ -1,4 +1,4 @@
-#include "instruction.h"
+#include "instruction68.h"
 
 namespace hop68
 {
@@ -186,7 +186,7 @@ const char* g_index_register_names[] =
 	""
 };
 
-const char* g_control_register_names[ControlRegister::CR_COUNT] = 
+const char* g_control_register_names[ControlRegister::CR_COUNT] =
 {
 	"?",
 	"sfc",

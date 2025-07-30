@@ -1,7 +1,7 @@
 #ifndef HOPPER_56_INSTRUCTION_H
 #define HOPPER_56_INSTRUCTION_H
 #include <cstdint>
-#include "opcode.h"
+#include "opcode56.h"
 
 namespace hop56
 {

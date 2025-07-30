@@ -23,10 +23,10 @@ SOURCES += \
     hardware/regs_st.cpp \
     hardware/stgen.cpp \
     hardware/tos.cpp \
-    hopper/decode.cpp \
-    hopper/instruction.cpp \
-    hopper56/decode.cpp \
-    hopper56/instruction.cpp \
+    hopper68/decode68.cpp \
+    hopper68/instruction68.cpp \
+    hopper56/decode56.cpp \
+    hopper56/instruction56.cpp \
     hrdbapplication.cpp \
     main.cpp \
     models/breakpoint.cpp \
@@ -73,13 +73,13 @@ HEADERS += \
     hardware/regs_st.h \
     hardware/stgen.h \
     hardware/tos.h \
-    hopper/buffer.h \
-    hopper/decode.h \
-    hopper/instruction.h \
-    hopper56/buffer.h \
-    hopper56/decode.h \
-    hopper56/instruction.h \
-    hopper56/opcode.h \
+    hopper68/buffer68.h \
+    hopper68/decode68.h \
+    hopper68/instruction68.h \
+    hopper56/buffer56.h \
+    hopper56/decode56.h \
+    hopper56/instruction56.h \
+    hopper56/opcode56.h \
     hrdbapplication.h \
     models/breakpoint.h \
     models/disassembler.h \

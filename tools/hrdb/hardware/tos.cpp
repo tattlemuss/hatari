@@ -1,5 +1,5 @@
 #include "tos.h"
-#include "../hopper/instruction.h"
+#include "../hopper68/instruction68.h"
 #include "../models/memory.h"
 
 const char* GetGemdosName(uint16_t id)

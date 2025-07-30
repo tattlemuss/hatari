@@ -13,8 +13,8 @@
 #include <QSettings>
 #include <QClipboard>
 
-#include "hopper/buffer.h"
-#include "hopper56/buffer.h"
+#include "hopper68/buffer68.h"
+#include "hopper56/buffer56.h"
 
 #include "../hardware/tos.h"
 #include "../transport/dispatcher.h"

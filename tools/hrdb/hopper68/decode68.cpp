@@ -1,9 +1,9 @@
 #include <assert.h>
 #include <cstddef>
-#include "decode.h"
 
-#include "instruction.h"
-#include "buffer.h"
+#include "instruction68.h"
+#include "buffer68.h"
+#include "decode68.h"
 
 namespace hop68
 {
@@ -470,7 +470,7 @@ int decode_ea(buffer_reader& buffer, const decode_settings& dsettings, operand& 
 			{
 				// This can be overridden (set to "none") by the following call
 				operand.indirect_index_68020.base_register = calc_index_register(1, reg_bits);
-				
+
 				// extended 68020 modes with full extension word.
 				if (decode_full_extension_word(buffer, dsettings.cpu_type, val16, 0, operand))
 					return 1;
@@ -2166,7 +2166,7 @@ void decode(instruction& inst, buffer_reader& buffer, const decode_settings& dse
 		int res = 0;
 		if (pEntry->func)
 			res = pEntry->func(reader_tmp, dsettings, inst, header);
-		
+
 		if (res)
 		{
 			// Handle decode func being partway through and failing

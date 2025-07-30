@@ -12,8 +12,8 @@
 #include "registers.h"
 #include "exceptionmask.h"
 #include "processor.h"
+#include "hopper68/decode68.h"  // TODO for decode_settings; remove
 #include "../hardware/hardware_st.h"
-#include "../hopper/decode.h"
 
 class QTimer;
 class ProfileData;

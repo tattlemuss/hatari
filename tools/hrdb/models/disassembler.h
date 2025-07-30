@@ -4,8 +4,8 @@
 #include <QVector>
 #include <QTextStream>
 
-#include "hopper/instruction.h"
-#include "hopper/decode.h"
+#include "hopper68/instruction68.h"
+#include "hopper68/decode68.h"
 
 class SymbolTable;
 class Registers;

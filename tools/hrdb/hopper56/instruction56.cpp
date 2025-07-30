@@ -1,4 +1,4 @@
-#include "instruction.h"
+#include "instruction56.h"
 #include "opcode_strings.i"
 
 namespace hop56

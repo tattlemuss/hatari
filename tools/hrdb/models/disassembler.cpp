@@ -1,8 +1,8 @@
 #include "disassembler.h"
 
-#include "hopper/buffer.h"
-#include "hopper/instruction.h"
-#include "hopper/decode.h"
+#include "hopper68/buffer68.h"
+#include "hopper68/instruction68.h"
+#include "hopper68/decode68.h"
 #include "stringformat.h"
 #include "symboltable.h"
 #include "registers.h"

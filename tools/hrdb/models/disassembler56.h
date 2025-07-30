@@ -3,8 +3,8 @@
 #include "stdint.h"
 #include <QVector>
 
-#include "hopper56/decode.h"
-#include "hopper56/instruction.h"
+#include "hopper56/decode56.h"
+#include "hopper56/instruction56.h"
 
 class QTextStream;
 class DspRegisters;

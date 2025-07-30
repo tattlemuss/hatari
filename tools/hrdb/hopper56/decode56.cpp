@@ -1,7 +1,7 @@
-#include "decode.h"
+#include "decode56.h"
 
-#include "buffer.h"
-#include "instruction.h"
+#include "buffer56.h"
+#include "instruction56.h"
 
 /*
 	decode.cpp - converts binary data into a tokenized format which is easy to

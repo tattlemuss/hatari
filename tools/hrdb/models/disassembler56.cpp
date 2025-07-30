@@ -1,5 +1,5 @@
 #include "disassembler56.h"
-#include "hopper56/buffer.h"
+#include "hopper56/buffer56.h"
 #include "stringformat.h"
 #include "registers.h"
 

@@ -8,8 +8,8 @@
 #include <QSettings>
 #include <QToolTip>
 
-#include "hopper/buffer.h"
-#include "hopper56/buffer.h"
+#include "hopper68/buffer68.h"
+#include "hopper56/buffer56.h"
 
 #include "../models/session.h"
 #include "../models/stringformat.h"
