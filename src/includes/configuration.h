@@ -30,6 +30,7 @@ typedef struct
   int nNumberBase;
   int nSymbolLines;
   int nMemdumpLines;
+  int nFindLines;
   int nDisasmLines;
   int nBacktraceLines;
   int nExceptionDebugMask;
@@ -99,12 +100,12 @@ typedef enum
 {
   KEYMAP_SYMBOLIC,  /* Use keymapping with symbolic (ASCII) key codes */
   KEYMAP_SCANCODE,  /* Use keymapping with PC keyboard scancodes */
-  KEYMAP_LOADED     /* Use keymapping with a map configuration file */
+  KEYMAP_OLD_LOADED /* Used for config file in former versions */
 } KEYMAPTYPE;
 
 typedef struct
 {
-  bool bDisableKeyRepeat;
+  bool bFastForwardKeyRepeat;
   KEYMAPTYPE nKeymapType;
   int nCountryCode;
   int nKbdLayout;
@@ -257,6 +258,7 @@ typedef struct
   bool bUseDevice;
   char sDeviceFile[FILENAME_MAX];
   int nBlockSize;
+  int nScsiVersion;
 } CNF_SCSIDEV;
 
 typedef enum
@@ -365,12 +367,6 @@ typedef enum
 
 typedef enum
 {
-  VME_TYPE_NONE,
-  VME_TYPE_DUMMY
-} VMETYPE;
-
-typedef enum
-{
   FPU_NONE = 0,
   FPU_68881 = 68881,
   FPU_68882 = 68882,
@@ -394,7 +390,6 @@ typedef struct
   MACHINETYPE nMachineType;
   bool bBlitter;                  /* TRUE if Blitter is enabled */
   DSPTYPE nDSPType;               /* how to "emulate" DSP */
-  VMETYPE nVMEType;               /* how to "emulate" SCU/VME */
   int nRtcYear;
   bool bPatchTimerD;
   bool bFastBoot;                 /* Enable to patch TOS for fast boot */
@@ -403,6 +398,7 @@ typedef struct
   VIDEOTIMINGMODE VideoTimingMode;
 
   bool bCycleExactCpu;
+  bool bCpuDataCache;
   FPUTYPE n_FPUType;
   bool bCompatibleFPU;            /* More compatible FPU */
   bool bSoftFloatFPU;

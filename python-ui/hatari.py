@@ -2,7 +2,7 @@
 # Classes for Hatari emulator instance and mapping its congfiguration
 # variables with its command line option.
 #
-# Copyright (C) 2008-2024 by Eero Tamminen
+# Copyright (C) 2008-2025 by Eero Tamminen
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,7 +15,6 @@
 # GNU General Public License for more details.
 
 import os
-import sys
 import time
 import signal
 import socket
@@ -274,7 +273,7 @@ class Hatari:
         # it for some reason doesn't listen to any events delivered to that
         # window nor implements XEMBED protocol to get them in a way most
         # friendly to embedder:
-        #   http://standards.freedesktop.org/xembed-spec/latest/
+        #   https://specifications.freedesktop.org/xembed-spec/latest/
         #
         # Instead we tell hatari to reparent itself after creating
         # its own window into this program widget window
@@ -321,6 +320,7 @@ class HatariConfigMapping(ConfigStore):
         "soundout":   ("[Sound]", "szYMCaptureFileName", "Sound output")
     }
     # enable Hatari v2.5+ options
+    has_opts_2_6 = True
     has_opts_2_5 = True
 
     "access methods to Hatari configuration file variables and command line options"
@@ -345,6 +345,13 @@ class HatariConfigMapping(ConfigStore):
         "do config mapping initializations needing config loading to have succeeded"
         # initialize has_opts_<version> attribs for things that may not
         # be anymore valid on Hatari config file and/or command line
+        try:
+            # added for Hatari >v2.5
+            self.get("[RS232]", "bCpuDataCache")
+            return
+        except KeyError:
+            pass
+        self.has_opts_2_6 = False
         try:
             # added for Hatari v2.5
             self.get("[RS232]", "EnableSccA")
@@ -508,6 +515,18 @@ class HatariConfigMapping(ConfigStore):
     def set_compatible(self, value):
         self.set("[System]", "bCompatibleCpu", value)
         self._change_option("--compatible %s" % value)
+
+    # ------------ CPU caches ---------------
+    def get_data_cache(self):
+        if not self.has_opts_2_6:
+            return True
+        return self.get("[System]", "bCpuDataCache")
+
+    def set_data_cache(self, value):
+        if not self.has_opts_2_6:
+            return
+        self.set("[System]", "bCpuDataCache", value)
+        self._change_option("--data-cache %s" % value)
 
     # ------------ CPU exact ---------------
     def get_cycle_exact(self):

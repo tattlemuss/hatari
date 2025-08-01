@@ -341,7 +341,6 @@ extern bool cpu_bus_rmw;			// WINUAE_FOR_HATARI
 extern void safe_interrupt_set(int, int, bool);
 
 #define SPCFLAG_CPUINRESET 2
-//#define SPCFLAG_COPPER 4
 #define SPCFLAG_INT 8
 #define SPCFLAG_BRK 16
 #define SPCFLAG_UAEINT 32
@@ -746,6 +745,7 @@ extern void m68k_disasm (uaecptr addr, uaecptr *nextpc, uaecptr lastpc, int cnt)
 extern uae_u32 m68k_disasm_2(TCHAR *buf, int bufsize, uaecptr pc, uae_u16 *bufpc, int bufpccount, uaecptr *nextpc, int cnt, uae_u32 *seaddr, uae_u32 *deaddr, uaecptr lastpc, int safemode);
 #ifdef WINUAE_FOR_HATARI
 extern void m68k_disasm_file (FILE *f, uaecptr addr, uaecptr *nextpc, uaecptr lastpc, int cnt);
+extern void m68k_disasm_file_wrapper (FILE *f, uaecptr addr, uaecptr *nextpc, uaecptr lastpc, int cnt);
 #endif
 extern void sm68k_disasm (TCHAR*, TCHAR*, uaecptr addr, uaecptr *nextpc, uaecptr lastpc);
 extern int m68k_asm(TCHAR *buf, uae_u16 *out, uaecptr pc);
@@ -788,7 +788,6 @@ extern void m68k_dumpstate(uaecptr *, uaecptr);
 extern void m68k_dumpstate_file (FILE *f, uaecptr *nextpc, uaecptr prevpc);
 #endif
 extern void m68k_dumpcache(bool);
-extern bool m68k_readcache(uaecptr memaddr, bool dc, uae_u32* valp);
 extern int getMulu68kCycles(uae_u16 src);
 extern int getMuls68kCycles(uae_u16 src);
 extern int getDivu68kCycles (uae_u32 dividend, uae_u16 divisor);

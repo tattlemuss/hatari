@@ -16,7 +16,7 @@
 <h1 class="pageheader">Hatari Debugger User's Manual</h1>
 
 <p class="pageheader">
-Version 2.5.0, April 2024
+Version 2.6.0, June 2025
 </p>
 <p class="pageheader">
 Debugger manual written by: <strong>Eero Tamminen</strong>
@@ -30,7 +30,7 @@ See also:
 <p class="pageheader">
 Hatari on the WWW:
 <strong>
-<a href="http://hatari.tuxfamily.org/">http://hatari.tuxfamily.org/</a>
+<a href="https://www.hatari-emu.org/">https://www.hatari-emu.org/</a>
 </strong>
 </p>
 
@@ -107,21 +107,7 @@ Hatari command line is <em>autostarted</em>.
 <h3>Debugger configuration options</h3>
 
 <p>When you save Hatari configuration, your current debugger
-settings are also saved to the Hatari configuration file.
-These are their defaults:</p>
-<pre>
-[Debugger]
-nNumberBase = 10
-nSymbolLines = -1
-nMemdumpLines = -1
-nDisasmLines = -1
-nBacktraceLines = 0
-nExceptionDebugMask = 515
-nDisasmOptions = 15
-bDisasmUAE = TRUE
-bSymbolsAutoLoad = TRUE
-bMatchAllSymbols = FALSE
-</pre>
+settings are also saved to the Hatari configuration file.</p>
 
 <p>Settings are following:</p>
 <dl>
@@ -132,6 +118,8 @@ bMatchAllSymbols = FALSE
 <dd>Number of lines to show when listing debug symbols</dd>
 <dt>nMemdumpLines</dt>
 <dd>Number of memory dump lines to show</dd>
+<dt>nFindLines</dt>
+<dd>Number of find (search) lines to show</dd>
 <dt>nDisasmLines</dt>
 <dd>Number of disassembly lines to show</dd>
 <dt>nBacktraceLines</dt>
@@ -155,6 +143,22 @@ bMatchAllSymbols = FALSE
     a relevant code section, or all of them.  Toggled with the
     "symbols match" command</dd>
 </dl>
+
+<p>These are their defaults:</p>
+<pre>
+[Debugger]
+nNumberBase = 10
+nSymbolLines = -1
+nMemdumpLines = -1
+nFindLines = -1
+nDisasmLines = -1
+nBacktraceLines = 0
+nExceptionDebugMask = 515
+nDisasmOptions = 15
+bDisasmUAE = TRUE
+bSymbolsAutoLoad = TRUE
+bMatchAllSymbols = FALSE
+</pre>
 
 <p>Settings on how many lines are shown can be changed only from the
 configuration file. You should need to change/set them only if you
@@ -197,9 +201,11 @@ CPU commands:
       address ( a) : set CPU PC address breakpoints
    breakpoint ( b) : set/remove/list conditional CPU breakpoints
        disasm ( d) : disassemble from PC, or given address
+         find (  ) : find given value sequence from memory
       profile (  ) : profile CPU code
        cpureg ( r) : dump register values or set register to value
       memdump ( m) : dump memory
+       struct (  ) : structured memory output, e.g. for breakpoints
      memwrite ( w) : write bytes to memory
       loadbin ( l) : load a file into memory
       savebin (  ) : save memory to a file
@@ -332,7 +338,7 @@ all "stdout" and "stderr" output from Hatari to a file:</p>
 hatari --parse debugger.ini --trace os_base 2&gt;&amp;1 | tee out.log
 </pre>
 
-<p>("2&gt;&amp;1" redirects stderr to stdout for piping, and tee"
+<p>("2&gt;&amp;1" redirects stderr to stdout for piping, and "tee"
 command both saves and shows the output, so that you can still see
 the saved output in more or less real-time.)</p>
 
@@ -396,6 +402,43 @@ the disassembly output.
 You can use the "info" command to see state of specific sets of HW
 registers (e.g. "info videl") and Atari OS structures (e.g. "info gemdos").
 </p>
+
+<p>
+One can also show contents of arbitrary program structs with the
+"struct" command.  Parts of the structure can be skipped (with 's')
+and they can be shown in different number bases:</p>
+<pre>
+&gt; help struct
+'struct' - structured memory output, e.g. for breakpoints
+Usage:  struct &lt;name&gt; &lt;address&gt;[name]:&lt;type&gt;[base][:&lt;count&gt;[/&lt;split&gt;]] ...]
+
+        Show &lt;name&gt;d structure content at given &lt;address&gt;, with each
+	[name]:&lt;type&gt;[base][:&lt;count&gt;] arg output on its own line, prefixed
+	with offset from struct start address, if [name] is not given.
+	Output uses multiple lines when type count &lt;split&gt; is given.
+	Supported &lt;type&gt;s are 'b|c|w|l|s' (byte|char|word|long|skip).
+	Optional [base] can be 'b|o|d|h' (bin|oct|dec|hex).
+	Defaults are hex [base], and [count] of 1.
+</pre>
+
+<p>For example:</p>
+<pre>
+&gt; struct TOS 0xe00000 :s:2 version:wh:1 :s:20 os_date:lh os_conf:wb :s:14 :a:4
+TOS: $e00000
++ version : 0206
++ os_date : 03172024
++ os_conf : 0000000011111111
++ $2c     : ETOS
+</pre>
+
+<p>By saving such command to a file, it can be used with
+<a href="#Breakpoint_options">breakpoint</a> ":file" option, to
+show contents of a given structure, whenever that breakpoint
+matches.</p>
+
+<p>Prefixing "info" and "struct" commands with "echo \ec" command
+would clear screen before their output. This could help noticing
+changes in real-time output.</p>
 
 
 <h4>Selecting what information is shown on entering the debugger</h4>
@@ -1686,7 +1729,7 @@ generation, discussed below).</p>
 sections, function/symbol level costs have gotchas of their own.</p>
 
 <p>The first cost percentage and count column are sums for costs
-accounted for all the <em>adresses</em> that were in profile data file
+accounted for all the <em>addresses</em> that were in profile data file
 <em>between the indicated symbol's address and the address of the next
 symbol</em> (= "between-symbols" cost).</p>
 
@@ -1999,6 +2042,17 @@ b  ($ff820a).b &amp; 2 ! ($ff820a).b &amp; 2
 the ":trace" breakpoint option:
 <pre>
 b  ($ff820a).b &amp; 2 ! ($ff820a).b &amp; 2  :trace
+</pre>
+</dd>
+
+<dt><em>Finding specific data from memory</em></dt>
+<dd>Find "ETOS" character string matches from ROM:
+<pre>
+find c 0xe00000 E T O S
+</pre>
+Find all potential (word aligned) RTS instructions from RAM:
+<pre>
+find w 0x0 0x4e75
 </pre>
 </dd>
 

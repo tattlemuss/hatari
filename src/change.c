@@ -149,6 +149,10 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
 	if (changed->System.bCycleExactCpu != current->System.bCycleExactCpu)
 		return true;
 
+	/* Did change CPU data cache? */
+	if (changed->System.bCpuDataCache != current->System.bCpuDataCache)
+		return true;
+
 	/* Did change MMU? */
 	if (changed->System.bMMU != current->System.bMMU)
 		return true;
@@ -185,6 +189,7 @@ void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 	bool bReInitHdcEmu = false;
 	bool bReInitIDEEmu = false;
 	bool bReInitIoMem = false;
+	bool bReInitKeymap = false;
 	bool bScreenModeChange = false;
 	bool bReInitMidi = false;
 	bool bReInitPrinter = false;
@@ -356,7 +361,7 @@ void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 	    || changed->System.nMachineType != current->System.nMachineType)
 	{
 		Dprintf("- blitter/dsp/machine>\n");
-		IoMem_UnInit();
+		IoMem_UnInit(current->System.nMachineType);
 		bReInitIoMem = true;
 	}
 	
@@ -386,6 +391,9 @@ void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 		bReInitMidi = true;
 	}
 
+	bReInitKeymap = strcmp(changed->Keyboard.szMappingFileName,
+	                       current->Keyboard.szMappingFileName);
+
 	/* Copy details to configuration,
 	 * so it can be saved out or set on reset
 	 */
@@ -407,7 +415,7 @@ void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 #endif
 
 	/* Set keyboard remap file */
-	if (ConfigureParams.Keyboard.nKeymapType == KEYMAP_LOADED)
+	if (bReInitKeymap)
 	{
 		Dprintf("- keymap<\n");
 		Keymap_LoadRemapFile(ConfigureParams.Keyboard.szMappingFileName);

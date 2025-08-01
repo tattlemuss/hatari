@@ -47,6 +47,7 @@ const char MemorySnapShot_fileid[] = "Hatari memorySnapShot.c";
 #include "sound.h"
 #include "str.h"
 #include "stMemory.h"
+#include "scu_vme.h"
 #include "tos.h"
 #include "screen.h"
 #include "screenConvert.h"
@@ -58,7 +59,7 @@ const char MemorySnapShot_fileid[] = "Hatari memorySnapShot.c";
 #include "hatari-glue.h"
 
 
-#define VERSION_STRING      "2.5.0"   /* Version number of compatible memory snapshots - Always 6 bytes (inc' NULL) */
+#define VERSION_STRING      "2.6.0"   /* Version number of compatible memory snapshots - Always 6 bytes (inc' NULL) */
 #define SNAPSHOT_MAGIC      0xDeadBeef
 
 #if HAVE_LIBZ
@@ -365,6 +366,7 @@ void MemorySnapShot_Capture_Do(void)
 		IoMem_MemorySnapShot_Capture(true);
 		ScreenConv_MemorySnapShot_Capture(true);
 		SCC_MemorySnapShot_Capture(true);
+		SCU_MemorySnapShot_Capture(true);
 
 		/* end marker */
 		MemorySnapShot_Store(&magic, sizeof(magic));
@@ -429,7 +431,7 @@ void MemorySnapShot_Restore_Do(void)
 		currprefs.address_space_24 = ConfigureParams.System.bAddressSpace24;
 
 		/* Reset emulator to get things running */
-		IoMem_UnInit();  IoMem_Init();
+		IoMem_UnInit(ConfigureParams.System.nMachineType);  IoMem_Init();
 		Reset_Cold();
 
 		/* Capture each files details */
@@ -458,6 +460,7 @@ void MemorySnapShot_Restore_Do(void)
 		IoMem_MemorySnapShot_Capture(false);
 		ScreenConv_MemorySnapShot_Capture(false);
 		SCC_MemorySnapShot_Capture(false);
+		SCU_MemorySnapShot_Capture(false);
 
 		/* version string check catches release-to-release
 		 * state changes, bCaptureError catches too short
@@ -478,6 +481,18 @@ void MemorySnapShot_Restore_Do(void)
 			Log_AlertDlg(LOG_ERROR, "Full memory state restore failed!\nPlease reboot emulation.");
 			return;
 		}
+
+
+		/*
+		 * Apply some specific changes after everything is restored
+		 */
+		if ( ConfigureParams.System.nMachineType == MACHINE_MEGA_STE )
+		{
+			/* Restore CPU Freq and cache */
+			MegaSTE_CPU_Cache_Update ( IoMem_ReadByte(0xff8e21) );
+		}
+
+
 	}
 
 //fprintf ( stderr , "MemorySnapShot_Restore_Do out\n" );
@@ -522,6 +537,12 @@ void save_u8(uae_u8 data)
 //printf ("s8 %x\n", data);
 }
 
+void save_s8(uae_s8 data)
+{
+	MemorySnapShot_Store(&data, 1);
+//printf ("s8s %x\n", data);
+}
+
 uae_u64 restore_u64(void)
 {
 	uae_u64 data;
@@ -557,3 +578,11 @@ uae_u8 restore_u8(void)
 	return data;
 }
 
+uae_s8 restore_s8(void)
+{
+	uae_s8 data;
+	bCaptureSave=false;
+	MemorySnapShot_Store(&data, 1);
+//printf ("r8s %x\n", data);
+	return data;
+}
