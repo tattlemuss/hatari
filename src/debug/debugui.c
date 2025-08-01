@@ -1164,6 +1164,11 @@ void DebugUI_UnInit(void)
  */
 bool DebugUI_DoQuitQuery(const char *info)
 {
+	/* if we are running in a Remote Debug context, assume the
+	   user does want to continue. */
+	if (remoteDebugcmdCallback)
+		return false;
+
 	char input[8];
 	fprintf(stderr, "--- q to exit %s, enter to continue --- ", info);
 	if (fgets(input, sizeof(input), stdin) == NULL ||
