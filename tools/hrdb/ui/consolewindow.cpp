@@ -34,20 +34,20 @@ ConsoleWindow::ConsoleWindow(QWidget *parent, Session* pSession) :
     m_pTextArea->setReadOnly(true);
 
     // Layouts
-    QVBoxLayout* pMainLayout = new QVBoxLayout;
-    QHBoxLayout* pTopLayout = new QHBoxLayout;
-    auto pMainRegion = new QWidget(this);   // whole panel
-    auto pTopRegion = new QWidget(this);      // top buttons/edits
+    QVBoxLayout* pTextLayout = new QVBoxLayout;
+    QHBoxLayout* pEditLayout = new QHBoxLayout;
+    auto pTextRegion = new QWidget(this);   // whole panel
+    auto pEditRegion = new QWidget(this);      // top buttons/edits
 
-    SetMargins(pTopLayout);
-    pTopLayout->addWidget(m_pLineEdit);
-    SetMargins(pMainLayout);
-    pMainLayout->addWidget(pTopRegion);
-    pMainLayout->addWidget(m_pTextArea);
+    SetMargins(pEditLayout);
+    pEditLayout->addWidget(m_pLineEdit);
+    SetMargins(pTextLayout);
+    pTextLayout->addWidget(m_pTextArea);
+    pTextLayout->addWidget(pEditRegion);
 
-    pTopRegion->setLayout(pTopLayout);
-    pMainRegion->setLayout(pMainLayout);
-    setWidget(pMainRegion);
+    pEditRegion->setLayout(pEditLayout);
+    pTextRegion->setLayout(pTextLayout);
+    setWidget(pTextRegion);
 
     loadSettings();
 
