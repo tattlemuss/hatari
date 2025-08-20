@@ -161,12 +161,12 @@ struct {
 } MegaSTE_Cache;
 
 
-bool	MegaSTE_Cache_Is_Enabled ( void );
-bool	MegaSTE_Cache_Addr_Cacheable ( uint32_t addr );
-void	MegaSTE_Cache_Addr_Convert ( uint32_t Addr , uint16_t *pLineNbr , uint16_t *pTag );
-bool	MegaSTE_Cache_Update ( uint32_t Addr , int Size , uint16_t Val );
-bool	MegaSTE_Cache_Write ( uint32_t Addr , int Size , uint16_t Val );
-bool	MegaSTE_Cache_Read ( uint32_t Addr , int Size , uint16_t *pVal );
+static bool	MegaSTE_Cache_Is_Enabled ( void );
+static bool	MegaSTE_Cache_Addr_Cacheable ( uint32_t addr , int Size , int DoWrite );
+static void	MegaSTE_Cache_Addr_Convert ( uint32_t Addr , uint16_t *pLineNbr , uint16_t *pTag );
+static bool	MegaSTE_Cache_Update ( uint32_t Addr , int Size , uint16_t Val , int DoWrite );
+static bool	MegaSTE_Cache_Write ( uint32_t Addr , int Size , uint16_t Val );
+static bool	MegaSTE_Cache_Read ( uint32_t Addr , int Size , uint16_t *pVal );
 
 
 uae_u32 (*x_get_iword_megaste_save)(int);
@@ -389,17 +389,26 @@ void M68000_CheckCpuSettings(void)
 		default: fprintf (stderr, "M68000_CheckCpuSettings() : Error, cpu_level %d unknown\n" , ConfigureParams.System.nCpuLevel);
 	}
 
-	/* Only 68040/60 can have 'internal' FPU */
-	if ( ( ConfigureParams.System.n_FPUType == FPU_CPU ) && ( changed_prefs.cpu_model < 68040 ) )
-	{
-		Log_Printf(LOG_WARN, "Internal FPU is supported only for 040/060, disabling FPU\n");
-		ConfigureParams.System.n_FPUType = FPU_NONE;
-	}
-	/* 68000/10 can't have an FPU */
-	if ( ( ConfigureParams.System.n_FPUType != FPU_NONE ) && ( changed_prefs.cpu_model < 68020 ) )
+	/* 68000/010 can't have any FPU */
+	if (changed_prefs.cpu_model < 68020 && ConfigureParams.System.n_FPUType != FPU_NONE)
 	{
 		Log_Printf(LOG_WARN, "FPU is not supported in 68000/010 configurations, disabling FPU\n");
 		ConfigureParams.System.n_FPUType = FPU_NONE;
+	}
+	/* 68020/030 can't have 'internal' FPU */
+	else if (changed_prefs.cpu_model < 68040 && ConfigureParams.System.n_FPUType == FPU_CPU)
+	{
+		Log_Printf(LOG_WARN, "Internal FPU is supported only for 040/060, "
+		                     "using 68882 FPU instead\n");
+		ConfigureParams.System.n_FPUType = FPU_68882;
+	}
+	/* 68040/060 can't have an external FPU */
+	else if (changed_prefs.cpu_model >= 68040 &&
+	         (ConfigureParams.System.n_FPUType == FPU_68881 || ConfigureParams.System.n_FPUType == FPU_68882))
+	{
+		Log_Printf(LOG_WARN, "68881/68882 FPU is only supported for 020/030 CPUs, "
+		                     "using internal FPU instead\n");
+		ConfigureParams.System.n_FPUType = FPU_CPU;
 	}
 
 	changed_prefs.int_no_unimplemented = true;
@@ -1186,7 +1195,7 @@ void	MegaSTE_CPU_Set_16Mhz ( bool set_16 )
  * Return true if the cache is enabled, else return false
  */
 
-bool	MegaSTE_Cache_Is_Enabled ( void )
+static bool	MegaSTE_Cache_Is_Enabled ( void )
 {
 	if ( IoMem_ReadByte(0xff8e21) & 0x1 )
 		return true;
@@ -1203,9 +1212,9 @@ bool	MegaSTE_Cache_Is_Enabled ( void )
  */
 
 #ifdef MEGA_STE_CACHE_DEBUG_CHECK_ENTRIES
-void	MegaSTE_Cache_Check_Entries ( const char *txt );
+static void	MegaSTE_Cache_Check_Entries ( const char *txt );
 
-void	MegaSTE_Cache_Check_Entries ( const char *txt )
+static void	MegaSTE_Cache_Check_Entries ( const char *txt )
 {
 	uint16_t	Line;
 	uint16_t	Tag;
@@ -1237,16 +1246,37 @@ static inline void	MegaSTE_Cache_Check_Entries ( const char *txt )
  * Return true if addr is part of a cacheable region, else false
  *   - RAM (up to 4MB) and ROM regions can be cached
  *   - IO or cartridge regions can't be cached
+ * On a 68000 MegaSTE, only the lowest 24 bits of the address should be used
+ * (except if the user forces a 32 bit setting)
+ *
+ * Accesses that would cause a bus error or an address error should not be cached
  */
 
-bool	MegaSTE_Cache_Addr_Cacheable ( uint32_t addr )
+static bool	MegaSTE_Cache_Addr_Cacheable ( uint32_t addr , int Size , int DoWrite )
 {
+	/* The MegaSTE uses a 68000 with only 24 bits of address, upper 8 bits */
+	/* should be ignored (except if user explicitely forces 32 bits addressing) */
+	if ( ConfigureParams.System.bAddressSpace24 )
+		addr &= 0xFFFFFF;
+
+	/* Word access on odd address will cause an address error */
+	if ( ( Size == 2 ) && ( addr & 1 ) )
+		return false;				/* no cache */
+
+	/* Writing to bytes 0-3 in RAM will cause a bus error */
+	if ( ( addr < 0x4 ) && DoWrite )
+		return false;				/* no cache */
+
+	/* Accessing RAM 0-0x7FF in user mode will cause a bus error */
+	if ( ( addr < 0x800 ) && !is_super_access ( DoWrite ? false : true ) )
+		return false;				/* no cache */
+
 	/* Available RAM can be cached (up to 4MB) */
 	if ( ( addr < STRamEnd ) && ( addr < 0x400000 ) )
 		return true;
 
-	/* TOS in ROM region can be cached */
-	if ( ( addr >= 0xE00000 ) && ( addr < 0xF00000 ) )
+	/* TOS in ROM region can be cached only when reading (writing would cause a bus error) */
+	if ( ( addr >= 0xE00000 ) && ( addr < 0xF00000 ) && !DoWrite )
 		return true;
 
 	/* Other regions can't be cached */
@@ -1284,7 +1314,7 @@ void	MegaSTE_Cache_Flush ( void )
  *   - bit 0 : ignored (because the cache stores 16 bit words)
  */
 
-void	MegaSTE_Cache_Addr_Convert ( uint32_t Addr , uint16_t *pLineNbr , uint16_t *pTag )
+static void	MegaSTE_Cache_Addr_Convert ( uint32_t Addr , uint16_t *pLineNbr , uint16_t *pTag )
 {
 	*pLineNbr = ( Addr >> 1 ) & 0x1fff;
 	*pTag = ( Addr >> 14 ) & 0x3ff;
@@ -1308,12 +1338,12 @@ void	MegaSTE_Cache_Addr_Convert ( uint32_t Addr , uint16_t *pLineNbr , uint16_t 
  * Return true if value was added to the cache, else return false
  */
 
-bool	MegaSTE_Cache_Update ( uint32_t Addr , int Size , uint16_t Val )
+static bool	MegaSTE_Cache_Update ( uint32_t Addr , int Size , uint16_t Val , int DoWrite )
 {
 	uint16_t	Line;
 	uint16_t	Tag;
 
-	if ( !MegaSTE_Cache_Addr_Cacheable ( Addr ) )
+	if ( !MegaSTE_Cache_Addr_Cacheable ( Addr , Size , DoWrite ) )
 		return false;					/* data not cacheable */
 
 	MegaSTE_Cache_Addr_Convert ( Addr , &Line , &Tag );
@@ -1348,19 +1378,19 @@ bool	MegaSTE_Cache_Update ( uint32_t Addr , int Size , uint16_t Val )
 
 
 
-bool	MegaSTE_Cache_Write ( uint32_t Addr , int Size , uint16_t Val )
+static bool	MegaSTE_Cache_Write ( uint32_t Addr , int Size , uint16_t Val )
 {
-	return MegaSTE_Cache_Update ( Addr , Size , Val );
+	return MegaSTE_Cache_Update ( Addr , Size , Val , 1 );
 }
 
 
 
-bool	MegaSTE_Cache_Read ( uint32_t Addr , int Size , uint16_t *pVal )
+static bool	MegaSTE_Cache_Read ( uint32_t Addr , int Size , uint16_t *pVal )
 {
 	uint16_t	Line;
 	uint16_t	Tag;
 
-	if ( !MegaSTE_Cache_Addr_Cacheable ( Addr ) )
+	if ( !MegaSTE_Cache_Addr_Cacheable ( Addr , Size , 0 ) )
 		return false;					/* cache miss, data not cacheable */
 
 	MegaSTE_Cache_Addr_Convert ( Addr , &Line , &Tag );
@@ -1432,7 +1462,7 @@ uae_u32	mem_access_delay_word_read_megaste_16 (uaecptr addr)
 			else
 			{
 				v = wait_cpu_cycle_read_megaste_16 (addr, 1);
-				MegaSTE_Cache_Update ( addr , 2 , v );
+				MegaSTE_Cache_Update ( addr , 2 , v , 0 );
 				CpuInstruction.D_Cache_miss++;
 			}
 		}
@@ -1455,7 +1485,7 @@ uae_u32	mem_access_delay_word_read_megaste_16 (uaecptr addr)
 			{
 				v = get_word (addr);
 				x_do_cycles_post (4 * cpucycleunit, v);
-				MegaSTE_Cache_Update ( addr , 2 , v );
+				MegaSTE_Cache_Update ( addr , 2 , v , 0 );
 				CpuInstruction.D_Cache_miss++;
 			}
 		}
@@ -1493,7 +1523,7 @@ uae_u32	mem_access_delay_wordi_read_megaste_16 (uaecptr addr)
 			else
 			{
 				v = wait_cpu_cycle_read_megaste_16 (addr, 2);
-				MegaSTE_Cache_Update ( addr , 2 , v );
+				MegaSTE_Cache_Update ( addr , 2 , v , 0 );
 				CpuInstruction.I_Cache_miss++;
 			}
 		}
@@ -1516,7 +1546,7 @@ uae_u32	mem_access_delay_wordi_read_megaste_16 (uaecptr addr)
 			{
 				v = get_wordi (addr);
 				x_do_cycles_post (4 * cpucycleunit, v);
-				MegaSTE_Cache_Update ( addr , 2 , v );
+				MegaSTE_Cache_Update ( addr , 2 , v , 0 );
 				CpuInstruction.I_Cache_miss++;
 			}
 		}
@@ -1554,7 +1584,12 @@ uae_u32	mem_access_delay_byte_read_megaste_16 (uaecptr addr)
 			else
 			{
 				v = wait_cpu_cycle_read_megaste_16 (addr, 0);
-				MegaSTE_Cache_Update ( addr , 2 , get_word(addr & ~1) );
+
+				/* Reading with get_word() could create a bus error, so we must first */
+				/* check if this address can be cached without bus error */
+				if ( MegaSTE_Cache_Addr_Cacheable ( addr & ~1 , 2 , 0 ) )
+					MegaSTE_Cache_Update ( addr , 2 , get_word(addr & ~1) , 0 );
+
 				CpuInstruction.D_Cache_miss++;
 			}
 		}
@@ -1577,7 +1612,7 @@ uae_u32	mem_access_delay_byte_read_megaste_16 (uaecptr addr)
 			{
 				v = get_byte (addr);
 				x_do_cycles_post (4 * cpucycleunit, v);
-				MegaSTE_Cache_Update ( addr , 1 , v );
+				MegaSTE_Cache_Update ( addr , 1 , v , 0 );
 				CpuInstruction.D_Cache_miss++;
 			}
 		}

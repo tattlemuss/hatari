@@ -86,7 +86,9 @@ struct cputbl {
 	uae_s8 length;
 	uae_s8 disp020[2];
 	uae_s8 branch;
+#ifdef JIT
 	uae_u16 specific;
+#endif
 };
 
 #ifdef JIT
@@ -112,7 +114,9 @@ extern cpuop_func *loop_mode_table[];
 
 extern uae_u32 REGPARAM3 op_illg(uae_u32) REGPARAM;
 extern void REGPARAM3 op_illg_noret(uae_u32) REGPARAM;
+void REGPARAM3 op_illg_1_noret(uae_u32 opcode) REGPARAM;
 extern void REGPARAM3 op_unimpl(uae_u32) REGPARAM;
+void REGPARAM3 op_unimpl_1_noret(uae_u32 opcode) REGPARAM;
 
 typedef uae_u8 flagtype;
 
@@ -982,5 +986,8 @@ extern FILE *console_out_FILE;
 
 /*** Hatari ***/
 #endif
+
+const struct cputbl *uaegetjitcputbl(void);
+const struct cputbl *getjitcputbl(int cpulvl, int direct);
 
 #endif /* UAE_NEWCPU_H */

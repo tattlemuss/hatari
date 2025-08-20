@@ -50,7 +50,7 @@ Emulation improvements
     (currently they're incremented so that programs checking them
     don't get stuck, but values aren't quite correct yet)
   - Video timings for the Falcon Videl chip (60Hz support):
-    https://listengine.tuxfamily.org/lists.tuxfamily.org/hatari-devel/2016/07/msg00013.html
+    https://hatari.frama.io/archive/mailing-lists/tuxfamily-devel/2016/07/msg00013.html
   - ST screen modes centering when Videl borders are enabled
   - Some demos (like Yepyha) use odd (e.g. 384x1) Videl resolutions
     for transitions between screens. Size of Hatari window shouldn't
@@ -79,7 +79,7 @@ Emulation improvements
 	https://github.com/tonioni/WinUAE/issues/133
 
 - Properly emulate the DMA sector count register for ACSI transfers
-  https://listengine.tuxfamily.org/lists.tuxfamily.org/hatari-devel/2021/09/msg00006.html
+  https://hatari.frama.io/archive/mailing-lists/tuxfamily-devel/2021/09/msg00006.html
 
 
 Programs known as not fully functional (not an exhaustive list)
@@ -225,17 +225,6 @@ on BerliOS hatari-devel mail thread for more info.)
 		- blit only changed lines
 		- simpler / faster (LED) overlay handling
 	- Include some fancy zooming routines like 2xSaI or Super-Eagle
-
-- Improve directory handling:
-	- Currently screenshots & anim go always to current dir,
-	  whereas memsave, sound recording, printer & midi & serial &
-	  output and log output go to file specified in config file.
-	  There should be support for setting also anim/screenshot
-	  directory / file name from config file (needs change also
-	  in screenSnapShot.c).
-	- By default the directory config values should be empty in
-	  which case the code will at run-time decide to use current
-	  directory, but not modify the path config setting.
 
 - Add Hatari "fileid" to more files (to ease locating "stolen" code)
   and Git hook to remove trailing whitespace (sed -i 's/[\t ]*$//')?

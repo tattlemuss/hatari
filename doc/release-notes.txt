@@ -17,6 +17,48 @@ Following features are deprecated and will be removed in a future release:
   - "hatari-shortcut quit"       (use "hatari-debug quit [exit value]")
 
 
+ Version 2.6.1 (2025-08-15)
+ --------------------------
+
+Emulation improvements:
+- MegaSTE:
+  - When using cache, only compare 24 lowest bits of address
+  - Don't update cache after a bus/address error
+- Falcon:
+  - Create a fast ram buffer (_FRB) cookie when running with TT RAM
+    to fix a problem with floppy disk access
+- Video:
+  - Add support for STE 224 bytes overscan in medium resolution
+  - Set correct resolution in Shifter when accessing $FF8260 as word
+    (fix regression in Hatari 2.6.0)
+- VME for MegaSTE / TT:
+  - VME memory regions should return bus error when no VME board is present
+
+Emulator improvements:
+- Windows:
+  - Fix: late locale init messes debugger readline history handling
+- GEMDOS HD:
+  - Fix: caches were no always flushed on writing to emulated memory
+- Debugger:
+  - Fix: show DEL character as non-printable in memdumps
+- CPU/FPU settings:
+  - Disallow 68881/68882 FPU in 040/060 mode
+- Config / SDL GUI:
+  - Default screenshot save directory override option
+  - SDL GUI asks for file name when starting AVI recording
+  - Fit Hatari screen dialog to smallest required size and
+    log errors on invalid dialog sizes
+- CLI options:
+  - GEMDOS HD & screenshot dir options accept only existing directories
+
+Fixed demos:
+ - A Letter To Sommarhack by Effect (write word at $FF8260)
+ - Partial fix for Double Rez Trouble by DHS (med res overscan lines)
+
+Fixed programs:
+- Spectre 3.0 (Hatari v2.6 regression, MegaSTE cache)
+
+
  Version 2.6.0 (2025-06-22)
  --------------------------
 
