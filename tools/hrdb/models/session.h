@@ -14,7 +14,7 @@ class Dispatcher;
 class TargetModel;
 class FileWatcher;
 
-#define VERSION_STRING      "0.010 (September 2024)"
+#define VERSION_STRING      "0.010 (August 2025)"
 #define HELP_URL            "http://clarets.org/steve/projects/hrdb.html"
 
 // Wrapper of QProcess that "allows" a detact() after start().
