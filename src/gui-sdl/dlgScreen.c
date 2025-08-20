@@ -24,6 +24,7 @@ const char DlgScreen_fileid[] = "Hatari dlgScreen.c";
 #include "clocks_timings.h"
 #include "file.h"
 #include "paths.h"
+#include "str.h"
 
 /* how many pixels to increment VDI mode
  * width/height on each click
@@ -102,18 +103,18 @@ static SGOBJ monitordlg[] =
 #define DLGSCRN_MAX_HLESS   23
 #define DLGSCRN_MAX_HTEXT   24
 #define DLGSCRN_MAX_HMORE   25
-#define DLGSCRN_FORMAT_PNG  27
-#define DLGSCRN_FORMAT_BMP  28
-#define DLGSCRN_FORMAT_NEO  29
-#define DLGSCRN_FORMAT_XIMG 30
-#define DLGSCRN_CROP        31
-#define DLGSCRN_CAPTURE_DIR 34
-#define DLGSCRN_CAPTURE     35
-#define DLGSCRN_RECANIM     36
-#define DLGSCRN_GPUSCALE    39
-#define DLGSCRN_RESIZABLE   40
-#define DLGSCRN_VSYNC       41
-#define DLGSCRN_EXIT_WINDOW 42
+#define DLGSCRN_CAPTURE     27
+#define DLGSCRN_FORMAT_PNG  28
+#define DLGSCRN_FORMAT_BMP  29
+#define DLGSCRN_FORMAT_NEO  30
+#define DLGSCRN_FORMAT_XIMG 31
+#define DLGSCRN_CAPTURE_DIR 32
+#define DLGSCRN_RECANIM     34
+#define DLGSCRN_CROP        35
+#define DLGSCRN_GPUSCALE    37
+#define DLGSCRN_RESIZABLE   38
+#define DLGSCRN_VSYNC       39
+#define DLGSCRN_EXIT_WINDOW 40
 
 /* needs to match Frame skip values in windowdlg[]! */
 static const int skip_frames[] = { 0, 1, 2, 4, AUTO_FRAMESKIP_LIMIT };
@@ -121,15 +122,15 @@ static const int skip_frames[] = { 0, 1, 2, 4, AUTO_FRAMESKIP_LIMIT };
 /* Strings for doubled resolution max width and height */
 static char sMaxWidth[5];
 static char sMaxHeight[5];
-#define DLG_SCREENSHOTDIR_SIZE 32
-static char sScreenShotDir[DLG_SCREENSHOTDIR_SIZE+1];    /* Path name in the dialog */
+/* Screenshot path name shown in the dialog */
+static char sScreenShotDir[29];
 
 #define MAX_SIZE_STEP 8
 
 /* The window dialog: */
 static SGOBJ windowdlg[] =
 {
-	{ SGBOX, 0, 0, 0,0, 52,28, NULL },
+	{ SGBOX, 0, 0, 0,0, 52,24, NULL },
 	{ SGBOX,      0, 0,  1,1, 50,10, NULL },
 	{ SGTEXT,     0, 0,  4,2, 20,1, "Hatari screen options" },
 	{ SGCHECKBOX, 0, 0,  4,4, 12,1, "_Fullscreen" },
@@ -156,25 +157,23 @@ static SGOBJ windowdlg[] =
 	{ SGTEXT,     0, 0, 37,9,  4,1, sMaxHeight },
 	{ SGBUTTON,   0, 0, 43,9,  1,1, "\x03", SG_SHORTCUT_DOWN },
 
-	{ SGBOX,      0, 0,  1,12, 50,8, NULL },
-	{ SGRADIOBUT, 0, 0,  5,13, 5,1, "PNG" },
-	{ SGRADIOBUT, 0, 0, 11,13, 5,1, "BMP" },
-	{ SGRADIOBUT, 0, 0, 17,13, 5,1, "NEO" },
-	{ SGRADIOBUT, 0, 0, 23,13, 5,1, "XIMG" },
-	{ SGCHECKBOX, 0, 0,  5,15, 16,1, "_Crop statusbar" },
-	{ SGTEXT,     0, 0,  5,17, 31,1, "Default screenshot directory:" },
-	{ SGTEXT,     0, 0,  5,18, 34,1, sScreenShotDir },
-	{ SGBUTTON,   0, 0, 38,17,  8,1, "Browse" },
-	{ SGBUTTON,   0, 0, 32,13, 14,1, " _Screenshot " },
-	{ SGBUTTON,   0, 0, 32,15, 14,1, NULL },      /* Record text set later */
+	{ SGBOX,      0, 0,  1,12, 50,7, NULL },
+	{ SGBUTTON,   0, 0,  4,13, 14,1, "_Screenshot" },
+	{ SGRADIOBUT, 0, 0, 21,13,  5,1, "PNG" },
+	{ SGRADIOBUT, 0, 0, 27,13,  5,1, "BMP" },
+	{ SGRADIOBUT, 0, 0, 33,13,  5,1, "NEO" },
+	{ SGRADIOBUT, 0, 0, 39,13,  5,1, "XIMG" },
+	{ SGBUTTON,   0, 0,  4,15, 14,1, "Directory:" },
+	{ SGTEXT,     0, 0, 21,15, sizeof(sScreenShotDir)-1,1, sScreenShotDir },
+	{ SGBUTTON,   0, 0,  4,17, 14,1, NULL },      /* Record text set later */
+	{ SGCHECKBOX, 0, 0, 21,17, 16,1, "_Crop statusbar" },
 
-	{ SGBOX,      0, 0,  1,21, 50,4, NULL },
-	{ SGTEXT,     0, 0, 20,21, 12,1, "SDL2 options" },
-	{ SGCHECKBOX, 0, 0,  8,23, 20,1, "GPU scal_ing" },
-	{ SGCHECKBOX, 0, 0, 23,23, 20,1, "Resi_zable" },
-	{ SGCHECKBOX, 0, 0, 36,23, 11,1, "_VSync" },
-	{ SGBUTTON, SG_DEFAULT, 0, 17,26, 20,1, "Back to main menu" },
+	{ SGTEXT,     0, 0,  4,20, 12,1, "SDL2:" },
+	{ SGCHECKBOX, 0, 0, 12,20, 20,1, "GPU scal_ing" },
+	{ SGCHECKBOX, 0, 0, 27,20, 20,1, "Resi_zable" },
+	{ SGCHECKBOX, 0, 0, 40,20, 11,1, "_VSync" },
 
+	{ SGBUTTON, SG_DEFAULT, 0, 17,22, 20,1, "Back to main menu" },
 	{ SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
@@ -315,7 +314,7 @@ void Dialog_MonitorDlg(void)
 /**
  * Set ScreenShotFormat depending on which button is selected
  */
-static void	DlgScreen_SetScreenShot_Format ( void )
+static void DlgWindow_SetScreenShotFormat(void)
 {
 	if ( windowdlg[DLGSCRN_FORMAT_NEO].state & SG_SELECTED )
 		ConfigureParams.Screen.ScreenShotFormat = SCREEN_SNAPSHOT_NEO;
@@ -329,6 +328,28 @@ static void	DlgScreen_SetScreenShot_Format ( void )
 		ConfigureParams.Screen.ScreenShotFormat = SCREEN_SNAPSHOT_BMP;
 }
 
+/*-----------------------------------------------------------------------*/
+/**
+ * If screenshot dir path given, set it to screenshot dir config string,
+ * and update dialog screenshot dir field accordingly.
+ */
+static void DlgWindow_UpdateScreenShotDir(void)
+{
+	if (ConfigureParams.Screen.szScreenShotDir[0])
+	{
+		File_MakeValidPathName(ConfigureParams.Screen.szScreenShotDir);
+		File_CleanFileName(ConfigureParams.Screen.szScreenShotDir);
+		File_ShrinkName(sScreenShotDir, ConfigureParams.Screen.szScreenShotDir, sizeof(sScreenShotDir)-1);
+	}
+	else
+	{
+		static const char base[] = "(default) ";
+		const int len = sizeof(base) - 1;
+		assert(len < sizeof(sScreenShotDir));
+		Str_Copy(sScreenShotDir, base, sizeof(sScreenShotDir));
+		File_ShrinkName(sScreenShotDir + len, Paths_GetScreenShotDir(), sizeof(sScreenShotDir)-len-1);
+	}
+}
 
 /*-----------------------------------------------------------------------*/
 /**
@@ -379,9 +400,7 @@ void Dialog_WindowDlg(void)
 	sprintf(sMaxHeight, "%4i", maxh);
 
 	/* Initialize window capture options: */
-	File_MakeValidPathName(ConfigureParams.Screen.szScreenShotDir);
-	File_CleanFileName(ConfigureParams.Screen.szScreenShotDir);
-	File_ShrinkName(sScreenShotDir, ConfigureParams.Screen.szScreenShotDir, DLG_SCREENSHOTDIR_SIZE);
+	DlgWindow_UpdateScreenShotDir();
 
 	windowdlg[DLGSCRN_FORMAT_PNG].state &= ~SG_SELECTED;
 	windowdlg[DLGSCRN_FORMAT_BMP].state &= ~SG_SELECTED;
@@ -448,20 +467,17 @@ void Dialog_WindowDlg(void)
 			break;
 
 		 case DLGSCRN_CAPTURE_DIR:
-			selname = SDLGui_FileSelect("Screenshot Directory", sScreenShotDir, NULL, true);
+			selname = SDLGui_FileSelect("Screenshot Directory", Paths_GetScreenShotDir(), NULL, false);
 			if (selname)
 			{
-				strcpy(ConfigureParams.Screen.szScreenShotDir, selname);
-				File_MakeValidPathName(ConfigureParams.Screen.szScreenShotDir);
-				File_CleanFileName(ConfigureParams.Screen.szScreenShotDir);
-				File_ShrinkName(sScreenShotDir, ConfigureParams.Screen.szScreenShotDir, DLG_SCREENSHOTDIR_SIZE);
-				Paths_SetScreenShotDir(ConfigureParams.Screen.szScreenShotDir);
+				Str_Copy(ConfigureParams.Screen.szScreenShotDir, selname, sizeof(ConfigureParams.Screen.szScreenShotDir));
 				free(selname);
 			}
+			DlgWindow_UpdateScreenShotDir();
 			break;
 
 		 case DLGSCRN_CAPTURE:
-			DlgScreen_SetScreenShot_Format();		/* Take latest choice into account */
+			DlgWindow_SetScreenShotFormat();	/* Take latest choice into account */
 			Screen_UpdateRect(sdlscrn, 0,0,0,0);
 			ConfigureParams.Screen.bCrop = (windowdlg[DLGSCRN_CROP].state & SG_SELECTED);
 			ScreenSnapShot_SaveScreen();
@@ -481,6 +497,12 @@ void Dialog_WindowDlg(void)
 			else
 			{
 				ConfigureParams.Screen.bCrop = (windowdlg[DLGSCRN_CROP].state & SG_SELECTED);
+				selname = SDLGui_FileSelect("Record to AVI file...", ConfigureParams.Video.AviRecordFile, NULL, true);
+				if (!selname || File_DoesFileNameEndWithSlash(selname))
+					break;
+				if (!File_QueryOverwrite(selname))
+					break;
+				Str_Copy(ConfigureParams.Video.AviRecordFile, selname, sizeof(ConfigureParams.Video.AviRecordFile));
 				Avi_StartRecording_WithConfig ();
 				windowdlg[DLGSCRN_RECANIM].txt = RECORD_STOP;
 			}
@@ -514,7 +536,7 @@ void Dialog_WindowDlg(void)
 		}
 	}
 
-	DlgScreen_SetScreenShot_Format();
+	DlgWindow_SetScreenShotFormat();
 
 	ConfigureParams.Screen.bCrop = (windowdlg[DLGSCRN_CROP].state & SG_SELECTED);
 

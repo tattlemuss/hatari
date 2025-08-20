@@ -24,7 +24,7 @@
 <h1 class="pageheader">Hatari User's Manual</h1>
 
 <p class="pageheader">
-Version 2.6.0, June 2025
+Version 2.6.1, August 2025
 </p>
 <p class="pageheader">
 Manual written by: <strong>Thomas Huth</strong>, <strong>Matthias Arndt</strong>
@@ -240,7 +240,8 @@ common to all (FDC, IKBD, MFP, MIDI, PSG, RS-232...).</p>
   <li>support for (MSA, GZip and Zip) compressed floppy disk images
       (with optional write-protection)</li>
   <li>support for whole system state snapshot save/restore</li>
-  <li>driver for extended VDI resolutions</li>
+  <li>driver for extended VDI resolutions (this patches TOS, the system
+      variables and the so-called line-A variables for bigger resolutions)</li>
   <li>sound recording as .WAV or .YM files</li>
   <li>screenshots in PNG, BMP, NEO or XIMG format</li>
   <li>AVI video capture with sound</li>
@@ -287,6 +288,13 @@ common to all (FDC, IKBD, MFP, MIDI, PSG, RS-232...).</p>
   <li>TOS versions 1.00, 1.02, 1.04 and 2.06 (and EmuTOS) can be used in ST mode.</li>
 </ul>
 
+<p>
+Note: The real ST/STE hardware only can deal with RAM sizes up to 4 MiB. If you
+configure more than 4 MiB for your emulated system, Hatari will patch the
+system variables to make TOS aware of the extended memory, and it will fake
+DMA support for more than 4 MiB (which does not exist on real hardware).
+</p>
+
 <h4>Mega ST hardware emulation</h4>
 <ul>
   <li>Builtin real time clock (RTC)</li>
@@ -327,8 +335,14 @@ and later HW:</p>
   <li>ST/TT palette switching and video shifter</li>
   <li>Up to 1024 MiB of TT-RAM and 32-bit memory addressing</li>
   <li>Full support for SCC (LAN, Serial and Modem)</li>
+  <li>NVRAM for persistent OS configuration and RTC (real time clock)</li>
   <li>Only TOS version 3.05 and 3.06 (and 512k/1024k EmuTOS) can be used in TT mode.</li>
 </ul>
+
+<p>
+Note: Only the 68030 CPU and the 68040 CPU can be used in TT mode when using
+the original TOS.
+</p>
 
 <h4>Falcon hardware emulation</h4>
 <p>There is support for following additional Falcon features:</p>
@@ -345,14 +359,19 @@ and later HW:</p>
   <li>Experimental IDE master and slave emulation for hard drive support</li>
   <li>Experimental NCR5380 SCSI emulation for hard drive support (incomplete)</li>
   <li>Full support for SCC (Lan and Modem)</li>
+  <li>NVRAM for persistent OS configuration and RTC (real time clock)</li>
   <li>TOS versions 4.00, 4.02, 4.04 and 4.92 (and 512k/1024k EmuTOS) can be used in Falcon
       mode. There is also experimental support for TOS 2.07 (the "Sparrow"-TOS),
       and for <a href="m68k-linux.txt">Linux</a>, but they are not recommended
       for use yet</li>
 </ul>
+
 <p>
-Both TT and Falcon emulation support NVRAM for persistent OS configuration
-and RTC (real time clock).
+Note: For using TT-RAM in Falcon mode, Hatari patches TOS 4.04 with the right
+&quot;Maddalt()&quot; call and code to add a &quot;_FRB&quot; cookie. It also
+alters the system variables accordingly, since the original Falcon TOS does
+not support TT-RAM otherwise. For supporting the 68040 and 68060 CPUs in
+Falcon mode, Hatari patches TOS with code specific to these CPUs.
 </p>
 
 <p>See the developers' <span class="file">doc/todo.txt</span> file
@@ -628,8 +647,13 @@ color</p>
 <p class="paramdesc">Select monitor type (x =
 mono/rgb/vga/tv)</p>
 <p class="parameter">--tos-res &lt;x&gt;</p>
-<p class="paramdesc">Select TOS resolution for color monitors
-(x = low/med/high/ttlow/ttmed)</p>
+<p class="paramdesc">
+Select TOS resolution for color monitors, x = "low" / "med" / "high" /
+"ttlow" / "ttmed" / "tclow" / "tcmed" / "tchigh". Which correspond to
+standard 320x200@16 + 640x200@4 + 640x400@2 ST resolutions, 320x480@256
++ 640x480@16 TT resolutions, Falcon specific 320x240@TC + 320x480@TC
+resolutions on VGA monitors, and 320x200@TC + 320x400@TC + 640x400@TC
+resolutions on RGB monitors</p>
 <p class="parameter">-f,
 --fullscreen</p>
 <p class="paramdesc">Start the emulator in fullscreen
@@ -810,7 +834,8 @@ with clearly smaller CPU overhead.</p>
 <p class="parameter">--avi-file &lt;file&gt;</p>
 <p class="paramdesc">Use &lt;file&gt; to record AVI</p>
 <p class="parameter">--screenshot-dir &lt;dir&gt;</p>
-<p class="paramdesc">Save screenshots in the directory &lt;dir&gt;</p>
+<p class="paramdesc">Directory for saving screenshots
+(default Hatari directory for them is OS specific).</p>
 <p class="parameter">--screenshot-format &lt;x&gt;</p>
 <p class="paramdesc">Select screenshot file format (x = bmp/png/neo/ximg).</p>
 
@@ -1800,7 +1825,7 @@ VDI mode is most useful with ST / STE emulation.
 <h4 class="gui">The Hatari Screen Dialog</h4>
 
 <div class="floatimage">
-  <img src="images/screen.png" width="520" height="400"
+  <img src="images/screen.png" width="518" height="378"
        alt="Hatari's GUI - the Hatari screen dialog" />
 </div>
 
@@ -1876,11 +1901,13 @@ it on screen.  Non-integer scaling values will cause "fuzzy" output.
 </p>
 
 <p>Click the <span class="button">Screenshot</span> button to create
-a screenshot in the selected format to the current working directory.
-PNG and BMP formats will match the visual output of Hatari.
-NEO and XIMG formats will produce Atari ST native images, but will not include
-borders, or raster palette effects. NEO is limited to the 3 standard ST
-resolutions.
+a screenshot in the selected format. PNG and BMP formats will match
+the visual output of Hatari. NEO and XIMG formats will produce Atari
+ST native images, but will not include borders, or raster palette
+effects. NEO is limited to the 3 standard ST resolutions.
+</p>
+<p>Click the <span class="button">Directory:</span> button to change
+default screenshot saving directory.
 </p>
 <p>Click the <span class="button">Record&nbsp;AVI</span> button to
 record an AVI format video of Hatari screen (and audio) output.
@@ -1890,7 +1917,7 @@ Selecting "Crop statusbar" option will leave statusbar out from
 the screenshots and recorded videos.
 </p>
 
-<p>"SDL2 options" impact following:</p>
+<p>"SDL2" options impact following:</p>
 <ul>
 <li>GPU scaling: Hatari window scaling is HW accelerated</li>
 <li>Resizable: User can resize Hatari window</li>
