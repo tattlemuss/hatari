@@ -136,7 +136,7 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     m_pModeComboBox->addItem(tr("3 Plane"), Mode::kFormat3Bitplane);
     m_pModeComboBox->addItem(tr("2 Plane"), Mode::kFormat2Bitplane);
     m_pModeComboBox->addItem(tr("1 Plane"), Mode::kFormat1Bitplane);
-    m_pModeComboBox->addItem(tr("1 BPP"), Mode::kFormat1BPP);
+    m_pModeComboBox->addItem(tr("1 Byte/Px"), Mode::kFormat1BPP);
     m_pModeComboBox->addItem(tr("TruCol"), Mode::kFormatTruColor);
 
     m_pLeftStrideButton->setArrowType(Qt::ArrowType::LeftArrow);
@@ -237,7 +237,7 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     m_pOverlayGridAction->setCheckable(true);
     m_pOverlayZoomAction = new QAction("Zoom", this);
     m_pOverlayZoomAction->setCheckable(true);
-    m_pOverlayRegistersAction = new QAction("Address Registers", this);
+    m_pOverlayRegistersAction = new QAction("Registers", this);
     m_pOverlayRegistersAction->setCheckable(true);
     m_pOverlayVideoAction = new QAction("Video Addresses", this);
     m_pOverlayVideoAction->setCheckable(true);
@@ -707,20 +707,33 @@ void GraphicsInspectorWidget::updateInfoLine()
     if (info.isValid)
     {
         // We can calculate the memory address here
-        uint32_t addr = ~0U;
-        switch(m_mode)
+        uint32_t addr = m_bitmapAddress + info.y * data.bytesPerLine;
+        // Use the effective mode, since m_mode might be "Registers"
+        switch(data.mode)
         {
         case Mode::kFormat1Bitplane:
+            addr += (info.x / 16) * 2;
+            break;
         case Mode::kFormat2Bitplane:
+            addr += (info.x / 16) * 4;
+            break;
         case Mode::kFormat3Bitplane:
+            addr += (info.x / 16) * 6;
+            break;
         case Mode::kFormat4Bitplane:
+            addr += (info.x / 16) * 8;
+             break;
         case Mode::kFormat8Bitplane:
-            addr = m_bitmapAddress + info.y * data.bytesPerLine + (info.x / 16) * BytesPerChunk(m_mode);
+            addr += (info.x / 16) * 16;
             break;
         case Mode::kFormat1BPP:
-            addr = m_bitmapAddress + info.y * data.bytesPerLine + info.x;
+            addr += info.x;
+            break;
+        case Mode::kFormatTruColor:
+            addr += info.x * 2;
             break;
         default:
+            assert(0);
             break;
         }
 
@@ -1124,35 +1137,7 @@ void GraphicsInspectorWidget::GetEffectiveData(GraphicsInspectorWidget::Effectiv
     data.requiredSize = data.bytesPerLine * data.height;
 
     // Calculate pixel size
-    data.pixels = 0;
-    switch (data.mode)
-    {
-    case kFormat1BPP:
-        data.pixels = data.bytesPerLine;
-        break;
-    case kFormatTruColor:
-        data.pixels = data.bytesPerLine / 2;
-        break;
-    default:
-        data.pixels = data.bytesPerLine / BytesPerChunk(data.mode) * 16;
-        break;
-    }
-}
-
-int32_t GraphicsInspectorWidget::BytesPerChunk(GraphicsInspectorWidget::Mode mode)
-{
-    switch (mode)
-    {
-    case kFormat8Bitplane: return 16;
-    case kFormat4Bitplane: return 8;
-    case kFormat3Bitplane: return 6;
-    case kFormat2Bitplane: return 4;
-    case kFormat1Bitplane: return 2;
-    case kFormat1BPP: assert(0);
-    default:               break;
-    }
-    assert(0);
-    return 0;
+    data.pixels = ByteOffsetToPixel(data.bytesPerLine, data.mode);
 }
 
 void GraphicsInspectorWidget::UpdateAnnotations()
@@ -1217,17 +1202,9 @@ bool GraphicsInspectorWidget::CreateAnnotation(NonAntiAliasImage::Annotation &an
 
     uint32_t offset = address - m_bitmapAddress;
     uint32_t y = offset / data.bytesPerLine;
-    uint32_t x_offset = offset - (y * data.bytesPerLine);
+    uint32_t x_offset = offset - (y * data.bytesPerLine);   // this is a number of bytes
 
-    if (data.mode == kFormat1BPP)
-    {
-        annot.x = x_offset;
-    }
-    else
-    {
-        uint32_t chunk = x_offset / BytesPerChunk(data.mode);
-        annot.x = chunk * 16;
-    }
+    annot.x = ByteOffsetToPixel(x_offset, data.mode);
     annot.y = y;
     annot.text = label;
     return true;
@@ -1267,5 +1244,41 @@ void GraphicsInspectorWidget::ContextMenu(QPoint pos)
     }
 
     menu.exec(pos);
+}
+
+int32_t GraphicsInspectorWidget::BytesPerChunk(GraphicsInspectorWidget::Mode realMode)
+{
+    // Note "kFormatRegisters" is not supported
+    switch (realMode)
+    {
+        case kFormat1BPP:      return 1*16;
+        case kFormatTruColor:  return 2*16;
+        case kFormat1Bitplane: return 2;
+        case kFormat2Bitplane: return 4;
+        case kFormat3Bitplane: return 6;
+        case kFormat4Bitplane: return 8;
+        case kFormat8Bitplane: return 16;
+        default:               break;
+    }
+    assert(0);
+    return 0;
+}
+
+int32_t GraphicsInspectorWidget::ByteOffsetToPixel(uint32_t x_offset, GraphicsInspectorWidget::Mode realMode)
+{
+    // Note "kFormatRegisters" is not supported
+    switch (realMode)
+    {
+        case kFormat1BPP:       return x_offset;
+        case kFormatTruColor:   return x_offset / 2;
+        case kFormat1Bitplane:  return (x_offset / 2) * 16;
+        case kFormat2Bitplane:  return (x_offset / 4) * 16;
+        case kFormat3Bitplane:  return (x_offset / 6) * 16;
+        case kFormat4Bitplane:  return (x_offset / 8) * 16;
+        case kFormat8Bitplane:  return (x_offset / 16) * 16;
+        default:                break;
+    }
+    assert(0);
+    return 0;
 }
 
