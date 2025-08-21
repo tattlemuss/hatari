@@ -81,7 +81,7 @@ private:
         kFormat2Bitplane = 2,
         kFormat1Bitplane = 3,
         kFormatRegisters = 4,
-        kFormat1BPP = 5,
+        kFormat1BPP = 5,          // this is "byte per pixel"
         kFormatTruColor = 6       // Falcon 16bpp
     };
 
@@ -134,9 +134,6 @@ private:
     int GetEffectiveHeight() const;
     void GetEffectiveData(EffectiveData& data) const;
 
-    // Calc the size of a 16-pixel chunk depending on mode
-    static int32_t BytesPerChunk(Mode mode);
-
     void UpdateAnnotations();
 
     bool CreateAnnotation(NonAntiAliasImage::Annotation &annot, uint32_t address,
@@ -144,6 +141,13 @@ private:
 
     void KeyboardContextMenu();
     void ContextMenu(QPoint pos);
+
+    // Calc how many bytes a "chunk" of pixels constitutes, which is 16 pixels.
+    // This is the step when using the left/right buttons in the UI.
+    static int32_t BytesPerChunk(Mode mode);
+
+    // Convert from a number of screen bytes, to an X pixel position.
+    static int32_t ByteOffsetToPixel(uint32_t x_offset, Mode mode);
 
     QLineEdit*          m_pBitmapAddressLineEdit;
     QLineEdit*          m_pPaletteAddressLineEdit;
