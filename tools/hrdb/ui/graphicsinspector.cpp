@@ -324,6 +324,7 @@ void GraphicsInspectorWidget::loadSettings()
     m_pImageWidget->SetZoom(zoom);
     m_annotateRegisters = settings.value("annotateRegisters", QVariant(false)).toBool();
     m_annotateVideo = settings.value("annotateVideo", QVariant(false)).toBool();
+    m_paletteAddress = settings.value("paletteAddress", QVariant(Regs::VID_PAL_0)).toUInt();
 
     UpdateUIElements();
     settings.endGroup();
@@ -346,6 +347,7 @@ void GraphicsInspectorWidget::saveSettings()
     settings.setValue("zoom", m_pImageWidget->GetZoom());
     settings.setValue("annotateRegisters", m_annotateRegisters);
     settings.setValue("annotateVideo", m_annotateVideo);
+    settings.setValue("paletteAddress", m_paletteAddress);
     settings.endGroup();
 }
 
