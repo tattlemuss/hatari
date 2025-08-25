@@ -1172,7 +1172,9 @@ void DisasmWidget::CalcAnnotations56()
         Line& line = m_disasm[i];
         const hop56::instruction& inst = line.inst56;
         Line::Annotations& annots = line.annotations;
+        annots.Reset();
 
+        // These are all the potential EAs in a DSP instruction...
         bool valids[10];
         Disassembler56::addr_t addr[10];
         valids[0] = Disassembler56::calc_ea(inst.operands[0], addr[0]);
@@ -1188,6 +1190,7 @@ void DisasmWidget::CalcAnnotations56()
 
         uint32_t readSlot = 0;
         uint32_t writeSlot = 0;
+        // Converts the space in the decode56 to our hrdb memory type
         static const MemSpace spaces[hop56::MEM_COUNT] =
         {
             MEM_P,        // "None" maps to P: memory
@@ -1197,7 +1200,8 @@ void DisasmWidget::CalcAnnotations56()
             MEM_L
         };
 
-        while (writeSlot < Line::Annotations::kNumEAs && readSlot < 8)
+        // Now copy the valid ones into the annotation slots
+        while (writeSlot < Line::Annotations::kNumEAs && readSlot < 10)
         {
             if (valids[readSlot])
             {
@@ -1900,6 +1904,10 @@ uint32_t DisasmWidget::Line::GetEndAddr() const
 
 void DisasmWidget::Line::Annotations::Reset()
 {
-    valid[0] = valid[1] = false;
+    for (uint32_t i = 0; i < kNumEAs; ++i)
+    {
+        valid[i] = false;
+        address[i].Reset();
+    }
     osComments.clear();
 }
