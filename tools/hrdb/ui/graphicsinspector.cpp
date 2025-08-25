@@ -797,15 +797,24 @@ void GraphicsInspectorWidget::UpdateMemoryRequests()
         if (m_requestPalette.requestId == 0)
         {
             if (m_paletteMode == kRegisters)
+            {
                 m_requestPalette.requestId = m_pDispatcher->ReadMemory(MemorySlot::kGraphicsInspectorPalette, Regs::VID_PAL_0, 0x20);
+                return;
+            }
             else if (m_paletteMode == kUserMemory)
+            {
                 m_requestPalette.requestId = m_pDispatcher->ReadMemory(MemorySlot::kGraphicsInspectorPalette, m_paletteAddress, 0x20);
+                return;
+            }
             else if (m_paletteMode == kUserMemoryF030)
+            {
                 m_requestPalette.requestId = m_pDispatcher->ReadMemory(MemorySlot::kGraphicsInspectorPalette, m_paletteAddress, 256 * 4);
-            else
-                m_requestPalette.Clear();   // we don't need to fetch
+                return;
+            }
         }
-        return; // block the next requests
+        // All other modes do not need to fetch palette data,
+        // so fall through to handle bitmap fetch.
+        m_requestPalette.Clear();
     }
 
     // We only get here if the other flags are clean
