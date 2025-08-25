@@ -19,6 +19,11 @@ class Disassembler
 public:
     struct line
     {
+        line() :
+            address(0)
+        {
+            memset(mem, 0, sizeof(mem));
+        }
         uint32_t                address;
         hop68::instruction      inst;
         uint8_t                 mem[32];            // Copy of instruction memory
