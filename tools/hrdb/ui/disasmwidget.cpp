@@ -924,17 +924,6 @@ void DisasmWidget::CalcDisasm56()
         for (uint32_t i = 0; i < line.GetByteSize(); ++i)
             t.hex += QString::asprintf("%02x", line.mem[i]);
 
-        // Breakpoint/PC
-        for (size_t i = 0; i < m_breakpoints.m_breakpoints.size(); ++i)
-        {
-            const Breakpoint& bp = m_breakpoints.m_breakpoints[i];
-            if (bp.m_proc == 1 && bp.m_pcHack == line.address)
-            {
-                t.isBreakpoint = true;
-                break;
-            }
-        }
-
         // Symbol
         QString addrText;
         Symbol sym;
@@ -996,7 +985,8 @@ void DisasmWidget::CalcDisasm56()
         // Breakpoint/PC
         for (size_t i = 0; i < m_breakpoints.m_breakpoints.size(); ++i)
         {
-            if (m_breakpoints.m_breakpoints[i].m_pcHack == line.address)
+            const Breakpoint& bp = m_breakpoints.m_breakpoints[i];
+            if (bp.m_proc == 1 && bp.m_pcHack == line.address)
             {
                 t.isBreakpoint = true;
                 break;
@@ -1229,7 +1219,6 @@ void DisasmWidget::ToggleBreakpoint(int row)
     const Breakpoints& bps = m_pTargetModel->GetBreakpoints();
     for (size_t i = 0; i < bps.m_breakpoints.size(); ++i)
     {
-        // NO CHECK test CPU type
         const Breakpoint& bp = bps.m_breakpoints[i];
         if (bp.m_proc == m_proc && bp.m_pcHack == addr)
         {
