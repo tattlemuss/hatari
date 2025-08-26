@@ -1232,6 +1232,11 @@ void HardwareWindow::loadSettings()
     settings.beginGroup("Hardware");
 
     restoreGeometry(settings.value("geometry").toByteArray());
+
+    // restore tree view layout
+    QVariant expanded = settings.value("expanded");
+    if (!expanded.isNull()) // handle empty setting value (first start)
+        setExpanded(m_pView->rootIndex(), 0, expanded.toStringList());
     settings.endGroup();
 }
 
@@ -1242,6 +1247,12 @@ void HardwareWindow::saveSettings()
     settings.beginGroup("Hardware");
 
     settings.setValue("geometry", saveGeometry());
+
+    // save tree view layout
+    QList<QString> expanded;
+    getExpanded(m_pView->rootIndex(), 0, expanded);
+    settings.setValue("expanded", QVariant(expanded));
+
     settings.endGroup();
 }
 
@@ -1358,4 +1369,40 @@ void HardwareWindow::addShared(HardwareBase *pLayout, const QString &title, Hard
     m_fields.append(pField);
     pField->m_title = title;
     pLayout->AddChild(pField);
+}
+
+//-----------------------------------------------------------------------------
+void HardwareWindow::getExpanded(const QModelIndex & index, int depth, QList<QString>& titles) const
+{
+    const QAbstractItemModel * model = m_pModel;
+    if (index.isValid())
+    {
+        if (m_pView->isExpanded(index))
+        {
+            const HardwareBase* pField = static_cast<const HardwareBase*>(index.internalPointer());
+            titles.append(pField->m_title);
+        }
+    }
+    if (!model->hasChildren(index) || (index.flags() & Qt::ItemNeverHasChildren))
+        return;
+    auto rows = model->rowCount(index);
+    for (int i = 0; i < rows; ++i)
+        getExpanded(model->index(i, 0, index), depth+1, titles);
+}
+
+//-----------------------------------------------------------------------------
+void HardwareWindow::setExpanded(const QModelIndex& index, int depth, const QList<QString>& titles)
+{
+    const QAbstractItemModel * model = m_pModel;
+    if (index.isValid())
+    {
+        const HardwareBase* pField = static_cast<const HardwareBase*>(index.internalPointer());
+        bool expand = titles.contains(pField->m_title);
+        m_pView->setExpanded(index, expand);
+    }
+    if (!model->hasChildren(index) || (index.flags() & Qt::ItemNeverHasChildren))
+        return;
+    auto rows = model->rowCount(index);
+    for (int i = 0; i < rows; ++i)
+        setExpanded(model->index(i, 0, index), depth+1, titles);
 }

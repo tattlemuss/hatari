@@ -95,6 +95,11 @@ private:
     void addMultiField(HardwareBase *pLayout, const QString &title, const stgen::FieldDef** defs);
     void addShared(HardwareBase *pLayout, const QString &title, HardwareField* pField);
 
+    // Get the titles of expanded tree rows
+    void getExpanded(const QModelIndex & index, int depth, QList<QString>& titles) const;
+    // Expand only the rows specified by the titles.
+    void setExpanded(const QModelIndex & index, int depth, const QList<QString>& titles);
+
     Session*                    m_pSession;
     TargetModel*                m_pTargetModel;
     Dispatcher*                 m_pDispatcher;
