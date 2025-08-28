@@ -51,6 +51,11 @@ void ShowAddressActions::setAddress(Session* pSession, int memorySpace, uint32_t
     // Certain window types only accept CPU memory
     // e.g. Graphics Inspector
     bool isCpu = (memorySpace == MEM_CPU);
+
+    // Mask top bits from eventual request
+    if (isCpu)
+        m_activeAddress &= 0xffffff;
+
     for (int i = 0; i < kNumMemoryViews; ++i)
         m_pMemoryWindowActions[i]->setVisible(true);
 
