@@ -300,14 +300,14 @@ const stgen::StringDef g_enumStringsDMA_FREQ[] = {
 	{ 3, "50066Hz" },
 	{ 0, nullptr }
 };
-const stgen::FieldDef g_fieldDef_MMU_CONFIG_BANK1 = {
-  MMU_CONFIG, MMU_CONFIG_BANK1_MASK,
-  1, MMU_CONFIG_BANK1_SHIFT,
-  "BANK1", g_enumStringsMMU_BANK, "Size of memory bank 1" };
 const stgen::FieldDef g_fieldDef_MMU_CONFIG_BANK0 = {
   MMU_CONFIG, MMU_CONFIG_BANK0_MASK,
   1, MMU_CONFIG_BANK0_SHIFT,
   "BANK0", g_enumStringsMMU_BANK, "Size of memory bank 0" };
+const stgen::FieldDef g_fieldDef_MMU_CONFIG_BANK1 = {
+  MMU_CONFIG, MMU_CONFIG_BANK1_MASK,
+  1, MMU_CONFIG_BANK1_SHIFT,
+  "BANK1", g_enumStringsMMU_BANK, "Size of memory bank 1" };
 const stgen::FieldDef g_fieldDef_VID_BASE_HIGH_ALL = {
   VID_BASE_HIGH, VID_BASE_HIGH_ALL_MASK,
   1, VID_BASE_HIGH_ALL_SHIFT,
@@ -396,94 +396,118 @@ const stgen::FieldDef g_fieldDef_MFP_GPIP_ALL = {
   MFP_GPIP, MFP_GPIP_ALL_MASK,
   1, MFP_GPIP_ALL_SHIFT,
   "ALL", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_AER_CENT_BUSY = {
-  MFP_AER, MFP_AER_CENT_BUSY_MASK,
-  1, MFP_AER_CENT_BUSY_SHIFT,
-  "CENT_BUSY", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_AER_RS232_DCD = {
-  MFP_AER, MFP_AER_RS232_DCD_MASK,
-  1, MFP_AER_RS232_DCD_SHIFT,
-  "RS232_DCD", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_AER_RS232_CTS = {
-  MFP_AER, MFP_AER_RS232_CTS_MASK,
-  1, MFP_AER_RS232_CTS_SHIFT,
-  "RS232_CTS", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_AER_KBD_MIDI = {
-  MFP_AER, MFP_AER_KBD_MIDI_MASK,
-  1, MFP_AER_KBD_MIDI_SHIFT,
-  "KBD_MIDI", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_AER_FDC_HDC = {
-  MFP_AER, MFP_AER_FDC_HDC_MASK,
-  1, MFP_AER_FDC_HDC_SHIFT,
-  "FDC_HDC", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_AER_RS232_RING = {
-  MFP_AER, MFP_AER_RS232_RING_MASK,
-  1, MFP_AER_RS232_RING_SHIFT,
-  "RS232_RING", nullptr, "" };
 const stgen::FieldDef g_fieldDef_MFP_AER_MONO = {
   MFP_AER, MFP_AER_MONO_MASK,
   1, MFP_AER_MONO_SHIFT,
   "MONO", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_DDR_CENT_BUSY = {
-  MFP_DDR, MFP_DDR_CENT_BUSY_MASK,
-  1, MFP_DDR_CENT_BUSY_SHIFT,
-  "CENT_BUSY", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_DDR_RS232_DCD = {
-  MFP_DDR, MFP_DDR_RS232_DCD_MASK,
-  1, MFP_DDR_RS232_DCD_SHIFT,
-  "RS232_DCD", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_DDR_RS232_CTS = {
-  MFP_DDR, MFP_DDR_RS232_CTS_MASK,
-  1, MFP_DDR_RS232_CTS_SHIFT,
-  "RS232_CTS", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_DDR_KBD_MIDI = {
-  MFP_DDR, MFP_DDR_KBD_MIDI_MASK,
-  1, MFP_DDR_KBD_MIDI_SHIFT,
-  "KBD_MIDI", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_DDR_FDC_HDC = {
-  MFP_DDR, MFP_DDR_FDC_HDC_MASK,
-  1, MFP_DDR_FDC_HDC_SHIFT,
-  "FDC_HDC", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_DDR_RS232_RING = {
-  MFP_DDR, MFP_DDR_RS232_RING_MASK,
-  1, MFP_DDR_RS232_RING_SHIFT,
+const stgen::FieldDef g_fieldDef_MFP_AER_RS232_RING = {
+  MFP_AER, MFP_AER_RS232_RING_MASK,
+  1, MFP_AER_RS232_RING_SHIFT,
   "RS232_RING", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_AER_FDC_HDC = {
+  MFP_AER, MFP_AER_FDC_HDC_MASK,
+  1, MFP_AER_FDC_HDC_SHIFT,
+  "FDC_HDC", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_AER_KBD_MIDI = {
+  MFP_AER, MFP_AER_KBD_MIDI_MASK,
+  1, MFP_AER_KBD_MIDI_SHIFT,
+  "KBD_MIDI", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_AER_RS232_CTS = {
+  MFP_AER, MFP_AER_RS232_CTS_MASK,
+  1, MFP_AER_RS232_CTS_SHIFT,
+  "RS232_CTS", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_AER_RS232_DCD = {
+  MFP_AER, MFP_AER_RS232_DCD_MASK,
+  1, MFP_AER_RS232_DCD_SHIFT,
+  "RS232_DCD", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_AER_CENT_BUSY = {
+  MFP_AER, MFP_AER_CENT_BUSY_MASK,
+  1, MFP_AER_CENT_BUSY_SHIFT,
+  "CENT_BUSY", nullptr, "" };
 const stgen::FieldDef g_fieldDef_MFP_DDR_MONO = {
   MFP_DDR, MFP_DDR_MONO_MASK,
   1, MFP_DDR_MONO_SHIFT,
   "MONO", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IERA_TIMER_B = {
-  MFP_IERA, MFP_IERA_TIMER_B_MASK,
-  1, MFP_IERA_TIMER_B_SHIFT,
-  "TIMER_B", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IERA_SEND_ERR = {
-  MFP_IERA, MFP_IERA_SEND_ERR_MASK,
-  1, MFP_IERA_SEND_ERR_SHIFT,
-  "SEND_ERR", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IERA_SEND_EMPTY = {
-  MFP_IERA, MFP_IERA_SEND_EMPTY_MASK,
-  1, MFP_IERA_SEND_EMPTY_SHIFT,
-  "SEND_EMPTY", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IERA_REC_ERR = {
-  MFP_IERA, MFP_IERA_REC_ERR_MASK,
-  1, MFP_IERA_REC_ERR_SHIFT,
-  "REC_ERR", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IERA_REC_FULL = {
-  MFP_IERA, MFP_IERA_REC_FULL_MASK,
-  1, MFP_IERA_REC_FULL_SHIFT,
-  "REC_FULL", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IERA_TIMER_A = {
-  MFP_IERA, MFP_IERA_TIMER_A_MASK,
-  1, MFP_IERA_TIMER_A_SHIFT,
-  "TIMER_A", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IERA_RS232_RING = {
-  MFP_IERA, MFP_IERA_RS232_RING_MASK,
-  1, MFP_IERA_RS232_RING_SHIFT,
+const stgen::FieldDef g_fieldDef_MFP_DDR_RS232_RING = {
+  MFP_DDR, MFP_DDR_RS232_RING_MASK,
+  1, MFP_DDR_RS232_RING_SHIFT,
   "RS232_RING", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_DDR_FDC_HDC = {
+  MFP_DDR, MFP_DDR_FDC_HDC_MASK,
+  1, MFP_DDR_FDC_HDC_SHIFT,
+  "FDC_HDC", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_DDR_KBD_MIDI = {
+  MFP_DDR, MFP_DDR_KBD_MIDI_MASK,
+  1, MFP_DDR_KBD_MIDI_SHIFT,
+  "KBD_MIDI", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_DDR_RS232_CTS = {
+  MFP_DDR, MFP_DDR_RS232_CTS_MASK,
+  1, MFP_DDR_RS232_CTS_SHIFT,
+  "RS232_CTS", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_DDR_RS232_DCD = {
+  MFP_DDR, MFP_DDR_RS232_DCD_MASK,
+  1, MFP_DDR_RS232_DCD_SHIFT,
+  "RS232_DCD", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_DDR_CENT_BUSY = {
+  MFP_DDR, MFP_DDR_CENT_BUSY_MASK,
+  1, MFP_DDR_CENT_BUSY_SHIFT,
+  "CENT_BUSY", nullptr, "" };
 const stgen::FieldDef g_fieldDef_MFP_IERA_MONO_DETECT = {
   MFP_IERA, MFP_IERA_MONO_DETECT_MASK,
   1, MFP_IERA_MONO_DETECT_SHIFT,
   "MONO_DETECT", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IERA_RS232_RING = {
+  MFP_IERA, MFP_IERA_RS232_RING_MASK,
+  1, MFP_IERA_RS232_RING_SHIFT,
+  "RS232_RING", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IERA_TIMER_A = {
+  MFP_IERA, MFP_IERA_TIMER_A_MASK,
+  1, MFP_IERA_TIMER_A_SHIFT,
+  "TIMER_A", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IERA_REC_FULL = {
+  MFP_IERA, MFP_IERA_REC_FULL_MASK,
+  1, MFP_IERA_REC_FULL_SHIFT,
+  "REC_FULL", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IERA_REC_ERR = {
+  MFP_IERA, MFP_IERA_REC_ERR_MASK,
+  1, MFP_IERA_REC_ERR_SHIFT,
+  "REC_ERR", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IERA_SEND_EMPTY = {
+  MFP_IERA, MFP_IERA_SEND_EMPTY_MASK,
+  1, MFP_IERA_SEND_EMPTY_SHIFT,
+  "SEND_EMPTY", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IERA_SEND_ERR = {
+  MFP_IERA, MFP_IERA_SEND_ERR_MASK,
+  1, MFP_IERA_SEND_ERR_SHIFT,
+  "SEND_ERR", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IERA_TIMER_B = {
+  MFP_IERA, MFP_IERA_TIMER_B_MASK,
+  1, MFP_IERA_TIMER_B_SHIFT,
+  "TIMER_B", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IERB_FDC_HDC = {
+  MFP_IERB, MFP_IERB_FDC_HDC_MASK,
+  1, MFP_IERB_FDC_HDC_SHIFT,
+  "FDC_HDC", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IERB_IKBD_MIDI = {
+  MFP_IERB, MFP_IERB_IKBD_MIDI_MASK,
+  1, MFP_IERB_IKBD_MIDI_SHIFT,
+  "IKBD_MIDI", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IERB_TIMER_C = {
+  MFP_IERB, MFP_IERB_TIMER_C_MASK,
+  1, MFP_IERB_TIMER_C_SHIFT,
+  "TIMER_C", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IERB_TIMER_D = {
+  MFP_IERB, MFP_IERB_TIMER_D_MASK,
+  1, MFP_IERB_TIMER_D_SHIFT,
+  "TIMER_D", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IERB_BLITTER = {
+  MFP_IERB, MFP_IERB_BLITTER_MASK,
+  1, MFP_IERB_BLITTER_SHIFT,
+  "BLITTER", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IERB_RS232_CTS = {
+  MFP_IERB, MFP_IERB_RS232_CTS_MASK,
+  1, MFP_IERB_RS232_CTS_SHIFT,
+  "RS232_CTS", nullptr, "" };
 const stgen::FieldDef g_fieldDef_MFP_IERB_RS232_DTD = {
   MFP_IERB, MFP_IERB_RS232_DTD_MASK,
   1, MFP_IERB_RS232_DTD_SHIFT,
@@ -492,62 +516,62 @@ const stgen::FieldDef g_fieldDef_MFP_IERB_CENT_BUSY = {
   MFP_IERB, MFP_IERB_CENT_BUSY_MASK,
   1, MFP_IERB_CENT_BUSY_SHIFT,
   "CENT_BUSY", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IERB_RS232_CTS = {
-  MFP_IERB, MFP_IERB_RS232_CTS_MASK,
-  1, MFP_IERB_RS232_CTS_SHIFT,
-  "RS232_CTS", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IERB_BLITTER = {
-  MFP_IERB, MFP_IERB_BLITTER_MASK,
-  1, MFP_IERB_BLITTER_SHIFT,
-  "BLITTER", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IERB_TIMER_D = {
-  MFP_IERB, MFP_IERB_TIMER_D_MASK,
-  1, MFP_IERB_TIMER_D_SHIFT,
-  "TIMER_D", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IERB_TIMER_C = {
-  MFP_IERB, MFP_IERB_TIMER_C_MASK,
-  1, MFP_IERB_TIMER_C_SHIFT,
-  "TIMER_C", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IERB_IKBD_MIDI = {
-  MFP_IERB, MFP_IERB_IKBD_MIDI_MASK,
-  1, MFP_IERB_IKBD_MIDI_SHIFT,
-  "IKBD_MIDI", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IERB_FDC_HDC = {
-  MFP_IERB, MFP_IERB_FDC_HDC_MASK,
-  1, MFP_IERB_FDC_HDC_SHIFT,
-  "FDC_HDC", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IPRA_TIMER_B = {
-  MFP_IPRA, MFP_IPRA_TIMER_B_MASK,
-  1, MFP_IPRA_TIMER_B_SHIFT,
-  "TIMER_B", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IPRA_SEND_ERR = {
-  MFP_IPRA, MFP_IPRA_SEND_ERR_MASK,
-  1, MFP_IPRA_SEND_ERR_SHIFT,
-  "SEND_ERR", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IPRA_SEND_EMPTY = {
-  MFP_IPRA, MFP_IPRA_SEND_EMPTY_MASK,
-  1, MFP_IPRA_SEND_EMPTY_SHIFT,
-  "SEND_EMPTY", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IPRA_REC_ERR = {
-  MFP_IPRA, MFP_IPRA_REC_ERR_MASK,
-  1, MFP_IPRA_REC_ERR_SHIFT,
-  "REC_ERR", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IPRA_REC_FULL = {
-  MFP_IPRA, MFP_IPRA_REC_FULL_MASK,
-  1, MFP_IPRA_REC_FULL_SHIFT,
-  "REC_FULL", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IPRA_TIMER_A = {
-  MFP_IPRA, MFP_IPRA_TIMER_A_MASK,
-  1, MFP_IPRA_TIMER_A_SHIFT,
-  "TIMER_A", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IPRA_RS232_RING = {
-  MFP_IPRA, MFP_IPRA_RS232_RING_MASK,
-  1, MFP_IPRA_RS232_RING_SHIFT,
-  "RS232_RING", nullptr, "" };
 const stgen::FieldDef g_fieldDef_MFP_IPRA_MONO_DETECT = {
   MFP_IPRA, MFP_IPRA_MONO_DETECT_MASK,
   1, MFP_IPRA_MONO_DETECT_SHIFT,
   "MONO_DETECT", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IPRA_RS232_RING = {
+  MFP_IPRA, MFP_IPRA_RS232_RING_MASK,
+  1, MFP_IPRA_RS232_RING_SHIFT,
+  "RS232_RING", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IPRA_TIMER_A = {
+  MFP_IPRA, MFP_IPRA_TIMER_A_MASK,
+  1, MFP_IPRA_TIMER_A_SHIFT,
+  "TIMER_A", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IPRA_REC_FULL = {
+  MFP_IPRA, MFP_IPRA_REC_FULL_MASK,
+  1, MFP_IPRA_REC_FULL_SHIFT,
+  "REC_FULL", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IPRA_REC_ERR = {
+  MFP_IPRA, MFP_IPRA_REC_ERR_MASK,
+  1, MFP_IPRA_REC_ERR_SHIFT,
+  "REC_ERR", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IPRA_SEND_EMPTY = {
+  MFP_IPRA, MFP_IPRA_SEND_EMPTY_MASK,
+  1, MFP_IPRA_SEND_EMPTY_SHIFT,
+  "SEND_EMPTY", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IPRA_SEND_ERR = {
+  MFP_IPRA, MFP_IPRA_SEND_ERR_MASK,
+  1, MFP_IPRA_SEND_ERR_SHIFT,
+  "SEND_ERR", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IPRA_TIMER_B = {
+  MFP_IPRA, MFP_IPRA_TIMER_B_MASK,
+  1, MFP_IPRA_TIMER_B_SHIFT,
+  "TIMER_B", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IPRB_FDC_HDC = {
+  MFP_IPRB, MFP_IPRB_FDC_HDC_MASK,
+  1, MFP_IPRB_FDC_HDC_SHIFT,
+  "FDC_HDC", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IPRB_IKBD_MIDI = {
+  MFP_IPRB, MFP_IPRB_IKBD_MIDI_MASK,
+  1, MFP_IPRB_IKBD_MIDI_SHIFT,
+  "IKBD_MIDI", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IPRB_TIMER_C = {
+  MFP_IPRB, MFP_IPRB_TIMER_C_MASK,
+  1, MFP_IPRB_TIMER_C_SHIFT,
+  "TIMER_C", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IPRB_TIMER_D = {
+  MFP_IPRB, MFP_IPRB_TIMER_D_MASK,
+  1, MFP_IPRB_TIMER_D_SHIFT,
+  "TIMER_D", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IPRB_BLITTER = {
+  MFP_IPRB, MFP_IPRB_BLITTER_MASK,
+  1, MFP_IPRB_BLITTER_SHIFT,
+  "BLITTER", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IPRB_RS232_CTS = {
+  MFP_IPRB, MFP_IPRB_RS232_CTS_MASK,
+  1, MFP_IPRB_RS232_CTS_SHIFT,
+  "RS232_CTS", nullptr, "" };
 const stgen::FieldDef g_fieldDef_MFP_IPRB_RS232_DTD = {
   MFP_IPRB, MFP_IPRB_RS232_DTD_MASK,
   1, MFP_IPRB_RS232_DTD_SHIFT,
@@ -556,62 +580,62 @@ const stgen::FieldDef g_fieldDef_MFP_IPRB_CENT_BUSY = {
   MFP_IPRB, MFP_IPRB_CENT_BUSY_MASK,
   1, MFP_IPRB_CENT_BUSY_SHIFT,
   "CENT_BUSY", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IPRB_RS232_CTS = {
-  MFP_IPRB, MFP_IPRB_RS232_CTS_MASK,
-  1, MFP_IPRB_RS232_CTS_SHIFT,
-  "RS232_CTS", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IPRB_BLITTER = {
-  MFP_IPRB, MFP_IPRB_BLITTER_MASK,
-  1, MFP_IPRB_BLITTER_SHIFT,
-  "BLITTER", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IPRB_TIMER_D = {
-  MFP_IPRB, MFP_IPRB_TIMER_D_MASK,
-  1, MFP_IPRB_TIMER_D_SHIFT,
-  "TIMER_D", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IPRB_TIMER_C = {
-  MFP_IPRB, MFP_IPRB_TIMER_C_MASK,
-  1, MFP_IPRB_TIMER_C_SHIFT,
-  "TIMER_C", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IPRB_IKBD_MIDI = {
-  MFP_IPRB, MFP_IPRB_IKBD_MIDI_MASK,
-  1, MFP_IPRB_IKBD_MIDI_SHIFT,
-  "IKBD_MIDI", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IPRB_FDC_HDC = {
-  MFP_IPRB, MFP_IPRB_FDC_HDC_MASK,
-  1, MFP_IPRB_FDC_HDC_SHIFT,
-  "FDC_HDC", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_ISRA_TIMER_B = {
-  MFP_ISRA, MFP_ISRA_TIMER_B_MASK,
-  1, MFP_ISRA_TIMER_B_SHIFT,
-  "TIMER_B", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_ISRA_SEND_ERR = {
-  MFP_ISRA, MFP_ISRA_SEND_ERR_MASK,
-  1, MFP_ISRA_SEND_ERR_SHIFT,
-  "SEND_ERR", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_ISRA_SEND_EMPTY = {
-  MFP_ISRA, MFP_ISRA_SEND_EMPTY_MASK,
-  1, MFP_ISRA_SEND_EMPTY_SHIFT,
-  "SEND_EMPTY", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_ISRA_REC_ERR = {
-  MFP_ISRA, MFP_ISRA_REC_ERR_MASK,
-  1, MFP_ISRA_REC_ERR_SHIFT,
-  "REC_ERR", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_ISRA_REC_FULL = {
-  MFP_ISRA, MFP_ISRA_REC_FULL_MASK,
-  1, MFP_ISRA_REC_FULL_SHIFT,
-  "REC_FULL", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_ISRA_TIMER_A = {
-  MFP_ISRA, MFP_ISRA_TIMER_A_MASK,
-  1, MFP_ISRA_TIMER_A_SHIFT,
-  "TIMER_A", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_ISRA_RS232_RING = {
-  MFP_ISRA, MFP_ISRA_RS232_RING_MASK,
-  1, MFP_ISRA_RS232_RING_SHIFT,
-  "RS232_RING", nullptr, "" };
 const stgen::FieldDef g_fieldDef_MFP_ISRA_MONO_DETECT = {
   MFP_ISRA, MFP_ISRA_MONO_DETECT_MASK,
   1, MFP_ISRA_MONO_DETECT_SHIFT,
   "MONO_DETECT", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_ISRA_RS232_RING = {
+  MFP_ISRA, MFP_ISRA_RS232_RING_MASK,
+  1, MFP_ISRA_RS232_RING_SHIFT,
+  "RS232_RING", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_ISRA_TIMER_A = {
+  MFP_ISRA, MFP_ISRA_TIMER_A_MASK,
+  1, MFP_ISRA_TIMER_A_SHIFT,
+  "TIMER_A", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_ISRA_REC_FULL = {
+  MFP_ISRA, MFP_ISRA_REC_FULL_MASK,
+  1, MFP_ISRA_REC_FULL_SHIFT,
+  "REC_FULL", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_ISRA_REC_ERR = {
+  MFP_ISRA, MFP_ISRA_REC_ERR_MASK,
+  1, MFP_ISRA_REC_ERR_SHIFT,
+  "REC_ERR", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_ISRA_SEND_EMPTY = {
+  MFP_ISRA, MFP_ISRA_SEND_EMPTY_MASK,
+  1, MFP_ISRA_SEND_EMPTY_SHIFT,
+  "SEND_EMPTY", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_ISRA_SEND_ERR = {
+  MFP_ISRA, MFP_ISRA_SEND_ERR_MASK,
+  1, MFP_ISRA_SEND_ERR_SHIFT,
+  "SEND_ERR", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_ISRA_TIMER_B = {
+  MFP_ISRA, MFP_ISRA_TIMER_B_MASK,
+  1, MFP_ISRA_TIMER_B_SHIFT,
+  "TIMER_B", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_ISRB_FDC_HDC = {
+  MFP_ISRB, MFP_ISRB_FDC_HDC_MASK,
+  1, MFP_ISRB_FDC_HDC_SHIFT,
+  "FDC_HDC", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_ISRB_IKBD_MIDI = {
+  MFP_ISRB, MFP_ISRB_IKBD_MIDI_MASK,
+  1, MFP_ISRB_IKBD_MIDI_SHIFT,
+  "IKBD_MIDI", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_ISRB_TIMER_C = {
+  MFP_ISRB, MFP_ISRB_TIMER_C_MASK,
+  1, MFP_ISRB_TIMER_C_SHIFT,
+  "TIMER_C", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_ISRB_TIMER_D = {
+  MFP_ISRB, MFP_ISRB_TIMER_D_MASK,
+  1, MFP_ISRB_TIMER_D_SHIFT,
+  "TIMER_D", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_ISRB_BLITTER = {
+  MFP_ISRB, MFP_ISRB_BLITTER_MASK,
+  1, MFP_ISRB_BLITTER_SHIFT,
+  "BLITTER", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_ISRB_RS232_CTS = {
+  MFP_ISRB, MFP_ISRB_RS232_CTS_MASK,
+  1, MFP_ISRB_RS232_CTS_SHIFT,
+  "RS232_CTS", nullptr, "" };
 const stgen::FieldDef g_fieldDef_MFP_ISRB_RS232_DTD = {
   MFP_ISRB, MFP_ISRB_RS232_DTD_MASK,
   1, MFP_ISRB_RS232_DTD_SHIFT,
@@ -620,62 +644,62 @@ const stgen::FieldDef g_fieldDef_MFP_ISRB_CENT_BUSY = {
   MFP_ISRB, MFP_ISRB_CENT_BUSY_MASK,
   1, MFP_ISRB_CENT_BUSY_SHIFT,
   "CENT_BUSY", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_ISRB_RS232_CTS = {
-  MFP_ISRB, MFP_ISRB_RS232_CTS_MASK,
-  1, MFP_ISRB_RS232_CTS_SHIFT,
-  "RS232_CTS", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_ISRB_BLITTER = {
-  MFP_ISRB, MFP_ISRB_BLITTER_MASK,
-  1, MFP_ISRB_BLITTER_SHIFT,
-  "BLITTER", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_ISRB_TIMER_D = {
-  MFP_ISRB, MFP_ISRB_TIMER_D_MASK,
-  1, MFP_ISRB_TIMER_D_SHIFT,
-  "TIMER_D", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_ISRB_TIMER_C = {
-  MFP_ISRB, MFP_ISRB_TIMER_C_MASK,
-  1, MFP_ISRB_TIMER_C_SHIFT,
-  "TIMER_C", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_ISRB_IKBD_MIDI = {
-  MFP_ISRB, MFP_ISRB_IKBD_MIDI_MASK,
-  1, MFP_ISRB_IKBD_MIDI_SHIFT,
-  "IKBD_MIDI", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_ISRB_FDC_HDC = {
-  MFP_ISRB, MFP_ISRB_FDC_HDC_MASK,
-  1, MFP_ISRB_FDC_HDC_SHIFT,
-  "FDC_HDC", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IMRA_TIMER_B = {
-  MFP_IMRA, MFP_IMRA_TIMER_B_MASK,
-  1, MFP_IMRA_TIMER_B_SHIFT,
-  "TIMER_B", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IMRA_SEND_ERR = {
-  MFP_IMRA, MFP_IMRA_SEND_ERR_MASK,
-  1, MFP_IMRA_SEND_ERR_SHIFT,
-  "SEND_ERR", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IMRA_SEND_EMPTY = {
-  MFP_IMRA, MFP_IMRA_SEND_EMPTY_MASK,
-  1, MFP_IMRA_SEND_EMPTY_SHIFT,
-  "SEND_EMPTY", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IMRA_REC_ERR = {
-  MFP_IMRA, MFP_IMRA_REC_ERR_MASK,
-  1, MFP_IMRA_REC_ERR_SHIFT,
-  "REC_ERR", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IMRA_REC_FULL = {
-  MFP_IMRA, MFP_IMRA_REC_FULL_MASK,
-  1, MFP_IMRA_REC_FULL_SHIFT,
-  "REC_FULL", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IMRA_TIMER_A = {
-  MFP_IMRA, MFP_IMRA_TIMER_A_MASK,
-  1, MFP_IMRA_TIMER_A_SHIFT,
-  "TIMER_A", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IMRA_RS232_RING = {
-  MFP_IMRA, MFP_IMRA_RS232_RING_MASK,
-  1, MFP_IMRA_RS232_RING_SHIFT,
-  "RS232_RING", nullptr, "" };
 const stgen::FieldDef g_fieldDef_MFP_IMRA_MONO_DETECT = {
   MFP_IMRA, MFP_IMRA_MONO_DETECT_MASK,
   1, MFP_IMRA_MONO_DETECT_SHIFT,
   "MONO_DETECT", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IMRA_RS232_RING = {
+  MFP_IMRA, MFP_IMRA_RS232_RING_MASK,
+  1, MFP_IMRA_RS232_RING_SHIFT,
+  "RS232_RING", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IMRA_TIMER_A = {
+  MFP_IMRA, MFP_IMRA_TIMER_A_MASK,
+  1, MFP_IMRA_TIMER_A_SHIFT,
+  "TIMER_A", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IMRA_REC_FULL = {
+  MFP_IMRA, MFP_IMRA_REC_FULL_MASK,
+  1, MFP_IMRA_REC_FULL_SHIFT,
+  "REC_FULL", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IMRA_REC_ERR = {
+  MFP_IMRA, MFP_IMRA_REC_ERR_MASK,
+  1, MFP_IMRA_REC_ERR_SHIFT,
+  "REC_ERR", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IMRA_SEND_EMPTY = {
+  MFP_IMRA, MFP_IMRA_SEND_EMPTY_MASK,
+  1, MFP_IMRA_SEND_EMPTY_SHIFT,
+  "SEND_EMPTY", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IMRA_SEND_ERR = {
+  MFP_IMRA, MFP_IMRA_SEND_ERR_MASK,
+  1, MFP_IMRA_SEND_ERR_SHIFT,
+  "SEND_ERR", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IMRA_TIMER_B = {
+  MFP_IMRA, MFP_IMRA_TIMER_B_MASK,
+  1, MFP_IMRA_TIMER_B_SHIFT,
+  "TIMER_B", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IMRB_FDC_HDC = {
+  MFP_IMRB, MFP_IMRB_FDC_HDC_MASK,
+  1, MFP_IMRB_FDC_HDC_SHIFT,
+  "FDC_HDC", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IMRB_IKBD_MIDI = {
+  MFP_IMRB, MFP_IMRB_IKBD_MIDI_MASK,
+  1, MFP_IMRB_IKBD_MIDI_SHIFT,
+  "IKBD_MIDI", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IMRB_TIMER_C = {
+  MFP_IMRB, MFP_IMRB_TIMER_C_MASK,
+  1, MFP_IMRB_TIMER_C_SHIFT,
+  "TIMER_C", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IMRB_TIMER_D = {
+  MFP_IMRB, MFP_IMRB_TIMER_D_MASK,
+  1, MFP_IMRB_TIMER_D_SHIFT,
+  "TIMER_D", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IMRB_BLITTER = {
+  MFP_IMRB, MFP_IMRB_BLITTER_MASK,
+  1, MFP_IMRB_BLITTER_SHIFT,
+  "BLITTER", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_IMRB_RS232_CTS = {
+  MFP_IMRB, MFP_IMRB_RS232_CTS_MASK,
+  1, MFP_IMRB_RS232_CTS_SHIFT,
+  "RS232_CTS", nullptr, "" };
 const stgen::FieldDef g_fieldDef_MFP_IMRB_RS232_DTD = {
   MFP_IMRB, MFP_IMRB_RS232_DTD_MASK,
   1, MFP_IMRB_RS232_DTD_SHIFT,
@@ -684,30 +708,6 @@ const stgen::FieldDef g_fieldDef_MFP_IMRB_CENT_BUSY = {
   MFP_IMRB, MFP_IMRB_CENT_BUSY_MASK,
   1, MFP_IMRB_CENT_BUSY_SHIFT,
   "CENT_BUSY", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IMRB_RS232_CTS = {
-  MFP_IMRB, MFP_IMRB_RS232_CTS_MASK,
-  1, MFP_IMRB_RS232_CTS_SHIFT,
-  "RS232_CTS", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IMRB_BLITTER = {
-  MFP_IMRB, MFP_IMRB_BLITTER_MASK,
-  1, MFP_IMRB_BLITTER_SHIFT,
-  "BLITTER", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IMRB_TIMER_D = {
-  MFP_IMRB, MFP_IMRB_TIMER_D_MASK,
-  1, MFP_IMRB_TIMER_D_SHIFT,
-  "TIMER_D", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IMRB_TIMER_C = {
-  MFP_IMRB, MFP_IMRB_TIMER_C_MASK,
-  1, MFP_IMRB_TIMER_C_SHIFT,
-  "TIMER_C", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IMRB_IKBD_MIDI = {
-  MFP_IMRB, MFP_IMRB_IKBD_MIDI_MASK,
-  1, MFP_IMRB_IKBD_MIDI_SHIFT,
-  "IKBD_MIDI", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_IMRB_FDC_HDC = {
-  MFP_IMRB, MFP_IMRB_FDC_HDC_MASK,
-  1, MFP_IMRB_FDC_HDC_SHIFT,
-  "FDC_HDC", nullptr, "" };
 const stgen::FieldDef g_fieldDef_MFP_VR_ENDINT = {
   MFP_VR, MFP_VR_ENDINT_MASK,
   1, MFP_VR_ENDINT_SHIFT,
@@ -752,90 +752,90 @@ const stgen::FieldDef g_fieldDef_MFP_SCR_ALL = {
   MFP_SCR, MFP_SCR_ALL_MASK,
   1, MFP_SCR_ALL_SHIFT,
   "ALL", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_UCR_PARITY_EVEN = {
-  MFP_UCR, MFP_UCR_PARITY_EVEN_MASK,
-  1, MFP_UCR_PARITY_EVEN_SHIFT,
-  "PARITY_EVEN", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_UCR_PARITY_IGNORE = {
-  MFP_UCR, MFP_UCR_PARITY_IGNORE_MASK,
-  1, MFP_UCR_PARITY_IGNORE_SHIFT,
-  "PARITY_IGNORE", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_UCR_FORMAT = {
-  MFP_UCR, MFP_UCR_FORMAT_MASK,
-  1, MFP_UCR_FORMAT_SHIFT,
-  "FORMAT", nullptr, "Start/Stop/Synchronous" };
-const stgen::FieldDef g_fieldDef_MFP_UCR_WORD_LEN = {
-  MFP_UCR, MFP_UCR_WORD_LEN_MASK,
-  1, MFP_UCR_WORD_LEN_SHIFT,
-  "WORD_LEN", g_enumStringsUSARTLEN, "Word Length" };
 const stgen::FieldDef g_fieldDef_MFP_UCR_CLOCK_DIV = {
   MFP_UCR, MFP_UCR_CLOCK_DIV_MASK,
   1, MFP_UCR_CLOCK_DIV_SHIFT,
   "CLOCK_DIV", nullptr, "Divide by 16" };
-const stgen::FieldDef g_fieldDef_MFP_RSR_REC_ENABLE = {
-  MFP_RSR, MFP_RSR_REC_ENABLE_MASK,
-  1, MFP_RSR_REC_ENABLE_SHIFT,
-  "REC_ENABLE", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_RSR_STRIP = {
-  MFP_RSR, MFP_RSR_STRIP_MASK,
-  1, MFP_RSR_STRIP_SHIFT,
-  "STRIP", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_RSR_MATCH = {
-  MFP_RSR, MFP_RSR_MATCH_MASK,
-  1, MFP_RSR_MATCH_SHIFT,
-  "MATCH", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_RSR_FOUND = {
-  MFP_RSR, MFP_RSR_FOUND_MASK,
-  1, MFP_RSR_FOUND_SHIFT,
-  "FOUND", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_RSR_FRAME_ERR = {
-  MFP_RSR, MFP_RSR_FRAME_ERR_MASK,
-  1, MFP_RSR_FRAME_ERR_SHIFT,
-  "FRAME_ERR", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_RSR_PARITY_ERR = {
-  MFP_RSR, MFP_RSR_PARITY_ERR_MASK,
-  1, MFP_RSR_PARITY_ERR_SHIFT,
-  "PARITY_ERR", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_RSR_OVERRUN_ERR = {
-  MFP_RSR, MFP_RSR_OVERRUN_ERR_MASK,
-  1, MFP_RSR_OVERRUN_ERR_SHIFT,
-  "OVERRUN_ERR", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_UCR_WORD_LEN = {
+  MFP_UCR, MFP_UCR_WORD_LEN_MASK,
+  1, MFP_UCR_WORD_LEN_SHIFT,
+  "WORD_LEN", g_enumStringsUSARTLEN, "Word Length" };
+const stgen::FieldDef g_fieldDef_MFP_UCR_FORMAT = {
+  MFP_UCR, MFP_UCR_FORMAT_MASK,
+  1, MFP_UCR_FORMAT_SHIFT,
+  "FORMAT", nullptr, "Start/Stop/Synchronous" };
+const stgen::FieldDef g_fieldDef_MFP_UCR_PARITY_IGNORE = {
+  MFP_UCR, MFP_UCR_PARITY_IGNORE_MASK,
+  1, MFP_UCR_PARITY_IGNORE_SHIFT,
+  "PARITY_IGNORE", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_UCR_PARITY_EVEN = {
+  MFP_UCR, MFP_UCR_PARITY_EVEN_MASK,
+  1, MFP_UCR_PARITY_EVEN_SHIFT,
+  "PARITY_EVEN", nullptr, "" };
 const stgen::FieldDef g_fieldDef_MFP_RSR_BUFFER_FULL = {
   MFP_RSR, MFP_RSR_BUFFER_FULL_MASK,
   1, MFP_RSR_BUFFER_FULL_SHIFT,
   "BUFFER_FULL", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_TSR_TRANS_ENABLE = {
-  MFP_TSR, MFP_TSR_TRANS_ENABLE_MASK,
-  1, MFP_TSR_TRANS_ENABLE_SHIFT,
-  "TRANS_ENABLE", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_TSR_LOW = {
-  MFP_TSR, MFP_TSR_LOW_MASK,
-  1, MFP_TSR_LOW_SHIFT,
-  "LOW", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_TSR_HIGH = {
-  MFP_TSR, MFP_TSR_HIGH_MASK,
-  1, MFP_TSR_HIGH_SHIFT,
-  "HIGH", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_TSR_BREAK = {
-  MFP_TSR, MFP_TSR_BREAK_MASK,
-  1, MFP_TSR_BREAK_SHIFT,
-  "BREAK", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_TSR_EOT = {
-  MFP_TSR, MFP_TSR_EOT_MASK,
-  1, MFP_TSR_EOT_SHIFT,
-  "EOT", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_TSR_AUTO_TURN = {
-  MFP_TSR, MFP_TSR_AUTO_TURN_MASK,
-  1, MFP_TSR_AUTO_TURN_SHIFT,
-  "AUTO_TURN", nullptr, "" };
-const stgen::FieldDef g_fieldDef_MFP_TSR_UNDERRUN_ERR = {
-  MFP_TSR, MFP_TSR_UNDERRUN_ERR_MASK,
-  1, MFP_TSR_UNDERRUN_ERR_SHIFT,
-  "UNDERRUN_ERR", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_RSR_OVERRUN_ERR = {
+  MFP_RSR, MFP_RSR_OVERRUN_ERR_MASK,
+  1, MFP_RSR_OVERRUN_ERR_SHIFT,
+  "OVERRUN_ERR", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_RSR_PARITY_ERR = {
+  MFP_RSR, MFP_RSR_PARITY_ERR_MASK,
+  1, MFP_RSR_PARITY_ERR_SHIFT,
+  "PARITY_ERR", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_RSR_FRAME_ERR = {
+  MFP_RSR, MFP_RSR_FRAME_ERR_MASK,
+  1, MFP_RSR_FRAME_ERR_SHIFT,
+  "FRAME_ERR", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_RSR_FOUND = {
+  MFP_RSR, MFP_RSR_FOUND_MASK,
+  1, MFP_RSR_FOUND_SHIFT,
+  "FOUND", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_RSR_MATCH = {
+  MFP_RSR, MFP_RSR_MATCH_MASK,
+  1, MFP_RSR_MATCH_SHIFT,
+  "MATCH", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_RSR_STRIP = {
+  MFP_RSR, MFP_RSR_STRIP_MASK,
+  1, MFP_RSR_STRIP_SHIFT,
+  "STRIP", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_RSR_REC_ENABLE = {
+  MFP_RSR, MFP_RSR_REC_ENABLE_MASK,
+  1, MFP_RSR_REC_ENABLE_SHIFT,
+  "REC_ENABLE", nullptr, "" };
 const stgen::FieldDef g_fieldDef_MFP_TSR_BUFFER_EMPTY = {
   MFP_TSR, MFP_TSR_BUFFER_EMPTY_MASK,
   1, MFP_TSR_BUFFER_EMPTY_SHIFT,
   "BUFFER_EMPTY", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_TSR_UNDERRUN_ERR = {
+  MFP_TSR, MFP_TSR_UNDERRUN_ERR_MASK,
+  1, MFP_TSR_UNDERRUN_ERR_SHIFT,
+  "UNDERRUN_ERR", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_TSR_AUTO_TURN = {
+  MFP_TSR, MFP_TSR_AUTO_TURN_MASK,
+  1, MFP_TSR_AUTO_TURN_SHIFT,
+  "AUTO_TURN", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_TSR_EOT = {
+  MFP_TSR, MFP_TSR_EOT_MASK,
+  1, MFP_TSR_EOT_SHIFT,
+  "EOT", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_TSR_BREAK = {
+  MFP_TSR, MFP_TSR_BREAK_MASK,
+  1, MFP_TSR_BREAK_SHIFT,
+  "BREAK", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_TSR_HIGH = {
+  MFP_TSR, MFP_TSR_HIGH_MASK,
+  1, MFP_TSR_HIGH_SHIFT,
+  "HIGH", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_TSR_LOW = {
+  MFP_TSR, MFP_TSR_LOW_MASK,
+  1, MFP_TSR_LOW_SHIFT,
+  "LOW", nullptr, "" };
+const stgen::FieldDef g_fieldDef_MFP_TSR_TRANS_ENABLE = {
+  MFP_TSR, MFP_TSR_TRANS_ENABLE_MASK,
+  1, MFP_TSR_TRANS_ENABLE_SHIFT,
+  "TRANS_ENABLE", nullptr, "" };
 const stgen::FieldDef g_fieldDef_MFP_UDR_ALL = {
   MFP_UDR, MFP_UDR_ALL_MASK,
   1, MFP_UDR_ALL_SHIFT,
@@ -952,83 +952,83 @@ const stgen::FieldDef g_fieldDef_BLT_LOGICAL_OP_OP = {
   BLT_LOGICAL_OP, BLT_LOGICAL_OP_OP_MASK,
   1, BLT_LOGICAL_OP_OP_SHIFT,
   "OP", g_enumStringsBLT_OP, "" };
-const stgen::FieldDef g_fieldDef_BLT_CTRL_1_HALFTONE_LINE = {
-  BLT_CTRL_1, BLT_CTRL_1_HALFTONE_LINE_MASK,
-  1, BLT_CTRL_1_HALFTONE_LINE_SHIFT,
-  "HALFTONE_LINE", nullptr, "Halftone Line" };
-const stgen::FieldDef g_fieldDef_BLT_CTRL_1_SMUDGE = {
-  BLT_CTRL_1, BLT_CTRL_1_SMUDGE_MASK,
-  1, BLT_CTRL_1_SMUDGE_SHIFT,
-  "SMUDGE", nullptr, "SMUDGE mode" };
-const stgen::FieldDef g_fieldDef_BLT_CTRL_1_HOG = {
-  BLT_CTRL_1, BLT_CTRL_1_HOG_MASK,
-  1, BLT_CTRL_1_HOG_SHIFT,
-  "HOG", nullptr, "HOG mode" };
 const stgen::FieldDef g_fieldDef_BLT_CTRL_1_BUSY = {
   BLT_CTRL_1, BLT_CTRL_1_BUSY_MASK,
   1, BLT_CTRL_1_BUSY_SHIFT,
   "BUSY", nullptr, "Blitter Busy" };
-const stgen::FieldDef g_fieldDef_BLT_CTRL_2_SKEW = {
-  BLT_CTRL_2, BLT_CTRL_2_SKEW_MASK,
-  1, BLT_CTRL_2_SKEW_SHIFT,
-  "SKEW", nullptr, "Source Skew" };
-const stgen::FieldDef g_fieldDef_BLT_CTRL_2_NFSR = {
-  BLT_CTRL_2, BLT_CTRL_2_NFSR_MASK,
-  1, BLT_CTRL_2_NFSR_SHIFT,
-  "NFSR", nullptr, "No Final Source Read" };
+const stgen::FieldDef g_fieldDef_BLT_CTRL_1_HOG = {
+  BLT_CTRL_1, BLT_CTRL_1_HOG_MASK,
+  1, BLT_CTRL_1_HOG_SHIFT,
+  "HOG", nullptr, "HOG mode" };
+const stgen::FieldDef g_fieldDef_BLT_CTRL_1_SMUDGE = {
+  BLT_CTRL_1, BLT_CTRL_1_SMUDGE_MASK,
+  1, BLT_CTRL_1_SMUDGE_SHIFT,
+  "SMUDGE", nullptr, "SMUDGE mode" };
+const stgen::FieldDef g_fieldDef_BLT_CTRL_1_HALFTONE_LINE = {
+  BLT_CTRL_1, BLT_CTRL_1_HALFTONE_LINE_MASK,
+  1, BLT_CTRL_1_HALFTONE_LINE_SHIFT,
+  "HALFTONE_LINE", nullptr, "Halftone Line" };
 const stgen::FieldDef g_fieldDef_BLT_CTRL_2_FXSR = {
   BLT_CTRL_2, BLT_CTRL_2_FXSR_MASK,
   1, BLT_CTRL_2_FXSR_SHIFT,
   "FXSR", nullptr, "Force Extra Source Read" };
-const stgen::FieldDef g_fieldDef_DMA_BUFFER_INTERRUPTS_i7_REPLAY = {
-  DMA_BUFFER_INTERRUPTS, DMA_BUFFER_INTERRUPTS_i7_REPLAY_MASK,
-  1, DMA_BUFFER_INTERRUPTS_i7_REPLAY_SHIFT,
-  "i7_REPLAY", nullptr, "MFP-15-Int (I7) at end of replay buffer" };
-const stgen::FieldDef g_fieldDef_DMA_BUFFER_INTERRUPTS_I7_RECORD = {
-  DMA_BUFFER_INTERRUPTS, DMA_BUFFER_INTERRUPTS_I7_RECORD_MASK,
-  1, DMA_BUFFER_INTERRUPTS_I7_RECORD_SHIFT,
-  "I7_RECORD", nullptr, "MFP-15-Int (I7) at end of record buffer" };
-const stgen::FieldDef g_fieldDef_DMA_BUFFER_INTERRUPTS_TIMERA_REPLAY = {
-  DMA_BUFFER_INTERRUPTS, DMA_BUFFER_INTERRUPTS_TIMERA_REPLAY_MASK,
-  1, DMA_BUFFER_INTERRUPTS_TIMERA_REPLAY_SHIFT,
-  "TIMERA_REPLAY", nullptr, "TimerA-Int at end of replay buffer" };
+const stgen::FieldDef g_fieldDef_BLT_CTRL_2_NFSR = {
+  BLT_CTRL_2, BLT_CTRL_2_NFSR_MASK,
+  1, BLT_CTRL_2_NFSR_SHIFT,
+  "NFSR", nullptr, "No Final Source Read" };
+const stgen::FieldDef g_fieldDef_BLT_CTRL_2_SKEW = {
+  BLT_CTRL_2, BLT_CTRL_2_SKEW_MASK,
+  1, BLT_CTRL_2_SKEW_SHIFT,
+  "SKEW", nullptr, "Source Skew" };
 const stgen::FieldDef g_fieldDef_DMA_BUFFER_INTERRUPTS_TIMERA_RECORD = {
   DMA_BUFFER_INTERRUPTS, DMA_BUFFER_INTERRUPTS_TIMERA_RECORD_MASK,
   1, DMA_BUFFER_INTERRUPTS_TIMERA_RECORD_SHIFT,
   "TIMERA_RECORD", nullptr, "TimerA-Int at end of record buffer" };
-const stgen::FieldDef g_fieldDef_DMA_CONTROL_REPLAY = {
-  DMA_CONTROL, DMA_CONTROL_REPLAY_MASK,
-  1, DMA_CONTROL_REPLAY_SHIFT,
-  "REPLAY", nullptr, "Replay enabled" };
-const stgen::FieldDef g_fieldDef_DMA_CONTROL_LOOP_REPLAY = {
-  DMA_CONTROL, DMA_CONTROL_LOOP_REPLAY_MASK,
-  1, DMA_CONTROL_LOOP_REPLAY_SHIFT,
-  "LOOP_REPLAY", nullptr, "" };
-const stgen::FieldDef g_fieldDef_DMA_CONTROL_RECORD = {
-  DMA_CONTROL, DMA_CONTROL_RECORD_MASK,
-  1, DMA_CONTROL_RECORD_SHIFT,
-  "RECORD", nullptr, "Recording enabled" };
-const stgen::FieldDef g_fieldDef_DMA_CONTROL_LOOP_RECORD = {
-  DMA_CONTROL, DMA_CONTROL_LOOP_RECORD_MASK,
-  1, DMA_CONTROL_LOOP_RECORD_SHIFT,
-  "LOOP_RECORD", nullptr, "" };
+const stgen::FieldDef g_fieldDef_DMA_BUFFER_INTERRUPTS_TIMERA_REPLAY = {
+  DMA_BUFFER_INTERRUPTS, DMA_BUFFER_INTERRUPTS_TIMERA_REPLAY_MASK,
+  1, DMA_BUFFER_INTERRUPTS_TIMERA_REPLAY_SHIFT,
+  "TIMERA_REPLAY", nullptr, "TimerA-Int at end of replay buffer" };
+const stgen::FieldDef g_fieldDef_DMA_BUFFER_INTERRUPTS_I7_RECORD = {
+  DMA_BUFFER_INTERRUPTS, DMA_BUFFER_INTERRUPTS_I7_RECORD_MASK,
+  1, DMA_BUFFER_INTERRUPTS_I7_RECORD_SHIFT,
+  "I7_RECORD", nullptr, "MFP-15-Int (I7) at end of record buffer" };
+const stgen::FieldDef g_fieldDef_DMA_BUFFER_INTERRUPTS_i7_REPLAY = {
+  DMA_BUFFER_INTERRUPTS, DMA_BUFFER_INTERRUPTS_i7_REPLAY_MASK,
+  1, DMA_BUFFER_INTERRUPTS_i7_REPLAY_SHIFT,
+  "i7_REPLAY", nullptr, "MFP-15-Int (I7) at end of replay buffer" };
 const stgen::FieldDef g_fieldDef_DMA_CONTROL_SELECT = {
   DMA_CONTROL, DMA_CONTROL_SELECT_MASK,
   1, DMA_CONTROL_SELECT_SHIFT,
   "SELECT", nullptr, "0=record select, 1=replay select" };
-const stgen::FieldDef g_fieldDef_DMA_SND_MODE_DMA_FREQ = {
-  DMA_SND_MODE, DMA_SND_MODE_DMA_FREQ_MASK,
-  1, DMA_SND_MODE_DMA_FREQ_SHIFT,
-  "DMA_FREQ", g_enumStringsDMA_FREQ, "" };
+const stgen::FieldDef g_fieldDef_DMA_CONTROL_LOOP_RECORD = {
+  DMA_CONTROL, DMA_CONTROL_LOOP_RECORD_MASK,
+  1, DMA_CONTROL_LOOP_RECORD_SHIFT,
+  "LOOP_RECORD", nullptr, "" };
+const stgen::FieldDef g_fieldDef_DMA_CONTROL_RECORD = {
+  DMA_CONTROL, DMA_CONTROL_RECORD_MASK,
+  1, DMA_CONTROL_RECORD_SHIFT,
+  "RECORD", nullptr, "Recording enabled" };
+const stgen::FieldDef g_fieldDef_DMA_CONTROL_LOOP_REPLAY = {
+  DMA_CONTROL, DMA_CONTROL_LOOP_REPLAY_MASK,
+  1, DMA_CONTROL_LOOP_REPLAY_SHIFT,
+  "LOOP_REPLAY", nullptr, "" };
+const stgen::FieldDef g_fieldDef_DMA_CONTROL_REPLAY = {
+  DMA_CONTROL, DMA_CONTROL_REPLAY_MASK,
+  1, DMA_CONTROL_REPLAY_SHIFT,
+  "REPLAY", nullptr, "Replay enabled" };
 const stgen::FieldDef g_fieldDef_DMA_SND_MODE_FORMAT = {
   DMA_SND_MODE, DMA_SND_MODE_FORMAT_MASK,
   1, DMA_SND_MODE_FORMAT_SHIFT,
   "FORMAT", g_enumStringsIS_STEREO, "" };
+const stgen::FieldDef g_fieldDef_DMA_SND_MODE_DMA_FREQ = {
+  DMA_SND_MODE, DMA_SND_MODE_DMA_FREQ_MASK,
+  1, DMA_SND_MODE_DMA_FREQ_SHIFT,
+  "DMA_FREQ", g_enumStringsDMA_FREQ, "" };
 /* Register Field Sets */
 
 const stgen::FieldDef* g_regFieldsDef_MMU_CONFIG[] = {
-	 &g_fieldDef_MMU_CONFIG_BANK1,
 	 &g_fieldDef_MMU_CONFIG_BANK0,
+	 &g_fieldDef_MMU_CONFIG_BANK1,
 	nullptr
 };
 const stgen::FieldDef* g_regFieldsDef_VID_BASE_HIGH[] = {
@@ -1096,111 +1096,111 @@ const stgen::FieldDef* g_regFieldsDef_MFP_GPIP[] = {
 	nullptr
 };
 const stgen::FieldDef* g_regFieldsDef_MFP_AER[] = {
-	 &g_fieldDef_MFP_AER_CENT_BUSY,
-	 &g_fieldDef_MFP_AER_RS232_DCD,
-	 &g_fieldDef_MFP_AER_RS232_CTS,
-	 &g_fieldDef_MFP_AER_KBD_MIDI,
-	 &g_fieldDef_MFP_AER_FDC_HDC,
-	 &g_fieldDef_MFP_AER_RS232_RING,
 	 &g_fieldDef_MFP_AER_MONO,
+	 &g_fieldDef_MFP_AER_RS232_RING,
+	 &g_fieldDef_MFP_AER_FDC_HDC,
+	 &g_fieldDef_MFP_AER_KBD_MIDI,
+	 &g_fieldDef_MFP_AER_RS232_CTS,
+	 &g_fieldDef_MFP_AER_RS232_DCD,
+	 &g_fieldDef_MFP_AER_CENT_BUSY,
 	nullptr
 };
 const stgen::FieldDef* g_regFieldsDef_MFP_DDR[] = {
-	 &g_fieldDef_MFP_DDR_CENT_BUSY,
-	 &g_fieldDef_MFP_DDR_RS232_DCD,
-	 &g_fieldDef_MFP_DDR_RS232_CTS,
-	 &g_fieldDef_MFP_DDR_KBD_MIDI,
-	 &g_fieldDef_MFP_DDR_FDC_HDC,
-	 &g_fieldDef_MFP_DDR_RS232_RING,
 	 &g_fieldDef_MFP_DDR_MONO,
+	 &g_fieldDef_MFP_DDR_RS232_RING,
+	 &g_fieldDef_MFP_DDR_FDC_HDC,
+	 &g_fieldDef_MFP_DDR_KBD_MIDI,
+	 &g_fieldDef_MFP_DDR_RS232_CTS,
+	 &g_fieldDef_MFP_DDR_RS232_DCD,
+	 &g_fieldDef_MFP_DDR_CENT_BUSY,
 	nullptr
 };
 const stgen::FieldDef* g_regFieldsDef_MFP_IERA[] = {
-	 &g_fieldDef_MFP_IERA_TIMER_B,
-	 &g_fieldDef_MFP_IERA_SEND_ERR,
-	 &g_fieldDef_MFP_IERA_SEND_EMPTY,
-	 &g_fieldDef_MFP_IERA_REC_ERR,
-	 &g_fieldDef_MFP_IERA_REC_FULL,
-	 &g_fieldDef_MFP_IERA_TIMER_A,
-	 &g_fieldDef_MFP_IERA_RS232_RING,
 	 &g_fieldDef_MFP_IERA_MONO_DETECT,
+	 &g_fieldDef_MFP_IERA_RS232_RING,
+	 &g_fieldDef_MFP_IERA_TIMER_A,
+	 &g_fieldDef_MFP_IERA_REC_FULL,
+	 &g_fieldDef_MFP_IERA_REC_ERR,
+	 &g_fieldDef_MFP_IERA_SEND_EMPTY,
+	 &g_fieldDef_MFP_IERA_SEND_ERR,
+	 &g_fieldDef_MFP_IERA_TIMER_B,
 	nullptr
 };
 const stgen::FieldDef* g_regFieldsDef_MFP_IERB[] = {
+	 &g_fieldDef_MFP_IERB_FDC_HDC,
+	 &g_fieldDef_MFP_IERB_IKBD_MIDI,
+	 &g_fieldDef_MFP_IERB_TIMER_C,
+	 &g_fieldDef_MFP_IERB_TIMER_D,
+	 &g_fieldDef_MFP_IERB_BLITTER,
+	 &g_fieldDef_MFP_IERB_RS232_CTS,
 	 &g_fieldDef_MFP_IERB_RS232_DTD,
 	 &g_fieldDef_MFP_IERB_CENT_BUSY,
-	 &g_fieldDef_MFP_IERB_RS232_CTS,
-	 &g_fieldDef_MFP_IERB_BLITTER,
-	 &g_fieldDef_MFP_IERB_TIMER_D,
-	 &g_fieldDef_MFP_IERB_TIMER_C,
-	 &g_fieldDef_MFP_IERB_IKBD_MIDI,
-	 &g_fieldDef_MFP_IERB_FDC_HDC,
 	nullptr
 };
 const stgen::FieldDef* g_regFieldsDef_MFP_IPRA[] = {
-	 &g_fieldDef_MFP_IPRA_TIMER_B,
-	 &g_fieldDef_MFP_IPRA_SEND_ERR,
-	 &g_fieldDef_MFP_IPRA_SEND_EMPTY,
-	 &g_fieldDef_MFP_IPRA_REC_ERR,
-	 &g_fieldDef_MFP_IPRA_REC_FULL,
-	 &g_fieldDef_MFP_IPRA_TIMER_A,
-	 &g_fieldDef_MFP_IPRA_RS232_RING,
 	 &g_fieldDef_MFP_IPRA_MONO_DETECT,
+	 &g_fieldDef_MFP_IPRA_RS232_RING,
+	 &g_fieldDef_MFP_IPRA_TIMER_A,
+	 &g_fieldDef_MFP_IPRA_REC_FULL,
+	 &g_fieldDef_MFP_IPRA_REC_ERR,
+	 &g_fieldDef_MFP_IPRA_SEND_EMPTY,
+	 &g_fieldDef_MFP_IPRA_SEND_ERR,
+	 &g_fieldDef_MFP_IPRA_TIMER_B,
 	nullptr
 };
 const stgen::FieldDef* g_regFieldsDef_MFP_IPRB[] = {
+	 &g_fieldDef_MFP_IPRB_FDC_HDC,
+	 &g_fieldDef_MFP_IPRB_IKBD_MIDI,
+	 &g_fieldDef_MFP_IPRB_TIMER_C,
+	 &g_fieldDef_MFP_IPRB_TIMER_D,
+	 &g_fieldDef_MFP_IPRB_BLITTER,
+	 &g_fieldDef_MFP_IPRB_RS232_CTS,
 	 &g_fieldDef_MFP_IPRB_RS232_DTD,
 	 &g_fieldDef_MFP_IPRB_CENT_BUSY,
-	 &g_fieldDef_MFP_IPRB_RS232_CTS,
-	 &g_fieldDef_MFP_IPRB_BLITTER,
-	 &g_fieldDef_MFP_IPRB_TIMER_D,
-	 &g_fieldDef_MFP_IPRB_TIMER_C,
-	 &g_fieldDef_MFP_IPRB_IKBD_MIDI,
-	 &g_fieldDef_MFP_IPRB_FDC_HDC,
 	nullptr
 };
 const stgen::FieldDef* g_regFieldsDef_MFP_ISRA[] = {
-	 &g_fieldDef_MFP_ISRA_TIMER_B,
-	 &g_fieldDef_MFP_ISRA_SEND_ERR,
-	 &g_fieldDef_MFP_ISRA_SEND_EMPTY,
-	 &g_fieldDef_MFP_ISRA_REC_ERR,
-	 &g_fieldDef_MFP_ISRA_REC_FULL,
-	 &g_fieldDef_MFP_ISRA_TIMER_A,
-	 &g_fieldDef_MFP_ISRA_RS232_RING,
 	 &g_fieldDef_MFP_ISRA_MONO_DETECT,
+	 &g_fieldDef_MFP_ISRA_RS232_RING,
+	 &g_fieldDef_MFP_ISRA_TIMER_A,
+	 &g_fieldDef_MFP_ISRA_REC_FULL,
+	 &g_fieldDef_MFP_ISRA_REC_ERR,
+	 &g_fieldDef_MFP_ISRA_SEND_EMPTY,
+	 &g_fieldDef_MFP_ISRA_SEND_ERR,
+	 &g_fieldDef_MFP_ISRA_TIMER_B,
 	nullptr
 };
 const stgen::FieldDef* g_regFieldsDef_MFP_ISRB[] = {
+	 &g_fieldDef_MFP_ISRB_FDC_HDC,
+	 &g_fieldDef_MFP_ISRB_IKBD_MIDI,
+	 &g_fieldDef_MFP_ISRB_TIMER_C,
+	 &g_fieldDef_MFP_ISRB_TIMER_D,
+	 &g_fieldDef_MFP_ISRB_BLITTER,
+	 &g_fieldDef_MFP_ISRB_RS232_CTS,
 	 &g_fieldDef_MFP_ISRB_RS232_DTD,
 	 &g_fieldDef_MFP_ISRB_CENT_BUSY,
-	 &g_fieldDef_MFP_ISRB_RS232_CTS,
-	 &g_fieldDef_MFP_ISRB_BLITTER,
-	 &g_fieldDef_MFP_ISRB_TIMER_D,
-	 &g_fieldDef_MFP_ISRB_TIMER_C,
-	 &g_fieldDef_MFP_ISRB_IKBD_MIDI,
-	 &g_fieldDef_MFP_ISRB_FDC_HDC,
 	nullptr
 };
 const stgen::FieldDef* g_regFieldsDef_MFP_IMRA[] = {
-	 &g_fieldDef_MFP_IMRA_TIMER_B,
-	 &g_fieldDef_MFP_IMRA_SEND_ERR,
-	 &g_fieldDef_MFP_IMRA_SEND_EMPTY,
-	 &g_fieldDef_MFP_IMRA_REC_ERR,
-	 &g_fieldDef_MFP_IMRA_REC_FULL,
-	 &g_fieldDef_MFP_IMRA_TIMER_A,
-	 &g_fieldDef_MFP_IMRA_RS232_RING,
 	 &g_fieldDef_MFP_IMRA_MONO_DETECT,
+	 &g_fieldDef_MFP_IMRA_RS232_RING,
+	 &g_fieldDef_MFP_IMRA_TIMER_A,
+	 &g_fieldDef_MFP_IMRA_REC_FULL,
+	 &g_fieldDef_MFP_IMRA_REC_ERR,
+	 &g_fieldDef_MFP_IMRA_SEND_EMPTY,
+	 &g_fieldDef_MFP_IMRA_SEND_ERR,
+	 &g_fieldDef_MFP_IMRA_TIMER_B,
 	nullptr
 };
 const stgen::FieldDef* g_regFieldsDef_MFP_IMRB[] = {
+	 &g_fieldDef_MFP_IMRB_FDC_HDC,
+	 &g_fieldDef_MFP_IMRB_IKBD_MIDI,
+	 &g_fieldDef_MFP_IMRB_TIMER_C,
+	 &g_fieldDef_MFP_IMRB_TIMER_D,
+	 &g_fieldDef_MFP_IMRB_BLITTER,
+	 &g_fieldDef_MFP_IMRB_RS232_CTS,
 	 &g_fieldDef_MFP_IMRB_RS232_DTD,
 	 &g_fieldDef_MFP_IMRB_CENT_BUSY,
-	 &g_fieldDef_MFP_IMRB_RS232_CTS,
-	 &g_fieldDef_MFP_IMRB_BLITTER,
-	 &g_fieldDef_MFP_IMRB_TIMER_D,
-	 &g_fieldDef_MFP_IMRB_TIMER_C,
-	 &g_fieldDef_MFP_IMRB_IKBD_MIDI,
-	 &g_fieldDef_MFP_IMRB_FDC_HDC,
 	nullptr
 };
 const stgen::FieldDef* g_regFieldsDef_MFP_VR[] = {
@@ -1242,33 +1242,33 @@ const stgen::FieldDef* g_regFieldsDef_MFP_SCR[] = {
 	nullptr
 };
 const stgen::FieldDef* g_regFieldsDef_MFP_UCR[] = {
-	 &g_fieldDef_MFP_UCR_PARITY_EVEN,
-	 &g_fieldDef_MFP_UCR_PARITY_IGNORE,
-	 &g_fieldDef_MFP_UCR_FORMAT,
-	 &g_fieldDef_MFP_UCR_WORD_LEN,
 	 &g_fieldDef_MFP_UCR_CLOCK_DIV,
+	 &g_fieldDef_MFP_UCR_WORD_LEN,
+	 &g_fieldDef_MFP_UCR_FORMAT,
+	 &g_fieldDef_MFP_UCR_PARITY_IGNORE,
+	 &g_fieldDef_MFP_UCR_PARITY_EVEN,
 	nullptr
 };
 const stgen::FieldDef* g_regFieldsDef_MFP_RSR[] = {
-	 &g_fieldDef_MFP_RSR_REC_ENABLE,
-	 &g_fieldDef_MFP_RSR_STRIP,
-	 &g_fieldDef_MFP_RSR_MATCH,
-	 &g_fieldDef_MFP_RSR_FOUND,
-	 &g_fieldDef_MFP_RSR_FRAME_ERR,
-	 &g_fieldDef_MFP_RSR_PARITY_ERR,
-	 &g_fieldDef_MFP_RSR_OVERRUN_ERR,
 	 &g_fieldDef_MFP_RSR_BUFFER_FULL,
+	 &g_fieldDef_MFP_RSR_OVERRUN_ERR,
+	 &g_fieldDef_MFP_RSR_PARITY_ERR,
+	 &g_fieldDef_MFP_RSR_FRAME_ERR,
+	 &g_fieldDef_MFP_RSR_FOUND,
+	 &g_fieldDef_MFP_RSR_MATCH,
+	 &g_fieldDef_MFP_RSR_STRIP,
+	 &g_fieldDef_MFP_RSR_REC_ENABLE,
 	nullptr
 };
 const stgen::FieldDef* g_regFieldsDef_MFP_TSR[] = {
-	 &g_fieldDef_MFP_TSR_TRANS_ENABLE,
-	 &g_fieldDef_MFP_TSR_LOW,
-	 &g_fieldDef_MFP_TSR_HIGH,
-	 &g_fieldDef_MFP_TSR_BREAK,
-	 &g_fieldDef_MFP_TSR_EOT,
-	 &g_fieldDef_MFP_TSR_AUTO_TURN,
-	 &g_fieldDef_MFP_TSR_UNDERRUN_ERR,
 	 &g_fieldDef_MFP_TSR_BUFFER_EMPTY,
+	 &g_fieldDef_MFP_TSR_UNDERRUN_ERR,
+	 &g_fieldDef_MFP_TSR_AUTO_TURN,
+	 &g_fieldDef_MFP_TSR_EOT,
+	 &g_fieldDef_MFP_TSR_BREAK,
+	 &g_fieldDef_MFP_TSR_HIGH,
+	 &g_fieldDef_MFP_TSR_LOW,
+	 &g_fieldDef_MFP_TSR_TRANS_ENABLE,
 	nullptr
 };
 const stgen::FieldDef* g_regFieldsDef_MFP_UDR[] = {
@@ -1358,36 +1358,36 @@ const stgen::FieldDef* g_regFieldsDef_BLT_LOGICAL_OP[] = {
 	nullptr
 };
 const stgen::FieldDef* g_regFieldsDef_BLT_CTRL_1[] = {
-	 &g_fieldDef_BLT_CTRL_1_HALFTONE_LINE,
-	 &g_fieldDef_BLT_CTRL_1_SMUDGE,
-	 &g_fieldDef_BLT_CTRL_1_HOG,
 	 &g_fieldDef_BLT_CTRL_1_BUSY,
+	 &g_fieldDef_BLT_CTRL_1_HOG,
+	 &g_fieldDef_BLT_CTRL_1_SMUDGE,
+	 &g_fieldDef_BLT_CTRL_1_HALFTONE_LINE,
 	nullptr
 };
 const stgen::FieldDef* g_regFieldsDef_BLT_CTRL_2[] = {
-	 &g_fieldDef_BLT_CTRL_2_SKEW,
-	 &g_fieldDef_BLT_CTRL_2_NFSR,
 	 &g_fieldDef_BLT_CTRL_2_FXSR,
+	 &g_fieldDef_BLT_CTRL_2_NFSR,
+	 &g_fieldDef_BLT_CTRL_2_SKEW,
 	nullptr
 };
 const stgen::FieldDef* g_regFieldsDef_DMA_BUFFER_INTERRUPTS[] = {
-	 &g_fieldDef_DMA_BUFFER_INTERRUPTS_i7_REPLAY,
-	 &g_fieldDef_DMA_BUFFER_INTERRUPTS_I7_RECORD,
-	 &g_fieldDef_DMA_BUFFER_INTERRUPTS_TIMERA_REPLAY,
 	 &g_fieldDef_DMA_BUFFER_INTERRUPTS_TIMERA_RECORD,
+	 &g_fieldDef_DMA_BUFFER_INTERRUPTS_TIMERA_REPLAY,
+	 &g_fieldDef_DMA_BUFFER_INTERRUPTS_I7_RECORD,
+	 &g_fieldDef_DMA_BUFFER_INTERRUPTS_i7_REPLAY,
 	nullptr
 };
 const stgen::FieldDef* g_regFieldsDef_DMA_CONTROL[] = {
-	 &g_fieldDef_DMA_CONTROL_REPLAY,
-	 &g_fieldDef_DMA_CONTROL_LOOP_REPLAY,
-	 &g_fieldDef_DMA_CONTROL_RECORD,
-	 &g_fieldDef_DMA_CONTROL_LOOP_RECORD,
 	 &g_fieldDef_DMA_CONTROL_SELECT,
+	 &g_fieldDef_DMA_CONTROL_LOOP_RECORD,
+	 &g_fieldDef_DMA_CONTROL_RECORD,
+	 &g_fieldDef_DMA_CONTROL_LOOP_REPLAY,
+	 &g_fieldDef_DMA_CONTROL_REPLAY,
 	nullptr
 };
 const stgen::FieldDef* g_regFieldsDef_DMA_SND_MODE[] = {
-	 &g_fieldDef_DMA_SND_MODE_DMA_FREQ,
 	 &g_fieldDef_DMA_SND_MODE_FORMAT,
+	 &g_fieldDef_DMA_SND_MODE_DMA_FREQ,
 	nullptr
 };
 } // namespace

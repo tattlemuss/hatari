@@ -16,10 +16,14 @@
 #include "../models/stringformat.h"
 #include "../hardware/hardware_st.h"
 #include "../hardware/regs_st.h"
+#include "../hardware/regs_falc.h"
 #include "nonantialiasimage.h"
 #include "quicklayout.h"
 #include "showaddressactions.h"
 #include "symboltext.h"
+
+static const uint32_t kMachineMaskFalcon = (1U << MACHINE_FALCON);
+static const uint32_t kMachineMaskSteFeatures = (1U << MACHINE_FALCON) | (1U << MACHINE_MEGA_STE) | (1U << MACHINE_STE);
 
 //-----------------------------------------------------------------------------
 // Wrappers to get memory from multiple memory slots
@@ -125,12 +129,28 @@ public:
         m_memAddress(~0U),
         m_changed(false),
         m_pParent(nullptr),
-        m_rowIndex(0)
+        m_rowIndex(0),
+        m_machineTypeMask(~0U)
     {}
 
     virtual ~HardwareBase();
     virtual bool isHeader() const { return false; }
     virtual bool GetBrush(QBrush& /*res*/) { return false; }
+
+    HardwareBase& SetMachines(uint32_t machineTypeMask)
+    {
+        m_machineTypeMask = machineTypeMask;
+        return *this;
+    }
+
+    bool CheckMachine(uint32_t machineType) const
+    {
+        if (m_machineTypeMask == 0)
+            return true;
+
+        uint32_t testMask = 1 << machineType;
+        return !!(m_machineTypeMask & testMask);
+    }
 
     HardwareBase* AddChild(HardwareBase* pField)
     {
@@ -150,6 +170,8 @@ public:
     HardwareBase*              m_pParent;
     QVector<HardwareBase*>     m_children;
     int                        m_rowIndex;
+
+    uint32_t                   m_machineTypeMask;
 };
 
 //-----------------------------------------------------------------------------
@@ -433,9 +455,9 @@ bool HardwareFieldMultiField::Update(const TargetModel* pTarget)
     for (; *pDef; ++pDef)
     {
         const stgen::FieldDef* pCurrDef = *pDef;
-        if (!HasAddressMulti(pTarget, pCurrDef->regAddr, 1))
+        if (!HasAddressMulti(pTarget, pCurrDef->regAddr, pCurrDef->size))
             return false;
-        uint32_t regVal = ReadAddressMulti(pTarget, pCurrDef->regAddr, 1);
+        uint32_t regVal = ReadAddressMulti(pTarget, pCurrDef->regAddr, pCurrDef->size);
         uint32_t extracted = (regVal >> pCurrDef->shift) & pCurrDef->mask;
 
         if (pCurrDef->mask == 1 && !pCurrDef->strings)
@@ -796,6 +818,11 @@ Qt::ItemFlags HardwareTreeModel::flags(const QModelIndex &index) const
     if (!index.isValid())
         return Qt::NoItemFlags;
 
+    // Check hardware type
+    const HardwareBase *item = static_cast<const HardwareBase*>(index.internalPointer());
+    if (!item->CheckMachine(m_pTargetModel->GetMachineType()))
+        return Qt::NoItemFlags;
+
     return QAbstractItemModel::flags(index);
 }
 
@@ -974,17 +1001,22 @@ HardwareWindow::HardwareWindow(QWidget *parent, Session* pSession) :
     HardwareHeader* pExpVecTraps = new HardwareHeader("Trap Vectors", "");
     HardwareHeader* pExpVecMfp = new HardwareHeader("MFP Vectors", "");
 
-    HardwareHeader* pExpMmu = new HardwareHeader("MMU", "Memory Management Unit");
+    HardwareHeader* pExpConfig = new HardwareHeader("Hardware Config", "RAM, monitor");
     HardwareHeader* pExpVideo = new HardwareHeader("Shifter/Glue", "Video");
+    HardwareHeader* pExpVidel = new HardwareHeader("VIDEL", "Falcon Video");
     HardwareHeader* pExpMfp = new HardwareHeader("MFP 68901", "Multi-Function Peripheral");
     HardwareHeader* pExpYm = new HardwareHeader("YM/PSG", "Soundchip");
     HardwareHeader* pExpBlt = new HardwareHeader("Blitter", "");
     HardwareHeader* pExpBltHalftone = new HardwareHeader("Halftone RAM", "");
     HardwareHeader* pExpDmaSnd = new HardwareHeader("DMA Sound", "");
-    m_pRoot->AddChild(pExpVec);
 
-    m_pRoot->AddChild(pExpMmu);
+    pExpVidel->SetMachines(kMachineMaskFalcon);
+    pExpDmaSnd->SetMachines(kMachineMaskSteFeatures);
+
+    m_pRoot->AddChild(pExpVec);
+    m_pRoot->AddChild(pExpConfig);
     m_pRoot->AddChild(pExpVideo);
+    m_pRoot->AddChild(pExpVidel);
     m_pRoot->AddChild(pExpMfp);
     m_pRoot->AddChild(pExpYm);
     m_pRoot->AddChild(pExpBlt);
@@ -1045,8 +1077,11 @@ HardwareWindow::HardwareWindow(QWidget *parent, Session* pSession) :
     pExpVec->AddChild(pExpVecMfp);
 
     // ===== MMU ====
-    addField(pExpMmu,  "Bank 0",                   Regs::g_fieldDef_MMU_CONFIG_BANK0);
-    addField(pExpMmu,  "Bank 1",                   Regs::g_fieldDef_MMU_CONFIG_BANK1);
+    addField(pExpConfig,  "ST Memory Bank 0",           Regs::g_fieldDef_MMU_CONFIG_BANK0)->SetMachines(~kMachineMaskFalcon);
+    addField(pExpConfig,  "ST Memory Bank 1",           Regs::g_fieldDef_MMU_CONFIG_BANK1)->SetMachines(~kMachineMaskFalcon);
+    addField(pExpConfig,  "Falcon Memory",              Regs::g_fieldDef_FALC_SYS_CNTL_MEMORY)->SetMachines(kMachineMaskFalcon);
+    addField(pExpConfig,  "Falcon Attached Monitor",    Regs::g_fieldDef_FALC_SYS_CNTL_MONITOR)->SetMachines(kMachineMaskFalcon);
+    addMultiField(pExpConfig,  "Falcon Bus Config",     Regs::g_regFieldsDef_FALC_BUS_CNTL)->SetMachines(kMachineMaskFalcon);
 
     // ===== VIDEO ====
     addField(pExpVideo,  "Resolution",             Regs::g_fieldDef_VID_SHIFTER_RES_RES);
@@ -1054,8 +1089,8 @@ HardwareWindow::HardwareWindow(QWidget *parent, Session* pSession) :
     addShared(pExpVideo, "Screen Base Address",    new HardwareFieldAddr(HardwareFieldAddr::ScreenBase));
     addShared(pExpVideo, "Current Read Address",   new HardwareFieldAddr(HardwareFieldAddr::ScreenCurr));
 
-    addField(pExpVideo, "Horizontal Scroll (STE)", Regs::g_fieldDef_VID_HORIZ_SCROLL_STE_PIXELS);
-    addField(pExpVideo, "Scanline offset (STE)",   Regs::g_fieldDef_VID_SCANLINE_OFFSET_STE_ALL);
+    addField(pExpVideo, "Horizontal Scroll (STE)", Regs::g_fieldDef_VID_HORIZ_SCROLL_STE_PIXELS)->SetMachines(kMachineMaskSteFeatures);
+    addField(pExpVideo, "Scanline offset (STE)",   Regs::g_fieldDef_VID_SCANLINE_OFFSET_STE_ALL)->SetMachines(kMachineMaskSteFeatures);
 
     addShared(pExpVideo, "Colour #0",              new HardwareFieldColourST(0xff8240));
     addShared(pExpVideo, "Colour #1",              new HardwareFieldColourST(0xff8242));
@@ -1073,6 +1108,29 @@ HardwareWindow::HardwareWindow(QWidget *parent, Session* pSession) :
     addShared(pExpVideo, "Colour #13",             new HardwareFieldColourST(0xff825a));
     addShared(pExpVideo, "Colour #14",             new HardwareFieldColourST(0xff825c));
     addShared(pExpVideo, "Colour #15",             new HardwareFieldColourST(0xff825e));
+
+    // ===== VIDEL =====
+    addMultiField(pExpVidel, "Mode",                Regs::g_regFieldsDef_FALC_SPSHIFT)->SetMachines(kMachineMaskFalcon);
+    addField(pExpVidel, "Control: Pixel Width",     Regs::g_fieldDef_VIDEL_CONTROL_PIXWIDTH)->SetMachines(kMachineMaskFalcon);
+    addField(pExpVidel, "Control: Interlace",       Regs::g_fieldDef_VIDEL_CONTROL_SKIP_LINE)->SetMachines(kMachineMaskFalcon);
+    addField(pExpVidel, "Control: Line Double",     Regs::g_fieldDef_VIDEL_CONTROL_DOUBLE)->SetMachines(kMachineMaskFalcon);
+
+    addField(pExpVidel, "Scanline offset",          Regs::g_fieldDef_VIDEL_SCANLINE_OFFSET_ALL)->SetMachines(kMachineMaskFalcon);
+    addField(pExpVidel, "Line width (words)",       Regs::g_fieldDef_VIDEL_VWRAP_ALL)->SetMachines(kMachineMaskFalcon);
+
+    // NOTE: not added all values here -- some are a bit meaningless
+    HardwareHeader* pExpVidelSizes = new HardwareHeader("Falc Screensize", "VIDEL Screen Dimensions");
+    pExpVidelSizes->SetMachines(kMachineMaskFalcon);
+    pExpVidel->AddChild(pExpVidelSizes);
+
+    addField(pExpVidelSizes, "H-Border Begin",             Regs::g_fieldDef_VIDEL_HBB_ALL)->SetMachines(kMachineMaskFalcon);
+    addField(pExpVidelSizes, "H-Border End",               Regs::g_fieldDef_VIDEL_HBE_ALL)->SetMachines(kMachineMaskFalcon);
+    addField(pExpVidelSizes, "H-Display Begin",            Regs::g_fieldDef_VIDEL_HDB_ALL)->SetMachines(kMachineMaskFalcon);
+    addField(pExpVidelSizes, "H-Display End",              Regs::g_fieldDef_VIDEL_HDE_ALL)->SetMachines(kMachineMaskFalcon);
+    addField(pExpVidelSizes, "V-Border Begin (Halflines)", Regs::g_fieldDef_VIDEL_VBB_ALL)->SetMachines(kMachineMaskFalcon);
+    addField(pExpVidelSizes, "V-Border End (Halflines)",   Regs::g_fieldDef_VIDEL_VBE_ALL)->SetMachines(kMachineMaskFalcon);
+    addField(pExpVidelSizes, "V-Display Begin",            Regs::g_fieldDef_VIDEL_VDB_ALL)->SetMachines(kMachineMaskFalcon);
+    addField(pExpVidelSizes, "V-Display End",              Regs::g_fieldDef_VIDEL_VDE_ALL)->SetMachines(kMachineMaskFalcon);
 
     // ===== MFP ====
     addField(pExpMfp, "Parallel Port Data",           Regs::g_fieldDef_MFP_GPIP_ALL);
@@ -1168,20 +1226,20 @@ HardwareWindow::HardwareWindow(QWidget *parent, Session* pSession) :
     addRegBinary16(pExpBlt,  "Endmask 2",           Regs::BLT_ENDMASK_2);
     addRegBinary16(pExpBlt,  "Endmask 3",           Regs::BLT_ENDMASK_3);
 
-    // ===== DMA SND ====
-    addMultiField(pExpDmaSnd, "DMA Interrupts", Regs::g_regFieldsDef_DMA_BUFFER_INTERRUPTS);
-    addMultiField(pExpDmaSnd, "DMA Control",    Regs::g_regFieldsDef_DMA_CONTROL);
-    addShared(pExpDmaSnd, "Frame Start",        new HardwareFieldAddr(HardwareFieldAddr::DMASndStart));
-    addShared(pExpDmaSnd, "Frame Current",      new HardwareFieldAddr(HardwareFieldAddr::DMASndCurr));
-    addShared(pExpDmaSnd, "Frame End",          new HardwareFieldAddr(HardwareFieldAddr::DMASndEnd));
-    addMultiField(pExpDmaSnd, "DMA Sound Mode", Regs::g_regFieldsDef_DMA_SND_MODE);
+    // ===== DMA SND =====
+    addMultiField(pExpDmaSnd, "DMA Interrupts", Regs::g_regFieldsDef_DMA_BUFFER_INTERRUPTS)->SetMachines(kMachineMaskSteFeatures);
+    addMultiField(pExpDmaSnd, "DMA Control",    Regs::g_regFieldsDef_DMA_CONTROL)->SetMachines(kMachineMaskSteFeatures);
+    addShared(pExpDmaSnd,     "Frame Start",    new HardwareFieldAddr(HardwareFieldAddr::DMASndStart))->SetMachines(kMachineMaskSteFeatures);
+    addShared(pExpDmaSnd,     "Frame Current",  new HardwareFieldAddr(HardwareFieldAddr::DMASndCurr))->SetMachines(kMachineMaskSteFeatures);
+    addShared(pExpDmaSnd,     "Frame End",      new HardwareFieldAddr(HardwareFieldAddr::DMASndEnd))->SetMachines(kMachineMaskSteFeatures);
+    addMultiField(pExpDmaSnd, "DMA Sound Mode", Regs::g_regFieldsDef_DMA_SND_MODE)->SetMachines(kMachineMaskSteFeatures);
 
     // Layouts
     QVBoxLayout* pMainLayout = new QVBoxLayout();
     SetMargins(pMainLayout);
     m_pView = new HardwareTreeView(this, m_pSession, m_pModel);
     m_pView->setExpanded(m_pModel->createIndex2(pExpVec), true);
-    m_pView->setExpanded(m_pModel->createIndex2(pExpMmu), true);
+    m_pView->setExpanded(m_pModel->createIndex2(pExpConfig), true);
     m_pView->setExpanded(m_pModel->createIndex2(pExpVideo), true);
     m_pView->setExpanded(m_pModel->createIndex2(pExpMfp), true);
     m_pView->setExpanded(m_pModel->createIndex2(pExpYm), true);
@@ -1278,8 +1336,8 @@ void HardwareWindow::startStopChanged()
     if (!m_pTargetModel->IsRunning())
     {
         // Stopped -- request data
-        m_pDispatcher->ReadMemory(MemorySlot::kHardwareWindowMmu,     Regs::MMU_CONFIG,    0x1);
-        m_pDispatcher->ReadMemory(MemorySlot::kHardwareWindowVideo,   Regs::VID_REG_BASE,  0x70);
+        m_pDispatcher->ReadMemory(MemorySlot::kHardwareWindowMmu,     Regs::MMU_CONFIG,    0x8);   // Includes Falcon monitor register
+        m_pDispatcher->ReadMemory(MemorySlot::kHardwareWindowVideo,   Regs::VID_REG_BASE,  0xd0);  // Include range for Falcon regs
 
         // This one triggers an extra memory request in memoryChangedSlot() for the MFP vectors
         // which are dependent on a register
@@ -1296,8 +1354,18 @@ void HardwareWindow::flush(const TargetChangedFlags& /*flags*/, uint64_t command
     if (commandId == m_flushUid)
     {
         // All commands necessary for the view are available, so update display
-        for (auto pField : m_fields)
+        uint32_t mType = m_pTargetModel->GetMachineType();
+        for (HardwareField* pField : m_fields)
         {
+            // Clear text if machine isn't valid
+            if (!pField->CheckMachine(mType))
+            {
+                pField->m_text.clear();
+                pField->m_changed = false;
+                m_pModel->dataChanged2(pField);
+                continue;
+            }
+
             if (pField->Update(m_pTargetModel))
                 m_pModel->dataChanged2(pField);
         }
@@ -1336,39 +1404,40 @@ void HardwareWindow::settingsChanged()
 }
 
 //-----------------------------------------------------------------------------
-void HardwareWindow::addField(HardwareBase* pLayout, const QString& title, const stgen::FieldDef &def)
+HardwareField* HardwareWindow::addField(HardwareBase* pLayout, const QString& title, const stgen::FieldDef &def)
 {
     HardwareFieldRegEnum* pField = new HardwareFieldRegEnum(def);
-    addShared(pLayout, title, pField);
+    return addShared(pLayout, title, pField);
 }
 
 //-----------------------------------------------------------------------------
-void HardwareWindow::addRegBinary16(HardwareBase* pLayout, const QString& title, const uint32_t regAddr)
+HardwareField* HardwareWindow::addRegBinary16(HardwareBase* pLayout, const QString& title, const uint32_t regAddr)
 {
     HardwareFieldRegBinary16* pField = new HardwareFieldRegBinary16(regAddr);
-    addShared(pLayout, title, pField);
+    return addShared(pLayout, title, pField);
 }
 
 //-----------------------------------------------------------------------------
-void HardwareWindow::addRegSigned16(HardwareBase* pLayout, const QString& title, const uint32_t regAddr)
+HardwareField* HardwareWindow::addRegSigned16(HardwareBase* pLayout, const QString& title, const uint32_t regAddr)
 {
     HardwareFieldRegSigned16* pField = new HardwareFieldRegSigned16(regAddr);
-    addShared(pLayout, title, pField);
+    return addShared(pLayout, title, pField);
 }
 
 //-----------------------------------------------------------------------------
-void HardwareWindow::addMultiField(HardwareBase* pLayout, const QString& title, const stgen::FieldDef** defs)
+HardwareField* HardwareWindow::addMultiField(HardwareBase* pLayout, const QString& title, const stgen::FieldDef** defs)
 {
     HardwareFieldMultiField* pField = new HardwareFieldMultiField(defs);
-    addShared(pLayout, title, pField);
+    return addShared(pLayout, title, pField);
 }
 
 //-----------------------------------------------------------------------------
-void HardwareWindow::addShared(HardwareBase *pLayout, const QString &title, HardwareField *pField)
+HardwareField* HardwareWindow::addShared(HardwareBase *pLayout, const QString &title, HardwareField *pField)
 {
     m_fields.append(pField);
     pField->m_title = title;
     pLayout->AddChild(pField);
+    return pField;
 }
 
 //-----------------------------------------------------------------------------

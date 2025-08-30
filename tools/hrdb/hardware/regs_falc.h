@@ -10,49 +10,138 @@
 namespace Regs {
 
 
+/* Enum FALCMON */
+enum class FALCMON : uint32_t {
+	FALCMON_MONO         =      0, /* Monochrome (SM124) */
+	FALCMON_COLOR        =      1, /* RGB Color (SC1224) */
+	FALCMON_VGA_COLOR    =      2, /* VGA Color */
+	FALCMON_TV           =      3  /* Television */
+};
+
+/* Enum FALCMEM */
+enum class FALCMEM : uint32_t {
+	SIZE_1MB             =      0, /* 1MB */
+	SIZE_4MB             =      1, /* 4MB */
+	SIZE_14MB            =      2, /* 14MB */
+	SIZE_RESERVED        =      3  /* reserved */
+};
+
+/* Enum PIXWIDTH */
+enum class PIXWIDTH : uint32_t {
+	NORM                 =      0, /* Standard */
+	HALF                 =      1, /* Half Width */
+	QUARTER              =      2, /* Quarter Width */
+	BOTH                 =      3  /* Invalid (Qtr+Half) */
+};
+
+/* Enum BOOL */
+enum class BOOL : uint32_t {
+	FALSE                =      0, /* False */
+	TRUE                 =      1  /* True */
+};
+
+/* Enum YESNO */
+enum class YESNO : uint32_t {
+	NO                   =      0, /* No */
+	YES                  =      1  /* Yes */
+};
+
+/* Enum OFFON */
+enum class OFFON : uint32_t {
+	OFF                  =      0, /* Off */
+	ON                   =      1  /* On */
+};
+
 /* Enum -> string lookup declarations */
+extern const char* GetString(FALCMON val);
+extern const char* GetString(FALCMEM val);
+extern const char* GetString(PIXWIDTH val);
+extern const char* GetString(BOOL val);
+extern const char* GetString(YESNO val);
+extern const char* GetString(OFFON val);
 
 /* Register Addresses */
-static const uint32_t VID_SCANLINE_OFFSET_FALCON     = 0xff820e;
-static const uint32_t VID_LINE_WIDTH_FALCON          = 0xff8210;
+static const uint32_t FALC_SYS_CNTL                  = 0xff8006;
+static const uint32_t FALC_BUS_CNTL                  = 0xff8007;
+static const uint32_t VIDEL_SCANLINE_OFFSET          = 0xff820e;
+static const uint32_t VIDEL_VWRAP                    = 0xff8210;
 static const uint32_t FALC_SPSHIFT                   = 0xff8266;
+static const uint32_t VIDEL_HHC                      = 0xff8280;
+static const uint32_t VIDEL_HHT                      = 0xff8282;
+static const uint32_t VIDEL_HBB                      = 0xff8284;
+static const uint32_t VIDEL_HBE                      = 0xff8286;
+static const uint32_t VIDEL_HDB                      = 0xff8288;
+static const uint32_t VIDEL_HDE                      = 0xff828a;
+static const uint32_t VIDEL_HSS                      = 0xff828c;
+static const uint32_t VIDEL_HFS                      = 0xff828e;
+static const uint32_t VIDEL_HEE                      = 0xff8290;
+static const uint32_t VIDEL_VFC                      = 0xff82a0;
+static const uint32_t VIDEL_VFT                      = 0xff82a2;
+static const uint32_t VIDEL_VBB                      = 0xff82a4;
+static const uint32_t VIDEL_VBE                      = 0xff82a6;
+static const uint32_t VIDEL_VDB                      = 0xff82a8;
+static const uint32_t VIDEL_VDE                      = 0xff82aa;
+static const uint32_t VIDEL_VSS                      = 0xff82ac;
+static const uint32_t VIDEL_CONTROL                  = 0xff82c2;
 
 /* Register Field Accessors */
 
-/* Register VID_SCANLINE_OFFSET_FALCON ($ff820e)*/
-/* Field ALL */
-static const uint32_t VID_SCANLINE_OFFSET_FALCON_ALL_SHIFT = 0;
-static const uint32_t VID_SCANLINE_OFFSET_FALCON_ALL_MASK = 511;
-inline uint16_t GetField_VID_SCANLINE_OFFSET_FALCON_ALL(uint32_t value) { return static_cast<uint16_t>(((value)>>0) & 511); }
-extern const stgen::FieldDef g_fieldDef_VID_SCANLINE_OFFSET_FALCON_ALL;
+/* Register FALC_SYS_CNTL ($ff8006)*/
+/* Field MONITOR */
+static const uint32_t FALC_SYS_CNTL_MONITOR_SHIFT = 6;
+static const uint32_t FALC_SYS_CNTL_MONITOR_MASK = 3;
+inline FALCMON GetField_FALC_SYS_CNTL_MONITOR(uint32_t value) { return static_cast<FALCMON>(((value)>>6) & 3); }
+extern const stgen::FieldDef g_fieldDef_FALC_SYS_CNTL_MONITOR;
+
+/* Field MEMORY */
+static const uint32_t FALC_SYS_CNTL_MEMORY_SHIFT = 4;
+static const uint32_t FALC_SYS_CNTL_MEMORY_MASK = 3;
+inline FALCMEM GetField_FALC_SYS_CNTL_MEMORY(uint32_t value) { return static_cast<FALCMEM>(((value)>>4) & 3); }
+extern const stgen::FieldDef g_fieldDef_FALC_SYS_CNTL_MEMORY;
 
 
-/* Register VID_LINE_WIDTH_FALCON ($ff8210)*/
+/* Register FALC_BUS_CNTL ($ff8007)*/
+/* Field STE_BUS_OFF */
+static const uint32_t FALC_BUS_CNTL_STE_BUS_OFF_SHIFT = 5;
+static const uint32_t FALC_BUS_CNTL_STE_BUS_OFF_MASK = 1;
+inline bool GetField_FALC_BUS_CNTL_STE_BUS_OFF(uint32_t value) { return static_cast<bool>(((value)>>5) & 1); }
+extern const stgen::FieldDef g_fieldDef_FALC_BUS_CNTL_STE_BUS_OFF;
+
+/* Field BLITTER_16MHZ */
+static const uint32_t FALC_BUS_CNTL_BLITTER_16MHZ_SHIFT = 2;
+static const uint32_t FALC_BUS_CNTL_BLITTER_16MHZ_MASK = 1;
+inline bool GetField_FALC_BUS_CNTL_BLITTER_16MHZ(uint32_t value) { return static_cast<bool>(((value)>>2) & 1); }
+extern const stgen::FieldDef g_fieldDef_FALC_BUS_CNTL_BLITTER_16MHZ;
+
+/* Field M68030_16MHZ */
+static const uint32_t FALC_BUS_CNTL_M68030_16MHZ_SHIFT = 0;
+static const uint32_t FALC_BUS_CNTL_M68030_16MHZ_MASK = 1;
+inline bool GetField_FALC_BUS_CNTL_M68030_16MHZ(uint32_t value) { return static_cast<bool>(((value)>>0) & 1); }
+extern const stgen::FieldDef g_fieldDef_FALC_BUS_CNTL_M68030_16MHZ;
+
+
+/* Register VIDEL_SCANLINE_OFFSET ($ff820e)*/
 /* Field ALL */
-static const uint32_t VID_LINE_WIDTH_FALCON_ALL_SHIFT = 0;
-static const uint32_t VID_LINE_WIDTH_FALCON_ALL_MASK = 1023;
-inline uint16_t GetField_VID_LINE_WIDTH_FALCON_ALL(uint32_t value) { return static_cast<uint16_t>(((value)>>0) & 1023); }
-extern const stgen::FieldDef g_fieldDef_VID_LINE_WIDTH_FALCON_ALL;
+static const uint32_t VIDEL_SCANLINE_OFFSET_ALL_SHIFT = 0;
+static const uint32_t VIDEL_SCANLINE_OFFSET_ALL_MASK = 511;
+inline uint16_t GetField_VIDEL_SCANLINE_OFFSET_ALL(uint32_t value) { return static_cast<uint16_t>(((value)>>0) & 511); }
+extern const stgen::FieldDef g_fieldDef_VIDEL_SCANLINE_OFFSET_ALL;
+
+
+/* Register VIDEL_VWRAP ($ff8210)*/
+/* Field ALL */
+static const uint32_t VIDEL_VWRAP_ALL_SHIFT = 0;
+static const uint32_t VIDEL_VWRAP_ALL_MASK = 1023;
+inline uint16_t GetField_VIDEL_VWRAP_ALL(uint32_t value) { return static_cast<uint16_t>(((value)>>0) & 1023); }
+extern const stgen::FieldDef g_fieldDef_VIDEL_VWRAP_ALL;
 
 
 /* Register FALC_SPSHIFT ($ff8266)*/
-/* Field COLBANK */
-static const uint32_t FALC_SPSHIFT_COLBANK_SHIFT = 0;
-static const uint32_t FALC_SPSHIFT_COLBANK_MASK = 15;
-inline uint8_t GetField_FALC_SPSHIFT_COLBANK(uint32_t value) { return static_cast<uint8_t>(((value)>>0) & 15); }
-extern const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_COLBANK;
-
-/* Field MODE_256 */
-static const uint32_t FALC_SPSHIFT_MODE_256_SHIFT = 4;
-static const uint32_t FALC_SPSHIFT_MODE_256_MASK = 1;
-inline bool GetField_FALC_SPSHIFT_MODE_256(uint32_t value) { return static_cast<bool>(((value)>>4) & 1); }
-extern const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_MODE_256;
-
-/* Field TRUCOL */
-static const uint32_t FALC_SPSHIFT_TRUCOL_SHIFT = 8;
-static const uint32_t FALC_SPSHIFT_TRUCOL_MASK = 1;
-inline bool GetField_FALC_SPSHIFT_TRUCOL(uint32_t value) { return static_cast<bool>(((value)>>8) & 1); }
-extern const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_TRUCOL;
+/* Field MODE_2 */
+static const uint32_t FALC_SPSHIFT_MODE_2_SHIFT = 10;
+static const uint32_t FALC_SPSHIFT_MODE_2_MASK = 1;
+inline bool GetField_FALC_SPSHIFT_MODE_2(uint32_t value) { return static_cast<bool>(((value)>>10) & 1); }
+extern const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_MODE_2;
 
 /* Field OVERLAY */
 static const uint32_t FALC_SPSHIFT_OVERLAY_SHIFT = 9;
@@ -60,17 +149,208 @@ static const uint32_t FALC_SPSHIFT_OVERLAY_MASK = 1;
 inline bool GetField_FALC_SPSHIFT_OVERLAY(uint32_t value) { return static_cast<bool>(((value)>>9) & 1); }
 extern const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_OVERLAY;
 
-/* Field MODE_2 */
-static const uint32_t FALC_SPSHIFT_MODE_2_SHIFT = 10;
-static const uint32_t FALC_SPSHIFT_MODE_2_MASK = 1;
-inline bool GetField_FALC_SPSHIFT_MODE_2(uint32_t value) { return static_cast<bool>(((value)>>10) & 1); }
-extern const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_MODE_2;
+/* Field TRUCOL */
+static const uint32_t FALC_SPSHIFT_TRUCOL_SHIFT = 8;
+static const uint32_t FALC_SPSHIFT_TRUCOL_MASK = 1;
+inline bool GetField_FALC_SPSHIFT_TRUCOL(uint32_t value) { return static_cast<bool>(((value)>>8) & 1); }
+extern const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_TRUCOL;
+
+/* Field MODE_256 */
+static const uint32_t FALC_SPSHIFT_MODE_256_SHIFT = 4;
+static const uint32_t FALC_SPSHIFT_MODE_256_MASK = 1;
+inline bool GetField_FALC_SPSHIFT_MODE_256(uint32_t value) { return static_cast<bool>(((value)>>4) & 1); }
+extern const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_MODE_256;
+
+/* Field COLBANK */
+static const uint32_t FALC_SPSHIFT_COLBANK_SHIFT = 0;
+static const uint32_t FALC_SPSHIFT_COLBANK_MASK = 15;
+inline uint8_t GetField_FALC_SPSHIFT_COLBANK(uint32_t value) { return static_cast<uint8_t>(((value)>>0) & 15); }
+extern const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_COLBANK;
+
+
+/* Register VIDEL_HHC ($ff8280)*/
+/* Field ALL */
+static const uint32_t VIDEL_HHC_ALL_SHIFT = 0;
+static const uint32_t VIDEL_HHC_ALL_MASK = 511;
+inline uint16_t GetField_VIDEL_HHC_ALL(uint32_t value) { return static_cast<uint16_t>(((value)>>0) & 511); }
+extern const stgen::FieldDef g_fieldDef_VIDEL_HHC_ALL;
+
+
+/* Register VIDEL_HHT ($ff8282)*/
+/* Field ALL */
+static const uint32_t VIDEL_HHT_ALL_SHIFT = 0;
+static const uint32_t VIDEL_HHT_ALL_MASK = 511;
+inline uint16_t GetField_VIDEL_HHT_ALL(uint32_t value) { return static_cast<uint16_t>(((value)>>0) & 511); }
+extern const stgen::FieldDef g_fieldDef_VIDEL_HHT_ALL;
+
+
+/* Register VIDEL_HBB ($ff8284)*/
+/* Field ALL */
+static const uint32_t VIDEL_HBB_ALL_SHIFT = 0;
+static const uint32_t VIDEL_HBB_ALL_MASK = 511;
+inline uint16_t GetField_VIDEL_HBB_ALL(uint32_t value) { return static_cast<uint16_t>(((value)>>0) & 511); }
+extern const stgen::FieldDef g_fieldDef_VIDEL_HBB_ALL;
+
+
+/* Register VIDEL_HBE ($ff8286)*/
+/* Field ALL */
+static const uint32_t VIDEL_HBE_ALL_SHIFT = 0;
+static const uint32_t VIDEL_HBE_ALL_MASK = 511;
+inline uint16_t GetField_VIDEL_HBE_ALL(uint32_t value) { return static_cast<uint16_t>(((value)>>0) & 511); }
+extern const stgen::FieldDef g_fieldDef_VIDEL_HBE_ALL;
+
+
+/* Register VIDEL_HDB ($ff8288)*/
+/* Field ALL */
+static const uint32_t VIDEL_HDB_ALL_SHIFT = 0;
+static const uint32_t VIDEL_HDB_ALL_MASK = 511;
+inline uint16_t GetField_VIDEL_HDB_ALL(uint32_t value) { return static_cast<uint16_t>(((value)>>0) & 511); }
+extern const stgen::FieldDef g_fieldDef_VIDEL_HDB_ALL;
+
+
+/* Register VIDEL_HDE ($ff828a)*/
+/* Field ALL */
+static const uint32_t VIDEL_HDE_ALL_SHIFT = 0;
+static const uint32_t VIDEL_HDE_ALL_MASK = 511;
+inline uint16_t GetField_VIDEL_HDE_ALL(uint32_t value) { return static_cast<uint16_t>(((value)>>0) & 511); }
+extern const stgen::FieldDef g_fieldDef_VIDEL_HDE_ALL;
+
+
+/* Register VIDEL_HSS ($ff828c)*/
+/* Field ALL */
+static const uint32_t VIDEL_HSS_ALL_SHIFT = 0;
+static const uint32_t VIDEL_HSS_ALL_MASK = 511;
+inline uint16_t GetField_VIDEL_HSS_ALL(uint32_t value) { return static_cast<uint16_t>(((value)>>0) & 511); }
+extern const stgen::FieldDef g_fieldDef_VIDEL_HSS_ALL;
+
+
+/* Register VIDEL_HFS ($ff828e)*/
+/* Field ALL */
+static const uint32_t VIDEL_HFS_ALL_SHIFT = 0;
+static const uint32_t VIDEL_HFS_ALL_MASK = 511;
+inline uint16_t GetField_VIDEL_HFS_ALL(uint32_t value) { return static_cast<uint16_t>(((value)>>0) & 511); }
+extern const stgen::FieldDef g_fieldDef_VIDEL_HFS_ALL;
+
+
+/* Register VIDEL_HEE ($ff8290)*/
+/* Field ALL */
+static const uint32_t VIDEL_HEE_ALL_SHIFT = 0;
+static const uint32_t VIDEL_HEE_ALL_MASK = 511;
+inline uint16_t GetField_VIDEL_HEE_ALL(uint32_t value) { return static_cast<uint16_t>(((value)>>0) & 511); }
+extern const stgen::FieldDef g_fieldDef_VIDEL_HEE_ALL;
+
+
+/* Register VIDEL_VFC ($ff82a0)*/
+/* Field ALL */
+static const uint32_t VIDEL_VFC_ALL_SHIFT = 0;
+static const uint32_t VIDEL_VFC_ALL_MASK = 1023;
+inline uint16_t GetField_VIDEL_VFC_ALL(uint32_t value) { return static_cast<uint16_t>(((value)>>0) & 1023); }
+extern const stgen::FieldDef g_fieldDef_VIDEL_VFC_ALL;
+
+
+/* Register VIDEL_VFT ($ff82a2)*/
+/* Field ALL */
+static const uint32_t VIDEL_VFT_ALL_SHIFT = 0;
+static const uint32_t VIDEL_VFT_ALL_MASK = 1023;
+inline uint16_t GetField_VIDEL_VFT_ALL(uint32_t value) { return static_cast<uint16_t>(((value)>>0) & 1023); }
+extern const stgen::FieldDef g_fieldDef_VIDEL_VFT_ALL;
+
+
+/* Register VIDEL_VBB ($ff82a4)*/
+/* Field ALL */
+static const uint32_t VIDEL_VBB_ALL_SHIFT = 0;
+static const uint32_t VIDEL_VBB_ALL_MASK = 1023;
+inline uint16_t GetField_VIDEL_VBB_ALL(uint32_t value) { return static_cast<uint16_t>(((value)>>0) & 1023); }
+extern const stgen::FieldDef g_fieldDef_VIDEL_VBB_ALL;
+
+
+/* Register VIDEL_VBE ($ff82a6)*/
+/* Field ALL */
+static const uint32_t VIDEL_VBE_ALL_SHIFT = 0;
+static const uint32_t VIDEL_VBE_ALL_MASK = 1023;
+inline uint16_t GetField_VIDEL_VBE_ALL(uint32_t value) { return static_cast<uint16_t>(((value)>>0) & 1023); }
+extern const stgen::FieldDef g_fieldDef_VIDEL_VBE_ALL;
+
+
+/* Register VIDEL_VDB ($ff82a8)*/
+/* Field ALL */
+static const uint32_t VIDEL_VDB_ALL_SHIFT = 0;
+static const uint32_t VIDEL_VDB_ALL_MASK = 1023;
+inline uint16_t GetField_VIDEL_VDB_ALL(uint32_t value) { return static_cast<uint16_t>(((value)>>0) & 1023); }
+extern const stgen::FieldDef g_fieldDef_VIDEL_VDB_ALL;
+
+
+/* Register VIDEL_VDE ($ff82aa)*/
+/* Field ALL */
+static const uint32_t VIDEL_VDE_ALL_SHIFT = 0;
+static const uint32_t VIDEL_VDE_ALL_MASK = 1023;
+inline uint16_t GetField_VIDEL_VDE_ALL(uint32_t value) { return static_cast<uint16_t>(((value)>>0) & 1023); }
+extern const stgen::FieldDef g_fieldDef_VIDEL_VDE_ALL;
+
+
+/* Register VIDEL_VSS ($ff82ac)*/
+/* Field ALL */
+static const uint32_t VIDEL_VSS_ALL_SHIFT = 0;
+static const uint32_t VIDEL_VSS_ALL_MASK = 1023;
+inline uint16_t GetField_VIDEL_VSS_ALL(uint32_t value) { return static_cast<uint16_t>(((value)>>0) & 1023); }
+extern const stgen::FieldDef g_fieldDef_VIDEL_VSS_ALL;
+
+
+/* Register VIDEL_CONTROL ($ff82c2)*/
+/* Field QTR_PIXEL */
+static const uint32_t VIDEL_CONTROL_QTR_PIXEL_SHIFT = 3;
+static const uint32_t VIDEL_CONTROL_QTR_PIXEL_MASK = 1;
+inline OFFON GetField_VIDEL_CONTROL_QTR_PIXEL(uint32_t value) { return static_cast<OFFON>(((value)>>3) & 1); }
+extern const stgen::FieldDef g_fieldDef_VIDEL_CONTROL_QTR_PIXEL;
+
+/* Field HALF_PIXEL */
+static const uint32_t VIDEL_CONTROL_HALF_PIXEL_SHIFT = 2;
+static const uint32_t VIDEL_CONTROL_HALF_PIXEL_MASK = 1;
+inline OFFON GetField_VIDEL_CONTROL_HALF_PIXEL(uint32_t value) { return static_cast<OFFON>(((value)>>2) & 1); }
+extern const stgen::FieldDef g_fieldDef_VIDEL_CONTROL_HALF_PIXEL;
+
+/* Field PIXWIDTH */
+static const uint32_t VIDEL_CONTROL_PIXWIDTH_SHIFT = 2;
+static const uint32_t VIDEL_CONTROL_PIXWIDTH_MASK = 3;
+inline PIXWIDTH GetField_VIDEL_CONTROL_PIXWIDTH(uint32_t value) { return static_cast<PIXWIDTH>(((value)>>2) & 3); }
+extern const stgen::FieldDef g_fieldDef_VIDEL_CONTROL_PIXWIDTH;
+
+/* Field SKIP_LINE */
+static const uint32_t VIDEL_CONTROL_SKIP_LINE_SHIFT = 1;
+static const uint32_t VIDEL_CONTROL_SKIP_LINE_MASK = 1;
+inline OFFON GetField_VIDEL_CONTROL_SKIP_LINE(uint32_t value) { return static_cast<OFFON>(((value)>>1) & 1); }
+extern const stgen::FieldDef g_fieldDef_VIDEL_CONTROL_SKIP_LINE;
+
+/* Field DOUBLE */
+static const uint32_t VIDEL_CONTROL_DOUBLE_SHIFT = 0;
+static const uint32_t VIDEL_CONTROL_DOUBLE_MASK = 1;
+inline OFFON GetField_VIDEL_CONTROL_DOUBLE(uint32_t value) { return static_cast<OFFON>(((value)>>0) & 1); }
+extern const stgen::FieldDef g_fieldDef_VIDEL_CONTROL_DOUBLE;
 
 
 /* Register Field Sets */
 
-extern const stgen::FieldDef* g_regFieldsDef_VID_SCANLINE_OFFSET_FALCON[];
-extern const stgen::FieldDef* g_regFieldsDef_VID_LINE_WIDTH_FALCON[];
+extern const stgen::FieldDef* g_regFieldsDef_FALC_SYS_CNTL[];
+extern const stgen::FieldDef* g_regFieldsDef_FALC_BUS_CNTL[];
+extern const stgen::FieldDef* g_regFieldsDef_VIDEL_SCANLINE_OFFSET[];
+extern const stgen::FieldDef* g_regFieldsDef_VIDEL_VWRAP[];
 extern const stgen::FieldDef* g_regFieldsDef_FALC_SPSHIFT[];
+extern const stgen::FieldDef* g_regFieldsDef_VIDEL_HHC[];
+extern const stgen::FieldDef* g_regFieldsDef_VIDEL_HHT[];
+extern const stgen::FieldDef* g_regFieldsDef_VIDEL_HBB[];
+extern const stgen::FieldDef* g_regFieldsDef_VIDEL_HBE[];
+extern const stgen::FieldDef* g_regFieldsDef_VIDEL_HDB[];
+extern const stgen::FieldDef* g_regFieldsDef_VIDEL_HDE[];
+extern const stgen::FieldDef* g_regFieldsDef_VIDEL_HSS[];
+extern const stgen::FieldDef* g_regFieldsDef_VIDEL_HFS[];
+extern const stgen::FieldDef* g_regFieldsDef_VIDEL_HEE[];
+extern const stgen::FieldDef* g_regFieldsDef_VIDEL_VFC[];
+extern const stgen::FieldDef* g_regFieldsDef_VIDEL_VFT[];
+extern const stgen::FieldDef* g_regFieldsDef_VIDEL_VBB[];
+extern const stgen::FieldDef* g_regFieldsDef_VIDEL_VBE[];
+extern const stgen::FieldDef* g_regFieldsDef_VIDEL_VDB[];
+extern const stgen::FieldDef* g_regFieldsDef_VIDEL_VDE[];
+extern const stgen::FieldDef* g_regFieldsDef_VIDEL_VSS[];
+extern const stgen::FieldDef* g_regFieldsDef_VIDEL_CONTROL[];
 } // namespace
 #endif
