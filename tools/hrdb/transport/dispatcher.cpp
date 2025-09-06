@@ -13,7 +13,7 @@
 //#define DISPATCHER_DEBUG
 
 // Protocol ID which needs to match the Hatari target
-#define REMOTEDEBUG_PROTOCOL_ID	(0x1008)
+#define REMOTEDEBUG_PROTOCOL_ID	(0x1009)
 
 //-----------------------------------------------------------------------------
 // Character value for the separator in responses/notifications from the target

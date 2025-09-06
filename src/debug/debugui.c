@@ -531,6 +531,25 @@ static int DebugUI_QuitEmu(int nArgc, char *psArgv[])
 
 
 /**
+ * Command: Force Debug Exception Mask
+ */
+static int DebugUI_RdbExceptionMask(int nArgc, char *psArgv[])
+{
+	const char *errstr;
+
+	if (nArgc != 2)
+		return DebugUI_PrintCmdHelp(psArgv[0]);
+
+	errstr = Log_SetExceptionDebugMask(psArgv[1]);
+	if (!errstr)
+		ExceptionDebugMask = ConfigureParams.Debugger.nExceptionDebugMask;
+	else
+		fprintf(stderr, "Cannot parse exception mask: %s\n", errstr);
+
+	return DEBUGGER_CMDDONE;
+}
+
+/**
  * Print help text for one command
  */
 int DebugUI_PrintCmdHelp(const char *psCmd)
@@ -1093,6 +1112,12 @@ static const dbgcommand_t uicommand[] =
 	  "quit emulator",
 	  "[exit value]\n"
 	  "\tLeave debugger and quit emulator with given exit value.",
+	  false },
+	{ DebugUI_RdbExceptionMask, NULL,
+	  "rdb_exc", "",
+	  "set Exception Mask (Remote Debug support)",
+	  "<exception mask string>\n"
+	  "\tSet exceptions which trigger debugger break and force debug support.",
 	  false }
 };
 

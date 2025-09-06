@@ -91,6 +91,30 @@ bool LaunchHatari(const LaunchSettings& settings, Session* pSession)
             if (settings.m_breakMode == LaunchSettings::kProgramBreakpoint)
                 ref << "b " << settings.m_breakPointTxt << ":once\r\n";
 
+            // If there are autostart exceptions, generate the string
+            // We have to check each bit manually, since the GetRaw() value
+            // can have non-user bits set (like autostart)
+            if (settings.m_exceptionMask.GetRaw() != 0)
+            {
+                QString autoStartStr;
+                QTextStream ref2(&autoStartStr);
+                bool first = true;
+                for (uint32_t i = 0; i < ExceptionMask::kExceptionCount; ++i)
+                {
+                    ExceptionMask::Type t = (ExceptionMask::Type)i;
+                    if (settings.m_exceptionMask.Get(t))
+                    {
+                        if (!first)
+                            ref2 << ",";
+                        ref2 << QString(ExceptionMask::GetAutostartArg(t));
+                        first = false;
+                    }
+                }
+                // Only add to script if a bit was set
+                if (!first)
+                    ref << "rdb_exc " << autoStartStr << "\r\n";
+            }
+
             // Create the temp file
             QTemporaryFile& tmp(*pSession->m_pProgramStartScript);
             if (tmp.exists())
@@ -146,32 +170,6 @@ bool LaunchHatari(const LaunchSettings& settings, Session* pSession)
             args.push_front(tmp.fileName());
             args.push_front("--parse");
         }
-    }
-
-    // If there are autostart exceptions, generate the string
-    // We have to check each bit manually, since the GetRaw() value
-    // can have non-user bits set (like autostart)
-    QString autoStartStr;
-    QTextStream ref(&autoStartStr);
-    bool first = true;
-    for (uint32_t i = 0; i < ExceptionMask::kExceptionCount; ++i)
-    {
-        ExceptionMask::Type t = (ExceptionMask::Type)i;
-        if (settings.m_exceptionMask.Get(t))
-        {
-            if (!first)
-                ref << ",";
-            ref << QString(ExceptionMask::GetAutostartArg(t));
-            first = false;
-        }
-    }
-    // Only add to command line if a bit was set
-    if (!first)
-    {
-        // Found some flags
-        ref << ",autostart";
-        args.push_back("--debug-except");
-        args.push_back(autoStartStr);
     }
 
     // Executable goes as last arg
