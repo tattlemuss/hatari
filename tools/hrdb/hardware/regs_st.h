@@ -125,7 +125,7 @@ enum class ENV_SHAPE : uint32_t {
 
 /* Enum BLT_HOP */
 enum class BLT_HOP : uint32_t {
-	HOP_ONES             =      0, /* All Ones */
+	HOP_ONES             =      0, /* Ones */
 	HOP_HALFTONE         =      1, /* Halftone only */
 	HOP_SOURCE           =      2, /* Source only */
 	HOP_SOURCE_AND_HALFTONE =      3  /* Source AND halftone */
@@ -133,7 +133,7 @@ enum class BLT_HOP : uint32_t {
 
 /* Enum BLT_OP */
 enum class BLT_OP : uint32_t {
-	ZERO                 =      0, /* All zeros */
+	ZERO                 =      0, /* Zeroes */
 	AND                  =      1, /* Source AND destination */
 	AND_NOT              =      2, /* Source AND NOT destination */
 	SOURCE               =      3, /* Source */
@@ -148,7 +148,7 @@ enum class BLT_OP : uint32_t {
 	NOT_SOURCE           =     12, /* NOT source */
 	NOT_SOURCE_OR        =     13, /* NOT source OR destination */
 	NOT_SOURCE_OR_NOT    =     14, /* NOT source OR NOT destination */
-	ONES                 =     15  /* All ones */
+	ONE                  =     15  /* Ones */
 };
 
 /* Enum IS_STEREO */

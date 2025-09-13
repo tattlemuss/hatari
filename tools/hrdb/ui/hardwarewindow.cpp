@@ -514,6 +514,7 @@ bool HardwareFieldAddr::Update(const TargetModel* pTarget)
     const Memory* memDma = pTarget->GetMemory(MemorySlot::kHardwareWindowDmaSnd);
 
     uint32_t address = 0;
+    uint32_t vectorAddr = 0;
     bool valid = false;
     switch (m_type)
     {
@@ -528,10 +529,12 @@ bool HardwareFieldAddr::Update(const TargetModel* pTarget)
     case Type::BltSrc:
         if (!memBlit)
             break;
+        vectorAddr = Regs::BLT_SRC_ADDR;
         valid = (HardwareST::GetBlitterSrc(*memBlit, pTarget->GetMachineType(), address)); break;
     case Type::BltDst:
         if (!memBlit)
             break;
+        vectorAddr = Regs::BLT_DST_ADDR;
         valid = (HardwareST::GetBlitterDst(*memBlit, pTarget->GetMachineType(), address)); break;
     case Type::DMASndStart:
         if (!memDma)
@@ -548,6 +551,7 @@ bool HardwareFieldAddr::Update(const TargetModel* pTarget)
     case Type::BasePage:
         if (!memBase)
             break;
+        vectorAddr = m_address;
         valid = memBase->ReadCpuMulti(m_address, 4, address);
         break;
     case Type::Mfp:
@@ -556,7 +560,8 @@ bool HardwareFieldAddr::Update(const TargetModel* pTarget)
                 break;
             {
                 uint32_t base = memMfp->GetAddress();
-                valid = memMfp->ReadCpuMulti(base + m_address * 4, 4, address);
+                vectorAddr = base + m_address * 4;
+                valid = memMfp->ReadCpuMulti(vectorAddr, 4, address);
             }
         }
         break;
@@ -565,7 +570,11 @@ bool HardwareFieldAddr::Update(const TargetModel* pTarget)
     {
         address &= 0xffffff;
         m_memAddress = address;
-        QString str = QString::asprintf("$%08x", address);
+        QString str;
+        if (vectorAddr)
+            str += QString::asprintf("[$%x] -> ", vectorAddr);
+
+        str += QString::asprintf("$%08x", address);
         QString sym = DescribeSymbol(pTarget->GetSymbolTable(), address);
         if (!sym.isEmpty())
             str += " (" + sym + ")";
@@ -1005,7 +1014,7 @@ HardwareWindow::HardwareWindow(QWidget *parent, Session* pSession) :
     HardwareHeader* pExpVideo = new HardwareHeader("Shifter/Glue", "Video");
     HardwareHeader* pExpVidel = new HardwareHeader("VIDEL", "Falcon Video");
     HardwareHeader* pExpMfp = new HardwareHeader("MFP 68901", "Multi-Function Peripheral");
-    HardwareHeader* pExpYm = new HardwareHeader("YM/PSG", "Soundchip");
+    HardwareHeader* pExpYm = new HardwareHeader("YM 2149 (PSG)", "Sound Generator");
     HardwareHeader* pExpACIA = new HardwareHeader("ACIA", "Keyboard and MIDI");
 
     HardwareHeader* pExpBlt = new HardwareHeader("Blitter", "");

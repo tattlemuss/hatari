@@ -119,7 +119,7 @@ const char* GetString(ENV_SHAPE val)
 }
 const char* GetString(BLT_HOP val)
 {
-	if (val==BLT_HOP::HOP_ONES) return "All Ones";
+	if (val==BLT_HOP::HOP_ONES) return "Ones";
 	if (val==BLT_HOP::HOP_HALFTONE) return "Halftone only";
 	if (val==BLT_HOP::HOP_SOURCE) return "Source only";
 	if (val==BLT_HOP::HOP_SOURCE_AND_HALFTONE) return "Source AND halftone";
@@ -127,7 +127,7 @@ const char* GetString(BLT_HOP val)
 }
 const char* GetString(BLT_OP val)
 {
-	if (val==BLT_OP::ZERO) return "All zeros";
+	if (val==BLT_OP::ZERO) return "Zeroes";
 	if (val==BLT_OP::AND) return "Source AND destination";
 	if (val==BLT_OP::AND_NOT) return "Source AND NOT destination";
 	if (val==BLT_OP::SOURCE) return "Source";
@@ -142,7 +142,7 @@ const char* GetString(BLT_OP val)
 	if (val==BLT_OP::NOT_SOURCE) return "NOT source";
 	if (val==BLT_OP::NOT_SOURCE_OR) return "NOT source OR destination";
 	if (val==BLT_OP::NOT_SOURCE_OR_NOT) return "NOT source OR NOT destination";
-	if (val==BLT_OP::ONES) return "All ones";
+	if (val==BLT_OP::ONE) return "Ones";
 	return "?";
 }
 const char* GetString(IS_STEREO val)
@@ -263,14 +263,14 @@ const stgen::StringDef g_enumStringsENV_SHAPE[] = {
 	{ 0, nullptr }
 };
 const stgen::StringDef g_enumStringsBLT_HOP[] = {
-	{ 0, "All Ones" },
+	{ 0, "Ones" },
 	{ 1, "Halftone only" },
 	{ 2, "Source only" },
 	{ 3, "Source AND halftone" },
 	{ 0, nullptr }
 };
 const stgen::StringDef g_enumStringsBLT_OP[] = {
-	{ 0, "All zeros" },
+	{ 0, "Zeroes" },
 	{ 1, "Source AND destination" },
 	{ 2, "Source AND NOT destination" },
 	{ 3, "Source" },
@@ -285,7 +285,7 @@ const stgen::StringDef g_enumStringsBLT_OP[] = {
 	{ 12, "NOT source" },
 	{ 13, "NOT source OR destination" },
 	{ 14, "NOT source OR NOT destination" },
-	{ 15, "All ones" },
+	{ 15, "Ones" },
 	{ 0, nullptr }
 };
 const stgen::StringDef g_enumStringsIS_STEREO[] = {
