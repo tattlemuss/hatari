@@ -44,6 +44,7 @@
 #include "psg.h"
 #include "dmaSnd.h"
 #include "blitter.h"
+#include "acia.h"
 #include "dsp.h"
 #include "dsp_cpu.h"
 #include "profile.h"
@@ -490,6 +491,7 @@ static void RemoteDebug_HardwareSync(void)
 	DmaSnd_RemoteDebugSync();
 	Video_RemoteDebugSync();
 	Blitter_RemoteDebugSync();
+	ACIA_RemoteDebugSync();
 }
 
 // -----------------------------------------------------------------------------
