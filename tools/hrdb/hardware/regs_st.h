@@ -299,6 +299,8 @@ static const uint32_t DMA_END_HIGH                   = 0xff890f;
 static const uint32_t DMA_END_MID                    = 0xff8911;
 static const uint32_t DMA_END_LOW                    = 0xff8913;
 static const uint32_t DMA_SND_MODE                   = 0xff8921;
+static const uint32_t ACIA_KB_CTL                    = 0xfffc00;
+static const uint32_t ACIA_KB_DATA                   = 0xfffc02;
 
 /* Register Field Accessors */
 
@@ -1510,6 +1512,64 @@ inline DMA_FREQ GetField_DMA_SND_MODE_DMA_FREQ(uint32_t value) { return static_c
 extern const stgen::FieldDef g_fieldDef_DMA_SND_MODE_DMA_FREQ;
 
 
+/* Register ACIA_KB_CTL ($fffc00)*/
+/* Field INT_REQ */
+static const uint32_t ACIA_KB_CTL_INT_REQ_SHIFT = 7;
+static const uint32_t ACIA_KB_CTL_INT_REQ_MASK = 1;
+inline bool GetField_ACIA_KB_CTL_INT_REQ(uint32_t value) { return static_cast<bool>(((value)>>7) & 1); }
+extern const stgen::FieldDef g_fieldDef_ACIA_KB_CTL_INT_REQ;
+
+/* Field PARITY_ERR */
+static const uint32_t ACIA_KB_CTL_PARITY_ERR_SHIFT = 6;
+static const uint32_t ACIA_KB_CTL_PARITY_ERR_MASK = 1;
+inline bool GetField_ACIA_KB_CTL_PARITY_ERR(uint32_t value) { return static_cast<bool>(((value)>>6) & 1); }
+extern const stgen::FieldDef g_fieldDef_ACIA_KB_CTL_PARITY_ERR;
+
+/* Field RX_OVERRUN */
+static const uint32_t ACIA_KB_CTL_RX_OVERRUN_SHIFT = 5;
+static const uint32_t ACIA_KB_CTL_RX_OVERRUN_MASK = 1;
+inline bool GetField_ACIA_KB_CTL_RX_OVERRUN(uint32_t value) { return static_cast<bool>(((value)>>5) & 1); }
+extern const stgen::FieldDef g_fieldDef_ACIA_KB_CTL_RX_OVERRUN;
+
+/* Field FRAME_ERR */
+static const uint32_t ACIA_KB_CTL_FRAME_ERR_SHIFT = 4;
+static const uint32_t ACIA_KB_CTL_FRAME_ERR_MASK = 1;
+inline bool GetField_ACIA_KB_CTL_FRAME_ERR(uint32_t value) { return static_cast<bool>(((value)>>4) & 1); }
+extern const stgen::FieldDef g_fieldDef_ACIA_KB_CTL_FRAME_ERR;
+
+/* Field CTS */
+static const uint32_t ACIA_KB_CTL_CTS_SHIFT = 3;
+static const uint32_t ACIA_KB_CTL_CTS_MASK = 1;
+inline bool GetField_ACIA_KB_CTL_CTS(uint32_t value) { return static_cast<bool>(((value)>>3) & 1); }
+extern const stgen::FieldDef g_fieldDef_ACIA_KB_CTL_CTS;
+
+/* Field DCD */
+static const uint32_t ACIA_KB_CTL_DCD_SHIFT = 2;
+static const uint32_t ACIA_KB_CTL_DCD_MASK = 1;
+inline bool GetField_ACIA_KB_CTL_DCD(uint32_t value) { return static_cast<bool>(((value)>>2) & 1); }
+extern const stgen::FieldDef g_fieldDef_ACIA_KB_CTL_DCD;
+
+/* Field TX_EMPTY */
+static const uint32_t ACIA_KB_CTL_TX_EMPTY_SHIFT = 1;
+static const uint32_t ACIA_KB_CTL_TX_EMPTY_MASK = 1;
+inline bool GetField_ACIA_KB_CTL_TX_EMPTY(uint32_t value) { return static_cast<bool>(((value)>>1) & 1); }
+extern const stgen::FieldDef g_fieldDef_ACIA_KB_CTL_TX_EMPTY;
+
+/* Field RX_FULL */
+static const uint32_t ACIA_KB_CTL_RX_FULL_SHIFT = 0;
+static const uint32_t ACIA_KB_CTL_RX_FULL_MASK = 1;
+inline bool GetField_ACIA_KB_CTL_RX_FULL(uint32_t value) { return static_cast<bool>(((value)>>0) & 1); }
+extern const stgen::FieldDef g_fieldDef_ACIA_KB_CTL_RX_FULL;
+
+
+/* Register ACIA_KB_DATA ($fffc02)*/
+/* Field ALL */
+static const uint32_t ACIA_KB_DATA_ALL_SHIFT = 0;
+static const uint32_t ACIA_KB_DATA_ALL_MASK = 255;
+inline int8_t GetField_ACIA_KB_DATA_ALL(uint32_t value) { return static_cast<int8_t>(((value)>>0) & 255); }
+extern const stgen::FieldDef g_fieldDef_ACIA_KB_DATA_ALL;
+
+
 /* Register Field Sets */
 
 extern const stgen::FieldDef* g_regFieldsDef_MMU_CONFIG[];
@@ -1573,5 +1633,7 @@ extern const stgen::FieldDef* g_regFieldsDef_BLT_CTRL_2[];
 extern const stgen::FieldDef* g_regFieldsDef_DMA_BUFFER_INTERRUPTS[];
 extern const stgen::FieldDef* g_regFieldsDef_DMA_CONTROL[];
 extern const stgen::FieldDef* g_regFieldsDef_DMA_SND_MODE[];
+extern const stgen::FieldDef* g_regFieldsDef_ACIA_KB_CTL[];
+extern const stgen::FieldDef* g_regFieldsDef_ACIA_KB_DATA[];
 } // namespace
 #endif

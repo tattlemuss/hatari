@@ -27,6 +27,7 @@ enum MemorySlot : int
     kHardwareWindowMfp,
     kHardwareWindowBlitter,
     kHardwareWindowMfpVecs,
+    kHardwareWindowACIA,
     kHardwareWindowDmaSnd,
 
     kHardwareWindowStart = kHardwareWindowMmu,

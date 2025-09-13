@@ -612,7 +612,7 @@ bool HardwareFieldYmPeriod::Update(const TargetModel *pTarget)
     val &= mask;
 
     double hertz = divisor / (val ? val : 1);
-    QString str = QString::asprintf("$%03x  Approx %.0fHz", val, hertz);
+    QString str = QString::asprintf("$%03x  (~%.0fHz)", val, hertz);
     m_changed = m_text != str;
     m_text = str;
     return true;
@@ -661,7 +661,7 @@ bool HardwareFieldYmVolume::Update(const TargetModel *pTarget)
     uint8_t squareVol = Regs::GetField_YM_VOLUME_A_VOL(val);
     bool useEnv = Regs::GetField_YM_VOLUME_A_ENVELOPE(val);
 
-    QString str = QString::asprintf("Square Vol = %u%s",
+    QString str = QString::asprintf("Square/Noise Vol = %u%s",
                                     squareVol,
                                     useEnv ? " + ENVELOPE" : "");
     m_changed = m_text != str;
@@ -1006,6 +1006,8 @@ HardwareWindow::HardwareWindow(QWidget *parent, Session* pSession) :
     HardwareHeader* pExpVidel = new HardwareHeader("VIDEL", "Falcon Video");
     HardwareHeader* pExpMfp = new HardwareHeader("MFP 68901", "Multi-Function Peripheral");
     HardwareHeader* pExpYm = new HardwareHeader("YM/PSG", "Soundchip");
+    HardwareHeader* pExpACIA = new HardwareHeader("ACIA", "Keyboard and MIDI");
+
     HardwareHeader* pExpBlt = new HardwareHeader("Blitter", "");
     HardwareHeader* pExpBltHalftone = new HardwareHeader("Halftone RAM", "");
     HardwareHeader* pExpDmaSnd = new HardwareHeader("DMA Sound", "");
@@ -1019,6 +1021,7 @@ HardwareWindow::HardwareWindow(QWidget *parent, Session* pSession) :
     m_pRoot->AddChild(pExpVidel);
     m_pRoot->AddChild(pExpMfp);
     m_pRoot->AddChild(pExpYm);
+    m_pRoot->AddChild(pExpACIA);
     m_pRoot->AddChild(pExpBlt);
     m_pRoot->AddChild(pExpDmaSnd);
 
@@ -1169,6 +1172,10 @@ HardwareWindow::HardwareWindow(QWidget *parent, Session* pSession) :
     addMultiField(pExpMfp, "USART RX Status",         Regs::g_regFieldsDef_MFP_RSR);
     addMultiField(pExpMfp, "USART TX Status",         Regs::g_regFieldsDef_MFP_TSR);
     addField(pExpMfp, "USART Data",                   Regs::g_fieldDef_MFP_UDR_ALL);
+
+    // ===== ACIA ====
+    addMultiField(pExpACIA, "Keyboard Control",       Regs::g_regFieldsDef_ACIA_KB_CTL);
+    addField(pExpACIA,  "Keyboard Data",              Regs::g_fieldDef_ACIA_KB_DATA_ALL);
 
     // ===== YM ====
     addShared(pExpYm, "Period A",     new HardwareFieldYmPeriod(Regs::YM_PERIOD_A_LO));
@@ -1344,6 +1351,7 @@ void HardwareWindow::startStopChanged()
         m_pDispatcher->ReadMemory(MemorySlot::kHardwareWindowMfp,     Regs::MFP_GPIP,      0x30);
         m_pDispatcher->ReadMemory(MemorySlot::kHardwareWindowBlitter, Regs::BLT_HALFTONE_0,0x40);
         m_pDispatcher->ReadMemory(MemorySlot::kHardwareWindowDmaSnd,  Regs::DMA_SND_BASE,  0x40);
+        m_pDispatcher->ReadMemory(MemorySlot::kHardwareWindowACIA,    Regs::ACIA_KB_CTL,   0x4);
         m_pDispatcher->ReadInfoYm();
     }
 }

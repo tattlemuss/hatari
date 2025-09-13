@@ -1019,11 +1019,47 @@ const stgen::FieldDef g_fieldDef_DMA_CONTROL_REPLAY = {
 const stgen::FieldDef g_fieldDef_DMA_SND_MODE_FORMAT = {
   DMA_SND_MODE, DMA_SND_MODE_FORMAT_MASK,
   1, DMA_SND_MODE_FORMAT_SHIFT,
-  "FORMAT", g_enumStringsIS_STEREO, "" };
+  "FORMAT", g_enumStringsIS_STEREO, "Format Mono/Stereo" };
 const stgen::FieldDef g_fieldDef_DMA_SND_MODE_DMA_FREQ = {
   DMA_SND_MODE, DMA_SND_MODE_DMA_FREQ_MASK,
   1, DMA_SND_MODE_DMA_FREQ_SHIFT,
-  "DMA_FREQ", g_enumStringsDMA_FREQ, "" };
+  "DMA_FREQ", g_enumStringsDMA_FREQ, "DMA Frequency" };
+const stgen::FieldDef g_fieldDef_ACIA_KB_CTL_INT_REQ = {
+  ACIA_KB_CTL, ACIA_KB_CTL_INT_REQ_MASK,
+  1, ACIA_KB_CTL_INT_REQ_SHIFT,
+  "INT_REQ", nullptr, "Interrupt Request" };
+const stgen::FieldDef g_fieldDef_ACIA_KB_CTL_PARITY_ERR = {
+  ACIA_KB_CTL, ACIA_KB_CTL_PARITY_ERR_MASK,
+  1, ACIA_KB_CTL_PARITY_ERR_SHIFT,
+  "PARITY_ERR", nullptr, "Parity Error" };
+const stgen::FieldDef g_fieldDef_ACIA_KB_CTL_RX_OVERRUN = {
+  ACIA_KB_CTL, ACIA_KB_CTL_RX_OVERRUN_MASK,
+  1, ACIA_KB_CTL_RX_OVERRUN_SHIFT,
+  "RX_OVERRUN", nullptr, "RX Overrun" };
+const stgen::FieldDef g_fieldDef_ACIA_KB_CTL_FRAME_ERR = {
+  ACIA_KB_CTL, ACIA_KB_CTL_FRAME_ERR_MASK,
+  1, ACIA_KB_CTL_FRAME_ERR_SHIFT,
+  "FRAME_ERR", nullptr, "Framing Error" };
+const stgen::FieldDef g_fieldDef_ACIA_KB_CTL_CTS = {
+  ACIA_KB_CTL, ACIA_KB_CTL_CTS_MASK,
+  1, ACIA_KB_CTL_CTS_SHIFT,
+  "CTS", nullptr, "Clear to Send" };
+const stgen::FieldDef g_fieldDef_ACIA_KB_CTL_DCD = {
+  ACIA_KB_CTL, ACIA_KB_CTL_DCD_MASK,
+  1, ACIA_KB_CTL_DCD_SHIFT,
+  "DCD", nullptr, "Data Carrier Detect" };
+const stgen::FieldDef g_fieldDef_ACIA_KB_CTL_TX_EMPTY = {
+  ACIA_KB_CTL, ACIA_KB_CTL_TX_EMPTY_MASK,
+  1, ACIA_KB_CTL_TX_EMPTY_SHIFT,
+  "TX_EMPTY", nullptr, "TX Data Register empty" };
+const stgen::FieldDef g_fieldDef_ACIA_KB_CTL_RX_FULL = {
+  ACIA_KB_CTL, ACIA_KB_CTL_RX_FULL_MASK,
+  1, ACIA_KB_CTL_RX_FULL_SHIFT,
+  "RX_FULL", nullptr, "RX Data Register full" };
+const stgen::FieldDef g_fieldDef_ACIA_KB_DATA_ALL = {
+  ACIA_KB_DATA, ACIA_KB_DATA_ALL_MASK,
+  1, ACIA_KB_DATA_ALL_SHIFT,
+  "ALL", nullptr, "" };
 /* Register Field Sets */
 
 const stgen::FieldDef* g_regFieldsDef_MMU_CONFIG[] = {
@@ -1388,6 +1424,21 @@ const stgen::FieldDef* g_regFieldsDef_DMA_CONTROL[] = {
 const stgen::FieldDef* g_regFieldsDef_DMA_SND_MODE[] = {
 	 &g_fieldDef_DMA_SND_MODE_FORMAT,
 	 &g_fieldDef_DMA_SND_MODE_DMA_FREQ,
+	nullptr
+};
+const stgen::FieldDef* g_regFieldsDef_ACIA_KB_CTL[] = {
+	 &g_fieldDef_ACIA_KB_CTL_INT_REQ,
+	 &g_fieldDef_ACIA_KB_CTL_PARITY_ERR,
+	 &g_fieldDef_ACIA_KB_CTL_RX_OVERRUN,
+	 &g_fieldDef_ACIA_KB_CTL_FRAME_ERR,
+	 &g_fieldDef_ACIA_KB_CTL_CTS,
+	 &g_fieldDef_ACIA_KB_CTL_DCD,
+	 &g_fieldDef_ACIA_KB_CTL_TX_EMPTY,
+	 &g_fieldDef_ACIA_KB_CTL_RX_FULL,
+	nullptr
+};
+const stgen::FieldDef* g_regFieldsDef_ACIA_KB_DATA[] = {
+	 &g_fieldDef_ACIA_KB_DATA_ALL,
 	nullptr
 };
 } // namespace
