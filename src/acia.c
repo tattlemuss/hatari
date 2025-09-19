@@ -1153,3 +1153,24 @@ void ACIA_Info(FILE *fp, uint32_t dummy)
 	fprintf(fp, "- Control / status: 0x%02x\n", IoMem[0xfffc04]);
 	fprintf(fp, "- Data: 0x%02x\n", IoMem[0xfffc06]);
 }
+
+void	ACIA_RemoteDebugSync( void )
+{
+	// This code only changes IoMem, without system side-effects,
+	// so that it looks "correct" when queried in a debugger.
+	// When CPU really reads these registers it will go through
+	// the normal query functions above.
+	uint8_t	SR;
+	ACIA_STRUCT* pACIA = pACIA_IKBD;
+
+	// This emulates ACIA_Read_SR without side-effects in the state
+	SR = pACIA->SR;
+	if ( pACIA->Get_Line_CTS() == 1 )
+		SR |= ACIA_SR_BIT_CTS;
+	else
+		SR &= ~ACIA_SR_BIT_CTS;
+	if ( SR & ACIA_SR_BIT_CTS )
+		SR &= ~ACIA_SR_BIT_TDRE;				/* Inhibit TDRE when CTS is set */
+	IoMem[0xfffc00] = SR;
+	IoMem[0xfffc02] = pACIA->RDR;
+}

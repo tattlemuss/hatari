@@ -1232,23 +1232,27 @@ void MemoryWidget::ContextMenu(int row, int col, QPoint globalPos)
     // These actions are optional
     if (row != -1)
     {
-        // Align the memory location to 2 or 4 bytes, based on context
-        // (view address, or word/long mode)
-        uint32_t addr = CalcAddress(m_address, row, col);
         if (isCpu)
         {
-            if (m_sizeMode == SizeMode::kModeLong)
-                addr &= ~3U;
-            else
-                addr &= ~1U;
-
             menu.addAction(m_pSearchAction);
         }
+
+        uint32_t addr = CalcAddress(m_address, row, col);
 
         // TODO different memory spaces
         m_showThisAddressMenu.Set("Cursor Address",
                                    m_pSession, space, addr);
         m_showThisAddressMenu.AddTo(&menu);
+
+        // Align the "pointer" memory location to 2 or 4 bytes, based on context
+        // (view address, or word/long mode)
+        if (isCpu)
+        {
+            // column left while we remain a hex value column
+            while (col > 0 && IsNybble(m_columnMap[col - 1].type))
+                col--;
+        }
+        uint32_t pointerAddr = CalcAddress(m_address, row, col);
 
         const Memory* mem = m_pTargetModel->GetMemory(m_memSlot);
         if (mem)
@@ -1257,10 +1261,9 @@ void MemoryWidget::ContextMenu(int row, int col, QPoint globalPos)
             uint32_t contents;
             if (isCpu)
             {
-                valid = mem->ReadCpuMulti(addr, 4, contents);
+                valid = mem->ReadCpuMulti(pointerAddr, 4, contents);
                 if (valid)
                 {
-                    contents &= 0xffffff;
                     m_showPtrAddressMenu[0].Set("Data Address",
                                                 m_pSession, m_address.space, contents);
                     m_showPtrAddressMenu[0].AddTo(&menu);
@@ -1268,14 +1271,14 @@ void MemoryWidget::ContextMenu(int row, int col, QPoint globalPos)
             }
             else
             {
-                valid = mem->ReadDspWord(addr, contents);
+                valid = mem->ReadDspWord(pointerAddr, contents);
                 if (valid)
                 {
                     contents &= 0xffff;
                     // We don't know which memory space we want, so show all three.
                     m_showPtrAddressMenu[0].Set("Data Address", m_pSession, MEM_P, contents);
-                    m_showPtrAddressMenu[1].Set("Pointer Address", m_pSession, MEM_X, contents);
-                    m_showPtrAddressMenu[2].Set("Pointer Address", m_pSession, MEM_Y, contents);
+                    m_showPtrAddressMenu[1].Set("Data Address", m_pSession, MEM_X, contents);
+                    m_showPtrAddressMenu[2].Set("Data Address", m_pSession, MEM_Y, contents);
                     m_showPtrAddressMenu[0].AddTo(&menu);
                     m_showPtrAddressMenu[1].AddTo(&menu);
                     m_showPtrAddressMenu[2].AddTo(&menu);
@@ -1323,6 +1326,12 @@ uint32_t MemoryWidget::CalcAddrOffset(MemAddr addr, int row, int col) const
 uint32_t MemoryWidget::CalcAddress(MemAddr addr, int row, int col) const
 {
     return addr.addr + CalcAddrOffset(addr, row, col);
+}
+
+bool MemoryWidget::IsNybble(MemoryWidget::ColumnType type)
+{
+    return type == MemoryWidget::ColumnType::kBottomNybble ||
+           type == MemoryWidget::ColumnType::kTopNybble;
 }
 
 //-----------------------------------------------------------------------------
@@ -1689,3 +1698,4 @@ void MemoryWindow::syncUiElements()
     if (spaceComboIndex != -1)
         m_pSpaceComboBox->setCurrentIndex(spaceComboIndex);
 }
+

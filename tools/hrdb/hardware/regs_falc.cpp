@@ -4,50 +4,315 @@
 
 namespace Regs {
 
-const stgen::FieldDef g_fieldDef_VID_SCANLINE_OFFSET_FALCON_ALL = {
-  VID_SCANLINE_OFFSET_FALCON, VID_SCANLINE_OFFSET_FALCON_ALL_MASK,
-  2, VID_SCANLINE_OFFSET_FALCON_ALL_SHIFT,
-  "ALL", nullptr, "Offset in words (Falcon)" };
-const stgen::FieldDef g_fieldDef_VID_LINE_WIDTH_FALCON_ALL = {
-  VID_LINE_WIDTH_FALCON, VID_LINE_WIDTH_FALCON_ALL_MASK,
-  2, VID_LINE_WIDTH_FALCON_ALL_SHIFT,
-  "ALL", nullptr, "Offset in words (Falcon)" };
-const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_COLBANK = {
-  FALC_SPSHIFT, FALC_SPSHIFT_COLBANK_MASK,
-  1, FALC_SPSHIFT_COLBANK_SHIFT,
-  "COLBANK", nullptr, "Colour bank in 8-bitplane" };
-const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_MODE_256 = {
-  FALC_SPSHIFT, FALC_SPSHIFT_MODE_256_MASK,
-  1, FALC_SPSHIFT_MODE_256_SHIFT,
-  "MODE_256", nullptr, "256-colour mode (8-bitplane)" };
-const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_TRUCOL = {
-  FALC_SPSHIFT, FALC_SPSHIFT_TRUCOL_MASK,
-  1, FALC_SPSHIFT_TRUCOL_SHIFT,
-  "TRUCOL", nullptr, "True-Color mode" };
-const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_OVERLAY = {
-  FALC_SPSHIFT, FALC_SPSHIFT_OVERLAY_MASK,
-  1, FALC_SPSHIFT_OVERLAY_SHIFT,
-  "OVERLAY", nullptr, "Overlay mode" };
+const char* GetString(FALCMON val)
+{
+	if (val==FALCMON::FALCMON_MONO) return "Monochrome (SM124)";
+	if (val==FALCMON::FALCMON_COLOR) return "RGB Color (SC1224)";
+	if (val==FALCMON::FALCMON_VGA_COLOR) return "VGA Color";
+	if (val==FALCMON::FALCMON_TV) return "Television";
+	return "?";
+}
+const char* GetString(FALCMEM val)
+{
+	if (val==FALCMEM::SIZE_1MB) return "1MB";
+	if (val==FALCMEM::SIZE_4MB) return "4MB";
+	if (val==FALCMEM::SIZE_14MB) return "14MB";
+	if (val==FALCMEM::SIZE_RESERVED) return "reserved";
+	return "?";
+}
+const char* GetString(PIXWIDTH val)
+{
+	if (val==PIXWIDTH::NORM) return "Standard";
+	if (val==PIXWIDTH::HALF) return "Half Width";
+	if (val==PIXWIDTH::QUARTER) return "Quarter Width";
+	if (val==PIXWIDTH::BOTH) return "Invalid (Qtr+Half)";
+	return "?";
+}
+const char* GetString(BOOL val)
+{
+	if (val==BOOL::FALSE) return "False";
+	if (val==BOOL::TRUE) return "True";
+	return "?";
+}
+const char* GetString(YESNO val)
+{
+	if (val==YESNO::NO) return "No";
+	if (val==YESNO::YES) return "Yes";
+	return "?";
+}
+const char* GetString(OFFON val)
+{
+	if (val==OFFON::OFF) return "Off";
+	if (val==OFFON::ON) return "On";
+	return "?";
+}
+const stgen::StringDef g_enumStringsFALCMON[] = {
+	{ 0, "Monochrome (SM124)" },
+	{ 1, "RGB Color (SC1224)" },
+	{ 2, "VGA Color" },
+	{ 3, "Television" },
+	{ 0, nullptr }
+};
+const stgen::StringDef g_enumStringsFALCMEM[] = {
+	{ 0, "1MB" },
+	{ 1, "4MB" },
+	{ 2, "14MB" },
+	{ 3, "reserved" },
+	{ 0, nullptr }
+};
+const stgen::StringDef g_enumStringsPIXWIDTH[] = {
+	{ 0, "Standard" },
+	{ 1, "Half Width" },
+	{ 2, "Quarter Width" },
+	{ 3, "Invalid (Qtr+Half)" },
+	{ 0, nullptr }
+};
+const stgen::StringDef g_enumStringsBOOL[] = {
+	{ 0, "False" },
+	{ 1, "True" },
+	{ 0, nullptr }
+};
+const stgen::StringDef g_enumStringsYESNO[] = {
+	{ 0, "No" },
+	{ 1, "Yes" },
+	{ 0, nullptr }
+};
+const stgen::StringDef g_enumStringsOFFON[] = {
+	{ 0, "Off" },
+	{ 1, "On" },
+	{ 0, nullptr }
+};
+const stgen::FieldDef g_fieldDef_FALC_SYS_CNTL_MONITOR = {
+  FALC_SYS_CNTL, FALC_SYS_CNTL_MONITOR_MASK,
+  1, FALC_SYS_CNTL_MONITOR_SHIFT,
+  "MONITOR", g_enumStringsFALCMON, "Attached monitor type" };
+const stgen::FieldDef g_fieldDef_FALC_SYS_CNTL_MEMORY = {
+  FALC_SYS_CNTL, FALC_SYS_CNTL_MEMORY_MASK,
+  1, FALC_SYS_CNTL_MEMORY_SHIFT,
+  "MEMORY", g_enumStringsFALCMEM, "Memory size" };
+const stgen::FieldDef g_fieldDef_FALC_BUS_CNTL_STE_BUS_OFF = {
+  FALC_BUS_CNTL, FALC_BUS_CNTL_STE_BUS_OFF_MASK,
+  1, FALC_BUS_CNTL_STE_BUS_OFF_SHIFT,
+  "STE_BUS_OFF", nullptr, "STe Bus Emulation (0 - on)" };
+const stgen::FieldDef g_fieldDef_FALC_BUS_CNTL_BLITTER_16MHZ = {
+  FALC_BUS_CNTL, FALC_BUS_CNTL_BLITTER_16MHZ_MASK,
+  1, FALC_BUS_CNTL_BLITTER_16MHZ_SHIFT,
+  "BLITTER_16MHZ", nullptr, "Blitter 8MHz or 16MHz" };
+const stgen::FieldDef g_fieldDef_FALC_BUS_CNTL_M68030_16MHZ = {
+  FALC_BUS_CNTL, FALC_BUS_CNTL_M68030_16MHZ_MASK,
+  1, FALC_BUS_CNTL_M68030_16MHZ_SHIFT,
+  "M68030_16MHZ", nullptr, "CPU 8MHz or 16MHz" };
+const stgen::FieldDef g_fieldDef_VIDEL_SCANLINE_OFFSET_ALL = {
+  VIDEL_SCANLINE_OFFSET, VIDEL_SCANLINE_OFFSET_ALL_MASK,
+  2, VIDEL_SCANLINE_OFFSET_ALL_SHIFT,
+  "ALL", nullptr, "Extra offset in words (Falcon)" };
+const stgen::FieldDef g_fieldDef_VIDEL_VWRAP_ALL = {
+  VIDEL_VWRAP, VIDEL_VWRAP_ALL_MASK,
+  2, VIDEL_VWRAP_ALL_SHIFT,
+  "ALL", nullptr, "Line width in words (Falcon)" };
 const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_MODE_2 = {
   FALC_SPSHIFT, FALC_SPSHIFT_MODE_2_MASK,
-  1, FALC_SPSHIFT_MODE_2_SHIFT,
+  2, FALC_SPSHIFT_MODE_2_SHIFT,
   "MODE_2", nullptr, "2-colour mode (1-bitplane)" };
+const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_OVERLAY = {
+  FALC_SPSHIFT, FALC_SPSHIFT_OVERLAY_MASK,
+  2, FALC_SPSHIFT_OVERLAY_SHIFT,
+  "OVERLAY", nullptr, "Overlay mode" };
+const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_TRUCOL = {
+  FALC_SPSHIFT, FALC_SPSHIFT_TRUCOL_MASK,
+  2, FALC_SPSHIFT_TRUCOL_SHIFT,
+  "TRUCOL", nullptr, "True-Color mode" };
+const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_MODE_256 = {
+  FALC_SPSHIFT, FALC_SPSHIFT_MODE_256_MASK,
+  2, FALC_SPSHIFT_MODE_256_SHIFT,
+  "MODE_256", nullptr, "256-colour mode (8-bitplane)" };
+const stgen::FieldDef g_fieldDef_FALC_SPSHIFT_COLBANK = {
+  FALC_SPSHIFT, FALC_SPSHIFT_COLBANK_MASK,
+  2, FALC_SPSHIFT_COLBANK_SHIFT,
+  "COLBANK", nullptr, "Colour bank in 8-bitplane" };
+const stgen::FieldDef g_fieldDef_VIDEL_HHC_ALL = {
+  VIDEL_HHC, VIDEL_HHC_ALL_MASK,
+  2, VIDEL_HHC_ALL_SHIFT,
+  "ALL", nullptr, "Horizontal Hold Counter" };
+const stgen::FieldDef g_fieldDef_VIDEL_HHT_ALL = {
+  VIDEL_HHT, VIDEL_HHT_ALL_MASK,
+  2, VIDEL_HHT_ALL_SHIFT,
+  "ALL", nullptr, "Horizontal Hold Timer" };
+const stgen::FieldDef g_fieldDef_VIDEL_HBB_ALL = {
+  VIDEL_HBB, VIDEL_HBB_ALL_MASK,
+  2, VIDEL_HBB_ALL_SHIFT,
+  "ALL", nullptr, "Horizontal Border Begin" };
+const stgen::FieldDef g_fieldDef_VIDEL_HBE_ALL = {
+  VIDEL_HBE, VIDEL_HBE_ALL_MASK,
+  2, VIDEL_HBE_ALL_SHIFT,
+  "ALL", nullptr, "Horizontal Border End" };
+const stgen::FieldDef g_fieldDef_VIDEL_HDB_ALL = {
+  VIDEL_HDB, VIDEL_HDB_ALL_MASK,
+  2, VIDEL_HDB_ALL_SHIFT,
+  "ALL", nullptr, "Horizontal Display Begin" };
+const stgen::FieldDef g_fieldDef_VIDEL_HDE_ALL = {
+  VIDEL_HDE, VIDEL_HDE_ALL_MASK,
+  2, VIDEL_HDE_ALL_SHIFT,
+  "ALL", nullptr, "Horizontal Display End" };
+const stgen::FieldDef g_fieldDef_VIDEL_HSS_ALL = {
+  VIDEL_HSS, VIDEL_HSS_ALL_MASK,
+  2, VIDEL_HSS_ALL_SHIFT,
+  "ALL", nullptr, "Horizontal SS" };
+const stgen::FieldDef g_fieldDef_VIDEL_HFS_ALL = {
+  VIDEL_HFS, VIDEL_HFS_ALL_MASK,
+  2, VIDEL_HFS_ALL_SHIFT,
+  "ALL", nullptr, "Horizontal FS" };
+const stgen::FieldDef g_fieldDef_VIDEL_HEE_ALL = {
+  VIDEL_HEE, VIDEL_HEE_ALL_MASK,
+  2, VIDEL_HEE_ALL_SHIFT,
+  "ALL", nullptr, "Horizontal EE" };
+const stgen::FieldDef g_fieldDef_VIDEL_VFC_ALL = {
+  VIDEL_VFC, VIDEL_VFC_ALL_MASK,
+  2, VIDEL_VFC_ALL_SHIFT,
+  "ALL", nullptr, "Vertical Frequency Counter" };
+const stgen::FieldDef g_fieldDef_VIDEL_VFT_ALL = {
+  VIDEL_VFT, VIDEL_VFT_ALL_MASK,
+  2, VIDEL_VFT_ALL_SHIFT,
+  "ALL", nullptr, "Vertical Frequency Timer" };
+const stgen::FieldDef g_fieldDef_VIDEL_VBB_ALL = {
+  VIDEL_VBB, VIDEL_VBB_ALL_MASK,
+  2, VIDEL_VBB_ALL_SHIFT,
+  "ALL", nullptr, "Vertical Border Begin (halflines)" };
+const stgen::FieldDef g_fieldDef_VIDEL_VBE_ALL = {
+  VIDEL_VBE, VIDEL_VBE_ALL_MASK,
+  2, VIDEL_VBE_ALL_SHIFT,
+  "ALL", nullptr, "Vertical Border End (halflines)" };
+const stgen::FieldDef g_fieldDef_VIDEL_VDB_ALL = {
+  VIDEL_VDB, VIDEL_VDB_ALL_MASK,
+  2, VIDEL_VDB_ALL_SHIFT,
+  "ALL", nullptr, "Vertical Display Begin" };
+const stgen::FieldDef g_fieldDef_VIDEL_VDE_ALL = {
+  VIDEL_VDE, VIDEL_VDE_ALL_MASK,
+  2, VIDEL_VDE_ALL_SHIFT,
+  "ALL", nullptr, "Vertical Display End" };
+const stgen::FieldDef g_fieldDef_VIDEL_VSS_ALL = {
+  VIDEL_VSS, VIDEL_VSS_ALL_MASK,
+  2, VIDEL_VSS_ALL_SHIFT,
+  "ALL", nullptr, "Vertical SS" };
+const stgen::FieldDef g_fieldDef_VIDEL_CONTROL_QTR_PIXEL = {
+  VIDEL_CONTROL, VIDEL_CONTROL_QTR_PIXEL_MASK,
+  2, VIDEL_CONTROL_QTR_PIXEL_SHIFT,
+  "QTR_PIXEL", g_enumStringsOFFON, "Quarter Pixel Width" };
+const stgen::FieldDef g_fieldDef_VIDEL_CONTROL_HALF_PIXEL = {
+  VIDEL_CONTROL, VIDEL_CONTROL_HALF_PIXEL_MASK,
+  2, VIDEL_CONTROL_HALF_PIXEL_SHIFT,
+  "HALF_PIXEL", g_enumStringsOFFON, "Half Pixel Width" };
+const stgen::FieldDef g_fieldDef_VIDEL_CONTROL_PIXWIDTH = {
+  VIDEL_CONTROL, VIDEL_CONTROL_PIXWIDTH_MASK,
+  2, VIDEL_CONTROL_PIXWIDTH_SHIFT,
+  "PIXWIDTH", g_enumStringsPIXWIDTH, "Effective Pixel Size" };
+const stgen::FieldDef g_fieldDef_VIDEL_CONTROL_SKIP_LINE = {
+  VIDEL_CONTROL, VIDEL_CONTROL_SKIP_LINE_MASK,
+  2, VIDEL_CONTROL_SKIP_LINE_SHIFT,
+  "SKIP_LINE", g_enumStringsOFFON, "Skip Line (Interlace)" };
+const stgen::FieldDef g_fieldDef_VIDEL_CONTROL_DOUBLE = {
+  VIDEL_CONTROL, VIDEL_CONTROL_DOUBLE_MASK,
+  2, VIDEL_CONTROL_DOUBLE_SHIFT,
+  "DOUBLE", g_enumStringsOFFON, "Line Doubling" };
 /* Register Field Sets */
 
-const stgen::FieldDef* g_regFieldsDef_VID_SCANLINE_OFFSET_FALCON[] = {
-	 &g_fieldDef_VID_SCANLINE_OFFSET_FALCON_ALL,
+const stgen::FieldDef* g_regFieldsDef_FALC_SYS_CNTL[] = {
+	 &g_fieldDef_FALC_SYS_CNTL_MONITOR,
+	 &g_fieldDef_FALC_SYS_CNTL_MEMORY,
 	nullptr
 };
-const stgen::FieldDef* g_regFieldsDef_VID_LINE_WIDTH_FALCON[] = {
-	 &g_fieldDef_VID_LINE_WIDTH_FALCON_ALL,
+const stgen::FieldDef* g_regFieldsDef_FALC_BUS_CNTL[] = {
+	 &g_fieldDef_FALC_BUS_CNTL_STE_BUS_OFF,
+	 &g_fieldDef_FALC_BUS_CNTL_BLITTER_16MHZ,
+	 &g_fieldDef_FALC_BUS_CNTL_M68030_16MHZ,
+	nullptr
+};
+const stgen::FieldDef* g_regFieldsDef_VIDEL_SCANLINE_OFFSET[] = {
+	 &g_fieldDef_VIDEL_SCANLINE_OFFSET_ALL,
+	nullptr
+};
+const stgen::FieldDef* g_regFieldsDef_VIDEL_VWRAP[] = {
+	 &g_fieldDef_VIDEL_VWRAP_ALL,
 	nullptr
 };
 const stgen::FieldDef* g_regFieldsDef_FALC_SPSHIFT[] = {
-	 &g_fieldDef_FALC_SPSHIFT_COLBANK,
-	 &g_fieldDef_FALC_SPSHIFT_MODE_256,
-	 &g_fieldDef_FALC_SPSHIFT_TRUCOL,
-	 &g_fieldDef_FALC_SPSHIFT_OVERLAY,
 	 &g_fieldDef_FALC_SPSHIFT_MODE_2,
+	 &g_fieldDef_FALC_SPSHIFT_OVERLAY,
+	 &g_fieldDef_FALC_SPSHIFT_TRUCOL,
+	 &g_fieldDef_FALC_SPSHIFT_MODE_256,
+	 &g_fieldDef_FALC_SPSHIFT_COLBANK,
+	nullptr
+};
+const stgen::FieldDef* g_regFieldsDef_VIDEL_HHC[] = {
+	 &g_fieldDef_VIDEL_HHC_ALL,
+	nullptr
+};
+const stgen::FieldDef* g_regFieldsDef_VIDEL_HHT[] = {
+	 &g_fieldDef_VIDEL_HHT_ALL,
+	nullptr
+};
+const stgen::FieldDef* g_regFieldsDef_VIDEL_HBB[] = {
+	 &g_fieldDef_VIDEL_HBB_ALL,
+	nullptr
+};
+const stgen::FieldDef* g_regFieldsDef_VIDEL_HBE[] = {
+	 &g_fieldDef_VIDEL_HBE_ALL,
+	nullptr
+};
+const stgen::FieldDef* g_regFieldsDef_VIDEL_HDB[] = {
+	 &g_fieldDef_VIDEL_HDB_ALL,
+	nullptr
+};
+const stgen::FieldDef* g_regFieldsDef_VIDEL_HDE[] = {
+	 &g_fieldDef_VIDEL_HDE_ALL,
+	nullptr
+};
+const stgen::FieldDef* g_regFieldsDef_VIDEL_HSS[] = {
+	 &g_fieldDef_VIDEL_HSS_ALL,
+	nullptr
+};
+const stgen::FieldDef* g_regFieldsDef_VIDEL_HFS[] = {
+	 &g_fieldDef_VIDEL_HFS_ALL,
+	nullptr
+};
+const stgen::FieldDef* g_regFieldsDef_VIDEL_HEE[] = {
+	 &g_fieldDef_VIDEL_HEE_ALL,
+	nullptr
+};
+const stgen::FieldDef* g_regFieldsDef_VIDEL_VFC[] = {
+	 &g_fieldDef_VIDEL_VFC_ALL,
+	nullptr
+};
+const stgen::FieldDef* g_regFieldsDef_VIDEL_VFT[] = {
+	 &g_fieldDef_VIDEL_VFT_ALL,
+	nullptr
+};
+const stgen::FieldDef* g_regFieldsDef_VIDEL_VBB[] = {
+	 &g_fieldDef_VIDEL_VBB_ALL,
+	nullptr
+};
+const stgen::FieldDef* g_regFieldsDef_VIDEL_VBE[] = {
+	 &g_fieldDef_VIDEL_VBE_ALL,
+	nullptr
+};
+const stgen::FieldDef* g_regFieldsDef_VIDEL_VDB[] = {
+	 &g_fieldDef_VIDEL_VDB_ALL,
+	nullptr
+};
+const stgen::FieldDef* g_regFieldsDef_VIDEL_VDE[] = {
+	 &g_fieldDef_VIDEL_VDE_ALL,
+	nullptr
+};
+const stgen::FieldDef* g_regFieldsDef_VIDEL_VSS[] = {
+	 &g_fieldDef_VIDEL_VSS_ALL,
+	nullptr
+};
+const stgen::FieldDef* g_regFieldsDef_VIDEL_CONTROL[] = {
+	 &g_fieldDef_VIDEL_CONTROL_QTR_PIXEL,
+	 &g_fieldDef_VIDEL_CONTROL_HALF_PIXEL,
+	 &g_fieldDef_VIDEL_CONTROL_PIXWIDTH,
+	 &g_fieldDef_VIDEL_CONTROL_SKIP_LINE,
+	 &g_fieldDef_VIDEL_CONTROL_DOUBLE,
 	nullptr
 };
 } // namespace

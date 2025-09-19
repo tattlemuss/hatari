@@ -924,17 +924,6 @@ void DisasmWidget::CalcDisasm56()
         for (uint32_t i = 0; i < line.GetByteSize(); ++i)
             t.hex += QString::asprintf("%02x", line.mem[i]);
 
-        // Breakpoint/PC
-        for (size_t i = 0; i < m_breakpoints.m_breakpoints.size(); ++i)
-        {
-            const Breakpoint& bp = m_breakpoints.m_breakpoints[i];
-            if (bp.m_proc == 1 && bp.m_pcHack == line.address)
-            {
-                t.isBreakpoint = true;
-                break;
-            }
-        }
-
         // Symbol
         QString addrText;
         Symbol sym;
@@ -996,7 +985,8 @@ void DisasmWidget::CalcDisasm56()
         // Breakpoint/PC
         for (size_t i = 0; i < m_breakpoints.m_breakpoints.size(); ++i)
         {
-            if (m_breakpoints.m_breakpoints[i].m_pcHack == line.address)
+            const Breakpoint& bp = m_breakpoints.m_breakpoints[i];
+            if (bp.m_proc == 1 && bp.m_pcHack == line.address)
             {
                 t.isBreakpoint = true;
                 break;
@@ -1172,7 +1162,9 @@ void DisasmWidget::CalcAnnotations56()
         Line& line = m_disasm[i];
         const hop56::instruction& inst = line.inst56;
         Line::Annotations& annots = line.annotations;
+        annots.Reset();
 
+        // These are all the potential EAs in a DSP instruction...
         bool valids[10];
         Disassembler56::addr_t addr[10];
         valids[0] = Disassembler56::calc_ea(inst.operands[0], addr[0]);
@@ -1188,6 +1180,7 @@ void DisasmWidget::CalcAnnotations56()
 
         uint32_t readSlot = 0;
         uint32_t writeSlot = 0;
+        // Converts the space in the decode56 to our hrdb memory type
         static const MemSpace spaces[hop56::MEM_COUNT] =
         {
             MEM_P,        // "None" maps to P: memory
@@ -1197,7 +1190,8 @@ void DisasmWidget::CalcAnnotations56()
             MEM_L
         };
 
-        while (writeSlot < Line::Annotations::kNumEAs && readSlot < 8)
+        // Now copy the valid ones into the annotation slots
+        while (writeSlot < Line::Annotations::kNumEAs && readSlot < 10)
         {
             if (valids[readSlot])
             {
@@ -1225,7 +1219,6 @@ void DisasmWidget::ToggleBreakpoint(int row)
     const Breakpoints& bps = m_pTargetModel->GetBreakpoints();
     for (size_t i = 0; i < bps.m_breakpoints.size(); ++i)
     {
-        // NO CHECK test CPU type
         const Breakpoint& bp = bps.m_breakpoints[i];
         if (bp.m_proc == m_proc && bp.m_pcHack == addr)
         {
@@ -1900,6 +1893,10 @@ uint32_t DisasmWidget::Line::GetEndAddr() const
 
 void DisasmWidget::Line::Annotations::Reset()
 {
-    valid[0] = valid[1] = false;
+    for (uint32_t i = 0; i < kNumEAs; ++i)
+    {
+        valid[i] = false;
+        address[i].Reset();
+    }
     osComments.clear();
 }

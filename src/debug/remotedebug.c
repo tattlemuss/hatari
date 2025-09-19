@@ -44,6 +44,7 @@
 #include "psg.h"
 #include "dmaSnd.h"
 #include "blitter.h"
+#include "acia.h"
 #include "dsp.h"
 #include "dsp_cpu.h"
 #include "profile.h"
@@ -86,7 +87,8 @@ static bool bRemoteBreakIsActive = false;
 /* 0x1006    use hex only for address/size in mem[*], bpdel, exmask commands */
 /* 0x1007    add savebin */
 /* 0x1008    add dmem, DSP support in NotifyConfig */
-#define REMOTEDEBUG_PROTOCOL_ID	(0x1008)
+/* 0x1009    support parser command rdb_exc in debugui.c */
+#define REMOTEDEBUG_PROTOCOL_ID	(0x1009)
 
 /* Char ID to denote terminator of a token. This is under the ASCII "normal"
 	character value range so that 32-255 can be used */
@@ -489,6 +491,7 @@ static void RemoteDebug_HardwareSync(void)
 	DmaSnd_RemoteDebugSync();
 	Video_RemoteDebugSync();
 	Blitter_RemoteDebugSync();
+	ACIA_RemoteDebugSync();
 }
 
 // -----------------------------------------------------------------------------

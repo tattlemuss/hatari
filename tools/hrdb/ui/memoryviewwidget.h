@@ -23,7 +23,7 @@ public:
     enum Column
     {
         kColAddress,
-        kColData,
+        kColData,           // hex number
         kColAscii,
         kColCount
     };
@@ -117,6 +117,21 @@ private:
         SizeMode sizeMode;
     };
 
+    enum ColumnType
+    {
+        kSpace,
+        kTopNybble,
+        kBottomNybble,
+        kASCII,
+        kInvalid            // for when memory is not available (yet)
+    } type;
+
+    enum CursorMode
+    {
+        kNoMoveCursor,
+        kMoveCursor
+    };
+
     void memoryChanged(int memorySlot, uint64_t commandId);
     void startStopChanged();
     void connectChanged();
@@ -142,12 +157,6 @@ private:
     // Returns true if key was used (so we know not to block it)
     bool EditKey(char key);
     char IsEditKey(const QKeyEvent *event);
-
-    enum CursorMode
-    {
-        kNoMoveCursor,
-        kMoveCursor
-    };
 
     // Update the space in m_address and potentially change column layout.
     // Does not request memory.
@@ -211,18 +220,12 @@ private:
     uint32_t CalcAddrOffset(MemAddr addr, int row, int col) const;
     uint32_t CalcAddress(MemAddr addr, int row, int col) const;
 
+    // Helper func to see if a column type is a hex value
+    static bool IsNybble(ColumnType type);
+
     Session*        m_pSession;
     TargetModel*    m_pTargetModel;
     Dispatcher*     m_pDispatcher;
-
-    enum ColumnType
-    {
-        kSpace,
-        kTopNybble,
-        kBottomNybble,
-        kASCII,
-        kInvalid            // for when memory is not available (yet)
-    } type;
 
     // These are taken at the same time. Is there a race condition...?
     struct RowData

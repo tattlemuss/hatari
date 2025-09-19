@@ -19,6 +19,15 @@ enum MemSpace
 // Describes a unique memory address from the target.
 struct MemAddr
 {
+    MemAddr() :
+        space(MEM_CPU), addr(0)
+    {}
+
+    void Reset()
+    {
+        space = MEM_CPU; addr = 0;
+    }
+
     MemSpace    space;      // one of MemSpace
     uint32_t    addr;
 

@@ -324,6 +324,7 @@ void GraphicsInspectorWidget::loadSettings()
     m_pImageWidget->SetZoom(zoom);
     m_annotateRegisters = settings.value("annotateRegisters", QVariant(false)).toBool();
     m_annotateVideo = settings.value("annotateVideo", QVariant(false)).toBool();
+    m_paletteAddress = settings.value("paletteAddress", QVariant(Regs::VID_PAL_0)).toUInt();
 
     UpdateUIElements();
     settings.endGroup();
@@ -346,6 +347,7 @@ void GraphicsInspectorWidget::saveSettings()
     settings.setValue("zoom", m_pImageWidget->GetZoom());
     settings.setValue("annotateRegisters", m_annotateRegisters);
     settings.setValue("annotateVideo", m_annotateVideo);
+    settings.setValue("paletteAddress", m_paletteAddress);
     settings.endGroup();
 }
 
@@ -797,15 +799,24 @@ void GraphicsInspectorWidget::UpdateMemoryRequests()
         if (m_requestPalette.requestId == 0)
         {
             if (m_paletteMode == kRegisters)
+            {
                 m_requestPalette.requestId = m_pDispatcher->ReadMemory(MemorySlot::kGraphicsInspectorPalette, Regs::VID_PAL_0, 0x20);
+                return;
+            }
             else if (m_paletteMode == kUserMemory)
+            {
                 m_requestPalette.requestId = m_pDispatcher->ReadMemory(MemorySlot::kGraphicsInspectorPalette, m_paletteAddress, 0x20);
+                return;
+            }
             else if (m_paletteMode == kUserMemoryF030)
+            {
                 m_requestPalette.requestId = m_pDispatcher->ReadMemory(MemorySlot::kGraphicsInspectorPalette, m_paletteAddress, 256 * 4);
-            else
-                m_requestPalette.Clear();   // we don't need to fetch
+                return;
+            }
         }
-        return; // block the next requests
+        // All other modes do not need to fetch palette data,
+        // so fall through to handle bitmap fetch.
+        m_requestPalette.Clear();
     }
 
     // We only get here if the other flags are clean
