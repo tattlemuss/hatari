@@ -1,6 +1,54 @@
 hrdb Release Notes
 ==================
 
+v0.010 (September 2025)
+
+- General
+  - Support for Falcon DSP
+  - hrdb now builds against QT5 or QT6.
+  - Much improved support for building Mac binaries. Thanks to Kåre Andersen for this.
+
+- Hatari
+  - Updated to Hatari version 2.6.1
+    Many thanks to the Hatari team for all their hard work.
+
+- Register Window
+  - Support for Falcon DSP registers.
+  - Allowed user to filter registers shown (CPU, DSP)
+  - Highlighted CPU registers used in next instruction with a box.
+  - General cleanup in alignment and display layout.
+
+- Graphics Inspector
+  - Support for Falcon display modes (Trucolour, 8bpp)
+  - Serialized palette address between sessions.
+  - Fixed occasional crash in Annotations with certain visualisation formats.
+  - Added annotation of video base address and video current read ptr.
+    (you can see the current screen read address superimposed on memory.)
+
+- Memory Window
+  - Support for Falcon DSP memory.
+  - Fixed right-click "pointed address" lookup when the window base address is not aligned.
+
+- Disassembly Window
+  - Support for Falcon DSP instructions.
+  - Added copy-to-clipboard. Requested by Damian Russell (Damo/RG)
+  - Bug fix: fix decode of bset #imm,<ea> in 020 mode.
+
+- Launch Dialog
+  - Add options tab to set the mask of exceptions after program start.
+    This feature does not use the Hatari "autostart" system and hence works
+	better under TOS 1.04
+
+- Hardware Window
+  - Added several Falcon hardware registers.
+    - Videl (not all)
+    - Hardware config (monitor, memory)
+  - Display ACIA keyboard registers.
+  - Registers unavailable on the machine type are properly disabled.
+  - Added vector source addresses e.g. source address of Timer A is "[$134]".
+  - Open/close state of the treeview is serialised between sessions.
+
+
 v0.009 (July 2024)
 
 - Hatari
