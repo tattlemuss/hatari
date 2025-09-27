@@ -821,6 +821,11 @@ void MainWindow::messageSet(const QString &msg)
 
 void MainWindow::requestMainState(uint32_t pc)
 {
+    m_mainStateCompleteRequest = 0;
+    // Clear any in-flight update
+    if (m_pTargetModel->IsMainStateUpdating())
+        m_pTargetModel->SetMainUpdate(false);
+
     // Insert flag for the start of main state updating
     m_mainStateStartedRequest = m_pDispatcher->InsertFlush();
 
