@@ -327,6 +327,20 @@ void DisasmWidget::PageDown()
     }
 }
 
+void DisasmWidget::MoveUpMin()
+{
+    // Move up the minimum instruction size (when not crossing 0)
+    int32_t nextUpPosition = m_logicalAddr -  m_minInstSize;
+    if (nextUpPosition >= 0)
+        SetAddress(nextUpPosition);
+}
+
+void DisasmWidget::MoveDownMin()
+{
+    // Move down the minimum instruction size
+    SetAddress(m_logicalAddr + m_minInstSize);
+}
+
 void DisasmWidget::MouseScrollUp()
 {
     if (m_requestId != 0)
@@ -667,6 +681,8 @@ void DisasmWidget::keyPressEvent(QKeyEvent* event)
             {
             case Qt::Key_Up:         MoveUp();              return;
             case Qt::Key_Down:       MoveDown();            return;
+            case Qt::Key_Left:       MoveUpMin();           return;
+            case Qt::Key_Right:      MoveDownMin();         return;
             case Qt::Key_PageUp:     PageUp();              return;
             case Qt::Key_PageDown:   PageDown();            return;
             case Qt::Key_F9:         toggleBreakpoint();    return;
@@ -1701,6 +1717,16 @@ void DisasmWindow::keyDownPressed()
 void DisasmWindow::keyUpPressed()
 {
     m_pDisasmWidget->MoveUp();
+}
+
+void DisasmWindow::keyLeftPressed()
+{
+    m_pDisasmWidget->MoveUpMin();
+}
+
+void DisasmWindow::keyRightPressed()
+{
+    m_pDisasmWidget->MoveDownMin();
 }
 
 void DisasmWindow::keyPageDownPressed()
