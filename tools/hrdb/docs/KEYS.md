@@ -53,6 +53,7 @@ Disassembly focus
 | Key           | Operation                           |
 |---------------|-------------------------------------|
 | Up/Down       | Move Cursor                         |
+| Left/Right    | Move up/down by one CPU/DSP word    |
 | Page Up/Down  | Move by several lines               |
 | Ctrl+B        | Toggle breakpoint (cursor position) |
 | Ctrl+F        | Search for text/hexadecimal string  |

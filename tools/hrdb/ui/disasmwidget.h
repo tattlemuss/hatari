@@ -40,6 +40,8 @@ public:
     bool SetSearchResultAddress(uint32_t addr);
     void MoveUp();
     void MoveDown();
+    void MoveUpMin();
+    void MoveDownMin();
 
     void PageUp();
     void PageDown();
@@ -288,6 +290,8 @@ protected:
 protected slots:
     void keyDownPressed();
     void keyUpPressed();
+    void keyLeftPressed();
+    void keyRightPressed();
     void keyPageDownPressed();
     void keyPageUpPressed();
 
