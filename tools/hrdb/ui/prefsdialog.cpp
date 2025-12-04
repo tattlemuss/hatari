@@ -42,6 +42,7 @@ PrefsDialog::PrefsDialog(QWidget *parent, Session* pSession) :
     m_pLiveRefresh = new QCheckBox(tr("Live Refresh"), this);
     m_pGraphicsSquarePixels = new QCheckBox(tr("Graphics Inspector: Square Pixels"), this);
     m_pDisassHexNumerics = new QCheckBox(tr("Disassembly: Use hex address register offsets"), this);
+    m_pUserReset = new QCheckBox(tr("Reset: Ask for confirmation"), this);
     m_pProfileDisplayCombo = new QComboBox(this);
     m_pProfileDisplayCombo->insertItem(Session::Settings::kTotal, "Total");
     m_pProfileDisplayCombo->insertItem(Session::Settings::kMean, "Mean");
@@ -55,6 +56,7 @@ PrefsDialog::PrefsDialog(QWidget *parent, Session* pSession) :
     gridLayout->addWidget(m_pLiveRefresh, row++, 0, 1, 2);
     gridLayout->addWidget(m_pGraphicsSquarePixels, row++, 0, 1, 2);
     gridLayout->addWidget(m_pDisassHexNumerics, row++, 0, 1, 2);
+    gridLayout->addWidget(m_pUserReset, row++, 0, 1, 2);
     gridLayout->addWidget(pProfileDisplay, row, 0);
     gridLayout->addWidget(m_pProfileDisplayCombo, row++, 1);
     gridLayout->addWidget(m_pFontLabel, row, 0);
@@ -71,6 +73,7 @@ PrefsDialog::PrefsDialog(QWidget *parent, Session* pSession) :
 
     connect(m_pGraphicsSquarePixels, &QPushButton::clicked, this, &PrefsDialog::squarePixelsClicked);
     connect(m_pDisassHexNumerics,    &QPushButton::clicked, this, &PrefsDialog::disassHexNumbersClicked);
+    connect(m_pUserReset,    &QPushButton::clicked, this, &PrefsDialog::userResetClicked);
     connect(m_pLiveRefresh,          &QPushButton::clicked, this, &PrefsDialog::liveRefreshClicked);
     connect(pFontButton,             &QPushButton::clicked, this, &PrefsDialog::fontSelectClicked);
 
@@ -143,6 +146,11 @@ void PrefsDialog::disassHexNumbersClicked()
     m_settingsCopy.m_bDisassHexNumerics = m_pDisassHexNumerics->isChecked();
 }
 
+void PrefsDialog::userResetClicked()
+{
+    m_settingsCopy.m_bUserReset = m_pUserReset->isChecked();
+}
+
 void PrefsDialog::liveRefreshClicked()
 {
     m_settingsCopy.m_liveRefresh = m_pLiveRefresh->isChecked();
@@ -171,6 +179,7 @@ void PrefsDialog::UpdateUIElements()
     m_pGraphicsSquarePixels->setChecked(m_settingsCopy.m_bSquarePixels);
     m_pDisassHexNumerics->setChecked(m_settingsCopy.m_bDisassHexNumerics);
     m_pProfileDisplayCombo->setCurrentIndex(m_settingsCopy.m_profileDisplayMode);
+    m_pUserReset->setChecked(m_settingsCopy.m_bUserReset);
     m_pLiveRefresh->setChecked(m_settingsCopy.m_liveRefresh);
 
     QFontInfo info(m_settingsCopy.m_font);
