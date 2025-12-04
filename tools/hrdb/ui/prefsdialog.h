@@ -35,6 +35,7 @@ private:
     void okClicked();
     void squarePixelsClicked();
     void disassHexNumbersClicked();
+    void confirmMemoryLossClicked();
     void liveRefreshClicked();
     void fontSelectClicked();
 
@@ -44,6 +45,7 @@ private:
     // UI elements
     QCheckBox*      m_pGraphicsSquarePixels;
     QCheckBox*      m_pDisassHexNumerics;
+    QCheckBox*      m_pConfirmMemoryLoss;
     QComboBox*      m_pProfileDisplayCombo;
     QCheckBox*      m_pLiveRefresh;
     QLabel*         m_pFontLabel;

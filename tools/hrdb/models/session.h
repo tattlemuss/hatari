@@ -57,6 +57,8 @@ public:
         bool        m_bSquarePixels;
         // DISASSEMBLY
         bool        m_bDisassHexNumerics;
+        // RESETTING
+        bool        m_bConfirmMemoryLoss;
         //
         enum ProfileDisplayMode
         {
