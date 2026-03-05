@@ -73,7 +73,7 @@ PrefsDialog::PrefsDialog(QWidget *parent, Session* pSession) :
 
     connect(m_pGraphicsSquarePixels, &QPushButton::clicked, this, &PrefsDialog::squarePixelsClicked);
     connect(m_pDisassHexNumerics,    &QPushButton::clicked, this, &PrefsDialog::disassHexNumbersClicked);
-    connect(m_pUserReset,    &QPushButton::clicked, this, &PrefsDialog::userResetClicked);
+    connect(m_pUserReset,            &QPushButton::clicked, this, &PrefsDialog::userResetClicked);
     connect(m_pLiveRefresh,          &QPushButton::clicked, this, &PrefsDialog::liveRefreshClicked);
     connect(pFontButton,             &QPushButton::clicked, this, &PrefsDialog::fontSelectClicked);
 

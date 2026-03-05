@@ -526,7 +526,9 @@ void DisasmWidget::paintEvent(QPaintEvent* ev)
         }
 
         // Highlight the cursor row
-        QBrush cursorColour = hasFocus() ? pal.highlight() : pal.mid();
+        QBrush nonFocusHighlight = pal.mid().color().value() <= pal.highlight().color().value() //QT Dark mode fix
+          ? pal.midlight() : pal.mid();
+        QBrush cursorColour = hasFocus() ? pal.highlight() : nonFocusHighlight;
         if (m_cursorRow != -1)
         {
             painter.setPen(QPen(cursorColour, 1, Qt::PenStyle::DashLine));
@@ -558,7 +560,7 @@ void DisasmWidget::paintEvent(QPaintEvent* ev)
                 painter.setPen(Qt::PenStyle::NoPen);
 
                 const RowText& t = m_rowTexts[row];
-                if (t.isPc)
+                if (t.isPc && hasFocus())
                     painter.setPen(pal.highlightedText().color());
                 else
                     painter.setPen(pal.text().color());
