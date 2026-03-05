@@ -578,10 +578,10 @@ void MainWindow::DisconnectTriggered()
 
 void MainWindow::WarmResetTriggered()
 {
+    // Use the shared session call for this, which handles
+    // things like symbol loading
     if (m_session.GetSettings().m_bUserReset) {
       int ret = ShowResetWarning();
-      // Use the shared session call for this, which handles
-      // things like symbol loading
       if (ret == QMessageBox::No)
         return;
     }
@@ -590,10 +590,10 @@ void MainWindow::WarmResetTriggered()
 
 void MainWindow::ColdResetTriggered()
 {
+    // Use the shared session call for this, which handles
+    // things like symbol loading
     if (m_session.GetSettings().m_bUserReset) {
       int ret = ShowResetWarning();
-      // Use the shared session call for this, which handles
-      // things like symbol loading
       if (ret == QMessageBox::No)
         return;
     }
