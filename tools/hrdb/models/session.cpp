@@ -32,7 +32,7 @@ Session::Session() :
     // Default settings
     m_settings.m_bSquarePixels = false;
     m_settings.m_bDisassHexNumerics = false;
-    m_settings.m_bConfirmMemoryLoss = true;
+    m_settings.m_bUserReset = true;
     m_settings.m_profileDisplayMode = Settings::kTotal;
     m_settings.m_liveRefresh = false;
     m_settings.m_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
@@ -104,7 +104,7 @@ void Session::loadSettings()
     }
     m_settings.m_bSquarePixels = settings.value("squarePixels", QVariant(false)).toBool();
     m_settings.m_bDisassHexNumerics = settings.value("disassHexNumerics", QVariant(false)).toBool();
-    m_settings.m_bConfirmMemoryLoss = settings.value("confirmMemoryLoss", QVariant(true)).toBool(); //True: Keep original behaviour
+    m_settings.m_bUserReset = settings.value("userReset", QVariant(true)).toBool(); //True: Keep original behaviour
     m_settings.m_liveRefresh = settings.value("liveRefresh", QVariant(false)).toBool();
     m_settings.m_profileDisplayMode = settings.value("profileDisplayMode", QVariant(Settings::kTotal)).toInt();
     settings.endGroup();
@@ -118,7 +118,7 @@ void Session::saveSettings()
     settings.beginGroup("Session");
     settings.setValue("font", m_settings.m_font.toString());
     settings.setValue("squarePixels", m_settings.m_bSquarePixels);
-    settings.setValue("confirmMemoryLoss", m_settings.m_bConfirmMemoryLoss);
+    settings.setValue("userReset", m_settings.m_bUserReset);
     settings.setValue("disassHexNumerics", m_settings.m_bDisassHexNumerics);
     settings.setValue("liveRefresh", m_settings.m_liveRefresh);
     settings.setValue("profileDisplayMode", m_settings.m_profileDisplayMode);

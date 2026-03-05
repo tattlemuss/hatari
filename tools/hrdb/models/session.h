@@ -58,7 +58,7 @@ public:
         // DISASSEMBLY
         bool        m_bDisassHexNumerics;
         // RESETTING
-        bool        m_bConfirmMemoryLoss;
+        bool        m_bUserReset;
         //
         enum ProfileDisplayMode
         {

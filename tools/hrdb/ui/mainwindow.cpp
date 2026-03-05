@@ -578,7 +578,7 @@ void MainWindow::DisconnectTriggered()
 
 void MainWindow::WarmResetTriggered()
 {
-    if (m_session.GetSettings().m_bConfirmMemoryLoss) {
+    if (m_session.GetSettings().m_bUserReset) {
       int ret = ShowResetWarning();
       // Use the shared session call for this, which handles
       // things like symbol loading
@@ -590,7 +590,7 @@ void MainWindow::WarmResetTriggered()
 
 void MainWindow::ColdResetTriggered()
 {
-    if (m_session.GetSettings().m_bConfirmMemoryLoss) {
+    if (m_session.GetSettings().m_bUserReset) {
       int ret = ShowResetWarning();
       // Use the shared session call for this, which handles
       // things like symbol loading
