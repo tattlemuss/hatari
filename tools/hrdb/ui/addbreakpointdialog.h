@@ -24,7 +24,8 @@ protected:
 
 private:
     void okClicked();
-    void useClicked();
+    void memoryUseClicked();
+    void eventUseClicked();
 
     TargetModel*        m_pTargetModel;
     Dispatcher*         m_pDispatcher;
@@ -32,8 +33,9 @@ private:
     QLineEdit*          m_pExpressionEdit;
 
     QLineEdit*          m_pMemoryAddressEdit;
-    QComboBox*          m_pMemoryConditionCombo;
     QButtonGroup*       m_pMemorySizeButtonGroup;
+
+    QComboBox*          m_pEventCombo;
 
     QCheckBox*          m_pOnceCheckBox;
     QCheckBox*          m_pTraceCheckBox;

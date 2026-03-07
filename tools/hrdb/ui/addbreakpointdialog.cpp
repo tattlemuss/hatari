@@ -15,6 +15,36 @@
 #include "../transport/dispatcher.h"
 #include "quicklayout.h"
 
+// Describes the "event" breakpoints
+struct EventBpDesc
+{
+    const char* name;
+    const char* bpExpression;
+};
+
+static const EventBpDesc g_eventBpDescs[] = {
+    { "VBL", "pc = ($70)" },
+    { "HBL", "pc = ($68)" },
+    { "MFP: Centronics", "pc = ($100)" },
+    { "MFP: DCD", "pc = ($104)" },
+    { "MFP: CTS", "pc = ($108)" },
+    { "MFP: Blitter", "pc = ($10c)" },
+    { "MFP: Timer D", "pc = ($110)" },
+    { "MFP: Timer C", "pc = ($114)" },
+    { "MFP: ACIA (IKBD/MIDI)", "pc = ($118)" },
+    { "MFP: Floppy Disk", "pc = ($11c)" },
+    { "MFP: Timer B", "pc = ($120)" },
+    { "MFP: Send Error", "pc = ($124)" },
+    { "MFP: Send Emp", "pc = ($128)" },
+    { "MFP: Receive Error", "pc = ($12c)" },
+    { "MFP: Receive Full", "pc = ($130)" },
+    { "MFP: Timer A", "pc = ($134)" },
+    { "MFP: RINGD", "pc = ($138)" },
+    { "MFP: Mono", "pc = ($13c)" },
+    { "Bootsector start", "pc = ($4c6)" },
+    {nullptr, nullptr}
+};
+
 AddBreakpointDialog::AddBreakpointDialog(QWidget *parent, TargetModel* pTargetModel, Dispatcher* pDispatcher) :
     QDialog(parent),
     m_pTargetModel(pTargetModel),
@@ -38,13 +68,24 @@ AddBreakpointDialog::AddBreakpointDialog(QWidget *parent, TargetModel* pTargetMo
     m_pMemorySizeButtonGroup->addButton(pButtonB, 0);
     m_pMemorySizeButtonGroup->addButton(pButtonW, 1);
     m_pMemorySizeButtonGroup->addButton(pButtonL, 2);
+    QLabel* pMemoryChangeLabel = new QLabel("changes", this);
+    QPushButton* pMemoryUseButton = new QPushButton("Use", this);
 
-    QLabel* pChangeLabel = new QLabel("changes", this);
+    // Event
+    QLabel* pEventLabel = new QLabel("Event:", this);
+    m_pEventCombo = new QComboBox(this);
+    const EventBpDesc* pEvents = g_eventBpDescs;
+    while (pEvents->name)
+    {
+        m_pEventCombo->addItem(QString(pEvents->name));
+        ++pEvents;
+    }
+
+    QPushButton* pEventUseButton = new QPushButton("Use", this);
 
     QWidget* pSizeWidgets[] = {pButtonB, pButtonW, pButtonL, nullptr};
     QGroupBox* pMemorySizeGroupBox = CreateVertLayout(this, pSizeWidgets);
     pMemorySizeGroupBox->setFlat(false);
-    QPushButton* pChangeUseButton = new QPushButton("Use", this);
 
     m_pSymbolTableModel = new SymbolTableModel(this, m_pTargetModel->GetSymbolTable());
     QCompleter* pCompl = new QCompleter(m_pSymbolTableModel, this);
@@ -61,17 +102,17 @@ AddBreakpointDialog::AddBreakpointDialog(QWidget *parent, TargetModel* pTargetMo
     pOkButton->setDefault(true);
     QPushButton* pCancelButton = new QPushButton("&Cancel", this);
 
+    // These arrays are null-terminated
     QWidget* pRow1[] = {pExpLabel, m_pExpressionEdit, nullptr};
-    QWidget* pRow2[] = {pAddressLabel, m_pMemoryAddressEdit, pMemorySizeGroupBox, pChangeLabel, pChangeUseButton, nullptr};
+    QWidget* pRow2[] = {pAddressLabel, m_pMemoryAddressEdit, pMemorySizeGroupBox, pMemoryChangeLabel, pMemoryUseButton, nullptr};
+    QWidget* pRow2b[] = {pEventLabel, m_pEventCombo, pEventUseButton, nullptr};
     QWidget* pRow3[] = {m_pOnceCheckBox, m_pTraceCheckBox, nullptr};
-
 
     QLabel* pArgumentLink = new QLabel(this);
     pArgumentLink->setText("<a href=\"https://hatari.tuxfamily.org/doc/debugger.html#Breakpoint_conditions\">Expression Syntax Help</a>");
     pArgumentLink->setOpenExternalLinks(true);
     pArgumentLink->setTextInteractionFlags(Qt::LinksAccessibleByKeyboard|Qt::LinksAccessibleByMouse);
     pArgumentLink->setTextFormat(Qt::RichText);
-
 
     QHBoxLayout* pHLayout = new QHBoxLayout(this);
     pHLayout->addWidget(pOkButton);
@@ -82,11 +123,13 @@ AddBreakpointDialog::AddBreakpointDialog(QWidget *parent, TargetModel* pTargetMo
     QVBoxLayout* pLayout = new QVBoxLayout(this);
     pLayout->addWidget(CreateHorizLayout(this, pRow1));
     pLayout->addWidget(CreateHorizLayout(this, pRow2));
+    pLayout->addWidget(CreateHorizLayout(this, pRow2b));
     pLayout->addWidget(CreateHorizLayout(this, pRow3));
     pLayout->addWidget(pArgumentLink);
     pLayout->addWidget(pButtonContainer);
 
-    connect(pChangeUseButton, &QPushButton::clicked, this, &AddBreakpointDialog::useClicked);
+    connect(pMemoryUseButton, &QPushButton::clicked, this, &AddBreakpointDialog::memoryUseClicked);
+    connect(pEventUseButton,  &QPushButton::clicked, this, &AddBreakpointDialog::eventUseClicked);
 
     connect(pOkButton,        &QPushButton::clicked, this, &AddBreakpointDialog::okClicked);
     connect(pOkButton,        &QPushButton::clicked, this, &AddBreakpointDialog::accept);
@@ -119,7 +162,7 @@ void AddBreakpointDialog::okClicked()
     }
 }
 
-void AddBreakpointDialog::useClicked()
+void AddBreakpointDialog::memoryUseClicked()
 {
     const char* sizeStrings[3] =
     {
@@ -136,3 +179,12 @@ void AddBreakpointDialog::useClicked()
         m_pExpressionEdit->setText(addr + " ! " + addr);
     }
 }
+
+void AddBreakpointDialog::eventUseClicked()
+{
+    int choice = m_pEventCombo->currentIndex();
+    // Just copy the bp string from the description
+    // TODO: if we want to check VBR we can fiddle this manually
+    m_pExpressionEdit->setText(QString(g_eventBpDescs[choice].bpExpression));
+}
+
