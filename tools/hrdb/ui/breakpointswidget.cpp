@@ -11,6 +11,7 @@
 #include <QFontDatabase>
 #include <QCompleter>
 #include <QPushButton>
+#include <QShortcut>
 
 #include "../transport/dispatcher.h"
 #include "../models/targetmodel.h"
@@ -177,6 +178,8 @@ BreakpointsWindow::BreakpointsWindow(QWidget *parent, Session* pSession) :
     pMainRegion->setLayout(pMainLayout);
     setWidget(pMainRegion);
 
+    new QShortcut(QKeySequence("Ctrl+B"),         this, SLOT(addBreakpointClicked()));
+
     connect(m_pTargetModel,  &TargetModel::connectChangedSignal, this, &BreakpointsWindow::connectChangedSlot);
     connect(m_pAddButton,    &QAbstractButton::clicked,          this, &BreakpointsWindow::addBreakpointClicked);
     connect(m_pDeleteButton, &QAbstractButton::clicked,          this, &BreakpointsWindow::deleteBreakpointClicked);
@@ -202,6 +205,8 @@ void BreakpointsWindow::connectChangedSlot()
 
 void BreakpointsWindow::addBreakpointClicked()
 {
+    if (!m_pTargetModel->IsConnected()) // extra check for key combo
+        return;
     AddBreakpointDialog dialog(this, m_pTargetModel, m_pDispatcher);
     dialog.exec();
 }

@@ -18,7 +18,7 @@ Basic program control:
 | Ctrl+U, V     | Run To VBL                                   |
 | Ctrl+U, H     | Run To HBL                                   |
 | Ctrl+U, R     | Run To RAM (exits e.g. TOS, cartridge)       |
-| Alt+Shift+B   | Add breakpoint (dialog)                      |
+| Ctrl+B        | Add breakpoint (dialog)                      |
 
 Window focus:
 | Key           | Operation                |
