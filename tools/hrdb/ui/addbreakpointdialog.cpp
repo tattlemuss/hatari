@@ -64,6 +64,7 @@ AddBreakpointDialog::AddBreakpointDialog(QWidget *parent, TargetModel* pTargetMo
     QRadioButton* pButtonB = new QRadioButton(".B", this);
     QRadioButton* pButtonW = new QRadioButton(".W", this);
     QRadioButton* pButtonL = new QRadioButton(".L", this);
+    pButtonW->setChecked(true);
     m_pMemorySizeButtonGroup = new QButtonGroup(this);
     m_pMemorySizeButtonGroup->addButton(pButtonB, 0);
     m_pMemorySizeButtonGroup->addButton(pButtonW, 1);
@@ -169,13 +170,17 @@ void AddBreakpointDialog::memoryUseClicked()
         "b", "w", "l"
     };
 
+    int sizeId = m_pMemorySizeButtonGroup->checkedId();
+    if (sizeId < 0)
+        return;
+
     uint32_t result;
     if (StringParsers::ParseCpuExpression(m_pMemoryAddressEdit->text().toStdString().c_str(),
                                        result,
                                        m_pTargetModel->GetSymbolTable(),
                                        m_pTargetModel->GetRegs()))
     {
-        QString addr = QString::asprintf("($%x).%s", result, sizeStrings[m_pMemorySizeButtonGroup->checkedId()]);
+        QString addr = QString::asprintf("($%x).%s", result, sizeStrings[sizeId]);
         m_pExpressionEdit->setText(addr + " ! " + addr);
     }
 }
