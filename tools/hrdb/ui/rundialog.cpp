@@ -98,10 +98,12 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     m_pWatcherFilesTextEdit->setPlaceholderText("<watch run program/image>");
     m_pPrgTextEdit->setPlaceholderText("<.prg file or disk image>");
 
+    // NOTE: these currently need to be in same order as the enum
     m_pBreakModeCombo->addItem(tr("None"), LaunchSettings::BreakMode::kNone);
     m_pBreakModeCombo->addItem(tr("Boot"), LaunchSettings::BreakMode::kBoot);
     m_pBreakModeCombo->addItem(tr("Program Start"), LaunchSettings::BreakMode::kProgStart);
     m_pBreakModeCombo->addItem(tr("Program Breakpoint"), LaunchSettings::BreakMode::kProgramBreakpoint);
+    m_pBreakModeCombo->addItem(tr("Bootsector Start"), LaunchSettings::BreakMode::kBootsector);
     m_pBreakModeCombo->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
     QLabel* pArgumentLink = new QLabel(this);

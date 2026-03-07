@@ -20,7 +20,8 @@ public:
         kNone,
         kBoot,
         kProgStart,
-        kProgramBreakpoint
+        kProgramBreakpoint,
+        kBootsector,
     };
 
     int m_breakMode;                // one of BreakMode above

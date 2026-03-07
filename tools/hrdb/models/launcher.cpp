@@ -140,6 +140,8 @@ bool LaunchHatari(const LaunchSettings& settings, Session* pSession)
             // Break at boot/start commands
             if (settings.m_breakMode == LaunchSettings::BreakMode::kBoot)
                 ref << "b pc ! 0 : once\r\n";     // don't run the breakpoint file yet
+            else if (settings.m_breakMode == LaunchSettings::BreakMode::kBootsector)
+                ref << "b pc=($4c6): once\r\n";
 
             if (settings.m_breakMode == LaunchSettings::BreakMode::kProgStart)
             {
