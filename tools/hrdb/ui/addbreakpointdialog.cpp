@@ -56,6 +56,7 @@ AddBreakpointDialog::AddBreakpointDialog(QWidget *parent, TargetModel* pTargetMo
     // Main expression
     QLabel* pExpLabel = new QLabel("Expression:", this);
     m_pExpressionEdit = new QLineEdit(this);
+    QPushButton* pExpressionSetButton = new QPushButton("Set", this);
 
     // -------------------------------
     // Change/Memory
@@ -70,7 +71,7 @@ AddBreakpointDialog::AddBreakpointDialog(QWidget *parent, TargetModel* pTargetMo
     m_pMemorySizeButtonGroup->addButton(pButtonW, 1);
     m_pMemorySizeButtonGroup->addButton(pButtonL, 2);
     QLabel* pMemoryChangeLabel = new QLabel("changes", this);
-    QPushButton* pMemoryUseButton = new QPushButton("Use", this);
+    QPushButton* pMemorySetButton = new QPushButton("Set", this);
 
     // Event
     QLabel* pEventLabel = new QLabel("Event:", this);
@@ -82,7 +83,7 @@ AddBreakpointDialog::AddBreakpointDialog(QWidget *parent, TargetModel* pTargetMo
         ++pEvents;
     }
 
-    QPushButton* pEventUseButton = new QPushButton("Use", this);
+    QPushButton* pEventSetButton = new QPushButton("Set", this);
 
     QWidget* pSizeWidgets[] = {pButtonB, pButtonW, pButtonL, nullptr};
     QGroupBox* pMemorySizeGroupBox = CreateVertLayout(this, pSizeWidgets);
@@ -99,14 +100,13 @@ AddBreakpointDialog::AddBreakpointDialog(QWidget *parent, TargetModel* pTargetMo
     m_pTraceCheckBox = new QCheckBox("Trace Only", this);
 
     // -------------------------------
-    QPushButton* pOkButton = new QPushButton("&OK", this);
-    pOkButton->setDefault(true);
     QPushButton* pCancelButton = new QPushButton("&Cancel", this);
+    pCancelButton->setDefault(true);
 
     // These arrays are null-terminated
-    QWidget* pRow1[] = {pExpLabel, m_pExpressionEdit, nullptr};
-    QWidget* pRow2[] = {pAddressLabel, m_pMemoryAddressEdit, pMemorySizeGroupBox, pMemoryChangeLabel, pMemoryUseButton, nullptr};
-    QWidget* pRow2b[] = {pEventLabel, m_pEventCombo, pEventUseButton, nullptr};
+    QWidget* pRow1[] = {pExpLabel, m_pExpressionEdit, pExpressionSetButton, nullptr};
+    QWidget* pRow2[] = {pAddressLabel, m_pMemoryAddressEdit, pMemorySizeGroupBox, pMemoryChangeLabel, pMemorySetButton, nullptr};
+    QWidget* pRow2b[] = {pEventLabel, m_pEventCombo, pEventSetButton, nullptr};
     QWidget* pRow3[] = {m_pOnceCheckBox, m_pTraceCheckBox, nullptr};
 
     QLabel* pArgumentLink = new QLabel(this);
@@ -115,26 +115,28 @@ AddBreakpointDialog::AddBreakpointDialog(QWidget *parent, TargetModel* pTargetMo
     pArgumentLink->setTextInteractionFlags(Qt::LinksAccessibleByKeyboard|Qt::LinksAccessibleByMouse);
     pArgumentLink->setTextFormat(Qt::RichText);
 
+    // One row for the cancel button
     QHBoxLayout* pHLayout = new QHBoxLayout(this);
-    pHLayout->addWidget(pOkButton);
     pHLayout->addWidget(pCancelButton);
+
     QWidget* pButtonContainer = new QWidget(this);
     pButtonContainer->setLayout(pHLayout);
 
+    QTabWidget* pTabWidget = new QTabWidget(this);
+    pTabWidget->addTab(CreateHorizLayout(this, pRow1), "Expression");
+    pTabWidget->addTab(CreateHorizLayout(this, pRow2), "Memory");
+    pTabWidget->addTab(CreateHorizLayout(this, pRow2b), "Interrupts");
+
     QVBoxLayout* pLayout = new QVBoxLayout(this);
-    pLayout->addWidget(CreateHorizLayout(this, pRow1));
-    pLayout->addWidget(CreateHorizLayout(this, pRow2));
-    pLayout->addWidget(CreateHorizLayout(this, pRow2b));
+    pLayout->addWidget(pTabWidget);
     pLayout->addWidget(CreateHorizLayout(this, pRow3));
     pLayout->addWidget(pArgumentLink);
     pLayout->addWidget(pButtonContainer);
 
-    connect(pMemoryUseButton, &QPushButton::clicked, this, &AddBreakpointDialog::memoryUseClicked);
-    connect(pEventUseButton,  &QPushButton::clicked, this, &AddBreakpointDialog::eventUseClicked);
-
-    connect(pOkButton,        &QPushButton::clicked, this, &AddBreakpointDialog::okClicked);
-    connect(pOkButton,        &QPushButton::clicked, this, &AddBreakpointDialog::accept);
-    connect(pCancelButton,    &QPushButton::clicked, this, &AddBreakpointDialog::reject);
+    connect(pMemorySetButton,       &QPushButton::clicked, this, &AddBreakpointDialog::memorySetClicked);
+    connect(pEventSetButton,        &QPushButton::clicked, this, &AddBreakpointDialog::eventSetClicked);
+    connect(pExpressionSetButton,   &QPushButton::clicked, this, &AddBreakpointDialog::expressionOkClicked);
+    connect(pCancelButton,          &QPushButton::clicked, this, &AddBreakpointDialog::reject);
     this->setLayout(pLayout);
 }
 
@@ -148,22 +150,17 @@ void AddBreakpointDialog::showEvent(QShowEvent *event)
     QDialog::showEvent(event);
 }
 
-void AddBreakpointDialog::okClicked()
+void AddBreakpointDialog::expressionOkClicked()
 {
     if (m_pTargetModel->IsConnected())
     {
         // Create an expression string
-        uint64_t flags = Dispatcher::kBpFlagNone;
-        if (m_pOnceCheckBox->isChecked())
-            flags |= Dispatcher::kBpFlagOnce;
-        if (m_pTraceCheckBox->isChecked())
-            flags |= Dispatcher::kBpFlagTrace;
-
-        m_pDispatcher->SetBreakpoint(kProcCpu, m_pExpressionEdit->text().toStdString(), flags);
+        m_pDispatcher->SetBreakpoint(kProcCpu, m_pExpressionEdit->text().toStdString(), GetFlags());
+        emit accept();
     }
 }
 
-void AddBreakpointDialog::memoryUseClicked()
+void AddBreakpointDialog::memorySetClicked()
 {
     const char* sizeStrings[3] =
     {
@@ -181,15 +178,28 @@ void AddBreakpointDialog::memoryUseClicked()
                                        m_pTargetModel->GetRegs()))
     {
         QString addr = QString::asprintf("($%x).%s", result, sizeStrings[sizeId]);
-        m_pExpressionEdit->setText(addr + " ! " + addr);
+        QString expr = addr + " ! " + addr;
+        m_pDispatcher->SetBreakpoint(kProcCpu, expr.toStdString(), GetFlags());
+        emit accept();
     }
 }
 
-void AddBreakpointDialog::eventUseClicked()
+void AddBreakpointDialog::eventSetClicked()
 {
     int choice = m_pEventCombo->currentIndex();
     // Just copy the bp string from the description
     // TODO: if we want to check VBR we can fiddle this manually
-    m_pExpressionEdit->setText(QString(g_eventBpDescs[choice].bpExpression));
+    QString expr = QString(g_eventBpDescs[choice].bpExpression);
+    m_pDispatcher->SetBreakpoint(kProcCpu, expr.toStdString(), GetFlags());
+    emit accept();
 }
 
+uint64_t AddBreakpointDialog::GetFlags() const
+{
+    uint64_t flags = Dispatcher::kBpFlagNone;
+    if (m_pOnceCheckBox->isChecked())
+        flags |= Dispatcher::kBpFlagOnce;
+    if (m_pTraceCheckBox->isChecked())
+        flags |= Dispatcher::kBpFlagTrace;
+    return flags;
+}

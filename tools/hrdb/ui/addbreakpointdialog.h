@@ -23,9 +23,11 @@ protected:
     void showEvent(QShowEvent *event);
 
 private:
-    void okClicked();
-    void memoryUseClicked();
-    void eventUseClicked();
+    void expressionOkClicked();
+    void memorySetClicked();
+    void eventSetClicked();
+
+    uint64_t GetFlags() const;
 
     TargetModel*        m_pTargetModel;
     Dispatcher*         m_pDispatcher;
