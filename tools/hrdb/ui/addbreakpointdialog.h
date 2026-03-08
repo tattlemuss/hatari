@@ -42,8 +42,8 @@ private:
     QLineEdit*          m_pMemoryAddressEdit;
     QButtonGroup*       m_pMemorySizeButtonGroup;
 
-    // 2 - interrupt
-    QComboBox*          m_pInterruptCombo;
+    // 2 - event
+    QComboBox*          m_pEventCombo;
 
     QCheckBox*          m_pOnceCheckBox;
     QCheckBox*          m_pTraceCheckBox;

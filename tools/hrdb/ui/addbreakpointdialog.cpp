@@ -26,6 +26,7 @@ struct EventBpDesc
 static const EventBpDesc g_eventBpDescs[] = {
     { "VBL", "pc = ($70)" },
     { "HBL", "pc = ($68)" },
+    { "sep", nullptr },
     { "MFP: Centronics", "pc = ($100)" },
     { "MFP: DCD", "pc = ($104)" },
     { "MFP: CTS", "pc = ($108)" },
@@ -42,6 +43,8 @@ static const EventBpDesc g_eventBpDescs[] = {
     { "MFP: Timer A", "pc = ($134)" },
     { "MFP: RINGD", "pc = ($138)" },
     { "MFP: Mono", "pc = ($13c)" },
+    { "sep", nullptr },
+    { "Program start", "pc<$e00000 && pc=TEXT" },
     { "Bootsector start", "pc = ($4c6)" },
     {nullptr, nullptr}
 };
@@ -80,12 +83,16 @@ AddBreakpointDialog::AddBreakpointDialog(QWidget *parent, TargetModel* pTargetMo
 
     // Event
     QLabel* pEventLabel = new QLabel("Event:", this);
-    m_pInterruptCombo = new QComboBox(this);
-    const EventBpDesc* pEvents = g_eventBpDescs;
-    while (pEvents->name)
+    m_pEventCombo = new QComboBox(this);
+    const EventBpDesc* const pEvents = g_eventBpDescs;
+    int pos = 0;
+    while (pEvents[pos].name)
     {
-        m_pInterruptCombo->addItem(QString(pEvents->name));
-        ++pEvents;
+        if (strcmp(pEvents[pos].name, "sep") == 0)
+            m_pEventCombo->insertSeparator(pos);
+        else
+            m_pEventCombo->insertItem(pos, QString(pEvents[pos].name));
+        ++pos;
     }
 
     m_pSymbolTableModel = new SymbolTableModel(this, m_pTargetModel->GetSymbolTable());
@@ -121,19 +128,19 @@ AddBreakpointDialog::AddBreakpointDialog(QWidget *parent, TargetModel* pTargetMo
     // These arrays are null-terminated
     QWidget* pExpressionWidgets[] = {pExpLabel, m_pExpressionEdit, nullptr};
     QWidget* pMemoryWidgets[] = {pAddressLabel, m_pMemoryAddressEdit, pMemorySizeGroupBox, pMemoryChangeLabel, nullptr};
-    QWidget* pInterruptWidgets[] = {pEventLabel, m_pInterruptCombo, nullptr};
+    QWidget* pEventWidgets[] = {pEventLabel, m_pEventCombo, nullptr};
     auto* pExpressionBox = CreateHorizLayout(this, pExpressionWidgets);
     auto* pMemoryBox = CreateHorizLayout(this, pMemoryWidgets);
-    auto* pInterruptBox = CreateHorizLayout(this, pInterruptWidgets);
+    auto* pEventBox = CreateHorizLayout(this, pEventWidgets);
     m_pStackedWidget = new QStackedWidget(this);
     m_pStackedWidget->addWidget(pExpressionBox);
     m_pStackedWidget->addWidget(pMemoryBox);
-    m_pStackedWidget->addWidget(pInterruptBox);
+    m_pStackedWidget->addWidget(pEventBox);
 
     // Radio buttons for the breakpoint type
     QRadioButton* pButtonExpr = new QRadioButton("Expression", this);
     QRadioButton* pButtonMem = new QRadioButton("Memory", this);
-    QRadioButton* pButtonInt = new QRadioButton("Interrupt", this);
+    QRadioButton* pButtonInt = new QRadioButton("Event", this);
     pButtonExpr->setChecked(true);
     m_pBpTypeButtonGroup = new QButtonGroup(this);
     m_pBpTypeButtonGroup->addButton(pButtonExpr, 0);
@@ -208,7 +215,7 @@ void AddBreakpointDialog::setClicked()
     }
     case 2:
     {
-        int choice = m_pInterruptCombo->currentIndex();
+        int choice = m_pEventCombo->currentIndex();
         // Just copy the bp string from the description
         // TODO: if we want to check VBR we can fiddle this manually
         bpExpr = QString(g_eventBpDescs[choice].bpExpression);
