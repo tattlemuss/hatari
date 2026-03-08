@@ -7,8 +7,8 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QRadioButton>
-#include <QVBoxLayout>
 #include <QStackedWidget>
+#include <QVBoxLayout>
 
 #include "../models/targetmodel.h"
 #include "../models/stringparsers.h"
@@ -57,28 +57,36 @@ AddBreakpointDialog::AddBreakpointDialog(QWidget *parent, TargetModel* pTargetMo
     this->setWindowTitle(tr("Add Breakpoint"));
 
     // -------------------------------
+    // Top selector
+    // Radio buttons for the breakpoint type
+    QRadioButton* pButtonExpr = new QRadioButton("Expression", this);
+    QRadioButton* pButtonMem = new QRadioButton("Memory", this);
+    QRadioButton* pButtonInt = new QRadioButton("Event", this);
+    pButtonExpr->setChecked(true);
+    m_pBpTypeButtonGroup = new QButtonGroup(this);
+    m_pBpTypeButtonGroup->addButton(pButtonExpr, 0);
+    m_pBpTypeButtonGroup->addButton(pButtonMem, 1);
+    m_pBpTypeButtonGroup->addButton(pButtonInt, 2);
+    QWidget* pTypeWidgets[] = {pButtonExpr, pButtonMem, pButtonInt, nullptr};
+    QGroupBox* m_pBreakpointTypeGroupBox;
+    m_pBreakpointTypeGroupBox = CreateHorizLayout(this, pTypeWidgets);
+    m_pBreakpointTypeGroupBox->setTitle("Breakpoint type");
+
+    // -------------------------------
     // Main expression
     QLabel* pExpLabel = new QLabel("Expression:", this);
     m_pExpressionEdit = new QLineEdit(this);
 
     // -------------------------------
     // Change/Memory
-    QLabel* pAddressLabel = new QLabel("Address:", this);
+    QLabel* pAddressLabel = new QLabel("When address:", this);
     m_pMemoryAddressEdit = new QLineEdit(this);
 
     // (sizes)
-    QRadioButton* pButtonB = new QRadioButton(".B", this);
-    QRadioButton* pButtonW = new QRadioButton(".W", this);
-    QRadioButton* pButtonL = new QRadioButton(".L", this);
-    pButtonW->setChecked(true);
-    m_pMemorySizeButtonGroup = new QButtonGroup(this);
-    m_pMemorySizeButtonGroup->addButton(pButtonB, 0);
-    m_pMemorySizeButtonGroup->addButton(pButtonW, 1);
-    m_pMemorySizeButtonGroup->addButton(pButtonL, 2);
-    QWidget* pSizeWidgets[] = {pButtonB, pButtonW, pButtonL, nullptr};
-    QGroupBox* pMemorySizeGroupBox = CreateVertLayout(this, pSizeWidgets);
-    pMemorySizeGroupBox->setFlat(false);
-
+    m_pMemorySizeComboBox = new QComboBox(this);
+    m_pMemorySizeComboBox->addItem("Byte", 0);
+    m_pMemorySizeComboBox->addItem("Word", 1);
+    m_pMemorySizeComboBox->addItem("Long", 2);
     QLabel* pMemoryChangeLabel = new QLabel("changes", this);
 
     // Event
@@ -127,7 +135,7 @@ AddBreakpointDialog::AddBreakpointDialog(QWidget *parent, TargetModel* pTargetMo
     // Stack container of the 3 breakpoint types
     // These arrays are null-terminated
     QWidget* pExpressionWidgets[] = {pExpLabel, m_pExpressionEdit, nullptr};
-    QWidget* pMemoryWidgets[] = {pAddressLabel, m_pMemoryAddressEdit, pMemorySizeGroupBox, pMemoryChangeLabel, nullptr};
+    QWidget* pMemoryWidgets[] = {pAddressLabel, m_pMemoryAddressEdit, m_pMemorySizeComboBox, pMemoryChangeLabel, nullptr};
     QWidget* pEventWidgets[] = {pEventLabel, m_pEventCombo, nullptr};
     auto* pExpressionBox = CreateHorizLayout(this, pExpressionWidgets);
     auto* pMemoryBox = CreateHorizLayout(this, pMemoryWidgets);
@@ -136,20 +144,6 @@ AddBreakpointDialog::AddBreakpointDialog(QWidget *parent, TargetModel* pTargetMo
     m_pStackedWidget->addWidget(pExpressionBox);
     m_pStackedWidget->addWidget(pMemoryBox);
     m_pStackedWidget->addWidget(pEventBox);
-
-    // Radio buttons for the breakpoint type
-    QRadioButton* pButtonExpr = new QRadioButton("Expression", this);
-    QRadioButton* pButtonMem = new QRadioButton("Memory", this);
-    QRadioButton* pButtonInt = new QRadioButton("Event", this);
-    pButtonExpr->setChecked(true);
-    m_pBpTypeButtonGroup = new QButtonGroup(this);
-    m_pBpTypeButtonGroup->addButton(pButtonExpr, 0);
-    m_pBpTypeButtonGroup->addButton(pButtonMem, 1);
-    m_pBpTypeButtonGroup->addButton(pButtonInt, 2);
-    QWidget* pTypeWidgets[] = {pButtonExpr, pButtonMem, pButtonInt, nullptr};
-    QGroupBox* m_pBreakpointTypeGroupBox;
-    m_pBreakpointTypeGroupBox = CreateHorizLayout(this, pTypeWidgets);
-    m_pBreakpointTypeGroupBox->setTitle("Breakpoint type");
 
     QWidget* pRow3[] = {m_pOnceCheckBox, m_pTraceCheckBox, nullptr};
 
@@ -198,7 +192,7 @@ void AddBreakpointDialog::setClicked()
                 "b", "w", "l"
             };
 
-        int sizeId = m_pMemorySizeButtonGroup->checkedId();
+        int sizeId = m_pMemorySizeComboBox->currentIndex();
         if (sizeId < 0)
             return;
 

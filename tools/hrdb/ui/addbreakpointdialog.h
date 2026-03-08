@@ -3,10 +3,10 @@
 
 #include <QDialog>
 
-class QCheckBox;
-class QLineEdit;
-class QComboBox;
 class QButtonGroup;
+class QCheckBox;
+class QComboBox;
+class QLineEdit;
 class QStackedWidget;
 
 class TargetModel;
@@ -40,7 +40,7 @@ private:
 
     // 1 = memory
     QLineEdit*          m_pMemoryAddressEdit;
-    QButtonGroup*       m_pMemorySizeButtonGroup;
+    QComboBox*          m_pMemorySizeComboBox;
 
     // 2 - event
     QComboBox*          m_pEventCombo;
