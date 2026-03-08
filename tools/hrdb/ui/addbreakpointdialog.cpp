@@ -8,6 +8,7 @@
 #include <QPushButton>
 #include <QRadioButton>
 #include <QVBoxLayout>
+#include <QStackedWidget>
 
 #include "../models/targetmodel.h"
 #include "../models/stringparsers.h"
@@ -56,12 +57,13 @@ AddBreakpointDialog::AddBreakpointDialog(QWidget *parent, TargetModel* pTargetMo
     // Main expression
     QLabel* pExpLabel = new QLabel("Expression:", this);
     m_pExpressionEdit = new QLineEdit(this);
-    QPushButton* pExpressionSetButton = new QPushButton("Set", this);
 
     // -------------------------------
     // Change/Memory
     QLabel* pAddressLabel = new QLabel("Address:", this);
     m_pMemoryAddressEdit = new QLineEdit(this);
+
+    // (sizes)
     QRadioButton* pButtonB = new QRadioButton(".B", this);
     QRadioButton* pButtonW = new QRadioButton(".W", this);
     QRadioButton* pButtonL = new QRadioButton(".L", this);
@@ -70,24 +72,21 @@ AddBreakpointDialog::AddBreakpointDialog(QWidget *parent, TargetModel* pTargetMo
     m_pMemorySizeButtonGroup->addButton(pButtonB, 0);
     m_pMemorySizeButtonGroup->addButton(pButtonW, 1);
     m_pMemorySizeButtonGroup->addButton(pButtonL, 2);
-    QLabel* pMemoryChangeLabel = new QLabel("changes", this);
-    QPushButton* pMemorySetButton = new QPushButton("Set", this);
-
-    // Event
-    QLabel* pEventLabel = new QLabel("Event:", this);
-    m_pEventCombo = new QComboBox(this);
-    const EventBpDesc* pEvents = g_eventBpDescs;
-    while (pEvents->name)
-    {
-        m_pEventCombo->addItem(QString(pEvents->name));
-        ++pEvents;
-    }
-
-    QPushButton* pEventSetButton = new QPushButton("Set", this);
-
     QWidget* pSizeWidgets[] = {pButtonB, pButtonW, pButtonL, nullptr};
     QGroupBox* pMemorySizeGroupBox = CreateVertLayout(this, pSizeWidgets);
     pMemorySizeGroupBox->setFlat(false);
+
+    QLabel* pMemoryChangeLabel = new QLabel("changes", this);
+
+    // Event
+    QLabel* pEventLabel = new QLabel("Event:", this);
+    m_pInterruptCombo = new QComboBox(this);
+    const EventBpDesc* pEvents = g_eventBpDescs;
+    while (pEvents->name)
+    {
+        m_pInterruptCombo->addItem(QString(pEvents->name));
+        ++pEvents;
+    }
 
     m_pSymbolTableModel = new SymbolTableModel(this, m_pTargetModel->GetSymbolTable());
     QCompleter* pCompl = new QCompleter(m_pSymbolTableModel, this);
@@ -100,14 +99,9 @@ AddBreakpointDialog::AddBreakpointDialog(QWidget *parent, TargetModel* pTargetMo
     m_pTraceCheckBox = new QCheckBox("Trace Only", this);
 
     // -------------------------------
+    QPushButton* pSetButton = new QPushButton("Set", this);
     QPushButton* pCancelButton = new QPushButton("&Cancel", this);
-    pCancelButton->setDefault(true);
-
-    // These arrays are null-terminated
-    QWidget* pRow1[] = {pExpLabel, m_pExpressionEdit, pExpressionSetButton, nullptr};
-    QWidget* pRow2[] = {pAddressLabel, m_pMemoryAddressEdit, pMemorySizeGroupBox, pMemoryChangeLabel, pMemorySetButton, nullptr};
-    QWidget* pRow2b[] = {pEventLabel, m_pEventCombo, pEventSetButton, nullptr};
-    QWidget* pRow3[] = {m_pOnceCheckBox, m_pTraceCheckBox, nullptr};
+    pSetButton->setDefault(true);
 
     QLabel* pArgumentLink = new QLabel(this);
     pArgumentLink->setText("<a href=\"https://hatari.tuxfamily.org/doc/debugger.html#Breakpoint_conditions\">Expression Syntax Help</a>");
@@ -117,26 +111,52 @@ AddBreakpointDialog::AddBreakpointDialog(QWidget *parent, TargetModel* pTargetMo
 
     // One row for the cancel button
     QHBoxLayout* pHLayout = new QHBoxLayout(this);
+    pHLayout->addWidget(pSetButton);
     pHLayout->addWidget(pCancelButton);
 
     QWidget* pButtonContainer = new QWidget(this);
     pButtonContainer->setLayout(pHLayout);
 
-    QTabWidget* pTabWidget = new QTabWidget(this);
-    pTabWidget->addTab(CreateHorizLayout(this, pRow1), "Expression");
-    pTabWidget->addTab(CreateHorizLayout(this, pRow2), "Memory");
-    pTabWidget->addTab(CreateHorizLayout(this, pRow2b), "Interrupts");
+    // Stack container of the 3 breakpoint types
+    // These arrays are null-terminated
+    QWidget* pExpressionWidgets[] = {pExpLabel, m_pExpressionEdit, nullptr};
+    QWidget* pMemoryWidgets[] = {pAddressLabel, m_pMemoryAddressEdit, pMemorySizeGroupBox, pMemoryChangeLabel, nullptr};
+    QWidget* pInterruptWidgets[] = {pEventLabel, m_pInterruptCombo, nullptr};
+    auto* pExpressionBox = CreateHorizLayout(this, pExpressionWidgets);
+    auto* pMemoryBox = CreateHorizLayout(this, pMemoryWidgets);
+    auto* pInterruptBox = CreateHorizLayout(this, pInterruptWidgets);
+    m_pStackedWidget = new QStackedWidget(this);
+    m_pStackedWidget->addWidget(pExpressionBox);
+    m_pStackedWidget->addWidget(pMemoryBox);
+    m_pStackedWidget->addWidget(pInterruptBox);
 
+    // Radio buttons for the breakpoint type
+    QRadioButton* pButtonExpr = new QRadioButton("Expression", this);
+    QRadioButton* pButtonMem = new QRadioButton("Memory", this);
+    QRadioButton* pButtonInt = new QRadioButton("Interrupt", this);
+    pButtonExpr->setChecked(true);
+    m_pBpTypeButtonGroup = new QButtonGroup(this);
+    m_pBpTypeButtonGroup->addButton(pButtonExpr, 0);
+    m_pBpTypeButtonGroup->addButton(pButtonMem, 1);
+    m_pBpTypeButtonGroup->addButton(pButtonInt, 2);
+    QWidget* pTypeWidgets[] = {pButtonExpr, pButtonMem, pButtonInt, nullptr};
+    QGroupBox* m_pBreakpointTypeGroupBox;
+    m_pBreakpointTypeGroupBox = CreateHorizLayout(this, pTypeWidgets);
+    m_pBreakpointTypeGroupBox->setTitle("Breakpoint type");
+
+    QWidget* pRow3[] = {m_pOnceCheckBox, m_pTraceCheckBox, nullptr};
+
+    // Final layout
     QVBoxLayout* pLayout = new QVBoxLayout(this);
-    pLayout->addWidget(pTabWidget);
+    pLayout->addWidget(m_pBreakpointTypeGroupBox);
+    pLayout->addWidget(m_pStackedWidget);
     pLayout->addWidget(CreateHorizLayout(this, pRow3));
     pLayout->addWidget(pArgumentLink);
     pLayout->addWidget(pButtonContainer);
 
-    connect(pMemorySetButton,       &QPushButton::clicked, this, &AddBreakpointDialog::memorySetClicked);
-    connect(pEventSetButton,        &QPushButton::clicked, this, &AddBreakpointDialog::eventSetClicked);
-    connect(pExpressionSetButton,   &QPushButton::clicked, this, &AddBreakpointDialog::expressionOkClicked);
-    connect(pCancelButton,          &QPushButton::clicked, this, &AddBreakpointDialog::reject);
+    connect(m_pBpTypeButtonGroup,   &QButtonGroup::idClicked, this, &AddBreakpointDialog::typeActivated);
+    connect(pSetButton,             &QPushButton::clicked,    this, &AddBreakpointDialog::setClicked);
+    connect(pCancelButton,          &QPushButton::clicked,    this, &AddBreakpointDialog::reject);
     this->setLayout(pLayout);
 }
 
@@ -150,48 +170,59 @@ void AddBreakpointDialog::showEvent(QShowEvent *event)
     QDialog::showEvent(event);
 }
 
-void AddBreakpointDialog::expressionOkClicked()
+void AddBreakpointDialog::typeActivated()
 {
-    if (m_pTargetModel->IsConnected())
-    {
-        // Create an expression string
-        m_pDispatcher->SetBreakpoint(kProcCpu, m_pExpressionEdit->text().toStdString(), GetFlags());
-        emit accept();
-    }
+    // Switch the stacked widget to show the correct editor
+    m_pStackedWidget->setCurrentIndex(m_pBpTypeButtonGroup->checkedId());
 }
 
-void AddBreakpointDialog::memorySetClicked()
+void AddBreakpointDialog::setClicked()
 {
-    const char* sizeStrings[3] =
+    QString bpExpr;
+    switch (m_pStackedWidget->currentIndex())
     {
-        "b", "w", "l"
-    };
-
-    int sizeId = m_pMemorySizeButtonGroup->checkedId();
-    if (sizeId < 0)
-        return;
-
-    uint32_t result;
-    if (StringParsers::ParseCpuExpression(m_pMemoryAddressEdit->text().toStdString().c_str(),
-                                       result,
-                                       m_pTargetModel->GetSymbolTable(),
-                                       m_pTargetModel->GetRegs()))
+    case 0:
+        bpExpr = m_pExpressionEdit->text();
+        break;
+    case 1:
     {
-        QString addr = QString::asprintf("($%x).%s", result, sizeStrings[sizeId]);
-        QString expr = addr + " ! " + addr;
-        m_pDispatcher->SetBreakpoint(kProcCpu, expr.toStdString(), GetFlags());
+        const char* sizeStrings[3] =
+            {
+                "b", "w", "l"
+            };
+
+        int sizeId = m_pMemorySizeButtonGroup->checkedId();
+        if (sizeId < 0)
+            return;
+
+        uint32_t result;
+        if (StringParsers::ParseCpuExpression(m_pMemoryAddressEdit->text().toStdString().c_str(),
+                                              result,
+                                              m_pTargetModel->GetSymbolTable(),
+                                              m_pTargetModel->GetRegs()))
+        {
+            QString addr = QString::asprintf("($%x).%s", result, sizeStrings[sizeId]);
+            bpExpr = addr + " ! " + addr;
+        }
+        break;
+    }
+    case 2:
+    {
+        int choice = m_pInterruptCombo->currentIndex();
+        // Just copy the bp string from the description
+        // TODO: if we want to check VBR we can fiddle this manually
+        bpExpr = QString(g_eventBpDescs[choice].bpExpression);
+        break;
+    }
+    default:
+        assert(0);
+    }
+
+    if (bpExpr.size() != 0)
+    {
+        m_pDispatcher->SetBreakpoint(kProcCpu, bpExpr.toStdString(), GetFlags());
         emit accept();
     }
-}
-
-void AddBreakpointDialog::eventSetClicked()
-{
-    int choice = m_pEventCombo->currentIndex();
-    // Just copy the bp string from the description
-    // TODO: if we want to check VBR we can fiddle this manually
-    QString expr = QString(g_eventBpDescs[choice].bpExpression);
-    m_pDispatcher->SetBreakpoint(kProcCpu, expr.toStdString(), GetFlags());
-    emit accept();
 }
 
 uint64_t AddBreakpointDialog::GetFlags() const
