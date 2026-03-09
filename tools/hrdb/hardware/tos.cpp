@@ -44,21 +44,21 @@ QString GetTrapAnnotation(uint8_t trapNum, uint16_t callId)
         Gemdos::Opcode op = (Gemdos::Opcode) callId;
         const char* name = Gemdos::GetEnumString(op);
         const char* desc = Gemdos::GetString(op);
-        return QString::asprintf("GEMDOS $%x ", callId) + MakeAnnotationString(name, desc);
+        return QString::asprintf("GEMDOS $%x: ", callId) + MakeAnnotationString(name, desc);
     }
     else if (trapNum == 13)
     {
         Bios::Opcode op = (Bios::Opcode) callId;
         const char* name = Bios::GetEnumString(op);
         const char* desc = Bios::GetString(op);
-        return QString::asprintf("BIOS $%x ", callId) + MakeAnnotationString(name, desc);
+        return QString::asprintf("BIOS $%x: ", callId) + MakeAnnotationString(name, desc);
     }
     else if (trapNum == 14)
     {
         Xbios::Opcode op = (Xbios::Opcode) callId;
         const char* name = Xbios::GetEnumString(op);
         const char* desc = Xbios::GetString(op);
-        return QString::asprintf("XBIOS $%x ", callId) + MakeAnnotationString(name, desc);
+        return QString::asprintf("XBIOS $%x: ", callId) + MakeAnnotationString(name, desc);
     }
     return "Unknown trap #";
 }
