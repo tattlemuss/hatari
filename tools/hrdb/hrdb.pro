@@ -17,11 +17,14 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    hardware/bios.cpp \
+    hardware/gemdos.cpp \
     hardware/hardware_st.cpp \
     hardware/regs_falc.cpp \
     hardware/regs_st.cpp \
     hardware/stgen.cpp \
     hardware/tos.cpp \
+    hardware/xbios.cpp \
     hopper68/decode68.cpp \
     hopper68/instruction68.cpp \
     hopper56/decode56.cpp \
@@ -67,11 +70,14 @@ SOURCES += \
     ui/symboltext.cpp \
 
 HEADERS += \
+    hardware/bios.h \
+    hardware/gemdos.h \
     hardware/hardware_st.h \
     hardware/regs_falc.h \
     hardware/regs_st.h \
     hardware/stgen.h \
     hardware/tos.h \
+    hardware/xbios.h \
     hopper68/buffer68.h \
     hopper68/decode68.h \
     hopper68/instruction68.h \

@@ -54,11 +54,17 @@ enum class OFFON : uint32_t {
 
 /* Enum -> string lookup declarations */
 extern const char* GetString(FALCMON val);
+extern const char* GetEnumString(FALCMON val);
 extern const char* GetString(FALCMEM val);
+extern const char* GetEnumString(FALCMEM val);
 extern const char* GetString(PIXWIDTH val);
+extern const char* GetEnumString(PIXWIDTH val);
 extern const char* GetString(BOOL val);
+extern const char* GetEnumString(BOOL val);
 extern const char* GetString(YESNO val);
+extern const char* GetEnumString(YESNO val);
 extern const char* GetString(OFFON val);
+extern const char* GetEnumString(OFFON val);
 
 /* Register Addresses */
 static const uint32_t FALC_SYS_CNTL                  = 0xff8006;

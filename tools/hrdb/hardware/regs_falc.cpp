@@ -46,38 +46,80 @@ const char* GetString(OFFON val)
 	if (val==OFFON::ON) return "On";
 	return "?";
 }
-const stgen::StringDef g_enumStringsFALCMON[] = {
+const char* GetEnumString(FALCMON val)
+{
+	if (val==FALCMON::FALCMON_MONO) return "FALCMON_MONO";
+	if (val==FALCMON::FALCMON_COLOR) return "FALCMON_COLOR";
+	if (val==FALCMON::FALCMON_VGA_COLOR) return "FALCMON_VGA_COLOR";
+	if (val==FALCMON::FALCMON_TV) return "FALCMON_TV";
+	return "?";
+}
+const char* GetEnumString(FALCMEM val)
+{
+	if (val==FALCMEM::SIZE_1MB) return "SIZE_1MB";
+	if (val==FALCMEM::SIZE_4MB) return "SIZE_4MB";
+	if (val==FALCMEM::SIZE_14MB) return "SIZE_14MB";
+	if (val==FALCMEM::SIZE_RESERVED) return "SIZE_RESERVED";
+	return "?";
+}
+const char* GetEnumString(PIXWIDTH val)
+{
+	if (val==PIXWIDTH::NORM) return "NORM";
+	if (val==PIXWIDTH::HALF) return "HALF";
+	if (val==PIXWIDTH::QUARTER) return "QUARTER";
+	if (val==PIXWIDTH::BOTH) return "BOTH";
+	return "?";
+}
+const char* GetEnumString(BOOL val)
+{
+	if (val==BOOL::FALSE) return "FALSE";
+	if (val==BOOL::TRUE) return "TRUE";
+	return "?";
+}
+const char* GetEnumString(YESNO val)
+{
+	if (val==YESNO::NO) return "NO";
+	if (val==YESNO::YES) return "YES";
+	return "?";
+}
+const char* GetEnumString(OFFON val)
+{
+	if (val==OFFON::OFF) return "OFF";
+	if (val==OFFON::ON) return "ON";
+	return "?";
+}
+const stgen::StringDef g_enumDescs_FALCMON[] = {
 	{ 0, "Monochrome (SM124)" },
 	{ 1, "RGB Color (SC1224)" },
 	{ 2, "VGA Color" },
 	{ 3, "Television" },
 	{ 0, nullptr }
 };
-const stgen::StringDef g_enumStringsFALCMEM[] = {
+const stgen::StringDef g_enumDescs_FALCMEM[] = {
 	{ 0, "1MB" },
 	{ 1, "4MB" },
 	{ 2, "14MB" },
 	{ 3, "reserved" },
 	{ 0, nullptr }
 };
-const stgen::StringDef g_enumStringsPIXWIDTH[] = {
+const stgen::StringDef g_enumDescs_PIXWIDTH[] = {
 	{ 0, "Standard" },
 	{ 1, "Half Width" },
 	{ 2, "Quarter Width" },
 	{ 3, "Invalid (Qtr+Half)" },
 	{ 0, nullptr }
 };
-const stgen::StringDef g_enumStringsBOOL[] = {
+const stgen::StringDef g_enumDescs_BOOL[] = {
 	{ 0, "False" },
 	{ 1, "True" },
 	{ 0, nullptr }
 };
-const stgen::StringDef g_enumStringsYESNO[] = {
+const stgen::StringDef g_enumDescs_YESNO[] = {
 	{ 0, "No" },
 	{ 1, "Yes" },
 	{ 0, nullptr }
 };
-const stgen::StringDef g_enumStringsOFFON[] = {
+const stgen::StringDef g_enumDescs_OFFON[] = {
 	{ 0, "Off" },
 	{ 1, "On" },
 	{ 0, nullptr }
@@ -85,11 +127,11 @@ const stgen::StringDef g_enumStringsOFFON[] = {
 const stgen::FieldDef g_fieldDef_FALC_SYS_CNTL_MONITOR = {
   FALC_SYS_CNTL, FALC_SYS_CNTL_MONITOR_MASK,
   1, FALC_SYS_CNTL_MONITOR_SHIFT,
-  "MONITOR", g_enumStringsFALCMON, "Attached monitor type" };
+  "MONITOR", g_enumDescs_FALCMON, "Attached monitor type" };
 const stgen::FieldDef g_fieldDef_FALC_SYS_CNTL_MEMORY = {
   FALC_SYS_CNTL, FALC_SYS_CNTL_MEMORY_MASK,
   1, FALC_SYS_CNTL_MEMORY_SHIFT,
-  "MEMORY", g_enumStringsFALCMEM, "Memory size" };
+  "MEMORY", g_enumDescs_FALCMEM, "Memory size" };
 const stgen::FieldDef g_fieldDef_FALC_BUS_CNTL_STE_BUS_OFF = {
   FALC_BUS_CNTL, FALC_BUS_CNTL_STE_BUS_OFF_MASK,
   1, FALC_BUS_CNTL_STE_BUS_OFF_SHIFT,
@@ -197,23 +239,23 @@ const stgen::FieldDef g_fieldDef_VIDEL_VSS_ALL = {
 const stgen::FieldDef g_fieldDef_VIDEL_CONTROL_QTR_PIXEL = {
   VIDEL_CONTROL, VIDEL_CONTROL_QTR_PIXEL_MASK,
   2, VIDEL_CONTROL_QTR_PIXEL_SHIFT,
-  "QTR_PIXEL", g_enumStringsOFFON, "Quarter Pixel Width" };
+  "QTR_PIXEL", g_enumDescs_OFFON, "Quarter Pixel Width" };
 const stgen::FieldDef g_fieldDef_VIDEL_CONTROL_HALF_PIXEL = {
   VIDEL_CONTROL, VIDEL_CONTROL_HALF_PIXEL_MASK,
   2, VIDEL_CONTROL_HALF_PIXEL_SHIFT,
-  "HALF_PIXEL", g_enumStringsOFFON, "Half Pixel Width" };
+  "HALF_PIXEL", g_enumDescs_OFFON, "Half Pixel Width" };
 const stgen::FieldDef g_fieldDef_VIDEL_CONTROL_PIXWIDTH = {
   VIDEL_CONTROL, VIDEL_CONTROL_PIXWIDTH_MASK,
   2, VIDEL_CONTROL_PIXWIDTH_SHIFT,
-  "PIXWIDTH", g_enumStringsPIXWIDTH, "Effective Pixel Size" };
+  "PIXWIDTH", g_enumDescs_PIXWIDTH, "Effective Pixel Size" };
 const stgen::FieldDef g_fieldDef_VIDEL_CONTROL_SKIP_LINE = {
   VIDEL_CONTROL, VIDEL_CONTROL_SKIP_LINE_MASK,
   2, VIDEL_CONTROL_SKIP_LINE_SHIFT,
-  "SKIP_LINE", g_enumStringsOFFON, "Skip Line (Interlace)" };
+  "SKIP_LINE", g_enumDescs_OFFON, "Skip Line (Interlace)" };
 const stgen::FieldDef g_fieldDef_VIDEL_CONTROL_DOUBLE = {
   VIDEL_CONTROL, VIDEL_CONTROL_DOUBLE_MASK,
   2, VIDEL_CONTROL_DOUBLE_SHIFT,
-  "DOUBLE", g_enumStringsOFFON, "Line Doubling" };
+  "DOUBLE", g_enumDescs_OFFON, "Line Doubling" };
 /* Register Field Sets */
 
 const stgen::FieldDef* g_regFieldsDef_FALC_SYS_CNTL[] = {

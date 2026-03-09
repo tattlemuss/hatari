@@ -1,0 +1,194 @@
+ENUM GemdosOpcode		GemDOS Opcode number
+	Pterm0			0x00
+	Cconin			0x01
+	Cconout			0x02
+	Cauxin			0x03
+	Cauxout			0x04
+	Cprnout			0x05
+	Crawio			0x06
+	Crawcin			0x07
+	Cnecin			0x08
+	Cconws			0x09
+	Cconrs			0x0A
+	Cconis			0x0B
+	Dsetdrv			0x0E
+	Cconos			0x10
+	Cprnos			0x11
+	Cauxis			0x12
+	Cauxos			0x13
+	Maddalt			0x14
+	Srealloc		0x15 (TOS 4)
+	Slbopen			0x16 (MagiC)
+	Slbclose		0x17 (MagiC)
+	Dgetdrv			0x19
+	Fsetdta			0x1A
+	Super			0x20
+	Tgetdate		0x2A
+	Tsetdate		0x2B
+	Tgettime		0x2C
+	Tsettime		0x2D
+	Fgetdta			0x2F
+	Sversion		0x30
+	Ptermres		0x31
+	Sconfig			0x33 (MagiC)
+	Dfree			0x36
+	Dcreate			0x39
+	Ddelete			0x3A
+	Dsetpath		0x3B
+	Fcreate			0x3C
+	Fopen			0x3D
+	Fclose			0x3E
+	Fread			0x3F
+	Fwrite			0x40
+	Fdelete			0x41
+	Fseek			0x42
+	Fattrib			0x43
+	Mxalloc			0x44
+	Fdup			0x45
+	Fforce			0x46
+	Dgetpath		0x47
+	Malloc			0x48
+	Mfree			0x49
+	Mshrink			0x4A
+	Pexec			0x4B
+	Pterm			0x4C
+	Fsfirst			0x4E
+	Fsnext			0x4F
+	Frename			0x56
+	Fdatime			0x57
+	Flock			0x5C
+	Nversion		0x60
+	Frlock			0x62
+	Frunlock		0x63
+	F_lock			0x64
+	Funlock			0x65
+	Fflush			0x66
+	Syield			0xFF (MiNT)
+	Fpipe			0x100 (MiNT)
+	Ffchown			0x101 (MiNT)
+	Ffchmod			0x102 (MiNT)
+	Fsync			0x103 (MiNT)
+	Fcntl			0x104 (MiNT)
+	Finstat			0x105 (MiNT)
+	Foutstat		0x106 (MiNT)
+	Fgetchar		0x107 (MiNT)
+	Fputchar		0x108 (MiNT)
+	Pwait			0x109 (MiNT)
+	Pnice			0x10A (MiNT)
+	Pgetpid			0x10B (MiNT)
+	Pgetppid		0x10C (MiNT)
+	Pgetpgrp		0x10D (MiNT)
+	Psetpgrp		0x10E (MiNT)
+	Pgetuid			0x10F (MiNT)
+	Psetuid			0x110 (MiNT)
+	Pkill			0x111 (MiNT)
+	Psignal			0x112 (MiNT)
+	Pvfork			0x113 (MiNT)
+	Pgetgid			0x114 (MiNT)
+	Psetgid			0x115 (MiNT)
+	Psigblock		0x116 (MiNT)
+	Psigsetmask		0x117 (MiNT)
+	Pusrval			0x118 (MiNT)
+	Pdomain			0x119 (MiNT)
+	Psigreturn		0x11A (MiNT)
+	Pfork			0x11B (MiNT)
+	Pwait3			0x11C (MiNT)
+	Fselect			0x11D (MiNT)
+	Prusage			0x11E (MiNT)
+	Psetlimit		0x11F (MiNT)
+	Talarm			0x120 (MiNT)
+	Pause			0x121 (MiNT)
+	Sysconf			0x122 (MiNT)
+	Psigpending		0x123 MiNT
+	Dpathconf		0x124 (MiNT)
+	Pmsg			0x125 (MiNT)
+	Fmidipipe		0x126 (MiNT)
+	Prenice			0x127 (MiNT)
+	Dopendir		0x128 (MiNT)
+	Dreaddir		0x129 (MiNT)
+	Drewinddir		0x12A (MiNT)
+	Dclosedir		0x12B (MiNT)
+	Fxattr			0x12C (MiNT)
+	Flink			0x12D (MiNT)
+	Fsymlink		0x12E (MiNT)
+	Freadlink		0x12F (MiNT)
+	Dcntl			0x130 (MiNT)
+	Fchown			0x131 (MiNT)
+	Fchmod			0x132 (MiNT)
+	Pumask			0x133 (MiNT)
+	Psemaphore		0x134 (MiNT)
+	Dlock			0x135 (MiNT)
+	Psigpause		0x136 (MiNT)
+	Psigaction		0x137 (MiNT)
+	Pgeteuid		0x138 (MiNT)
+	Pgetegid		0x139 (MiNT)
+	Pwaitpid		0x13A (MiNT)
+	Dgetcwd			0x13B (MiNT)
+	Salert			0x13C (MiNT)
+	Tmalarm			0x13D (MiNT 1.10)
+	Psigintr		0x13E (MiNT 1.11 until FreeMiNT 1.15.12 inclusive)
+	Suptime			0x13F (MiNT 1.11)
+	Ptrace			0x140 (MiNT)
+	Mvalidate		0x141 (MiNT)
+	Dxreaddir		0x142 (MiNT 1.11)
+	Pseteuid		0x143 (MiNT 1.11)
+	Psetegid		0x144 (MiNT 1.11)
+	Pgetauid		0x145 (MiNT 1.11)
+	Psetauid		0x146 (MiNT 1.11)
+	Pgetgroups		0x147 (MiNT 1.11)
+	Psetgroups		0x148 (MiNT 1.11)
+	Tsetitimer		0x149 (MiNT 1.11)
+	Scookie			0x14A (MiNT (obsolete))
+	Fstat64			0x14B (MiNT)
+	Fseek64			0x14C (MiNT)
+	Dsetkey			0x14D (MiNT)
+	Psetreuid		0x14E (MiNT 1.12)
+	Psetregid		0x14F (MiNT 1.12)
+	Ssync			0x150 (MiNT, MagiC)
+	Shutdown		0x151 (MiNT)
+	Dreadlabel		0x152 (MiNT 1.12)
+	Dwritelabel		0x153 MiNT 1.12
+	Ssystem			0x154 (MiNT 1.15.0)
+	Tgettimeofday	0x155 (MiNT 1.15.0)
+	Tsettimeofday	0x156 (MiNT 1.15.0)
+	Tadjtime		0x157 (MiNT)
+	Pgetpriority	0x158 (MiNT 1.15.0)
+	Psetpriority	0x159 (MiNT 1.15.0)
+	Fpoll			0x15a (MiNTNet)
+	Fwritev			0x15B (MiNTNet)
+	Freadv			0x15C (MiNTNet)
+	Ffstat64		0x15D (MiNTNet)
+	Psysctl			0x15E (MiNT)
+	Pemulation		0x15F (MiNT)
+	Fsocket			0x160 (MiNTNet)
+	Fsocketpair		0x161 (MiNTNet)
+	Faccept			0x162 (MiNTNet)
+	Fconnect		0x163 (MiNTNet)
+	Fbind			0x164 (MiNTNet)
+	Flisten			0x165 (MiNTNet)
+	Frecvmsg		0x166 (MiNTNet)
+	Fsendmsg		0x167 (MiNTNet)
+	Frecvfrom		0x168 (MiNTNet)
+	Fsendto			0x169 (MiNTNet)
+	Fsetsockopt		0x16A (MiNTNet)
+	Fgetsockopt		0x16B (MiNTNet)
+	Fgetpeername	0x16C (MiNTNet)
+	Fgetsockname	0x16D (MiNTNet)
+	Fshutdown		0x16E (MiNTNet)
+	Pshmget			0x170 (MiNT)
+	Pshmctl			0x171 (MiNT)
+	Pshmat			0x172 (MiNT)
+	Pshmdt			0x173 (MiNT)
+	Psemget			0x174 (MiNT)
+	Psemctl			0x175 (MiNT)
+	Psemop			0x176 (MiNT)
+	Psemconfig		0x177 (MiNT)
+	Pmsgget			0x178 (MiNT)
+	Pmsgctl			0x179 (MiNT)
+	Pmsgsnd			0x17A (MiNT)
+	Pmsgrcv			0x17B (MiNT)
+	Maccess			0x17D (MiNT)
+	Fchown16		0x180 (FreeMiNT 1.16.0)
+	Fchdir			0x181 (FreeMiNT 1.17)
+	Ffdopendir		0x182 (FreeMiNT 1.17)
+	Fdirfd			0x183 (FreeMiNT 1.17)

@@ -167,19 +167,33 @@ enum class DMA_FREQ : uint32_t {
 
 /* Enum -> string lookup declarations */
 extern const char* GetString(MMU_BANK val);
+extern const char* GetEnumString(MMU_BANK val);
 extern const char* GetString(RESOLUTION val);
+extern const char* GetEnumString(RESOLUTION val);
 extern const char* GetString(SYNC_RATE val);
+extern const char* GetEnumString(SYNC_RATE val);
 extern const char* GetString(SYNC_TYPE val);
+extern const char* GetEnumString(SYNC_TYPE val);
 extern const char* GetString(TIMER_MODE_A val);
+extern const char* GetEnumString(TIMER_MODE_A val);
 extern const char* GetString(TIMER_MODE_B val);
+extern const char* GetEnumString(TIMER_MODE_B val);
 extern const char* GetString(TIMER_MODE_CD val);
+extern const char* GetEnumString(TIMER_MODE_CD val);
 extern const char* GetString(ENDINT val);
+extern const char* GetEnumString(ENDINT val);
 extern const char* GetString(USARTLEN val);
+extern const char* GetEnumString(USARTLEN val);
 extern const char* GetString(ENV_SHAPE val);
+extern const char* GetEnumString(ENV_SHAPE val);
 extern const char* GetString(BLT_HOP val);
+extern const char* GetEnumString(BLT_HOP val);
 extern const char* GetString(BLT_OP val);
+extern const char* GetEnumString(BLT_OP val);
 extern const char* GetString(IS_STEREO val);
+extern const char* GetEnumString(IS_STEREO val);
 extern const char* GetString(DMA_FREQ val);
+extern const char* GetEnumString(DMA_FREQ val);
 
 /* Register Addresses */
 static const uint32_t MMU_CONFIG                     = 0xff8001;

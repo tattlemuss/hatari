@@ -159,30 +159,185 @@ const char* GetString(DMA_FREQ val)
 	if (val==DMA_FREQ::FREQ_50066) return "50066Hz";
 	return "?";
 }
-const stgen::StringDef g_enumStringsMMU_BANK[] = {
+const char* GetEnumString(MMU_BANK val)
+{
+	if (val==MMU_BANK::SIZE_128K) return "SIZE_128K";
+	if (val==MMU_BANK::SIZE_512K) return "SIZE_512K";
+	if (val==MMU_BANK::SIZE_2MB) return "SIZE_2MB";
+	if (val==MMU_BANK::SIZE_RESERVED) return "SIZE_RESERVED";
+	return "?";
+}
+const char* GetEnumString(RESOLUTION val)
+{
+	if (val==RESOLUTION::LOW) return "LOW";
+	if (val==RESOLUTION::MEDIUM) return "MEDIUM";
+	if (val==RESOLUTION::HIGH) return "HIGH";
+	return "?";
+}
+const char* GetEnumString(SYNC_RATE val)
+{
+	if (val==SYNC_RATE::HZ_60) return "HZ_60";
+	if (val==SYNC_RATE::HZ_50) return "HZ_50";
+	return "?";
+}
+const char* GetEnumString(SYNC_TYPE val)
+{
+	if (val==SYNC_TYPE::INTERNAL) return "INTERNAL";
+	if (val==SYNC_TYPE::EXTERNAL) return "EXTERNAL";
+	return "?";
+}
+const char* GetEnumString(TIMER_MODE_A val)
+{
+	if (val==TIMER_MODE_A::STOP) return "STOP";
+	if (val==TIMER_MODE_A::DELAY_4) return "DELAY_4";
+	if (val==TIMER_MODE_A::DELAY_10) return "DELAY_10";
+	if (val==TIMER_MODE_A::DELAY_16) return "DELAY_16";
+	if (val==TIMER_MODE_A::DELAY_50) return "DELAY_50";
+	if (val==TIMER_MODE_A::DELAY_64) return "DELAY_64";
+	if (val==TIMER_MODE_A::DELAY_100) return "DELAY_100";
+	if (val==TIMER_MODE_A::DELAY_200) return "DELAY_200";
+	if (val==TIMER_MODE_A::EVENT) return "EVENT";
+	if (val==TIMER_MODE_A::PULSE_4) return "PULSE_4";
+	if (val==TIMER_MODE_A::PULSE_10) return "PULSE_10";
+	if (val==TIMER_MODE_A::PULSE_16) return "PULSE_16";
+	if (val==TIMER_MODE_A::PULSE_50) return "PULSE_50";
+	if (val==TIMER_MODE_A::PULSE_64) return "PULSE_64";
+	if (val==TIMER_MODE_A::PULSE_100) return "PULSE_100";
+	if (val==TIMER_MODE_A::PULSE_200) return "PULSE_200";
+	return "?";
+}
+const char* GetEnumString(TIMER_MODE_B val)
+{
+	if (val==TIMER_MODE_B::STOP) return "STOP";
+	if (val==TIMER_MODE_B::DELAY_4) return "DELAY_4";
+	if (val==TIMER_MODE_B::DELAY_10) return "DELAY_10";
+	if (val==TIMER_MODE_B::DELAY_16) return "DELAY_16";
+	if (val==TIMER_MODE_B::DELAY_50) return "DELAY_50";
+	if (val==TIMER_MODE_B::DELAY_64) return "DELAY_64";
+	if (val==TIMER_MODE_B::DELAY_100) return "DELAY_100";
+	if (val==TIMER_MODE_B::DELAY_200) return "DELAY_200";
+	if (val==TIMER_MODE_B::EVENT) return "EVENT";
+	if (val==TIMER_MODE_B::PULSE_4) return "PULSE_4";
+	if (val==TIMER_MODE_B::PULSE_10) return "PULSE_10";
+	if (val==TIMER_MODE_B::PULSE_16) return "PULSE_16";
+	if (val==TIMER_MODE_B::PULSE_50) return "PULSE_50";
+	if (val==TIMER_MODE_B::PULSE_64) return "PULSE_64";
+	if (val==TIMER_MODE_B::PULSE_100) return "PULSE_100";
+	if (val==TIMER_MODE_B::PULSE_200) return "PULSE_200";
+	return "?";
+}
+const char* GetEnumString(TIMER_MODE_CD val)
+{
+	if (val==TIMER_MODE_CD::STOP) return "STOP";
+	if (val==TIMER_MODE_CD::DELAY_4) return "DELAY_4";
+	if (val==TIMER_MODE_CD::DELAY_10) return "DELAY_10";
+	if (val==TIMER_MODE_CD::DELAY_16) return "DELAY_16";
+	if (val==TIMER_MODE_CD::DELAY_50) return "DELAY_50";
+	if (val==TIMER_MODE_CD::DELAY_64) return "DELAY_64";
+	if (val==TIMER_MODE_CD::DELAY_100) return "DELAY_100";
+	if (val==TIMER_MODE_CD::DELAY_200) return "DELAY_200";
+	return "?";
+}
+const char* GetEnumString(ENDINT val)
+{
+	if (val==ENDINT::AUTO) return "AUTO";
+	if (val==ENDINT::SOFTWARE) return "SOFTWARE";
+	return "?";
+}
+const char* GetEnumString(USARTLEN val)
+{
+	if (val==USARTLEN::LEN_8) return "LEN_8";
+	if (val==USARTLEN::LEN_7) return "LEN_7";
+	if (val==USARTLEN::LEN_6) return "LEN_6";
+	if (val==USARTLEN::LEN_5) return "LEN_5";
+	return "?";
+}
+const char* GetEnumString(ENV_SHAPE val)
+{
+	if (val==ENV_SHAPE::ENV_0000) return "ENV_0000";
+	if (val==ENV_SHAPE::ENV_0001) return "ENV_0001";
+	if (val==ENV_SHAPE::ENV_0010) return "ENV_0010";
+	if (val==ENV_SHAPE::ENV_0011) return "ENV_0011";
+	if (val==ENV_SHAPE::ENV_0100) return "ENV_0100";
+	if (val==ENV_SHAPE::ENV_0101) return "ENV_0101";
+	if (val==ENV_SHAPE::ENV_0110) return "ENV_0110";
+	if (val==ENV_SHAPE::ENV_0111) return "ENV_0111";
+	if (val==ENV_SHAPE::ENV_1000) return "ENV_1000";
+	if (val==ENV_SHAPE::ENV_1001) return "ENV_1001";
+	if (val==ENV_SHAPE::ENV_1010) return "ENV_1010";
+	if (val==ENV_SHAPE::ENV_1011) return "ENV_1011";
+	if (val==ENV_SHAPE::ENV_1100) return "ENV_1100";
+	if (val==ENV_SHAPE::ENV_1101) return "ENV_1101";
+	if (val==ENV_SHAPE::ENV_1110) return "ENV_1110";
+	if (val==ENV_SHAPE::ENV_1111) return "ENV_1111";
+	return "?";
+}
+const char* GetEnumString(BLT_HOP val)
+{
+	if (val==BLT_HOP::HOP_ONES) return "HOP_ONES";
+	if (val==BLT_HOP::HOP_HALFTONE) return "HOP_HALFTONE";
+	if (val==BLT_HOP::HOP_SOURCE) return "HOP_SOURCE";
+	if (val==BLT_HOP::HOP_SOURCE_AND_HALFTONE) return "HOP_SOURCE_AND_HALFTONE";
+	return "?";
+}
+const char* GetEnumString(BLT_OP val)
+{
+	if (val==BLT_OP::ZERO) return "ZERO";
+	if (val==BLT_OP::AND) return "AND";
+	if (val==BLT_OP::AND_NOT) return "AND_NOT";
+	if (val==BLT_OP::SOURCE) return "SOURCE";
+	if (val==BLT_OP::NOT_AND) return "NOT_AND";
+	if (val==BLT_OP::DEST) return "DEST";
+	if (val==BLT_OP::XOR) return "XOR";
+	if (val==BLT_OP::OR) return "OR";
+	if (val==BLT_OP::NOT_AND_NOT) return "NOT_AND_NOT";
+	if (val==BLT_OP::NOT_XOR) return "NOT_XOR";
+	if (val==BLT_OP::NOT_DEST) return "NOT_DEST";
+	if (val==BLT_OP::OR_NOT_DEST) return "OR_NOT_DEST";
+	if (val==BLT_OP::NOT_SOURCE) return "NOT_SOURCE";
+	if (val==BLT_OP::NOT_SOURCE_OR) return "NOT_SOURCE_OR";
+	if (val==BLT_OP::NOT_SOURCE_OR_NOT) return "NOT_SOURCE_OR_NOT";
+	if (val==BLT_OP::ONE) return "ONE";
+	return "?";
+}
+const char* GetEnumString(IS_STEREO val)
+{
+	if (val==IS_STEREO::MONO) return "MONO";
+	if (val==IS_STEREO::STEREO) return "STEREO";
+	return "?";
+}
+const char* GetEnumString(DMA_FREQ val)
+{
+	if (val==DMA_FREQ::FREQ_6258) return "FREQ_6258";
+	if (val==DMA_FREQ::FREQ_12517) return "FREQ_12517";
+	if (val==DMA_FREQ::FREQ_25033) return "FREQ_25033";
+	if (val==DMA_FREQ::FREQ_50066) return "FREQ_50066";
+	return "?";
+}
+const stgen::StringDef g_enumDescs_MMU_BANK[] = {
 	{ 0, "128K" },
 	{ 1, "512K" },
 	{ 2, "2MB" },
 	{ 3, "reserved" },
 	{ 0, nullptr }
 };
-const stgen::StringDef g_enumStringsRESOLUTION[] = {
+const stgen::StringDef g_enumDescs_RESOLUTION[] = {
 	{ 0, "ST-Low" },
 	{ 1, "ST-Medium" },
 	{ 2, "ST-High" },
 	{ 0, nullptr }
 };
-const stgen::StringDef g_enumStringsSYNC_RATE[] = {
+const stgen::StringDef g_enumDescs_SYNC_RATE[] = {
 	{ 0, "60Hz" },
 	{ 1, "50Hz" },
 	{ 0, nullptr }
 };
-const stgen::StringDef g_enumStringsSYNC_TYPE[] = {
+const stgen::StringDef g_enumDescs_SYNC_TYPE[] = {
 	{ 0, "Internal Sync" },
 	{ 1, "External Sync" },
 	{ 0, nullptr }
 };
-const stgen::StringDef g_enumStringsTIMER_MODE_A[] = {
+const stgen::StringDef g_enumDescs_TIMER_MODE_A[] = {
 	{ 0, "Stopped" },
 	{ 1, "Delay mode, divide by 4" },
 	{ 2, "Delay mode, divide by 10" },
@@ -201,7 +356,7 @@ const stgen::StringDef g_enumStringsTIMER_MODE_A[] = {
 	{ 15, "Pulse extension mode, divide by 200" },
 	{ 0, nullptr }
 };
-const stgen::StringDef g_enumStringsTIMER_MODE_B[] = {
+const stgen::StringDef g_enumDescs_TIMER_MODE_B[] = {
 	{ 0, "Stopped" },
 	{ 1, "Delay mode, divide by 4" },
 	{ 2, "Delay mode, divide by 10" },
@@ -220,7 +375,7 @@ const stgen::StringDef g_enumStringsTIMER_MODE_B[] = {
 	{ 15, "Pulse extension mode, divide by 200" },
 	{ 0, nullptr }
 };
-const stgen::StringDef g_enumStringsTIMER_MODE_CD[] = {
+const stgen::StringDef g_enumDescs_TIMER_MODE_CD[] = {
 	{ 0, "Stopped" },
 	{ 1, "Delay mode, divide by 4" },
 	{ 2, "Delay mode, divide by 10" },
@@ -231,19 +386,19 @@ const stgen::StringDef g_enumStringsTIMER_MODE_CD[] = {
 	{ 7, "Delay mode, divide by 200" },
 	{ 0, nullptr }
 };
-const stgen::StringDef g_enumStringsENDINT[] = {
+const stgen::StringDef g_enumDescs_ENDINT[] = {
 	{ 0, "Automatic" },
 	{ 1, "Software" },
 	{ 0, nullptr }
 };
-const stgen::StringDef g_enumStringsUSARTLEN[] = {
+const stgen::StringDef g_enumDescs_USARTLEN[] = {
 	{ 0, "8 Bits" },
 	{ 1, "7 Bits" },
 	{ 2, "6 Bits" },
 	{ 3, "5 Bits" },
 	{ 0, nullptr }
 };
-const stgen::StringDef g_enumStringsENV_SHAPE[] = {
+const stgen::StringDef g_enumDescs_ENV_SHAPE[] = {
 	{ 0, "\\___" },
 	{ 1, "\\___" },
 	{ 2, "\\___" },
@@ -262,14 +417,14 @@ const stgen::StringDef g_enumStringsENV_SHAPE[] = {
 	{ 15, "/|__" },
 	{ 0, nullptr }
 };
-const stgen::StringDef g_enumStringsBLT_HOP[] = {
+const stgen::StringDef g_enumDescs_BLT_HOP[] = {
 	{ 0, "Ones" },
 	{ 1, "Halftone only" },
 	{ 2, "Source only" },
 	{ 3, "Source AND halftone" },
 	{ 0, nullptr }
 };
-const stgen::StringDef g_enumStringsBLT_OP[] = {
+const stgen::StringDef g_enumDescs_BLT_OP[] = {
 	{ 0, "Zeroes" },
 	{ 1, "Source AND destination" },
 	{ 2, "Source AND NOT destination" },
@@ -288,12 +443,12 @@ const stgen::StringDef g_enumStringsBLT_OP[] = {
 	{ 15, "Ones" },
 	{ 0, nullptr }
 };
-const stgen::StringDef g_enumStringsIS_STEREO[] = {
+const stgen::StringDef g_enumDescs_IS_STEREO[] = {
 	{ 0, "Mono" },
 	{ 1, "Stereo" },
 	{ 0, nullptr }
 };
-const stgen::StringDef g_enumStringsDMA_FREQ[] = {
+const stgen::StringDef g_enumDescs_DMA_FREQ[] = {
 	{ 0, "6258Hz (STE only)" },
 	{ 1, "12517Hz" },
 	{ 2, "25033Hz" },
@@ -303,11 +458,11 @@ const stgen::StringDef g_enumStringsDMA_FREQ[] = {
 const stgen::FieldDef g_fieldDef_MMU_CONFIG_BANK0 = {
   MMU_CONFIG, MMU_CONFIG_BANK0_MASK,
   1, MMU_CONFIG_BANK0_SHIFT,
-  "BANK0", g_enumStringsMMU_BANK, "Size of memory bank 0" };
+  "BANK0", g_enumDescs_MMU_BANK, "Size of memory bank 0" };
 const stgen::FieldDef g_fieldDef_MMU_CONFIG_BANK1 = {
   MMU_CONFIG, MMU_CONFIG_BANK1_MASK,
   1, MMU_CONFIG_BANK1_SHIFT,
-  "BANK1", g_enumStringsMMU_BANK, "Size of memory bank 1" };
+  "BANK1", g_enumDescs_MMU_BANK, "Size of memory bank 1" };
 const stgen::FieldDef g_fieldDef_VID_BASE_HIGH_ALL = {
   VID_BASE_HIGH, VID_BASE_HIGH_ALL_MASK,
   1, VID_BASE_HIGH_ALL_SHIFT,
@@ -331,11 +486,11 @@ const stgen::FieldDef g_fieldDef_VID_HORIZ_SCROLL_STE_PIXELS = {
 const stgen::FieldDef g_fieldDef_VID_SYNC_MODE_TYPE = {
   VID_SYNC_MODE, VID_SYNC_MODE_TYPE_MASK,
   1, VID_SYNC_MODE_TYPE_SHIFT,
-  "TYPE", g_enumStringsSYNC_TYPE, "internal/external" };
+  "TYPE", g_enumDescs_SYNC_TYPE, "internal/external" };
 const stgen::FieldDef g_fieldDef_VID_SYNC_MODE_RATE = {
   VID_SYNC_MODE, VID_SYNC_MODE_RATE_MASK,
   1, VID_SYNC_MODE_RATE_SHIFT,
-  "RATE", g_enumStringsSYNC_RATE, "0 - 60hz, 1 - 50hz" };
+  "RATE", g_enumDescs_SYNC_RATE, "0 - 60hz, 1 - 50hz" };
 const stgen::FieldDef g_fieldDef_VID_PAL_0_BLUE_ST = {
   VID_PAL_0, VID_PAL_0_BLUE_ST_MASK,
   2, VID_PAL_0_BLUE_ST_SHIFT,
@@ -363,7 +518,7 @@ const stgen::FieldDef g_fieldDef_VID_PAL_0_RED_STE = {
 const stgen::FieldDef g_fieldDef_VID_SHIFTER_RES_RES = {
   VID_SHIFTER_RES, VID_SHIFTER_RES_RES_MASK,
   1, VID_SHIFTER_RES_RES_SHIFT,
-  "RES", g_enumStringsRESOLUTION, "ST/STE Resolution (Low/Medium/High)" };
+  "RES", g_enumDescs_RESOLUTION, "ST/STE Resolution (Low/Medium/High)" };
 const stgen::FieldDef g_fieldDef_FDC_ACCESS_ALL = {
   FDC_ACCESS, FDC_ACCESS_ALL_MASK,
   2, FDC_ACCESS_ALL_SHIFT,
@@ -375,11 +530,11 @@ const stgen::FieldDef g_fieldDef_FDC_STATUS_ERROR = {
 const stgen::FieldDef g_fieldDef_FDC_STATUS_SECT_CNT = {
   FDC_STATUS, FDC_STATUS_SECT_CNT_MASK,
   2, FDC_STATUS_SECT_CNT_SHIFT,
-  "SECT_CNT", nullptr, "0 - sector count null,1 - not null" };
+  "SECT_CNT", nullptr, "Sector count not zero" };
 const stgen::FieldDef g_fieldDef_FDC_STATUS_DATA_REQ = {
   FDC_STATUS, FDC_STATUS_DATA_REQ_MASK,
   2, FDC_STATUS_DATA_REQ_SHIFT,
-  "DATA_REQ", nullptr, "FDC DATA REQUEST condition" };
+  "DATA_REQ", nullptr, "Data Request" };
 const stgen::FieldDef g_fieldDef_FDC_DMA_BASE_HIGH_ALL = {
   FDC_DMA_BASE_HIGH, FDC_DMA_BASE_HIGH_ALL_MASK,
   1, FDC_DMA_BASE_HIGH_ALL_SHIFT,
@@ -467,11 +622,11 @@ const stgen::FieldDef g_fieldDef_MFP_IERA_TIMER_A = {
 const stgen::FieldDef g_fieldDef_MFP_IERA_REC_FULL = {
   MFP_IERA, MFP_IERA_REC_FULL_MASK,
   1, MFP_IERA_REC_FULL_SHIFT,
-  "REC_FULL", nullptr, "" };
+  "REC_FULL", nullptr, "Receive Full" };
 const stgen::FieldDef g_fieldDef_MFP_IERA_REC_ERR = {
   MFP_IERA, MFP_IERA_REC_ERR_MASK,
   1, MFP_IERA_REC_ERR_SHIFT,
-  "REC_ERR", nullptr, "" };
+  "REC_ERR", nullptr, "Receive Error" };
 const stgen::FieldDef g_fieldDef_MFP_IERA_SEND_EMPTY = {
   MFP_IERA, MFP_IERA_SEND_EMPTY_MASK,
   1, MFP_IERA_SEND_EMPTY_SHIFT,
@@ -711,7 +866,7 @@ const stgen::FieldDef g_fieldDef_MFP_IMRB_CENT_BUSY = {
 const stgen::FieldDef g_fieldDef_MFP_VR_ENDINT = {
   MFP_VR, MFP_VR_ENDINT_MASK,
   1, MFP_VR_ENDINT_SHIFT,
-  "ENDINT", g_enumStringsENDINT, "Software End Interrupt" };
+  "ENDINT", g_enumDescs_ENDINT, "Software End Interrupt" };
 const stgen::FieldDef g_fieldDef_MFP_VR_VEC_BASE_OFFSET = {
   MFP_VR, MFP_VR_VEC_BASE_OFFSET_MASK,
   1, MFP_VR_VEC_BASE_OFFSET_SHIFT,
@@ -719,19 +874,19 @@ const stgen::FieldDef g_fieldDef_MFP_VR_VEC_BASE_OFFSET = {
 const stgen::FieldDef g_fieldDef_MFP_TACR_MODE_TIMER_A = {
   MFP_TACR, MFP_TACR_MODE_TIMER_A_MASK,
   1, MFP_TACR_MODE_TIMER_A_SHIFT,
-  "MODE_TIMER_A", g_enumStringsTIMER_MODE_A, "Timer A Mode" };
+  "MODE_TIMER_A", g_enumDescs_TIMER_MODE_A, "Timer A Mode" };
 const stgen::FieldDef g_fieldDef_MFP_TBCR_MODE_TIMER_B = {
   MFP_TBCR, MFP_TBCR_MODE_TIMER_B_MASK,
   1, MFP_TBCR_MODE_TIMER_B_SHIFT,
-  "MODE_TIMER_B", g_enumStringsTIMER_MODE_B, "Timer B Mode" };
+  "MODE_TIMER_B", g_enumDescs_TIMER_MODE_B, "Timer B Mode" };
 const stgen::FieldDef g_fieldDef_MFP_TCDCR_MODE_TIMER_D = {
   MFP_TCDCR, MFP_TCDCR_MODE_TIMER_D_MASK,
   1, MFP_TCDCR_MODE_TIMER_D_SHIFT,
-  "MODE_TIMER_D", g_enumStringsTIMER_MODE_CD, "Timer D Mode" };
+  "MODE_TIMER_D", g_enumDescs_TIMER_MODE_CD, "Timer D Mode" };
 const stgen::FieldDef g_fieldDef_MFP_TCDCR_MODE_TIMER_C = {
   MFP_TCDCR, MFP_TCDCR_MODE_TIMER_C_MASK,
   1, MFP_TCDCR_MODE_TIMER_C_SHIFT,
-  "MODE_TIMER_C", g_enumStringsTIMER_MODE_CD, "Timer C Mode" };
+  "MODE_TIMER_C", g_enumDescs_TIMER_MODE_CD, "Timer C Mode" };
 const stgen::FieldDef g_fieldDef_MFP_TADR_ALL = {
   MFP_TADR, MFP_TADR_ALL_MASK,
   1, MFP_TADR_ALL_SHIFT,
@@ -759,7 +914,7 @@ const stgen::FieldDef g_fieldDef_MFP_UCR_CLOCK_DIV = {
 const stgen::FieldDef g_fieldDef_MFP_UCR_WORD_LEN = {
   MFP_UCR, MFP_UCR_WORD_LEN_MASK,
   1, MFP_UCR_WORD_LEN_SHIFT,
-  "WORD_LEN", g_enumStringsUSARTLEN, "Word Length" };
+  "WORD_LEN", g_enumDescs_USARTLEN, "Word Length" };
 const stgen::FieldDef g_fieldDef_MFP_UCR_FORMAT = {
   MFP_UCR, MFP_UCR_FORMAT_MASK,
   1, MFP_UCR_FORMAT_SHIFT,
@@ -899,7 +1054,7 @@ const stgen::FieldDef g_fieldDef_YM_VOLUME_C_ENVELOPE = {
 const stgen::FieldDef g_fieldDef_YM_PERIOD_ENV_SHAPE_SHAPE = {
   YM_PERIOD_ENV_SHAPE, YM_PERIOD_ENV_SHAPE_SHAPE_MASK,
   1, YM_PERIOD_ENV_SHAPE_SHAPE_SHIFT,
-  "SHAPE", g_enumStringsENV_SHAPE, "" };
+  "SHAPE", g_enumDescs_ENV_SHAPE, "" };
 const stgen::FieldDef g_fieldDef_BLT_SRC_INC_X_ALL = {
   BLT_SRC_INC_X, BLT_SRC_INC_X_ALL_MASK,
   2, BLT_SRC_INC_X_ALL_SHIFT,
@@ -947,11 +1102,11 @@ const stgen::FieldDef g_fieldDef_BLT_YCOUNT_ALL = {
 const stgen::FieldDef g_fieldDef_BLT_HALFTONE_OP_OP = {
   BLT_HALFTONE_OP, BLT_HALFTONE_OP_OP_MASK,
   1, BLT_HALFTONE_OP_OP_SHIFT,
-  "OP", g_enumStringsBLT_HOP, "" };
+  "OP", g_enumDescs_BLT_HOP, "" };
 const stgen::FieldDef g_fieldDef_BLT_LOGICAL_OP_OP = {
   BLT_LOGICAL_OP, BLT_LOGICAL_OP_OP_MASK,
   1, BLT_LOGICAL_OP_OP_SHIFT,
-  "OP", g_enumStringsBLT_OP, "" };
+  "OP", g_enumDescs_BLT_OP, "" };
 const stgen::FieldDef g_fieldDef_BLT_CTRL_1_BUSY = {
   BLT_CTRL_1, BLT_CTRL_1_BUSY_MASK,
   1, BLT_CTRL_1_BUSY_SHIFT,
@@ -1019,11 +1174,11 @@ const stgen::FieldDef g_fieldDef_DMA_CONTROL_REPLAY = {
 const stgen::FieldDef g_fieldDef_DMA_SND_MODE_FORMAT = {
   DMA_SND_MODE, DMA_SND_MODE_FORMAT_MASK,
   1, DMA_SND_MODE_FORMAT_SHIFT,
-  "FORMAT", g_enumStringsIS_STEREO, "Format Mono/Stereo" };
+  "FORMAT", g_enumDescs_IS_STEREO, "Format Mono/Stereo" };
 const stgen::FieldDef g_fieldDef_DMA_SND_MODE_DMA_FREQ = {
   DMA_SND_MODE, DMA_SND_MODE_DMA_FREQ_MASK,
   1, DMA_SND_MODE_DMA_FREQ_SHIFT,
-  "DMA_FREQ", g_enumStringsDMA_FREQ, "DMA Frequency" };
+  "DMA_FREQ", g_enumDescs_DMA_FREQ, "DMA Frequency" };
 const stgen::FieldDef g_fieldDef_ACIA_KB_CTL_INT_REQ = {
   ACIA_KB_CTL, ACIA_KB_CTL_INT_REQ_MASK,
   1, ACIA_KB_CTL_INT_REQ_SHIFT,
