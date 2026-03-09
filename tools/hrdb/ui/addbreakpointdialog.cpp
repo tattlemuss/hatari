@@ -87,6 +87,7 @@ AddBreakpointDialog::AddBreakpointDialog(QWidget *parent, TargetModel* pTargetMo
     m_pMemorySizeComboBox->addItem("Byte", 0);
     m_pMemorySizeComboBox->addItem("Word", 1);
     m_pMemorySizeComboBox->addItem("Long", 2);
+    m_pMemorySizeComboBox->setCurrentIndex(1);
     QLabel* pMemoryChangeLabel = new QLabel("changes", this);
 
     // Event
