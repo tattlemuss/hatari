@@ -1,61 +1,61 @@
-ENUM GemdosOpcode		GemDOS Opcode number
-	Pterm0			0x00
-	Cconin			0x01
-	Cconout			0x02
-	Cauxin			0x03
-	Cauxout			0x04
-	Cprnout			0x05
-	Crawio			0x06
-	Crawcin			0x07
-	Cnecin			0x08
-	Cconws			0x09
-	Cconrs			0x0A
-	Cconis			0x0B
-	Dsetdrv			0x0E
-	Cconos			0x10
-	Cprnos			0x11
-	Cauxis			0x12
-	Cauxos			0x13
+ENUM Opcode		GemDOS Opcode number
+	Pterm0			0x00	Terminate proceess
+	Cconin			0x01	Read char from Standard Input
+	Cconout			0x02	Write char to Standard Output
+	Cauxin			0x03	Read char from AUX
+	Cauxout			0x04	Write char to AUX
+	Cprnout			0x05	Write char to standard PRN
+	Crawio			0x06	Raw I/O to Standard Input/Output
+	Crawcin			0x07	Raw Input from Standard Input
+	Cnecin			0x08	Read char from Standard Input, no echo
+	Cconws			0x09	Write string to Standard Output
+	Cconrs			0x0A	Read edited string from Standard Input
+	Cconis			0x0B	Check status of Standard Input
+	Dsetdrv			0x0E	Set default drive
+	Cconos			0x10	Check status of Standard Output
+	Cprnos			0x11	Check status of standard PRN
+	Cauxis			0x12	Check input status of AUX
+	Cauxos			0x13	Check output status of AUX
 	Maddalt			0x14
-	Srealloc		0x15 (TOS 4)
-	Slbopen			0x16 (MagiC)
-	Slbclose		0x17 (MagiC)
-	Dgetdrv			0x19
-	Fsetdta			0x1A
-	Super			0x20
-	Tgetdate		0x2A
-	Tsetdate		0x2B
-	Tgettime		0x2C
-	Tsettime		0x2D
-	Fgetdta			0x2F
-	Sversion		0x30
-	Ptermres		0x31
-	Sconfig			0x33 (MagiC)
-	Dfree			0x36
-	Dcreate			0x39
-	Ddelete			0x3A
-	Dsetpath		0x3B
-	Fcreate			0x3C
-	Fopen			0x3D
-	Fclose			0x3E
-	Fread			0x3F
-	Fwrite			0x40
-	Fdelete			0x41
-	Fseek			0x42
-	Fattrib			0x43
-	Mxalloc			0x44
-	Fdup			0x45
-	Fforce			0x46
-	Dgetpath		0x47
-	Malloc			0x48
-	Mfree			0x49
-	Mshrink			0x4A
-	Pexec			0x4B
-	Pterm			0x4C
-	Fsfirst			0x4E
-	Fsnext			0x4F
-	Frename			0x56
-	Fdatime			0x57
+	Srealloc		0x15	(TOS 4)
+	Slbopen			0x16	(MagiC)
+	Slbclose		0x17	 (MagiC)
+	Dgetdrv			0x19	Get default drive
+	Fsetdta			0x1A	Set Distk Transfer Address
+	Super			0x20	Get/set/inquire Supervisor Mode
+	Tgetdate		0x2A	Get date
+	Tsetdate		0x2B	Set date
+	Tgettime		0x2C	Get time
+	Tsettime		0x2D	Set time
+	Fgetdta			0x2F	Get Distk Transfer Address
+	Sversion		0x30	Get Version Number
+	Ptermres		0x31	Terminate and stay resident
+	Sconfig			0x33	(MagiC)
+	Dfree			0x36	Get drive free space
+	Dcreate			0x39	Create directory
+	Ddelete			0x3A	Delete directory
+	Dsetpath		0x3B	Set current directory
+	Fcreate			0x3C	Create file
+	Fopen			0x3D	Open file
+	Fclose			0x3E	Close file
+	Fread			0x3F	Read file
+	Fwrite			0x40	Write to file
+	Fdelete			0x41	Delete file
+	Fseek			0x42	Seek file pointer
+	Fattrib			0x43	Get/set file attributes
+	Mxalloc			0x44	Extended allocate memory
+	Fdup			0x45	Duplicate file handle
+	Fforce			0x46	Force file handle
+	Dgetpath		0x47	Get current directory
+	Malloc			0x48	Allocate memory
+	Mfree			0x49	Release memory
+	Mshrink			0x4A	Shrink allocated block
+	Pexec			0x4B	Load/execute process
+	Pterm			0x4C	Terminate process
+	Fsfirst			0x4E	Search first
+	Fsnext			0x4F	Search next
+	Frename			0x56	Rename file
+	Fdatime			0x57	Get/set file timestamp
 	Flock			0x5C
 	Nversion		0x60
 	Frlock			0x62

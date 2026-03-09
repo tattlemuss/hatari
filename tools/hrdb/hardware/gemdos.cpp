@@ -4,458 +4,458 @@
 
 namespace Gemdos {
 
-const char* GetString(GemdosOpcode val)
+const char* GetString(Opcode val)
 {
-	if (val==GemdosOpcode::Pterm0) return "";
-	if (val==GemdosOpcode::Cconin) return "";
-	if (val==GemdosOpcode::Cconout) return "";
-	if (val==GemdosOpcode::Cauxin) return "";
-	if (val==GemdosOpcode::Cauxout) return "";
-	if (val==GemdosOpcode::Cprnout) return "";
-	if (val==GemdosOpcode::Crawio) return "";
-	if (val==GemdosOpcode::Crawcin) return "";
-	if (val==GemdosOpcode::Cnecin) return "";
-	if (val==GemdosOpcode::Cconws) return "";
-	if (val==GemdosOpcode::Cconrs) return "";
-	if (val==GemdosOpcode::Cconis) return "";
-	if (val==GemdosOpcode::Dsetdrv) return "";
-	if (val==GemdosOpcode::Cconos) return "";
-	if (val==GemdosOpcode::Cprnos) return "";
-	if (val==GemdosOpcode::Cauxis) return "";
-	if (val==GemdosOpcode::Cauxos) return "";
-	if (val==GemdosOpcode::Maddalt) return "";
-	if (val==GemdosOpcode::Srealloc) return "(TOS 4)";
-	if (val==GemdosOpcode::Slbopen) return "(MagiC)";
-	if (val==GemdosOpcode::Slbclose) return "(MagiC)";
-	if (val==GemdosOpcode::Dgetdrv) return "";
-	if (val==GemdosOpcode::Fsetdta) return "";
-	if (val==GemdosOpcode::Super) return "";
-	if (val==GemdosOpcode::Tgetdate) return "";
-	if (val==GemdosOpcode::Tsetdate) return "";
-	if (val==GemdosOpcode::Tgettime) return "";
-	if (val==GemdosOpcode::Tsettime) return "";
-	if (val==GemdosOpcode::Fgetdta) return "";
-	if (val==GemdosOpcode::Sversion) return "";
-	if (val==GemdosOpcode::Ptermres) return "";
-	if (val==GemdosOpcode::Sconfig) return "(MagiC)";
-	if (val==GemdosOpcode::Dfree) return "";
-	if (val==GemdosOpcode::Dcreate) return "";
-	if (val==GemdosOpcode::Ddelete) return "";
-	if (val==GemdosOpcode::Dsetpath) return "";
-	if (val==GemdosOpcode::Fcreate) return "";
-	if (val==GemdosOpcode::Fopen) return "";
-	if (val==GemdosOpcode::Fclose) return "";
-	if (val==GemdosOpcode::Fread) return "";
-	if (val==GemdosOpcode::Fwrite) return "";
-	if (val==GemdosOpcode::Fdelete) return "";
-	if (val==GemdosOpcode::Fseek) return "";
-	if (val==GemdosOpcode::Fattrib) return "";
-	if (val==GemdosOpcode::Mxalloc) return "";
-	if (val==GemdosOpcode::Fdup) return "";
-	if (val==GemdosOpcode::Fforce) return "";
-	if (val==GemdosOpcode::Dgetpath) return "";
-	if (val==GemdosOpcode::Malloc) return "";
-	if (val==GemdosOpcode::Mfree) return "";
-	if (val==GemdosOpcode::Mshrink) return "";
-	if (val==GemdosOpcode::Pexec) return "";
-	if (val==GemdosOpcode::Pterm) return "";
-	if (val==GemdosOpcode::Fsfirst) return "";
-	if (val==GemdosOpcode::Fsnext) return "";
-	if (val==GemdosOpcode::Frename) return "";
-	if (val==GemdosOpcode::Fdatime) return "";
-	if (val==GemdosOpcode::Flock) return "";
-	if (val==GemdosOpcode::Nversion) return "";
-	if (val==GemdosOpcode::Frlock) return "";
-	if (val==GemdosOpcode::Frunlock) return "";
-	if (val==GemdosOpcode::F_lock) return "";
-	if (val==GemdosOpcode::Funlock) return "";
-	if (val==GemdosOpcode::Fflush) return "";
-	if (val==GemdosOpcode::Syield) return "(MiNT)";
-	if (val==GemdosOpcode::Fpipe) return "(MiNT)";
-	if (val==GemdosOpcode::Ffchown) return "(MiNT)";
-	if (val==GemdosOpcode::Ffchmod) return "(MiNT)";
-	if (val==GemdosOpcode::Fsync) return "(MiNT)";
-	if (val==GemdosOpcode::Fcntl) return "(MiNT)";
-	if (val==GemdosOpcode::Finstat) return "(MiNT)";
-	if (val==GemdosOpcode::Foutstat) return "(MiNT)";
-	if (val==GemdosOpcode::Fgetchar) return "(MiNT)";
-	if (val==GemdosOpcode::Fputchar) return "(MiNT)";
-	if (val==GemdosOpcode::Pwait) return "(MiNT)";
-	if (val==GemdosOpcode::Pnice) return "(MiNT)";
-	if (val==GemdosOpcode::Pgetpid) return "(MiNT)";
-	if (val==GemdosOpcode::Pgetppid) return "(MiNT)";
-	if (val==GemdosOpcode::Pgetpgrp) return "(MiNT)";
-	if (val==GemdosOpcode::Psetpgrp) return "(MiNT)";
-	if (val==GemdosOpcode::Pgetuid) return "(MiNT)";
-	if (val==GemdosOpcode::Psetuid) return "(MiNT)";
-	if (val==GemdosOpcode::Pkill) return "(MiNT)";
-	if (val==GemdosOpcode::Psignal) return "(MiNT)";
-	if (val==GemdosOpcode::Pvfork) return "(MiNT)";
-	if (val==GemdosOpcode::Pgetgid) return "(MiNT)";
-	if (val==GemdosOpcode::Psetgid) return "(MiNT)";
-	if (val==GemdosOpcode::Psigblock) return "(MiNT)";
-	if (val==GemdosOpcode::Psigsetmask) return "(MiNT)";
-	if (val==GemdosOpcode::Pusrval) return "(MiNT)";
-	if (val==GemdosOpcode::Pdomain) return "(MiNT)";
-	if (val==GemdosOpcode::Psigreturn) return "(MiNT)";
-	if (val==GemdosOpcode::Pfork) return "(MiNT)";
-	if (val==GemdosOpcode::Pwait3) return "(MiNT)";
-	if (val==GemdosOpcode::Fselect) return "(MiNT)";
-	if (val==GemdosOpcode::Prusage) return "(MiNT)";
-	if (val==GemdosOpcode::Psetlimit) return "(MiNT)";
-	if (val==GemdosOpcode::Talarm) return "(MiNT)";
-	if (val==GemdosOpcode::Pause) return "(MiNT)";
-	if (val==GemdosOpcode::Sysconf) return "(MiNT)";
-	if (val==GemdosOpcode::Psigpending) return "MiNT";
-	if (val==GemdosOpcode::Dpathconf) return "(MiNT)";
-	if (val==GemdosOpcode::Pmsg) return "(MiNT)";
-	if (val==GemdosOpcode::Fmidipipe) return "(MiNT)";
-	if (val==GemdosOpcode::Prenice) return "(MiNT)";
-	if (val==GemdosOpcode::Dopendir) return "(MiNT)";
-	if (val==GemdosOpcode::Dreaddir) return "(MiNT)";
-	if (val==GemdosOpcode::Drewinddir) return "(MiNT)";
-	if (val==GemdosOpcode::Dclosedir) return "(MiNT)";
-	if (val==GemdosOpcode::Fxattr) return "(MiNT)";
-	if (val==GemdosOpcode::Flink) return "(MiNT)";
-	if (val==GemdosOpcode::Fsymlink) return "(MiNT)";
-	if (val==GemdosOpcode::Freadlink) return "(MiNT)";
-	if (val==GemdosOpcode::Dcntl) return "(MiNT)";
-	if (val==GemdosOpcode::Fchown) return "(MiNT)";
-	if (val==GemdosOpcode::Fchmod) return "(MiNT)";
-	if (val==GemdosOpcode::Pumask) return "(MiNT)";
-	if (val==GemdosOpcode::Psemaphore) return "(MiNT)";
-	if (val==GemdosOpcode::Dlock) return "(MiNT)";
-	if (val==GemdosOpcode::Psigpause) return "(MiNT)";
-	if (val==GemdosOpcode::Psigaction) return "(MiNT)";
-	if (val==GemdosOpcode::Pgeteuid) return "(MiNT)";
-	if (val==GemdosOpcode::Pgetegid) return "(MiNT)";
-	if (val==GemdosOpcode::Pwaitpid) return "(MiNT)";
-	if (val==GemdosOpcode::Dgetcwd) return "(MiNT)";
-	if (val==GemdosOpcode::Salert) return "(MiNT)";
-	if (val==GemdosOpcode::Tmalarm) return "(MiNT 1.10)";
-	if (val==GemdosOpcode::Psigintr) return "(MiNT 1.11 until FreeMiNT 1.15.12 inclusive)";
-	if (val==GemdosOpcode::Suptime) return "(MiNT 1.11)";
-	if (val==GemdosOpcode::Ptrace) return "(MiNT)";
-	if (val==GemdosOpcode::Mvalidate) return "(MiNT)";
-	if (val==GemdosOpcode::Dxreaddir) return "(MiNT 1.11)";
-	if (val==GemdosOpcode::Pseteuid) return "(MiNT 1.11)";
-	if (val==GemdosOpcode::Psetegid) return "(MiNT 1.11)";
-	if (val==GemdosOpcode::Pgetauid) return "(MiNT 1.11)";
-	if (val==GemdosOpcode::Psetauid) return "(MiNT 1.11)";
-	if (val==GemdosOpcode::Pgetgroups) return "(MiNT 1.11)";
-	if (val==GemdosOpcode::Psetgroups) return "(MiNT 1.11)";
-	if (val==GemdosOpcode::Tsetitimer) return "(MiNT 1.11)";
-	if (val==GemdosOpcode::Scookie) return "(MiNT (obsolete))";
-	if (val==GemdosOpcode::Fstat64) return "(MiNT)";
-	if (val==GemdosOpcode::Fseek64) return "(MiNT)";
-	if (val==GemdosOpcode::Dsetkey) return "(MiNT)";
-	if (val==GemdosOpcode::Psetreuid) return "(MiNT 1.12)";
-	if (val==GemdosOpcode::Psetregid) return "(MiNT 1.12)";
-	if (val==GemdosOpcode::Ssync) return "(MiNT, MagiC)";
-	if (val==GemdosOpcode::Shutdown) return "(MiNT)";
-	if (val==GemdosOpcode::Dreadlabel) return "(MiNT 1.12)";
-	if (val==GemdosOpcode::Dwritelabel) return "MiNT 1.12";
-	if (val==GemdosOpcode::Ssystem) return "(MiNT 1.15.0)";
-	if (val==GemdosOpcode::Tgettimeofday) return "(MiNT 1.15.0)";
-	if (val==GemdosOpcode::Tsettimeofday) return "(MiNT 1.15.0)";
-	if (val==GemdosOpcode::Tadjtime) return "(MiNT)";
-	if (val==GemdosOpcode::Pgetpriority) return "(MiNT 1.15.0)";
-	if (val==GemdosOpcode::Psetpriority) return "(MiNT 1.15.0)";
-	if (val==GemdosOpcode::Fpoll) return "(MiNTNet)";
-	if (val==GemdosOpcode::Fwritev) return "(MiNTNet)";
-	if (val==GemdosOpcode::Freadv) return "(MiNTNet)";
-	if (val==GemdosOpcode::Ffstat64) return "(MiNTNet)";
-	if (val==GemdosOpcode::Psysctl) return "(MiNT)";
-	if (val==GemdosOpcode::Pemulation) return "(MiNT)";
-	if (val==GemdosOpcode::Fsocket) return "(MiNTNet)";
-	if (val==GemdosOpcode::Fsocketpair) return "(MiNTNet)";
-	if (val==GemdosOpcode::Faccept) return "(MiNTNet)";
-	if (val==GemdosOpcode::Fconnect) return "(MiNTNet)";
-	if (val==GemdosOpcode::Fbind) return "(MiNTNet)";
-	if (val==GemdosOpcode::Flisten) return "(MiNTNet)";
-	if (val==GemdosOpcode::Frecvmsg) return "(MiNTNet)";
-	if (val==GemdosOpcode::Fsendmsg) return "(MiNTNet)";
-	if (val==GemdosOpcode::Frecvfrom) return "(MiNTNet)";
-	if (val==GemdosOpcode::Fsendto) return "(MiNTNet)";
-	if (val==GemdosOpcode::Fsetsockopt) return "(MiNTNet)";
-	if (val==GemdosOpcode::Fgetsockopt) return "(MiNTNet)";
-	if (val==GemdosOpcode::Fgetpeername) return "(MiNTNet)";
-	if (val==GemdosOpcode::Fgetsockname) return "(MiNTNet)";
-	if (val==GemdosOpcode::Fshutdown) return "(MiNTNet)";
-	if (val==GemdosOpcode::Pshmget) return "(MiNT)";
-	if (val==GemdosOpcode::Pshmctl) return "(MiNT)";
-	if (val==GemdosOpcode::Pshmat) return "(MiNT)";
-	if (val==GemdosOpcode::Pshmdt) return "(MiNT)";
-	if (val==GemdosOpcode::Psemget) return "(MiNT)";
-	if (val==GemdosOpcode::Psemctl) return "(MiNT)";
-	if (val==GemdosOpcode::Psemop) return "(MiNT)";
-	if (val==GemdosOpcode::Psemconfig) return "(MiNT)";
-	if (val==GemdosOpcode::Pmsgget) return "(MiNT)";
-	if (val==GemdosOpcode::Pmsgctl) return "(MiNT)";
-	if (val==GemdosOpcode::Pmsgsnd) return "(MiNT)";
-	if (val==GemdosOpcode::Pmsgrcv) return "(MiNT)";
-	if (val==GemdosOpcode::Maccess) return "(MiNT)";
-	if (val==GemdosOpcode::Fchown16) return "(FreeMiNT 1.16.0)";
-	if (val==GemdosOpcode::Fchdir) return "(FreeMiNT 1.17)";
-	if (val==GemdosOpcode::Ffdopendir) return "(FreeMiNT 1.17)";
-	if (val==GemdosOpcode::Fdirfd) return "(FreeMiNT 1.17)";
+	if (val==Opcode::Pterm0) return "Terminate proceess";
+	if (val==Opcode::Cconin) return "Read char from Standard Input";
+	if (val==Opcode::Cconout) return "Write char to Standard Output";
+	if (val==Opcode::Cauxin) return "Read char from AUX";
+	if (val==Opcode::Cauxout) return "Write char to AUX";
+	if (val==Opcode::Cprnout) return "Write char to standard PRN";
+	if (val==Opcode::Crawio) return "Raw I/O to Standard Input/Output";
+	if (val==Opcode::Crawcin) return "Raw Input from Standard Input";
+	if (val==Opcode::Cnecin) return "Read char from Standard Input, no echo";
+	if (val==Opcode::Cconws) return "Write string to Standard Output";
+	if (val==Opcode::Cconrs) return "Read edited string from Standard Input";
+	if (val==Opcode::Cconis) return "Check status of Standard Input";
+	if (val==Opcode::Dsetdrv) return "Set default drive";
+	if (val==Opcode::Cconos) return "Check status of Standard Output";
+	if (val==Opcode::Cprnos) return "Check status of standard PRN";
+	if (val==Opcode::Cauxis) return "Check input status of AUX";
+	if (val==Opcode::Cauxos) return "Check output status of AUX";
+	if (val==Opcode::Maddalt) return "";
+	if (val==Opcode::Srealloc) return "(TOS 4)";
+	if (val==Opcode::Slbopen) return "(MagiC)";
+	if (val==Opcode::Slbclose) return "(MagiC)";
+	if (val==Opcode::Dgetdrv) return "Get default drive";
+	if (val==Opcode::Fsetdta) return "Set Distk Transfer Address";
+	if (val==Opcode::Super) return "Get/set/inquire Supervisor Mode";
+	if (val==Opcode::Tgetdate) return "Get date";
+	if (val==Opcode::Tsetdate) return "Set date";
+	if (val==Opcode::Tgettime) return "Get time";
+	if (val==Opcode::Tsettime) return "Set time";
+	if (val==Opcode::Fgetdta) return "Get Distk Transfer Address";
+	if (val==Opcode::Sversion) return "Get Version Number";
+	if (val==Opcode::Ptermres) return "Terminate and stay resident";
+	if (val==Opcode::Sconfig) return "(MagiC)";
+	if (val==Opcode::Dfree) return "Get drive free space";
+	if (val==Opcode::Dcreate) return "Create directory";
+	if (val==Opcode::Ddelete) return "Delete directory";
+	if (val==Opcode::Dsetpath) return "Set current directory";
+	if (val==Opcode::Fcreate) return "Create file";
+	if (val==Opcode::Fopen) return "Open file";
+	if (val==Opcode::Fclose) return "Close file";
+	if (val==Opcode::Fread) return "Read file";
+	if (val==Opcode::Fwrite) return "Write to file";
+	if (val==Opcode::Fdelete) return "Delete file";
+	if (val==Opcode::Fseek) return "Seek file pointer";
+	if (val==Opcode::Fattrib) return "Get/set file attributes";
+	if (val==Opcode::Mxalloc) return "Extended allocate memory";
+	if (val==Opcode::Fdup) return "Duplicate file handle";
+	if (val==Opcode::Fforce) return "Force file handle";
+	if (val==Opcode::Dgetpath) return "Get current directory";
+	if (val==Opcode::Malloc) return "Allocate memory";
+	if (val==Opcode::Mfree) return "Release memory";
+	if (val==Opcode::Mshrink) return "Shrink allocated block";
+	if (val==Opcode::Pexec) return "Load/execute process";
+	if (val==Opcode::Pterm) return "Terminate process";
+	if (val==Opcode::Fsfirst) return "Search first";
+	if (val==Opcode::Fsnext) return "Search next";
+	if (val==Opcode::Frename) return "Rename file";
+	if (val==Opcode::Fdatime) return "Get/set file timestamp";
+	if (val==Opcode::Flock) return "";
+	if (val==Opcode::Nversion) return "";
+	if (val==Opcode::Frlock) return "";
+	if (val==Opcode::Frunlock) return "";
+	if (val==Opcode::F_lock) return "";
+	if (val==Opcode::Funlock) return "";
+	if (val==Opcode::Fflush) return "";
+	if (val==Opcode::Syield) return "(MiNT)";
+	if (val==Opcode::Fpipe) return "(MiNT)";
+	if (val==Opcode::Ffchown) return "(MiNT)";
+	if (val==Opcode::Ffchmod) return "(MiNT)";
+	if (val==Opcode::Fsync) return "(MiNT)";
+	if (val==Opcode::Fcntl) return "(MiNT)";
+	if (val==Opcode::Finstat) return "(MiNT)";
+	if (val==Opcode::Foutstat) return "(MiNT)";
+	if (val==Opcode::Fgetchar) return "(MiNT)";
+	if (val==Opcode::Fputchar) return "(MiNT)";
+	if (val==Opcode::Pwait) return "(MiNT)";
+	if (val==Opcode::Pnice) return "(MiNT)";
+	if (val==Opcode::Pgetpid) return "(MiNT)";
+	if (val==Opcode::Pgetppid) return "(MiNT)";
+	if (val==Opcode::Pgetpgrp) return "(MiNT)";
+	if (val==Opcode::Psetpgrp) return "(MiNT)";
+	if (val==Opcode::Pgetuid) return "(MiNT)";
+	if (val==Opcode::Psetuid) return "(MiNT)";
+	if (val==Opcode::Pkill) return "(MiNT)";
+	if (val==Opcode::Psignal) return "(MiNT)";
+	if (val==Opcode::Pvfork) return "(MiNT)";
+	if (val==Opcode::Pgetgid) return "(MiNT)";
+	if (val==Opcode::Psetgid) return "(MiNT)";
+	if (val==Opcode::Psigblock) return "(MiNT)";
+	if (val==Opcode::Psigsetmask) return "(MiNT)";
+	if (val==Opcode::Pusrval) return "(MiNT)";
+	if (val==Opcode::Pdomain) return "(MiNT)";
+	if (val==Opcode::Psigreturn) return "(MiNT)";
+	if (val==Opcode::Pfork) return "(MiNT)";
+	if (val==Opcode::Pwait3) return "(MiNT)";
+	if (val==Opcode::Fselect) return "(MiNT)";
+	if (val==Opcode::Prusage) return "(MiNT)";
+	if (val==Opcode::Psetlimit) return "(MiNT)";
+	if (val==Opcode::Talarm) return "(MiNT)";
+	if (val==Opcode::Pause) return "(MiNT)";
+	if (val==Opcode::Sysconf) return "(MiNT)";
+	if (val==Opcode::Psigpending) return "MiNT";
+	if (val==Opcode::Dpathconf) return "(MiNT)";
+	if (val==Opcode::Pmsg) return "(MiNT)";
+	if (val==Opcode::Fmidipipe) return "(MiNT)";
+	if (val==Opcode::Prenice) return "(MiNT)";
+	if (val==Opcode::Dopendir) return "(MiNT)";
+	if (val==Opcode::Dreaddir) return "(MiNT)";
+	if (val==Opcode::Drewinddir) return "(MiNT)";
+	if (val==Opcode::Dclosedir) return "(MiNT)";
+	if (val==Opcode::Fxattr) return "(MiNT)";
+	if (val==Opcode::Flink) return "(MiNT)";
+	if (val==Opcode::Fsymlink) return "(MiNT)";
+	if (val==Opcode::Freadlink) return "(MiNT)";
+	if (val==Opcode::Dcntl) return "(MiNT)";
+	if (val==Opcode::Fchown) return "(MiNT)";
+	if (val==Opcode::Fchmod) return "(MiNT)";
+	if (val==Opcode::Pumask) return "(MiNT)";
+	if (val==Opcode::Psemaphore) return "(MiNT)";
+	if (val==Opcode::Dlock) return "(MiNT)";
+	if (val==Opcode::Psigpause) return "(MiNT)";
+	if (val==Opcode::Psigaction) return "(MiNT)";
+	if (val==Opcode::Pgeteuid) return "(MiNT)";
+	if (val==Opcode::Pgetegid) return "(MiNT)";
+	if (val==Opcode::Pwaitpid) return "(MiNT)";
+	if (val==Opcode::Dgetcwd) return "(MiNT)";
+	if (val==Opcode::Salert) return "(MiNT)";
+	if (val==Opcode::Tmalarm) return "(MiNT 1.10)";
+	if (val==Opcode::Psigintr) return "(MiNT 1.11 until FreeMiNT 1.15.12 inclusive)";
+	if (val==Opcode::Suptime) return "(MiNT 1.11)";
+	if (val==Opcode::Ptrace) return "(MiNT)";
+	if (val==Opcode::Mvalidate) return "(MiNT)";
+	if (val==Opcode::Dxreaddir) return "(MiNT 1.11)";
+	if (val==Opcode::Pseteuid) return "(MiNT 1.11)";
+	if (val==Opcode::Psetegid) return "(MiNT 1.11)";
+	if (val==Opcode::Pgetauid) return "(MiNT 1.11)";
+	if (val==Opcode::Psetauid) return "(MiNT 1.11)";
+	if (val==Opcode::Pgetgroups) return "(MiNT 1.11)";
+	if (val==Opcode::Psetgroups) return "(MiNT 1.11)";
+	if (val==Opcode::Tsetitimer) return "(MiNT 1.11)";
+	if (val==Opcode::Scookie) return "(MiNT (obsolete))";
+	if (val==Opcode::Fstat64) return "(MiNT)";
+	if (val==Opcode::Fseek64) return "(MiNT)";
+	if (val==Opcode::Dsetkey) return "(MiNT)";
+	if (val==Opcode::Psetreuid) return "(MiNT 1.12)";
+	if (val==Opcode::Psetregid) return "(MiNT 1.12)";
+	if (val==Opcode::Ssync) return "(MiNT, MagiC)";
+	if (val==Opcode::Shutdown) return "(MiNT)";
+	if (val==Opcode::Dreadlabel) return "(MiNT 1.12)";
+	if (val==Opcode::Dwritelabel) return "MiNT 1.12";
+	if (val==Opcode::Ssystem) return "(MiNT 1.15.0)";
+	if (val==Opcode::Tgettimeofday) return "(MiNT 1.15.0)";
+	if (val==Opcode::Tsettimeofday) return "(MiNT 1.15.0)";
+	if (val==Opcode::Tadjtime) return "(MiNT)";
+	if (val==Opcode::Pgetpriority) return "(MiNT 1.15.0)";
+	if (val==Opcode::Psetpriority) return "(MiNT 1.15.0)";
+	if (val==Opcode::Fpoll) return "(MiNTNet)";
+	if (val==Opcode::Fwritev) return "(MiNTNet)";
+	if (val==Opcode::Freadv) return "(MiNTNet)";
+	if (val==Opcode::Ffstat64) return "(MiNTNet)";
+	if (val==Opcode::Psysctl) return "(MiNT)";
+	if (val==Opcode::Pemulation) return "(MiNT)";
+	if (val==Opcode::Fsocket) return "(MiNTNet)";
+	if (val==Opcode::Fsocketpair) return "(MiNTNet)";
+	if (val==Opcode::Faccept) return "(MiNTNet)";
+	if (val==Opcode::Fconnect) return "(MiNTNet)";
+	if (val==Opcode::Fbind) return "(MiNTNet)";
+	if (val==Opcode::Flisten) return "(MiNTNet)";
+	if (val==Opcode::Frecvmsg) return "(MiNTNet)";
+	if (val==Opcode::Fsendmsg) return "(MiNTNet)";
+	if (val==Opcode::Frecvfrom) return "(MiNTNet)";
+	if (val==Opcode::Fsendto) return "(MiNTNet)";
+	if (val==Opcode::Fsetsockopt) return "(MiNTNet)";
+	if (val==Opcode::Fgetsockopt) return "(MiNTNet)";
+	if (val==Opcode::Fgetpeername) return "(MiNTNet)";
+	if (val==Opcode::Fgetsockname) return "(MiNTNet)";
+	if (val==Opcode::Fshutdown) return "(MiNTNet)";
+	if (val==Opcode::Pshmget) return "(MiNT)";
+	if (val==Opcode::Pshmctl) return "(MiNT)";
+	if (val==Opcode::Pshmat) return "(MiNT)";
+	if (val==Opcode::Pshmdt) return "(MiNT)";
+	if (val==Opcode::Psemget) return "(MiNT)";
+	if (val==Opcode::Psemctl) return "(MiNT)";
+	if (val==Opcode::Psemop) return "(MiNT)";
+	if (val==Opcode::Psemconfig) return "(MiNT)";
+	if (val==Opcode::Pmsgget) return "(MiNT)";
+	if (val==Opcode::Pmsgctl) return "(MiNT)";
+	if (val==Opcode::Pmsgsnd) return "(MiNT)";
+	if (val==Opcode::Pmsgrcv) return "(MiNT)";
+	if (val==Opcode::Maccess) return "(MiNT)";
+	if (val==Opcode::Fchown16) return "(FreeMiNT 1.16.0)";
+	if (val==Opcode::Fchdir) return "(FreeMiNT 1.17)";
+	if (val==Opcode::Ffdopendir) return "(FreeMiNT 1.17)";
+	if (val==Opcode::Fdirfd) return "(FreeMiNT 1.17)";
 	return "?";
 }
-const char* GetEnumString(GemdosOpcode val)
+const char* GetEnumString(Opcode val)
 {
-	if (val==GemdosOpcode::Pterm0) return "Pterm0";
-	if (val==GemdosOpcode::Cconin) return "Cconin";
-	if (val==GemdosOpcode::Cconout) return "Cconout";
-	if (val==GemdosOpcode::Cauxin) return "Cauxin";
-	if (val==GemdosOpcode::Cauxout) return "Cauxout";
-	if (val==GemdosOpcode::Cprnout) return "Cprnout";
-	if (val==GemdosOpcode::Crawio) return "Crawio";
-	if (val==GemdosOpcode::Crawcin) return "Crawcin";
-	if (val==GemdosOpcode::Cnecin) return "Cnecin";
-	if (val==GemdosOpcode::Cconws) return "Cconws";
-	if (val==GemdosOpcode::Cconrs) return "Cconrs";
-	if (val==GemdosOpcode::Cconis) return "Cconis";
-	if (val==GemdosOpcode::Dsetdrv) return "Dsetdrv";
-	if (val==GemdosOpcode::Cconos) return "Cconos";
-	if (val==GemdosOpcode::Cprnos) return "Cprnos";
-	if (val==GemdosOpcode::Cauxis) return "Cauxis";
-	if (val==GemdosOpcode::Cauxos) return "Cauxos";
-	if (val==GemdosOpcode::Maddalt) return "Maddalt";
-	if (val==GemdosOpcode::Srealloc) return "Srealloc";
-	if (val==GemdosOpcode::Slbopen) return "Slbopen";
-	if (val==GemdosOpcode::Slbclose) return "Slbclose";
-	if (val==GemdosOpcode::Dgetdrv) return "Dgetdrv";
-	if (val==GemdosOpcode::Fsetdta) return "Fsetdta";
-	if (val==GemdosOpcode::Super) return "Super";
-	if (val==GemdosOpcode::Tgetdate) return "Tgetdate";
-	if (val==GemdosOpcode::Tsetdate) return "Tsetdate";
-	if (val==GemdosOpcode::Tgettime) return "Tgettime";
-	if (val==GemdosOpcode::Tsettime) return "Tsettime";
-	if (val==GemdosOpcode::Fgetdta) return "Fgetdta";
-	if (val==GemdosOpcode::Sversion) return "Sversion";
-	if (val==GemdosOpcode::Ptermres) return "Ptermres";
-	if (val==GemdosOpcode::Sconfig) return "Sconfig";
-	if (val==GemdosOpcode::Dfree) return "Dfree";
-	if (val==GemdosOpcode::Dcreate) return "Dcreate";
-	if (val==GemdosOpcode::Ddelete) return "Ddelete";
-	if (val==GemdosOpcode::Dsetpath) return "Dsetpath";
-	if (val==GemdosOpcode::Fcreate) return "Fcreate";
-	if (val==GemdosOpcode::Fopen) return "Fopen";
-	if (val==GemdosOpcode::Fclose) return "Fclose";
-	if (val==GemdosOpcode::Fread) return "Fread";
-	if (val==GemdosOpcode::Fwrite) return "Fwrite";
-	if (val==GemdosOpcode::Fdelete) return "Fdelete";
-	if (val==GemdosOpcode::Fseek) return "Fseek";
-	if (val==GemdosOpcode::Fattrib) return "Fattrib";
-	if (val==GemdosOpcode::Mxalloc) return "Mxalloc";
-	if (val==GemdosOpcode::Fdup) return "Fdup";
-	if (val==GemdosOpcode::Fforce) return "Fforce";
-	if (val==GemdosOpcode::Dgetpath) return "Dgetpath";
-	if (val==GemdosOpcode::Malloc) return "Malloc";
-	if (val==GemdosOpcode::Mfree) return "Mfree";
-	if (val==GemdosOpcode::Mshrink) return "Mshrink";
-	if (val==GemdosOpcode::Pexec) return "Pexec";
-	if (val==GemdosOpcode::Pterm) return "Pterm";
-	if (val==GemdosOpcode::Fsfirst) return "Fsfirst";
-	if (val==GemdosOpcode::Fsnext) return "Fsnext";
-	if (val==GemdosOpcode::Frename) return "Frename";
-	if (val==GemdosOpcode::Fdatime) return "Fdatime";
-	if (val==GemdosOpcode::Flock) return "Flock";
-	if (val==GemdosOpcode::Nversion) return "Nversion";
-	if (val==GemdosOpcode::Frlock) return "Frlock";
-	if (val==GemdosOpcode::Frunlock) return "Frunlock";
-	if (val==GemdosOpcode::F_lock) return "F_lock";
-	if (val==GemdosOpcode::Funlock) return "Funlock";
-	if (val==GemdosOpcode::Fflush) return "Fflush";
-	if (val==GemdosOpcode::Syield) return "Syield";
-	if (val==GemdosOpcode::Fpipe) return "Fpipe";
-	if (val==GemdosOpcode::Ffchown) return "Ffchown";
-	if (val==GemdosOpcode::Ffchmod) return "Ffchmod";
-	if (val==GemdosOpcode::Fsync) return "Fsync";
-	if (val==GemdosOpcode::Fcntl) return "Fcntl";
-	if (val==GemdosOpcode::Finstat) return "Finstat";
-	if (val==GemdosOpcode::Foutstat) return "Foutstat";
-	if (val==GemdosOpcode::Fgetchar) return "Fgetchar";
-	if (val==GemdosOpcode::Fputchar) return "Fputchar";
-	if (val==GemdosOpcode::Pwait) return "Pwait";
-	if (val==GemdosOpcode::Pnice) return "Pnice";
-	if (val==GemdosOpcode::Pgetpid) return "Pgetpid";
-	if (val==GemdosOpcode::Pgetppid) return "Pgetppid";
-	if (val==GemdosOpcode::Pgetpgrp) return "Pgetpgrp";
-	if (val==GemdosOpcode::Psetpgrp) return "Psetpgrp";
-	if (val==GemdosOpcode::Pgetuid) return "Pgetuid";
-	if (val==GemdosOpcode::Psetuid) return "Psetuid";
-	if (val==GemdosOpcode::Pkill) return "Pkill";
-	if (val==GemdosOpcode::Psignal) return "Psignal";
-	if (val==GemdosOpcode::Pvfork) return "Pvfork";
-	if (val==GemdosOpcode::Pgetgid) return "Pgetgid";
-	if (val==GemdosOpcode::Psetgid) return "Psetgid";
-	if (val==GemdosOpcode::Psigblock) return "Psigblock";
-	if (val==GemdosOpcode::Psigsetmask) return "Psigsetmask";
-	if (val==GemdosOpcode::Pusrval) return "Pusrval";
-	if (val==GemdosOpcode::Pdomain) return "Pdomain";
-	if (val==GemdosOpcode::Psigreturn) return "Psigreturn";
-	if (val==GemdosOpcode::Pfork) return "Pfork";
-	if (val==GemdosOpcode::Pwait3) return "Pwait3";
-	if (val==GemdosOpcode::Fselect) return "Fselect";
-	if (val==GemdosOpcode::Prusage) return "Prusage";
-	if (val==GemdosOpcode::Psetlimit) return "Psetlimit";
-	if (val==GemdosOpcode::Talarm) return "Talarm";
-	if (val==GemdosOpcode::Pause) return "Pause";
-	if (val==GemdosOpcode::Sysconf) return "Sysconf";
-	if (val==GemdosOpcode::Psigpending) return "Psigpending";
-	if (val==GemdosOpcode::Dpathconf) return "Dpathconf";
-	if (val==GemdosOpcode::Pmsg) return "Pmsg";
-	if (val==GemdosOpcode::Fmidipipe) return "Fmidipipe";
-	if (val==GemdosOpcode::Prenice) return "Prenice";
-	if (val==GemdosOpcode::Dopendir) return "Dopendir";
-	if (val==GemdosOpcode::Dreaddir) return "Dreaddir";
-	if (val==GemdosOpcode::Drewinddir) return "Drewinddir";
-	if (val==GemdosOpcode::Dclosedir) return "Dclosedir";
-	if (val==GemdosOpcode::Fxattr) return "Fxattr";
-	if (val==GemdosOpcode::Flink) return "Flink";
-	if (val==GemdosOpcode::Fsymlink) return "Fsymlink";
-	if (val==GemdosOpcode::Freadlink) return "Freadlink";
-	if (val==GemdosOpcode::Dcntl) return "Dcntl";
-	if (val==GemdosOpcode::Fchown) return "Fchown";
-	if (val==GemdosOpcode::Fchmod) return "Fchmod";
-	if (val==GemdosOpcode::Pumask) return "Pumask";
-	if (val==GemdosOpcode::Psemaphore) return "Psemaphore";
-	if (val==GemdosOpcode::Dlock) return "Dlock";
-	if (val==GemdosOpcode::Psigpause) return "Psigpause";
-	if (val==GemdosOpcode::Psigaction) return "Psigaction";
-	if (val==GemdosOpcode::Pgeteuid) return "Pgeteuid";
-	if (val==GemdosOpcode::Pgetegid) return "Pgetegid";
-	if (val==GemdosOpcode::Pwaitpid) return "Pwaitpid";
-	if (val==GemdosOpcode::Dgetcwd) return "Dgetcwd";
-	if (val==GemdosOpcode::Salert) return "Salert";
-	if (val==GemdosOpcode::Tmalarm) return "Tmalarm";
-	if (val==GemdosOpcode::Psigintr) return "Psigintr";
-	if (val==GemdosOpcode::Suptime) return "Suptime";
-	if (val==GemdosOpcode::Ptrace) return "Ptrace";
-	if (val==GemdosOpcode::Mvalidate) return "Mvalidate";
-	if (val==GemdosOpcode::Dxreaddir) return "Dxreaddir";
-	if (val==GemdosOpcode::Pseteuid) return "Pseteuid";
-	if (val==GemdosOpcode::Psetegid) return "Psetegid";
-	if (val==GemdosOpcode::Pgetauid) return "Pgetauid";
-	if (val==GemdosOpcode::Psetauid) return "Psetauid";
-	if (val==GemdosOpcode::Pgetgroups) return "Pgetgroups";
-	if (val==GemdosOpcode::Psetgroups) return "Psetgroups";
-	if (val==GemdosOpcode::Tsetitimer) return "Tsetitimer";
-	if (val==GemdosOpcode::Scookie) return "Scookie";
-	if (val==GemdosOpcode::Fstat64) return "Fstat64";
-	if (val==GemdosOpcode::Fseek64) return "Fseek64";
-	if (val==GemdosOpcode::Dsetkey) return "Dsetkey";
-	if (val==GemdosOpcode::Psetreuid) return "Psetreuid";
-	if (val==GemdosOpcode::Psetregid) return "Psetregid";
-	if (val==GemdosOpcode::Ssync) return "Ssync";
-	if (val==GemdosOpcode::Shutdown) return "Shutdown";
-	if (val==GemdosOpcode::Dreadlabel) return "Dreadlabel";
-	if (val==GemdosOpcode::Dwritelabel) return "Dwritelabel";
-	if (val==GemdosOpcode::Ssystem) return "Ssystem";
-	if (val==GemdosOpcode::Tgettimeofday) return "Tgettimeofday";
-	if (val==GemdosOpcode::Tsettimeofday) return "Tsettimeofday";
-	if (val==GemdosOpcode::Tadjtime) return "Tadjtime";
-	if (val==GemdosOpcode::Pgetpriority) return "Pgetpriority";
-	if (val==GemdosOpcode::Psetpriority) return "Psetpriority";
-	if (val==GemdosOpcode::Fpoll) return "Fpoll";
-	if (val==GemdosOpcode::Fwritev) return "Fwritev";
-	if (val==GemdosOpcode::Freadv) return "Freadv";
-	if (val==GemdosOpcode::Ffstat64) return "Ffstat64";
-	if (val==GemdosOpcode::Psysctl) return "Psysctl";
-	if (val==GemdosOpcode::Pemulation) return "Pemulation";
-	if (val==GemdosOpcode::Fsocket) return "Fsocket";
-	if (val==GemdosOpcode::Fsocketpair) return "Fsocketpair";
-	if (val==GemdosOpcode::Faccept) return "Faccept";
-	if (val==GemdosOpcode::Fconnect) return "Fconnect";
-	if (val==GemdosOpcode::Fbind) return "Fbind";
-	if (val==GemdosOpcode::Flisten) return "Flisten";
-	if (val==GemdosOpcode::Frecvmsg) return "Frecvmsg";
-	if (val==GemdosOpcode::Fsendmsg) return "Fsendmsg";
-	if (val==GemdosOpcode::Frecvfrom) return "Frecvfrom";
-	if (val==GemdosOpcode::Fsendto) return "Fsendto";
-	if (val==GemdosOpcode::Fsetsockopt) return "Fsetsockopt";
-	if (val==GemdosOpcode::Fgetsockopt) return "Fgetsockopt";
-	if (val==GemdosOpcode::Fgetpeername) return "Fgetpeername";
-	if (val==GemdosOpcode::Fgetsockname) return "Fgetsockname";
-	if (val==GemdosOpcode::Fshutdown) return "Fshutdown";
-	if (val==GemdosOpcode::Pshmget) return "Pshmget";
-	if (val==GemdosOpcode::Pshmctl) return "Pshmctl";
-	if (val==GemdosOpcode::Pshmat) return "Pshmat";
-	if (val==GemdosOpcode::Pshmdt) return "Pshmdt";
-	if (val==GemdosOpcode::Psemget) return "Psemget";
-	if (val==GemdosOpcode::Psemctl) return "Psemctl";
-	if (val==GemdosOpcode::Psemop) return "Psemop";
-	if (val==GemdosOpcode::Psemconfig) return "Psemconfig";
-	if (val==GemdosOpcode::Pmsgget) return "Pmsgget";
-	if (val==GemdosOpcode::Pmsgctl) return "Pmsgctl";
-	if (val==GemdosOpcode::Pmsgsnd) return "Pmsgsnd";
-	if (val==GemdosOpcode::Pmsgrcv) return "Pmsgrcv";
-	if (val==GemdosOpcode::Maccess) return "Maccess";
-	if (val==GemdosOpcode::Fchown16) return "Fchown16";
-	if (val==GemdosOpcode::Fchdir) return "Fchdir";
-	if (val==GemdosOpcode::Ffdopendir) return "Ffdopendir";
-	if (val==GemdosOpcode::Fdirfd) return "Fdirfd";
+	if (val==Opcode::Pterm0) return "Pterm0";
+	if (val==Opcode::Cconin) return "Cconin";
+	if (val==Opcode::Cconout) return "Cconout";
+	if (val==Opcode::Cauxin) return "Cauxin";
+	if (val==Opcode::Cauxout) return "Cauxout";
+	if (val==Opcode::Cprnout) return "Cprnout";
+	if (val==Opcode::Crawio) return "Crawio";
+	if (val==Opcode::Crawcin) return "Crawcin";
+	if (val==Opcode::Cnecin) return "Cnecin";
+	if (val==Opcode::Cconws) return "Cconws";
+	if (val==Opcode::Cconrs) return "Cconrs";
+	if (val==Opcode::Cconis) return "Cconis";
+	if (val==Opcode::Dsetdrv) return "Dsetdrv";
+	if (val==Opcode::Cconos) return "Cconos";
+	if (val==Opcode::Cprnos) return "Cprnos";
+	if (val==Opcode::Cauxis) return "Cauxis";
+	if (val==Opcode::Cauxos) return "Cauxos";
+	if (val==Opcode::Maddalt) return "Maddalt";
+	if (val==Opcode::Srealloc) return "Srealloc";
+	if (val==Opcode::Slbopen) return "Slbopen";
+	if (val==Opcode::Slbclose) return "Slbclose";
+	if (val==Opcode::Dgetdrv) return "Dgetdrv";
+	if (val==Opcode::Fsetdta) return "Fsetdta";
+	if (val==Opcode::Super) return "Super";
+	if (val==Opcode::Tgetdate) return "Tgetdate";
+	if (val==Opcode::Tsetdate) return "Tsetdate";
+	if (val==Opcode::Tgettime) return "Tgettime";
+	if (val==Opcode::Tsettime) return "Tsettime";
+	if (val==Opcode::Fgetdta) return "Fgetdta";
+	if (val==Opcode::Sversion) return "Sversion";
+	if (val==Opcode::Ptermres) return "Ptermres";
+	if (val==Opcode::Sconfig) return "Sconfig";
+	if (val==Opcode::Dfree) return "Dfree";
+	if (val==Opcode::Dcreate) return "Dcreate";
+	if (val==Opcode::Ddelete) return "Ddelete";
+	if (val==Opcode::Dsetpath) return "Dsetpath";
+	if (val==Opcode::Fcreate) return "Fcreate";
+	if (val==Opcode::Fopen) return "Fopen";
+	if (val==Opcode::Fclose) return "Fclose";
+	if (val==Opcode::Fread) return "Fread";
+	if (val==Opcode::Fwrite) return "Fwrite";
+	if (val==Opcode::Fdelete) return "Fdelete";
+	if (val==Opcode::Fseek) return "Fseek";
+	if (val==Opcode::Fattrib) return "Fattrib";
+	if (val==Opcode::Mxalloc) return "Mxalloc";
+	if (val==Opcode::Fdup) return "Fdup";
+	if (val==Opcode::Fforce) return "Fforce";
+	if (val==Opcode::Dgetpath) return "Dgetpath";
+	if (val==Opcode::Malloc) return "Malloc";
+	if (val==Opcode::Mfree) return "Mfree";
+	if (val==Opcode::Mshrink) return "Mshrink";
+	if (val==Opcode::Pexec) return "Pexec";
+	if (val==Opcode::Pterm) return "Pterm";
+	if (val==Opcode::Fsfirst) return "Fsfirst";
+	if (val==Opcode::Fsnext) return "Fsnext";
+	if (val==Opcode::Frename) return "Frename";
+	if (val==Opcode::Fdatime) return "Fdatime";
+	if (val==Opcode::Flock) return "Flock";
+	if (val==Opcode::Nversion) return "Nversion";
+	if (val==Opcode::Frlock) return "Frlock";
+	if (val==Opcode::Frunlock) return "Frunlock";
+	if (val==Opcode::F_lock) return "F_lock";
+	if (val==Opcode::Funlock) return "Funlock";
+	if (val==Opcode::Fflush) return "Fflush";
+	if (val==Opcode::Syield) return "Syield";
+	if (val==Opcode::Fpipe) return "Fpipe";
+	if (val==Opcode::Ffchown) return "Ffchown";
+	if (val==Opcode::Ffchmod) return "Ffchmod";
+	if (val==Opcode::Fsync) return "Fsync";
+	if (val==Opcode::Fcntl) return "Fcntl";
+	if (val==Opcode::Finstat) return "Finstat";
+	if (val==Opcode::Foutstat) return "Foutstat";
+	if (val==Opcode::Fgetchar) return "Fgetchar";
+	if (val==Opcode::Fputchar) return "Fputchar";
+	if (val==Opcode::Pwait) return "Pwait";
+	if (val==Opcode::Pnice) return "Pnice";
+	if (val==Opcode::Pgetpid) return "Pgetpid";
+	if (val==Opcode::Pgetppid) return "Pgetppid";
+	if (val==Opcode::Pgetpgrp) return "Pgetpgrp";
+	if (val==Opcode::Psetpgrp) return "Psetpgrp";
+	if (val==Opcode::Pgetuid) return "Pgetuid";
+	if (val==Opcode::Psetuid) return "Psetuid";
+	if (val==Opcode::Pkill) return "Pkill";
+	if (val==Opcode::Psignal) return "Psignal";
+	if (val==Opcode::Pvfork) return "Pvfork";
+	if (val==Opcode::Pgetgid) return "Pgetgid";
+	if (val==Opcode::Psetgid) return "Psetgid";
+	if (val==Opcode::Psigblock) return "Psigblock";
+	if (val==Opcode::Psigsetmask) return "Psigsetmask";
+	if (val==Opcode::Pusrval) return "Pusrval";
+	if (val==Opcode::Pdomain) return "Pdomain";
+	if (val==Opcode::Psigreturn) return "Psigreturn";
+	if (val==Opcode::Pfork) return "Pfork";
+	if (val==Opcode::Pwait3) return "Pwait3";
+	if (val==Opcode::Fselect) return "Fselect";
+	if (val==Opcode::Prusage) return "Prusage";
+	if (val==Opcode::Psetlimit) return "Psetlimit";
+	if (val==Opcode::Talarm) return "Talarm";
+	if (val==Opcode::Pause) return "Pause";
+	if (val==Opcode::Sysconf) return "Sysconf";
+	if (val==Opcode::Psigpending) return "Psigpending";
+	if (val==Opcode::Dpathconf) return "Dpathconf";
+	if (val==Opcode::Pmsg) return "Pmsg";
+	if (val==Opcode::Fmidipipe) return "Fmidipipe";
+	if (val==Opcode::Prenice) return "Prenice";
+	if (val==Opcode::Dopendir) return "Dopendir";
+	if (val==Opcode::Dreaddir) return "Dreaddir";
+	if (val==Opcode::Drewinddir) return "Drewinddir";
+	if (val==Opcode::Dclosedir) return "Dclosedir";
+	if (val==Opcode::Fxattr) return "Fxattr";
+	if (val==Opcode::Flink) return "Flink";
+	if (val==Opcode::Fsymlink) return "Fsymlink";
+	if (val==Opcode::Freadlink) return "Freadlink";
+	if (val==Opcode::Dcntl) return "Dcntl";
+	if (val==Opcode::Fchown) return "Fchown";
+	if (val==Opcode::Fchmod) return "Fchmod";
+	if (val==Opcode::Pumask) return "Pumask";
+	if (val==Opcode::Psemaphore) return "Psemaphore";
+	if (val==Opcode::Dlock) return "Dlock";
+	if (val==Opcode::Psigpause) return "Psigpause";
+	if (val==Opcode::Psigaction) return "Psigaction";
+	if (val==Opcode::Pgeteuid) return "Pgeteuid";
+	if (val==Opcode::Pgetegid) return "Pgetegid";
+	if (val==Opcode::Pwaitpid) return "Pwaitpid";
+	if (val==Opcode::Dgetcwd) return "Dgetcwd";
+	if (val==Opcode::Salert) return "Salert";
+	if (val==Opcode::Tmalarm) return "Tmalarm";
+	if (val==Opcode::Psigintr) return "Psigintr";
+	if (val==Opcode::Suptime) return "Suptime";
+	if (val==Opcode::Ptrace) return "Ptrace";
+	if (val==Opcode::Mvalidate) return "Mvalidate";
+	if (val==Opcode::Dxreaddir) return "Dxreaddir";
+	if (val==Opcode::Pseteuid) return "Pseteuid";
+	if (val==Opcode::Psetegid) return "Psetegid";
+	if (val==Opcode::Pgetauid) return "Pgetauid";
+	if (val==Opcode::Psetauid) return "Psetauid";
+	if (val==Opcode::Pgetgroups) return "Pgetgroups";
+	if (val==Opcode::Psetgroups) return "Psetgroups";
+	if (val==Opcode::Tsetitimer) return "Tsetitimer";
+	if (val==Opcode::Scookie) return "Scookie";
+	if (val==Opcode::Fstat64) return "Fstat64";
+	if (val==Opcode::Fseek64) return "Fseek64";
+	if (val==Opcode::Dsetkey) return "Dsetkey";
+	if (val==Opcode::Psetreuid) return "Psetreuid";
+	if (val==Opcode::Psetregid) return "Psetregid";
+	if (val==Opcode::Ssync) return "Ssync";
+	if (val==Opcode::Shutdown) return "Shutdown";
+	if (val==Opcode::Dreadlabel) return "Dreadlabel";
+	if (val==Opcode::Dwritelabel) return "Dwritelabel";
+	if (val==Opcode::Ssystem) return "Ssystem";
+	if (val==Opcode::Tgettimeofday) return "Tgettimeofday";
+	if (val==Opcode::Tsettimeofday) return "Tsettimeofday";
+	if (val==Opcode::Tadjtime) return "Tadjtime";
+	if (val==Opcode::Pgetpriority) return "Pgetpriority";
+	if (val==Opcode::Psetpriority) return "Psetpriority";
+	if (val==Opcode::Fpoll) return "Fpoll";
+	if (val==Opcode::Fwritev) return "Fwritev";
+	if (val==Opcode::Freadv) return "Freadv";
+	if (val==Opcode::Ffstat64) return "Ffstat64";
+	if (val==Opcode::Psysctl) return "Psysctl";
+	if (val==Opcode::Pemulation) return "Pemulation";
+	if (val==Opcode::Fsocket) return "Fsocket";
+	if (val==Opcode::Fsocketpair) return "Fsocketpair";
+	if (val==Opcode::Faccept) return "Faccept";
+	if (val==Opcode::Fconnect) return "Fconnect";
+	if (val==Opcode::Fbind) return "Fbind";
+	if (val==Opcode::Flisten) return "Flisten";
+	if (val==Opcode::Frecvmsg) return "Frecvmsg";
+	if (val==Opcode::Fsendmsg) return "Fsendmsg";
+	if (val==Opcode::Frecvfrom) return "Frecvfrom";
+	if (val==Opcode::Fsendto) return "Fsendto";
+	if (val==Opcode::Fsetsockopt) return "Fsetsockopt";
+	if (val==Opcode::Fgetsockopt) return "Fgetsockopt";
+	if (val==Opcode::Fgetpeername) return "Fgetpeername";
+	if (val==Opcode::Fgetsockname) return "Fgetsockname";
+	if (val==Opcode::Fshutdown) return "Fshutdown";
+	if (val==Opcode::Pshmget) return "Pshmget";
+	if (val==Opcode::Pshmctl) return "Pshmctl";
+	if (val==Opcode::Pshmat) return "Pshmat";
+	if (val==Opcode::Pshmdt) return "Pshmdt";
+	if (val==Opcode::Psemget) return "Psemget";
+	if (val==Opcode::Psemctl) return "Psemctl";
+	if (val==Opcode::Psemop) return "Psemop";
+	if (val==Opcode::Psemconfig) return "Psemconfig";
+	if (val==Opcode::Pmsgget) return "Pmsgget";
+	if (val==Opcode::Pmsgctl) return "Pmsgctl";
+	if (val==Opcode::Pmsgsnd) return "Pmsgsnd";
+	if (val==Opcode::Pmsgrcv) return "Pmsgrcv";
+	if (val==Opcode::Maccess) return "Maccess";
+	if (val==Opcode::Fchown16) return "Fchown16";
+	if (val==Opcode::Fchdir) return "Fchdir";
+	if (val==Opcode::Ffdopendir) return "Ffdopendir";
+	if (val==Opcode::Fdirfd) return "Fdirfd";
 	return "?";
 }
-const stgen::StringDef g_enumDescs_GemdosOpcode[] = {
-	{ 0, "" },
-	{ 1, "" },
-	{ 2, "" },
-	{ 3, "" },
-	{ 4, "" },
-	{ 5, "" },
-	{ 6, "" },
-	{ 7, "" },
-	{ 8, "" },
-	{ 9, "" },
-	{ 10, "" },
-	{ 11, "" },
-	{ 14, "" },
-	{ 16, "" },
-	{ 17, "" },
-	{ 18, "" },
-	{ 19, "" },
+const stgen::StringDef g_enumDescs_Opcode[] = {
+	{ 0, "Terminate proceess" },
+	{ 1, "Read char from Standard Input" },
+	{ 2, "Write char to Standard Output" },
+	{ 3, "Read char from AUX" },
+	{ 4, "Write char to AUX" },
+	{ 5, "Write char to standard PRN" },
+	{ 6, "Raw I/O to Standard Input/Output" },
+	{ 7, "Raw Input from Standard Input" },
+	{ 8, "Read char from Standard Input, no echo" },
+	{ 9, "Write string to Standard Output" },
+	{ 10, "Read edited string from Standard Input" },
+	{ 11, "Check status of Standard Input" },
+	{ 14, "Set default drive" },
+	{ 16, "Check status of Standard Output" },
+	{ 17, "Check status of standard PRN" },
+	{ 18, "Check input status of AUX" },
+	{ 19, "Check output status of AUX" },
 	{ 20, "" },
 	{ 21, "(TOS 4)" },
 	{ 22, "(MagiC)" },
 	{ 23, "(MagiC)" },
-	{ 25, "" },
-	{ 26, "" },
-	{ 32, "" },
-	{ 42, "" },
-	{ 43, "" },
-	{ 44, "" },
-	{ 45, "" },
-	{ 47, "" },
-	{ 48, "" },
-	{ 49, "" },
+	{ 25, "Get default drive" },
+	{ 26, "Set Distk Transfer Address" },
+	{ 32, "Get/set/inquire Supervisor Mode" },
+	{ 42, "Get date" },
+	{ 43, "Set date" },
+	{ 44, "Get time" },
+	{ 45, "Set time" },
+	{ 47, "Get Distk Transfer Address" },
+	{ 48, "Get Version Number" },
+	{ 49, "Terminate and stay resident" },
 	{ 51, "(MagiC)" },
-	{ 54, "" },
-	{ 57, "" },
-	{ 58, "" },
-	{ 59, "" },
-	{ 60, "" },
-	{ 61, "" },
-	{ 62, "" },
-	{ 63, "" },
-	{ 64, "" },
-	{ 65, "" },
-	{ 66, "" },
-	{ 67, "" },
-	{ 68, "" },
-	{ 69, "" },
-	{ 70, "" },
-	{ 71, "" },
-	{ 72, "" },
-	{ 73, "" },
-	{ 74, "" },
-	{ 75, "" },
-	{ 76, "" },
-	{ 78, "" },
-	{ 79, "" },
-	{ 86, "" },
-	{ 87, "" },
+	{ 54, "Get drive free space" },
+	{ 57, "Create directory" },
+	{ 58, "Delete directory" },
+	{ 59, "Set current directory" },
+	{ 60, "Create file" },
+	{ 61, "Open file" },
+	{ 62, "Close file" },
+	{ 63, "Read file" },
+	{ 64, "Write to file" },
+	{ 65, "Delete file" },
+	{ 66, "Seek file pointer" },
+	{ 67, "Get/set file attributes" },
+	{ 68, "Extended allocate memory" },
+	{ 69, "Duplicate file handle" },
+	{ 70, "Force file handle" },
+	{ 71, "Get current directory" },
+	{ 72, "Allocate memory" },
+	{ 73, "Release memory" },
+	{ 74, "Shrink allocated block" },
+	{ 75, "Load/execute process" },
+	{ 76, "Terminate process" },
+	{ 78, "Search first" },
+	{ 79, "Search next" },
+	{ 86, "Rename file" },
+	{ 87, "Get/set file timestamp" },
 	{ 92, "" },
 	{ 96, "" },
 	{ 98, "" },

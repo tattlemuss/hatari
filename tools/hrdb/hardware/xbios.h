@@ -10,16 +10,16 @@
 namespace Xbios {
 
 
-/* Enum XbiosOpcode */
-enum class XbiosOpcode : uint32_t {
-	Initmouse            =      0, /*  */
+/* Enum Opcode */
+enum class Opcode : uint32_t {
+	Initmouse            =      0, /* Initialize mouse pointer */
 	Ssbrk                =      1, /*  */
-	Physbase             =      2, /*  */
-	Logbase              =      3, /*  */
-	Getrez               =      4, /*  */
-	Setscreen            =      5, /*  */
-	Setpalette           =      6, /*  */
-	Setcolor             =      7, /*  */
+	Physbase             =      2, /* Get physical screen base */
+	Logbase              =      3, /* Get logical screen base */
+	Getrez               =      4, /* Get screen resolution */
+	Setscreen            =      5, /* Set screen resolution, base addresses */
+	Setpalette           =      6, /* Set colour palette */
+	Setcolor             =      7, /* Set single colour */
 	Floprd               =      8, /*  */
 	Flopwr               =      9, /*  */
 	Flopfmt              =     10, /*  */
@@ -121,8 +121,8 @@ enum class XbiosOpcode : uint32_t {
 };
 
 /* Enum -> string lookup declarations */
-extern const char* GetString(XbiosOpcode val);
-extern const char* GetEnumString(XbiosOpcode val);
+extern const char* GetString(Opcode val);
+extern const char* GetEnumString(Opcode val);
 
 /* Register Addresses */
 

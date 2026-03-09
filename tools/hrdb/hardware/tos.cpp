@@ -2,10 +2,9 @@
 #include "../hopper68/instruction68.h"
 #include "../models/memory.h"
 #include "stgen.h"
-
-#include "bios.h"
 #include "gemdos.h"
 #include "xbios.h"
+#include "bios.h"
 
 const char* GetLineAName(uint16_t id)
 {
@@ -30,22 +29,36 @@ const char* GetLineAName(uint16_t id)
     }
     return "Unknown";
 }
+
+static QString MakeAnnotationString(const char* name, const char* desc)
+{
+    if (strlen(desc) != 0)
+        return QString::asprintf("%s [%s]", name, desc);
+    return QString(name);
+}
+
 QString GetTrapAnnotation(uint8_t trapNum, uint16_t callId)
 {
     if (trapNum == 1)
     {
-        const char* name = Gemdos::GetEnumString((Gemdos::GemdosOpcode) callId);
-        return QString::asprintf("GEMDOS $%x %s", callId, name);
+        Gemdos::Opcode op = (Gemdos::Opcode) callId;
+        const char* name = Gemdos::GetEnumString(op);
+        const char* desc = Gemdos::GetString(op);
+        return QString::asprintf("GEMDOS $%x ", callId) + MakeAnnotationString(name, desc);
     }
     else if (trapNum == 13)
     {
-        const char* name = Bios::GetEnumString((Bios::BiosOpcode) callId);
-        return QString::asprintf("BIOS $%x %s", callId, name);
+        Bios::Opcode op = (Bios::Opcode) callId;
+        const char* name = Bios::GetEnumString(op);
+        const char* desc = Bios::GetString(op);
+        return QString::asprintf("BIOS $%x ", callId) + MakeAnnotationString(name, desc);
     }
     else if (trapNum == 14)
     {
-        const char* name = Xbios::GetEnumString((Xbios::XbiosOpcode) callId);
-        return QString::asprintf("XBIOS $%x %s", callId, name);
+        Xbios::Opcode op = (Xbios::Opcode) callId;
+        const char* name = Xbios::GetEnumString(op);
+        const char* desc = Xbios::GetString(op);
+        return QString::asprintf("XBIOS $%x ", callId) + MakeAnnotationString(name, desc);
     }
     return "Unknown trap #";
 }

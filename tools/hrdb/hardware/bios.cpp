@@ -4,51 +4,51 @@
 
 namespace Bios {
 
-const char* GetString(BiosOpcode val)
+const char* GetString(Opcode val)
 {
-	if (val==BiosOpcode::Getmpb) return "";
-	if (val==BiosOpcode::Bconstat) return "";
-	if (val==BiosOpcode::Bconin) return "";
-	if (val==BiosOpcode::Bconout) return "";
-	if (val==BiosOpcode::Rwabs) return "";
-	if (val==BiosOpcode::Setexc) return "";
-	if (val==BiosOpcode::Tickcal) return "";
-	if (val==BiosOpcode::Getbpb) return "";
-	if (val==BiosOpcode::Bcostat) return "";
-	if (val==BiosOpcode::Mediach) return "";
-	if (val==BiosOpcode::Drvmap) return "";
-	if (val==BiosOpcode::Kbshift) return "";
+	if (val==Opcode::Getmpb) return "Get memory parameter block";
+	if (val==Opcode::Bconstat) return "Get device input status";
+	if (val==Opcode::Bconin) return "Read char from device";
+	if (val==Opcode::Bconout) return "Send char to device";
+	if (val==Opcode::Rwabs) return "Read/write drive operation";
+	if (val==Opcode::Setexc) return "Set/get interrupt vector";
+	if (val==Opcode::Tickcal) return "Get timer time difference";
+	if (val==Opcode::Getbpb) return "Get bios parameter block";
+	if (val==Opcode::Bcostat) return "Get device output status";
+	if (val==Opcode::Mediach) return "Check media change";
+	if (val==Opcode::Drvmap) return "Get attached device map";
+	if (val==Opcode::Kbshift) return "Get/set shift key status";
 	return "?";
 }
-const char* GetEnumString(BiosOpcode val)
+const char* GetEnumString(Opcode val)
 {
-	if (val==BiosOpcode::Getmpb) return "Getmpb";
-	if (val==BiosOpcode::Bconstat) return "Bconstat";
-	if (val==BiosOpcode::Bconin) return "Bconin";
-	if (val==BiosOpcode::Bconout) return "Bconout";
-	if (val==BiosOpcode::Rwabs) return "Rwabs";
-	if (val==BiosOpcode::Setexc) return "Setexc";
-	if (val==BiosOpcode::Tickcal) return "Tickcal";
-	if (val==BiosOpcode::Getbpb) return "Getbpb";
-	if (val==BiosOpcode::Bcostat) return "Bcostat";
-	if (val==BiosOpcode::Mediach) return "Mediach";
-	if (val==BiosOpcode::Drvmap) return "Drvmap";
-	if (val==BiosOpcode::Kbshift) return "Kbshift";
+	if (val==Opcode::Getmpb) return "Getmpb";
+	if (val==Opcode::Bconstat) return "Bconstat";
+	if (val==Opcode::Bconin) return "Bconin";
+	if (val==Opcode::Bconout) return "Bconout";
+	if (val==Opcode::Rwabs) return "Rwabs";
+	if (val==Opcode::Setexc) return "Setexc";
+	if (val==Opcode::Tickcal) return "Tickcal";
+	if (val==Opcode::Getbpb) return "Getbpb";
+	if (val==Opcode::Bcostat) return "Bcostat";
+	if (val==Opcode::Mediach) return "Mediach";
+	if (val==Opcode::Drvmap) return "Drvmap";
+	if (val==Opcode::Kbshift) return "Kbshift";
 	return "?";
 }
-const stgen::StringDef g_enumDescs_BiosOpcode[] = {
-	{ 0, "" },
-	{ 1, "" },
-	{ 2, "" },
-	{ 3, "" },
-	{ 4, "" },
-	{ 5, "" },
-	{ 6, "" },
-	{ 7, "" },
-	{ 8, "" },
-	{ 9, "" },
-	{ 10, "" },
-	{ 11, "" },
+const stgen::StringDef g_enumDescs_Opcode[] = {
+	{ 0, "Get memory parameter block" },
+	{ 1, "Get device input status" },
+	{ 2, "Read char from device" },
+	{ 3, "Send char to device" },
+	{ 4, "Read/write drive operation" },
+	{ 5, "Set/get interrupt vector" },
+	{ 6, "Get timer time difference" },
+	{ 7, "Get bios parameter block" },
+	{ 8, "Get device output status" },
+	{ 9, "Check media change" },
+	{ 10, "Get attached device map" },
+	{ 11, "Get/set shift key status" },
 	{ 0, nullptr }
 };
 /* Register Field Sets */

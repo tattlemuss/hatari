@@ -10,25 +10,25 @@
 namespace Bios {
 
 
-/* Enum BiosOpcode */
-enum class BiosOpcode : uint32_t {
-	Getmpb               =      0, /*  */
-	Bconstat             =      1, /*  */
-	Bconin               =      2, /*  */
-	Bconout              =      3, /*  */
-	Rwabs                =      4, /*  */
-	Setexc               =      5, /*  */
-	Tickcal              =      6, /*  */
-	Getbpb               =      7, /*  */
-	Bcostat              =      8, /*  */
-	Mediach              =      9, /*  */
-	Drvmap               =     10, /*  */
-	Kbshift              =     11  /*  */
+/* Enum Opcode */
+enum class Opcode : uint32_t {
+	Getmpb               =      0, /* Get memory parameter block */
+	Bconstat             =      1, /* Get device input status */
+	Bconin               =      2, /* Read char from device */
+	Bconout              =      3, /* Send char to device */
+	Rwabs                =      4, /* Read/write drive operation */
+	Setexc               =      5, /* Set/get interrupt vector */
+	Tickcal              =      6, /* Get timer time difference */
+	Getbpb               =      7, /* Get bios parameter block */
+	Bcostat              =      8, /* Get device output status */
+	Mediach              =      9, /* Check media change */
+	Drvmap               =     10, /* Get attached device map */
+	Kbshift              =     11  /* Get/set shift key status */
 };
 
 /* Enum -> string lookup declarations */
-extern const char* GetString(BiosOpcode val);
-extern const char* GetEnumString(BiosOpcode val);
+extern const char* GetString(Opcode val);
+extern const char* GetEnumString(Opcode val);
 
 /* Register Addresses */
 

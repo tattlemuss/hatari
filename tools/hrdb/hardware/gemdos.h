@@ -10,65 +10,65 @@
 namespace Gemdos {
 
 
-/* Enum GemdosOpcode */
-enum class GemdosOpcode : uint32_t {
-	Pterm0               =      0, /*  */
-	Cconin               =      1, /*  */
-	Cconout              =      2, /*  */
-	Cauxin               =      3, /*  */
-	Cauxout              =      4, /*  */
-	Cprnout              =      5, /*  */
-	Crawio               =      6, /*  */
-	Crawcin              =      7, /*  */
-	Cnecin               =      8, /*  */
-	Cconws               =      9, /*  */
-	Cconrs               =     10, /*  */
-	Cconis               =     11, /*  */
-	Dsetdrv              =     14, /*  */
-	Cconos               =     16, /*  */
-	Cprnos               =     17, /*  */
-	Cauxis               =     18, /*  */
-	Cauxos               =     19, /*  */
+/* Enum Opcode */
+enum class Opcode : uint32_t {
+	Pterm0               =      0, /* Terminate proceess */
+	Cconin               =      1, /* Read char from Standard Input */
+	Cconout              =      2, /* Write char to Standard Output */
+	Cauxin               =      3, /* Read char from AUX */
+	Cauxout              =      4, /* Write char to AUX */
+	Cprnout              =      5, /* Write char to standard PRN */
+	Crawio               =      6, /* Raw I/O to Standard Input/Output */
+	Crawcin              =      7, /* Raw Input from Standard Input */
+	Cnecin               =      8, /* Read char from Standard Input, no echo */
+	Cconws               =      9, /* Write string to Standard Output */
+	Cconrs               =     10, /* Read edited string from Standard Input */
+	Cconis               =     11, /* Check status of Standard Input */
+	Dsetdrv              =     14, /* Set default drive */
+	Cconos               =     16, /* Check status of Standard Output */
+	Cprnos               =     17, /* Check status of standard PRN */
+	Cauxis               =     18, /* Check input status of AUX */
+	Cauxos               =     19, /* Check output status of AUX */
 	Maddalt              =     20, /*  */
 	Srealloc             =     21, /* (TOS 4) */
 	Slbopen              =     22, /* (MagiC) */
 	Slbclose             =     23, /* (MagiC) */
-	Dgetdrv              =     25, /*  */
-	Fsetdta              =     26, /*  */
-	Super                =     32, /*  */
-	Tgetdate             =     42, /*  */
-	Tsetdate             =     43, /*  */
-	Tgettime             =     44, /*  */
-	Tsettime             =     45, /*  */
-	Fgetdta              =     47, /*  */
-	Sversion             =     48, /*  */
-	Ptermres             =     49, /*  */
+	Dgetdrv              =     25, /* Get default drive */
+	Fsetdta              =     26, /* Set Distk Transfer Address */
+	Super                =     32, /* Get/set/inquire Supervisor Mode */
+	Tgetdate             =     42, /* Get date */
+	Tsetdate             =     43, /* Set date */
+	Tgettime             =     44, /* Get time */
+	Tsettime             =     45, /* Set time */
+	Fgetdta              =     47, /* Get Distk Transfer Address */
+	Sversion             =     48, /* Get Version Number */
+	Ptermres             =     49, /* Terminate and stay resident */
 	Sconfig              =     51, /* (MagiC) */
-	Dfree                =     54, /*  */
-	Dcreate              =     57, /*  */
-	Ddelete              =     58, /*  */
-	Dsetpath             =     59, /*  */
-	Fcreate              =     60, /*  */
-	Fopen                =     61, /*  */
-	Fclose               =     62, /*  */
-	Fread                =     63, /*  */
-	Fwrite               =     64, /*  */
-	Fdelete              =     65, /*  */
-	Fseek                =     66, /*  */
-	Fattrib              =     67, /*  */
-	Mxalloc              =     68, /*  */
-	Fdup                 =     69, /*  */
-	Fforce               =     70, /*  */
-	Dgetpath             =     71, /*  */
-	Malloc               =     72, /*  */
-	Mfree                =     73, /*  */
-	Mshrink              =     74, /*  */
-	Pexec                =     75, /*  */
-	Pterm                =     76, /*  */
-	Fsfirst              =     78, /*  */
-	Fsnext               =     79, /*  */
-	Frename              =     86, /*  */
-	Fdatime              =     87, /*  */
+	Dfree                =     54, /* Get drive free space */
+	Dcreate              =     57, /* Create directory */
+	Ddelete              =     58, /* Delete directory */
+	Dsetpath             =     59, /* Set current directory */
+	Fcreate              =     60, /* Create file */
+	Fopen                =     61, /* Open file */
+	Fclose               =     62, /* Close file */
+	Fread                =     63, /* Read file */
+	Fwrite               =     64, /* Write to file */
+	Fdelete              =     65, /* Delete file */
+	Fseek                =     66, /* Seek file pointer */
+	Fattrib              =     67, /* Get/set file attributes */
+	Mxalloc              =     68, /* Extended allocate memory */
+	Fdup                 =     69, /* Duplicate file handle */
+	Fforce               =     70, /* Force file handle */
+	Dgetpath             =     71, /* Get current directory */
+	Malloc               =     72, /* Allocate memory */
+	Mfree                =     73, /* Release memory */
+	Mshrink              =     74, /* Shrink allocated block */
+	Pexec                =     75, /* Load/execute process */
+	Pterm                =     76, /* Terminate process */
+	Fsfirst              =     78, /* Search first */
+	Fsnext               =     79, /* Search next */
+	Frename              =     86, /* Rename file */
+	Fdatime              =     87, /* Get/set file timestamp */
 	Flock                =     92, /*  */
 	Nversion             =     96, /*  */
 	Frlock               =     98, /*  */
@@ -208,8 +208,8 @@ enum class GemdosOpcode : uint32_t {
 };
 
 /* Enum -> string lookup declarations */
-extern const char* GetString(GemdosOpcode val);
-extern const char* GetEnumString(GemdosOpcode val);
+extern const char* GetString(Opcode val);
+extern const char* GetEnumString(Opcode val);
 
 /* Register Addresses */
 
