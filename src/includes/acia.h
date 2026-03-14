@@ -82,7 +82,4 @@ void	ACIA_IKBD_Write_TDR ( void );
 
 void	ACIA_Info(FILE *fp, uint32_t dummy);
 
-/* Sync memory/state that might need to be inspected by the Remote Debug system */
-void	ACIA_RemoteDebugSync( void );
-
 #endif /* ifndef HATARI_ACIA_H */

@@ -491,7 +491,6 @@ static void RemoteDebug_HardwareSync(void)
 	DmaSnd_RemoteDebugSync();
 	Video_RemoteDebugSync();
 	Blitter_RemoteDebugSync();
-	ACIA_RemoteDebugSync();
 }
 
 // -----------------------------------------------------------------------------
