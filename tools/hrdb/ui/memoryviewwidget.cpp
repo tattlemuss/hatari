@@ -796,18 +796,7 @@ void MemoryWidget::paintEvent(QPaintEvent* ev)
         int char_width = info.horizontalAdvance("0");
 
         // Set up the rendering info
-        QColor backCol = pal.window().color();
-        QColor cols[7] =
-        {
-            QColor(backCol.red() ^  0, backCol.green() ^ 32, backCol.blue() ^ 0),
-            QColor(backCol.red() ^ 32, backCol.green() ^  0, backCol.blue() ^ 0),
-            QColor(backCol.red() ^  0, backCol.green() ^ 32, backCol.blue() ^ 32),
-            QColor(backCol.red() ^ 32, backCol.green() ^  0, backCol.blue() ^ 32),
-            QColor(backCol.red() ^  0, backCol.green() ^  0, backCol.blue() ^ 32),
-            QColor(backCol.red() ^ 32, backCol.green() ^ 32, backCol.blue() ^ 0),
-            QColor(backCol.red() ^ 32, backCol.green() ^ 32, backCol.blue() ^ 32),
-        };
-
+        const QColor* cols = m_pSession->m_memorySymbolColours;
         painter.setPen(pal.text().color());
         for (int row = 0; row < m_rows.size(); ++row)
         {

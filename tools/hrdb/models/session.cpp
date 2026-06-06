@@ -147,9 +147,20 @@ void Session::chooseColours()
     bool isDark = defaultPalette.color(QPalette::WindowText).lightness()
            > defaultPalette.color(QPalette::Window).lightness();
 
-    this->m_isDark = isDark;
-    this->m_commentColour = isDark ? QColor(0, 224, 0) : Qt::darkGreen;
-    this->m_changedColour = isDark ? QColor(255, 32, 64) : QColor(192, 0, 0);
+    m_isDark = isDark;
+    m_commentColour = isDark ? QColor(32, 224, 32) : Qt::darkGreen;
+    m_changedColour = isDark ? QColor(255, 32, 64) : QColor(192, 0, 0);
+
+    QColor backCol = defaultPalette.window().color();
+    // Decide direction to adjust the back colour
+    int adj = m_isDark ? 48 : -32;
+    m_memorySymbolColours[0] = QColor(backCol.red() +   0, backCol.green() + adj, backCol.blue() ^ 0);
+    m_memorySymbolColours[1] = QColor(backCol.red() + adj, backCol.green() +   0, backCol.blue() ^ 0);
+    m_memorySymbolColours[2] = QColor(backCol.red() +   0, backCol.green() + adj, backCol.blue() + adj);
+    m_memorySymbolColours[3] = QColor(backCol.red() + adj, backCol.green() +   0, backCol.blue() + adj);
+    m_memorySymbolColours[4] = QColor(backCol.red() +   0, backCol.green() +   0, backCol.blue() + adj);
+    m_memorySymbolColours[5] = QColor(backCol.red() + adj, backCol.green() + adj, backCol.blue() ^ 0);
+    m_memorySymbolColours[6] = QColor(backCol.red() + adj, backCol.green() + adj, backCol.blue() + adj);
 }
 
 void Session::resetWarm()

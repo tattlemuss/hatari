@@ -103,6 +103,7 @@ public:
     bool            m_isDark;               // overall dark mode decision
     QColor          m_commentColour;        // usually some form of green
     QColor          m_changedColour;        // usually red/hihglight
+    QColor          m_memorySymbolColours[7];
 
     const Settings& GetSettings() const;
     const LaunchSettings& GetLaunchSettings() const;
