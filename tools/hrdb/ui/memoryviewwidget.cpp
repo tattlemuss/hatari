@@ -845,7 +845,7 @@ void MemoryWidget::paintEvent(QPaintEvent* ev)
 
                 bool changed = r.m_byteChanged[col];
                 QChar st = r.m_text.at(col);
-                painter.setPen(changed ? Qt::red : pal.text().color());
+                painter.setPen(changed ? m_pSession->m_changedColour: pal.text().color());
                 painter.drawText(x, text_y, st);
             }
         }

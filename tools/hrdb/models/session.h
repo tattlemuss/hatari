@@ -4,6 +4,8 @@
 #include <QObject>
 #include <QFont>
 #include <QProcess>
+#include <QColor>
+
 #include "launcher.h"
 
 class QTcpSocket;
@@ -85,7 +87,7 @@ public:
 
     QTcpSocket*     m_pTcpSocket;
     QTemporaryFile* m_pStartupFile;         // Debugger commands at Hatari launch
-    QTemporaryFile* m_pProgramStartScript;      // Debugger commands run at program start
+    QTemporaryFile* m_pProgramStartScript;  // Debugger commands run at program start
 
     QTemporaryFile* m_pLoggingFile;
     FileWatcher*    m_pFileWatcher;
@@ -96,6 +98,11 @@ public:
 
     // Controller Hatari process
     DetachableProcess*       m_pHatariProcess;
+
+    // Colour choices
+    bool            m_isDark;               // overall dark mode decision
+    QColor          m_commentColour;        // usually some form of green
+    QColor          m_changedColour;        // usually red/hihglight
 
     const Settings& GetSettings() const;
     const LaunchSettings& GetLaunchSettings() const;
@@ -133,6 +140,9 @@ private slots:
     // Called shortly after stop notification received
     void connectTimerCallback();
 private:
+
+    void chooseColours();
+
     QTimer*          m_pTimer;
     bool             m_autoConnect;
 

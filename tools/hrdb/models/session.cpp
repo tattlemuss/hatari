@@ -2,6 +2,8 @@
 #include <QtNetwork>
 #include <QTimer>
 #include <QFontDatabase>
+#include <QApplication>
+#include <QPalette>
 
 #include "targetmodel.h"
 #include "../transport/dispatcher.h"
@@ -37,6 +39,7 @@ Session::Session() :
     m_settings.m_liveRefresh = false;
     m_settings.m_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
     loadSettings();
+    chooseColours();
 }
 
 Session::~Session()
@@ -134,6 +137,19 @@ void Session::connectTimerCallback()
         QHostAddress qha(QHostAddress::LocalHost);
         m_pTcpSocket->connectToHost(qha, 56001);
     }
+}
+
+void Session::chooseColours()
+{
+    // Switch some shared colours based on whether the mode is light or dark.
+    // This method is taken from https://www.qt.io/blog/dark-mode-on-windows-11-with-qt-6.5
+    const QPalette defaultPalette;
+    bool isDark = defaultPalette.color(QPalette::WindowText).lightness()
+           > defaultPalette.color(QPalette::Window).lightness();
+
+    this->m_isDark = isDark;
+    this->m_commentColour = isDark ? QColor(0, 224, 0) : Qt::darkGreen;
+    this->m_changedColour = isDark ? QColor(255, 32, 64) : QColor(192, 0, 0);
 }
 
 void Session::resetWarm()

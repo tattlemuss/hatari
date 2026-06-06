@@ -602,7 +602,7 @@ void DisasmWidget::paintEvent(QPaintEvent* ev)
                     break;
                 case kComments:
                     if (!t.isPc)
-                        painter.setPen(Qt::darkGreen);
+                        painter.setPen(m_pSession->m_commentColour);
                     painter.drawText(x, text_y, t.comments);
                     break;
                 }

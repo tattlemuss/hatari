@@ -268,11 +268,11 @@ void RegisterWidget::paintEvent(QPaintEvent * ev)
         if (tok.colour == TokenColour::kNormal)
             col = pal.text().color();
         else if (tok.colour == TokenColour::kChanged)
-            col = Qt::red;
+            col = m_pSession->m_changedColour;
         else if (tok.colour == TokenColour::kInactive)
             col = pal.light().color();
         else if (tok.colour == TokenColour::kCode)
-            col = Qt::darkGreen;
+            col = m_pSession->m_commentColour;
 
         if (i == m_tokenUnderMouseIndex && tok.type != TokenType::kNone)
         {
