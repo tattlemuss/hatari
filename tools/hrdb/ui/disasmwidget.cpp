@@ -613,7 +613,8 @@ void DisasmWidget::paintEvent(QPaintEvent* ev)
 
     // Branches
     int x_base = m_columnLeft[kAddress] * m_charWidth - 2;
-    painter.setBrush(pal.dark());
+    QColor lineCol = pal.color(QPalette::ColorGroup::Disabled, QPalette::Text);
+    painter.setBrush(QBrush(lineCol));
 
     int arrowWidth = m_charWidth;
     int arrowHeight = arrowWidth / 2;
@@ -621,7 +622,7 @@ void DisasmWidget::paintEvent(QPaintEvent* ev)
     for (int i = 0; i < m_branches.size(); ++i)
     {
         const Branch& b = m_branches[i];
-        painter.setPen(QPen(pal.dark().color(), b.start == m_mouseRow ? 3 : 1));
+        painter.setPen(QPen(lineCol, b.start == m_mouseRow ? 3 : 1));
 
         int yStart = GetPixelFromRow(b.start) + y_midLine + 1;
         int yEnd   = GetPixelFromRow(b.stop) + y_midLine - 1;

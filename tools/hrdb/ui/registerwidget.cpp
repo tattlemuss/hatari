@@ -236,12 +236,13 @@ void RegisterWidget::paintEvent(QPaintEvent * ev)
     painter.fillRect(this->rect(), br);
 
     // Draw border rectangle
-    painter.setPen(QPen(pal.dark(), hasFocus() ? 6 : 2));
+    QColor borderCol = pal.color(QPalette::ColorGroup::Disabled, QPalette::Text);
+    painter.setPen(QPen(borderCol, hasFocus() ? 6 : 2));
     painter.drawRect(this->rect());
 
     // Draw Rulers
     int rectW = this->rect().right() - m_charWidth * 2;
-    painter.setPen(QPen(pal.dark(), 2));
+    painter.setPen(QPen(borderCol, 2));
     for (int i = 0; i < m_rulers.size(); ++i)
     {
         int y = GetPixelFromRow(m_rulers[i].y) + m_lineHeight / 2;
@@ -252,7 +253,7 @@ void RegisterWidget::paintEvent(QPaintEvent * ev)
     }
 
     // Draw Tokens
-    painter.setPen(QPen(pal.dark(), 1));
+    painter.setPen(QPen(borderCol, 1));
     for (int i = 0; i < m_tokens.size(); ++i)
     {
         Token& tok = m_tokens[i];
