@@ -13,7 +13,7 @@
 
 #include "../models/session.h"
 #include "../models/stringformat.h"
-#include "../hardware/tos.h"
+#include "../hardware/tos.h"    // annotations
 #include "symboltext.h"
 #include "qtversionwrapper.h"
 
@@ -630,11 +630,11 @@ void RegisterWidget::PopulateRegisters()
                 }
                 // TOS calls
                 if (regs.m_value[Registers::GemdosOpcode] != 0xffff)
-                    col = AddToken(col, row, GetTrapAnnotation(1, regs.m_value[Registers::GemdosOpcode]), TokenType::kNone, 0, TokenColour::kChanged);
+                    col = AddToken(col, row, GetTrapAnnotation(1, regs.m_value[Registers::GemdosOpcode]), TokenType::kNone, 0, TokenColour::kCode);
                 else if (regs.m_value[Registers::BiosOpcode] != 0xffff)
-                    col = AddToken(col, row, GetTrapAnnotation(13, regs.m_value[Registers::BiosOpcode]), TokenType::kNone, 0, TokenColour::kChanged);
+                    col = AddToken(col, row, GetTrapAnnotation(13, regs.m_value[Registers::BiosOpcode]), TokenType::kNone, 0, TokenColour::kCode);
                 else if (regs.m_value[Registers::XbiosOpcode] != 0xffff)
-                    col = AddToken(col, row, GetTrapAnnotation(14, regs.m_value[Registers::XbiosOpcode]), TokenType::kNone, 0, TokenColour::kChanged);
+                    col = AddToken(col, row, GetTrapAnnotation(14, regs.m_value[Registers::XbiosOpcode]), TokenType::kNone, 0, TokenColour::kCode);
             }
 
             // Add EA analysis
