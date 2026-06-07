@@ -359,6 +359,23 @@ public:
 };
 
 //-----------------------------------------------------------------------------
+class HardwareMfpTimerRate: public HardwareField
+{
+public:
+    enum
+    {
+        kTimerA,
+        kTimerB,
+        kTimerC,
+        kTimerD,
+    };
+    explicit HardwareMfpTimerRate(int timer);
+    bool Update(const TargetModel* pTarget);
+private:
+    int m_timer;
+};
+
+//-----------------------------------------------------------------------------
 class HardwareBitmap : public HardwareField
 {
 public:
@@ -583,6 +600,65 @@ bool HardwareFieldAddr::Update(const TargetModel* pTarget)
         return true;
     }
     return false;
+}
+
+HardwareMfpTimerRate::HardwareMfpTimerRate(int timer) :
+    m_timer(timer)
+{}
+
+bool HardwareMfpTimerRate::Update(const TargetModel* pTarget)
+{
+    const Memory* memMfp = pTarget->GetMemory(MemorySlot::kHardwareWindowMfp);
+    uint8_t control;
+    uint8_t data;
+    m_text = "";
+
+    // Get control and datas
+    static uint32_t ctrls[4] = {Regs::MFP_TACR, Regs::MFP_TBCR, Regs::MFP_TCDCR, Regs::MFP_TCDCR};
+    static uint32_t datas[4] = {Regs::MFP_TADR, Regs::MFP_TBDR, Regs::MFP_TCDR, Regs::MFP_TDDR};
+
+    if (!memMfp->ReadCpuByte(ctrls[m_timer], control))
+        return false;
+    if (!memMfp->ReadCpuByte(datas[m_timer], data))
+        return false;
+
+    // Convert control values to clcoks
+    static uint32_t controlToCycles[16] = { 0, 4, 10, 16, 50, 64, 100, 200, 0, 0, 0, 0, 0, 0, 0, 0 };
+    uint32_t clocks = 0;
+    switch (m_timer)
+    {
+    case kTimerA:
+    {
+        control = (uint32_t) Regs::GetField_MFP_TACR_MODE_TIMER_A(control);
+        break;
+    }
+    case kTimerB:
+    {
+        control = (uint32_t) Regs::GetField_MFP_TBCR_MODE_TIMER_B(control);
+        break;
+    }
+    case kTimerC:
+    {
+        control = (uint32_t) Regs::GetField_MFP_TCDCR_MODE_TIMER_C(control);
+        break;
+    }
+    case kTimerD:
+    {
+        control = (uint32_t) Regs::GetField_MFP_TCDCR_MODE_TIMER_D(control);
+        break;
+    }
+    }
+    clocks = controlToCycles[control];
+
+    if (clocks == 0)
+        return false;
+
+    // Final calculation
+    uint32_t count = data == 0 ? 256: data;
+    count *= clocks;
+    uint32_t rate =  2457600 / count;
+    m_text = QString::asprintf("%uHz", rate);
+    return true;
 }
 
 //-----------------------------------------------------------------------------
@@ -1166,15 +1242,19 @@ HardwareWindow::HardwareWindow(QWidget *parent, Session* pSession) :
     addField(pExpMfp,  "Timer A Control Mode",        Regs::g_fieldDef_MFP_TACR_MODE_TIMER_A);
     addField(pExpMfp,  "Timer A Data",                Regs::g_fieldDef_MFP_TADR_ALL);
     addShared(pExpMfp, "Timer A Vector",              new HardwareFieldAddr(HardwareFieldAddr::Mfp, 13));
+    //addShared(pExpMfp, "Timer A Rate",                new HardwareMfpTimerRate(HardwareMfpTimerRate::kTimerA));
     addField(pExpMfp,  "Timer B Control Mode",        Regs::g_fieldDef_MFP_TBCR_MODE_TIMER_B);
     addField(pExpMfp,  "Timer B Data",                Regs::g_fieldDef_MFP_TBDR_ALL);
     addShared(pExpMfp, "Timer B Vector",              new HardwareFieldAddr(HardwareFieldAddr::Mfp, 8));
+    //addShared(pExpMfp, "Timer B Rate",                new HardwareMfpTimerRate(HardwareMfpTimerRate::kTimerB));
     addField(pExpMfp,  "Timer C Control Mode",        Regs::g_fieldDef_MFP_TCDCR_MODE_TIMER_C);
     addField(pExpMfp,  "Timer C Data",                Regs::g_fieldDef_MFP_TCDR_ALL);
     addShared(pExpMfp, "Timer C Vector",              new HardwareFieldAddr(HardwareFieldAddr::Mfp, 5));
+    //addShared(pExpMfp, "Timer C Rate",                new HardwareMfpTimerRate(HardwareMfpTimerRate::kTimerC));
     addField(pExpMfp,  "Timer D Control Mode",        Regs::g_fieldDef_MFP_TCDCR_MODE_TIMER_D);
     addField(pExpMfp,  "Timer D Data",                Regs::g_fieldDef_MFP_TDDR_ALL);
     addShared(pExpMfp, "Timer D Vector",              new HardwareFieldAddr(HardwareFieldAddr::Mfp, 4));
+    //addShared(pExpMfp, "Timer D Rate",                new HardwareMfpTimerRate(HardwareMfpTimerRate::kTimerD));
 
     addField(pExpMfp, "Sync Char",                    Regs::g_fieldDef_MFP_SCR_ALL);
     addMultiField(pExpMfp, "USART Control",           Regs::g_regFieldsDef_MFP_UCR);
