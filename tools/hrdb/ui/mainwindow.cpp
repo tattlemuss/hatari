@@ -221,7 +221,8 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     connect(&m_session,    &Session::messageSet, this, &MainWindow::messageSet);
 
     // Keyboard shortcuts
-    new QShortcut(QKeySequence("Ctrl+R"),         this, SLOT(startStopClickedSlot()));
+#define BDG(str)   m_session.GetBinding(str)
+    new QShortcut(BDG("startStop"),               this, SLOT(startStopClickedSlot()));
     new QShortcut(QKeySequence("Esc"),            this, SLOT(breakPressedSlot()));
     new QShortcut(QKeySequence("S"),              this, SLOT(singleStepClickedSlot()));
     new QShortcut(QKeySequence("Shift+S"),        this, SLOT(singleStepDspClickedSlot()));
