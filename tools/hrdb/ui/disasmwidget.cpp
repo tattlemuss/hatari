@@ -103,6 +103,8 @@ DisasmWidget::DisasmWidget(QWidget *parent, Session* pSession, int windowIndex, 
     connect(m_pSession, &Session::settingsChanged, this, &DisasmWidget::settingsChangedSlot);
 
     setMouseTracking(true);
+    QKeySequence addSeq = m_pSession->GetBinding("togglebreakpoint");
+    new QShortcut(addSeq, this, SLOT(toggleBreakpoint()), nullptr, Qt::WidgetShortcut);
 
     this->setFocusPolicy(Qt::FocusPolicy::StrongFocus);
     configChanged();        // Disallow DSP if necessary
@@ -688,7 +690,7 @@ void DisasmWidget::keyPressEvent(QKeyEvent* event)
             case Qt::Key_Right:      MoveDownMin();         return;
             case Qt::Key_PageUp:     PageUp();              return;
             case Qt::Key_PageDown:   PageDown();            return;
-            case Qt::Key_F9:         toggleBreakpoint();    return;
+            //case Qt::Key_F9:         toggleBreakpoint();    return;
             default: break;
             }
         }

@@ -4,5 +4,6 @@
         <file>images/pcbreakpoint10.png</file>
         <file>images/pc10.png</file>
         <file>images/hrdb_icon.png</file>
+        <file>configs/bindings.ini</file>
     </qresource>
 </RCC>

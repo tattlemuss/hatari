@@ -178,7 +178,8 @@ BreakpointsWindow::BreakpointsWindow(QWidget *parent, Session* pSession) :
     pMainRegion->setLayout(pMainLayout);
     setWidget(pMainRegion);
 
-    new QShortcut(QKeySequence("Ctrl+B"),         this, SLOT(addBreakpointClicked()));
+    QKeySequence addSeq = m_pSession->GetBinding("addbreakpoint");
+    new QShortcut(addSeq, this, SLOT(addBreakpointClicked()), nullptr, Qt::ApplicationShortcut);
 
     connect(m_pTargetModel,  &TargetModel::connectChangedSignal, this, &BreakpointsWindow::connectChangedSlot);
     connect(m_pAddButton,    &QAbstractButton::clicked,          this, &BreakpointsWindow::addBreakpointClicked);

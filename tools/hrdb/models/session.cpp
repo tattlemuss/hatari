@@ -13,7 +13,8 @@ Session::Session() :
     QObject(),
     m_pFileWatcher(nullptr),
     m_pHatariProcess(nullptr),
-    m_autoConnect(true)
+    m_autoConnect(true),
+    m_bindings(":/configs/bindings.ini", QSettings::IniFormat)
 {
     m_pStartupFile = new QTemporaryFile(this);
     m_pProgramStartScript = new QTemporaryFile(this);
@@ -67,6 +68,13 @@ void Session::Disconnect()
 {
     m_autoConnect = false;
     m_pTcpSocket->disconnectFromHost();
+}
+
+QKeySequence Session::GetBinding(QString name)
+{
+    QString key = QString("bindings/") + name;
+    QString res = m_bindings.value(key).toString();
+    return QKeySequence(res);
 }
 
 const Session::Settings &Session::GetSettings() const

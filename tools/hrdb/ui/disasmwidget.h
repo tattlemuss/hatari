@@ -62,6 +62,9 @@ signals:
     void addressChanged(uint64_t addr);
     void procChangedSignal();
 
+private slots:
+    void toggleBreakpoint();
+
 private:
     void startStopChanged();
     void connectChanged();
@@ -75,8 +78,6 @@ private:
 
     // From keyPressEvent
     void runToCursor();
-    void toggleBreakpoint();
-
     virtual void paintEvent(QPaintEvent* ev) override;
     virtual void keyPressEvent(QKeyEvent* event) override;
     virtual void mouseMoveEvent(QMouseEvent* event) override;

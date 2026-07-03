@@ -126,7 +126,7 @@ uint64_t Dispatcher::ReadSymbols()
 
 uint64_t Dispatcher::WriteMemory(uint32_t address, const QVector<uint8_t> &data)
 {
-    QString command = QString::asprintf("memset %x %x ", address, data.size());
+    QString command = QString::asprintf("memset %x %x ", address, static_cast<uint32_t>(data.size()));
     for (int i = 0; i <  data.size(); ++i)
         command += QString::asprintf("%02x", data[i]);
 
