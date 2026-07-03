@@ -4,12 +4,12 @@
 
 #include "profiledata.h"
 
-YmState::YmState()
+HwRegs::HwRegs()
 {
     Clear();
 }
 
-void YmState::Clear()
+void HwRegs::Clear()
 {
     for (int i = 0; i < kNumRegs; ++i)
         m_regs[i] = 0;
@@ -181,10 +181,10 @@ void TargetModel::SetExceptionMask(const ExceptionMask &mask)
     emit exceptionMaskChanged();
 }
 
-void TargetModel::SetYm(const YmState& state)
+void TargetModel::SetHwRegs(const HwRegs& state)
 {
-    m_ymState = state;
-    emit ymChangedSignal();
+    m_hwRegs = state;
+    emit hwRegsChangedSignal();
 }
 
 void TargetModel::NotifyMemoryChanged(uint32_t address, uint32_t size)

@@ -43,13 +43,66 @@ public:
 };
 
 /*
-    Simple container for YM register state
+    Simple container for internal HW register data, such as YM register state.
 */
-class YmState
+class HwRegs
 {
 public:
-    YmState();
-    static const int kNumRegs = 16;
+    HwRegs();
+    enum Regs
+    {
+        kYmPeriodALo,
+        kYmPeriodAHi,
+        kYmPeriodBLo,
+        kYmPeriodBHi,
+        kYmPeriodCLo,
+        kYmPeriodCHi,
+        kYmPeriodNoise,
+        kYmMixer,
+        kYmVolumeA,
+        kYmVolumeB,
+        kYmVolumeC,
+        kYmPeriodEnvLo,
+        kYmPeriodEnvHi,
+        kYmEnvShape,
+        kYmPortA,
+        kYmPortB,
+        kMfpGPIP,					/* General Purpose Pins / GPDR 0x01 */
+        kMfpAER,					/* Active Edge Register 0x03*/
+        kMfpDDR,					/* Data Direction Register */
+        kMfpIERA,					/* Interrupt Enable Register A 0x07 */
+        kMfpIERB,					/* Interrupt Enable Register B 0x09 */
+        kMfpIPRA,					/* Interrupt Pending Register A 0x0B */
+        kMfpIPRB,					/* Interrupt Pending Register B 0x0D */
+        kMfpISRA,					/* Interrupt In-Service Register A 0x0F */
+        kMfpISRB,					/* Interrupt In-Service Register B 0x11 */
+        kMfpIMRA,					/* Interrupt Mask Register A 0x13 */
+        kMfpIMRB,					/* Interrupt Mask Register B 0x15 */
+        kMfpVR,     				/* Vector Register 0x17 */
+        kMfpTACR,					/* Timer A Control Register 0x19 */
+        kMfpTBCR,					/* Timer B Control Register 0x1B */
+        kMfpTCDCR,         		/* Timer C/D Control Register 0x1D */
+        kMfpTADR,					/* Timer A Data Register 0x1F */
+        kMfpTBDR,					/* Timer B Data Register 0x21 */
+        kMfpTCDR,					/* Timer C Data Register 0x23 */
+        kMfpTDDR,					/* Timer D Data Register 0x25 */
+        kMfpSCR,					/* Synchronous Data Register 0x27 */
+        kMfpUCR,					/* USART Control Register 0x29 */
+        kMfpRSR,					/* Receiver Status Register 0x2B */
+        kMfpTSR,					/* Transmitter Status Register 0x2D */
+        kMfpUDR,					/* USART Data Register 0x2F */
+        kMfpIRQ,					/* IRQ signal (output) 1=IRQ requested*/
+        kMfpTAI,					/* Input signal on Timer A (for event count mode) */
+        kMfpTBI,					/* Input signal on Timer B (for event count mode) */
+
+        /* I think these are the countdown timers but their update time is not reliable*/
+        kMfpTA_MAINCOUNTER,
+        kMfpTB_MAINCOUNTER,
+        kMfpTC_MAINCOUNTER,
+        kMfpTD_MAINCOUNTER,
+        kNumRegs
+    };
+
     void Clear();
     uint8_t m_regs[kNumRegs];
 };
@@ -107,7 +160,7 @@ public:
 
     // Sets YM registers/internals
     // emits ymChangedSignal()
-    void SetYm(const YmState& state);
+    void SetHwRegs(const HwRegs& state);
 
     // Called when a memset command is known to have changed a memory region.
     // emits otherMemoryChangedSignal()
@@ -187,7 +240,7 @@ public:
 
     const SearchResults& GetSearchResults() const { return m_searchResults; }
     const ExceptionMask& GetExceptionMask() const { return m_exceptionMask; }
-    YmState GetYm() const { return m_ymState; }
+    const HwRegs& GetHwRegs() const { return m_hwRegs; }
 
     // Profiling access
     void GetProfileData(uint32_t addr, uint32_t& count, uint32_t& cycles) const;
@@ -244,7 +297,7 @@ signals:
     void exceptionMaskChanged();
 
     // When new YM state updated
-    void ymChangedSignal();
+    void hwRegsChangedSignal();
 
     // Something edited memory
     void otherMemoryChangedSignal(uint32_t address, uint32_t size);
@@ -284,7 +337,7 @@ private:
     Breakpoints     m_breakpoints;      // Current breakpoint list
     AllSymbols      m_symbolTables;
     ExceptionMask   m_exceptionMask;
-    YmState         m_ymState;
+    HwRegs         m_hwRegs;
     ProfileData*    m_pProfileData;
 
     SearchResults   m_searchResults;

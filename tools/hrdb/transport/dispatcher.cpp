@@ -13,7 +13,7 @@
 //#define DISPATCHER_DEBUG
 
 // Protocol ID which needs to match the Hatari target
-#define REMOTEDEBUG_PROTOCOL_ID	(0x1009)
+#define REMOTEDEBUG_PROTOCOL_ID	(0x100a)
 
 //-----------------------------------------------------------------------------
 // Character value for the separator in responses/notifications from the target
@@ -106,7 +106,7 @@ uint64_t Dispatcher::ReadMemory(MemorySlot slot, MemSpace space, uint32_t addres
 
 uint64_t Dispatcher::ReadInfoYm()
 {
-    return SendCommandPacket("infoym");
+    return SendCommandPacket("hwregs");
 }
 
 uint64_t Dispatcher::ReadBreakpoints()
@@ -484,8 +484,8 @@ void Dispatcher::ReceiveResponsePacket(const RemoteCommand& cmd)
         ParseExmask(splitResp, cmd);
     else if (type == "memset")
         ParseMemset(splitResp, cmd);
-    else if (type == "infoym")
-        ParseInfoym(splitResp, cmd);
+    else if (type == "hwregs")
+        ParseHwRegs(splitResp, cmd);
     else if (type == "profile")
         ParseProfile(splitResp, cmd);
     else if (type == "memfind")
@@ -874,11 +874,11 @@ void Dispatcher::ParseMemset(StringSplitter &splitResp, const RemoteCommand &cmd
     m_pTargetModel->NotifyMemoryChanged(addr, size);
 }
 
-void Dispatcher::ParseInfoym(StringSplitter &splitResp, const RemoteCommand &cmd)
+void Dispatcher::ParseHwRegs(StringSplitter &splitResp, const RemoteCommand &cmd)
 {
     (void)cmd;
-    YmState state;
-    for (int i = 0; i < YmState::kNumRegs; ++i)
+    HwRegs state;
+    for (int i = 0; i < HwRegs::kNumRegs; ++i)
     {
         std::string valueStr = splitResp.Split(SEP_CHAR);
         if (valueStr.size() == 0)
@@ -888,7 +888,7 @@ void Dispatcher::ParseInfoym(StringSplitter &splitResp, const RemoteCommand &cmd
             return;
         state.m_regs[i] = static_cast<uint8_t>(value);
     }
-    m_pTargetModel->SetYm(state);
+    m_pTargetModel->SetHwRegs(state);
 }
 
 void Dispatcher::ParseProfile(StringSplitter &splitResp, const RemoteCommand &cmd)

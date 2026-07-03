@@ -97,7 +97,7 @@ private:
     void ParseSymlist(StringSplitter& splitResp, const RemoteCommand& cmd);
     void ParseExmask(StringSplitter& splitResp, const RemoteCommand& cmd);
     void ParseMemset(StringSplitter& splitResp, const RemoteCommand& cmd);
-    void ParseInfoym(StringSplitter& splitResp, const RemoteCommand& cmd);
+    void ParseHwRegs(StringSplitter& splitResp, const RemoteCommand& cmd);
     void ParseProfile(StringSplitter& splitResp, const RemoteCommand& cmd);
     void ParseMemfind(StringSplitter& splitResp, const RemoteCommand& cmd);
     void ParseHistGet(StringSplitter& splitResp, const RemoteCommand& cmd);

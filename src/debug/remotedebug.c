@@ -54,6 +54,7 @@
 #include "statusbar.h"
 #include "video.h"	/* FIXME: video.h is dependent on HBL_PALETTE_LINES from screen.h */
 #include "reset.h"
+#include "mfp.h"
 
 // TCP port for remote debugger access
 #define RDB_PORT                   (56001)
@@ -88,7 +89,8 @@ static bool bRemoteBreakIsActive = false;
 /* 0x1007    add savebin */
 /* 0x1008    add dmem, DSP support in NotifyConfig */
 /* 0x1009    support parser command rdb_exc in debugui.c */
-#define REMOTEDEBUG_PROTOCOL_ID	(0x1009)
+/* 0x100a    switch infoym -> hwregs and add MFP internal state */
+#define REMOTEDEBUG_PROTOCOL_ID	(0x100a)
 
 /* Char ID to denote terminator of a token. This is under the ASCII "normal"
 	character value range so that 32-255 can be used */
@@ -1031,16 +1033,54 @@ static int RemoteDebug_setstd(int nArgc, char *psArgs[], RemoteDebugState* state
 }
 
 // -----------------------------------------------------------------------------
-/* "infoym" returns internal YM/PSG register state */
+/* "hwregs" returns internal YM/PSG/MFP register state */
 /* returns "OK" + 16 register values */
-static int RemoteDebug_infoym(int nArgc, char *psArgs[], RemoteDebugState* state)
+static int RemoteDebug_hwregs(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
+	MFP_STRUCT* pCurrMfp = pMFP_Main;
 	send_str(state, "OK");
 	for (int i = 0; i < MAX_PSG_REGISTERS; ++i)
 	{
 		send_sep(state);
 		send_hex(state, PSGRegisters[i]);
 	}
+
+	// Add MFP registers too
+#define SEND_MFP(field)	{ send_sep(state); send_hex(state, pCurrMfp->field); }
+
+	SEND_MFP(GPIP);					/* General Purpose Pins / GPDR 0x01 */
+	SEND_MFP(AER);					/* Active Edge Register 0x03*/
+	SEND_MFP(DDR);					/* Data Direction Register */
+	SEND_MFP(IERA);					/* Interrupt Enable Register A 0x07 */
+	SEND_MFP(IERB);					/* Interrupt Enable Register B 0x09 */
+	SEND_MFP(IPRA);					/* Interrupt Pending Register A 0x0B */
+	SEND_MFP(IPRB);					/* Interrupt Pending Register B 0x0D */
+	SEND_MFP(ISRA);					/* Interrupt In-Service Register A 0x0F */
+	SEND_MFP(ISRB);					/* Interrupt In-Service Register B 0x11 */
+	SEND_MFP(IMRA);					/* Interrupt Mask Register A 0x13 */
+	SEND_MFP(IMRB);					/* Interrupt Mask Register B 0x15 */
+	SEND_MFP(VR);					/* Vector Register 0x17 */
+	SEND_MFP(TACR);					/* Timer A Control Register 0x19 */
+	SEND_MFP(TBCR);					/* Timer B Control Register 0x1B */
+	SEND_MFP(TCDCR);				/* Timer C/D Control Register 0x1D */
+	SEND_MFP(TADR);					/* Timer A Data Register 0x1F */
+	SEND_MFP(TBDR);					/* Timer B Data Register 0x21 */
+	SEND_MFP(TCDR);					/* Timer C Data Register 0x23 */
+	SEND_MFP(TDDR);					/* Timer D Data Register 0x25 */
+	SEND_MFP(SCR);					/* Synchronous Data Register 0x27 */
+	SEND_MFP(UCR);					/* USART Control Register 0x29 */
+	SEND_MFP(RSR);					/* Receiver Status Register 0x2B */
+	SEND_MFP(TSR);					/* Transmitter Status Register 0x2D */
+	SEND_MFP(UDR);					/* USART Data Register 0x2F */
+	SEND_MFP(IRQ);					/* IRQ signal (output) 1=IRQ requested*/
+	SEND_MFP(TAI);					/* Input signal on Timer A (for event count mode) */
+	SEND_MFP(TBI);					/* Input signal on Timer B (for event count mode) */
+
+	/* I think these are the countdown timers but their update time is not reliable*/
+	SEND_MFP(TA_MAINCOUNTER);
+	SEND_MFP(TB_MAINCOUNTER);
+	SEND_MFP(TC_MAINCOUNTER);
+	SEND_MFP(TD_MAINCOUNTER);
 	return 0;
 }
 
@@ -1398,7 +1438,7 @@ static const rdbcommand_t remoteDebugCommandList[] = {
 	{ RemoteDebug_exmask,	"exmask"	, true		},
 	{ RemoteDebug_console,	"console"	, false		},
 	{ RemoteDebug_setstd,	"setstd"	, true		},
-	{ RemoteDebug_infoym,	"infoym"	, false		},
+	{ RemoteDebug_hwregs,	"hwregs"	, false		},
 	{ RemoteDebug_profile,	"profile"	, true		},
 	{ RemoteDebug_resetwarm,"resetwarm"	, true		},
 	{ RemoteDebug_resetcold,"resetcold"	, true		},
@@ -1792,7 +1832,7 @@ static bool RemoteDebug_BreakLoop(void)
 			{
 				// disconnected
 				SetStatusbarMessage(state);
-			}
+			}RemoteDebugState_UpdateAccepted
 		}
 	}
 	bRemoteBreakIsActive = false;
