@@ -220,11 +220,16 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     // Keyboard shortcuts
 #define BDG(str)   m_session.GetBinding(str)
     new QShortcut(BDG("startStop"),               this, SLOT(startStopClickedSlot()));
+    new QShortcut(BDG("startStop2"),              this, SLOT(startStopClickedSlot()));
+
     new QShortcut(BDG("break"),                   this, SLOT(breakPressedSlot()));
     new QShortcut(BDG("step"),                    this, SLOT(singleStepClickedSlot()));
+    new QShortcut(BDG("step2"),                   this, SLOT(singleStepClickedSlot()));
     new QShortcut(BDG("stepDsp"),                 this, SLOT(singleStepDspClickedSlot()));
     new QShortcut(BDG("skip"),                    this, SLOT(skipPressedSlot()));
     new QShortcut(BDG("next"),                    this, SLOT(nextClickedSlot()));
+    new QShortcut(BDG("next2"),                   this, SLOT(nextClickedSlot()));
+
     new QShortcut(BDG("nextDsp"),                 this, SLOT(nextDspClickedSlot()));
     new QShortcut(BDG("until"),                   this, SLOT(runToClickedSlot()));
     new QShortcut(BDG("untilCycle"),              this, SLOT(cycleRunToSlot()));
@@ -234,9 +239,6 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     new QShortcut(BDG("untilVbl"),                this, SLOT(runToVblSlot()));
     new QShortcut(BDG("untilHbl"),                this, SLOT(runToHblSlot()));
     new QShortcut(BDG("untilRam"),                this, SLOT(runToRamSlot()));
-    new QShortcut(QKeySequence("F5"),            this, SLOT(startStopClickedSlot()));
-    new QShortcut(QKeySequence("F11"),           this, SLOT(singleStepClickedSlot()));
-    new QShortcut(QKeySequence("F10"),           this, SLOT(nextClickedSlot()));
 
     // Try initial connect
     ConnectTriggered();
