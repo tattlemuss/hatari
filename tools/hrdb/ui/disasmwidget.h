@@ -63,7 +63,10 @@ signals:
     void procChangedSignal();
 
 private slots:
+    // These need to be slots for keybindings
     void toggleBreakpoint();
+    void runToCursor();
+    void KeyboardContextMenu();
 
 private:
     void startStopChanged();
@@ -77,7 +80,6 @@ private:
     void configChanged();
 
     // From keyPressEvent
-    void runToCursor();
     virtual void paintEvent(QPaintEvent* ev) override;
     virtual void keyPressEvent(QKeyEvent* event) override;
     virtual void mouseMoveEvent(QMouseEvent* event) override;
@@ -194,9 +196,9 @@ private:
 
     virtual void contextMenuEvent(QContextMenuEvent *event) override;
 
-    void runToCursorRightClick();
     void toggleBreakpointRightClick();
     void setPCRightClick();
+    void runToCursorRightClick();
     void nopRightClick();
     void copyRightClick();
     void settingsChangedSlot();
@@ -212,7 +214,6 @@ private:
     // Convert from pixel Y to a row ID
     int GetRowFromPixel(int y) const;
 
-    void KeyboardContextMenu();
     void ContextMenu(int row, QPoint globalPos);
 
     uint32_t GetPC() const;
