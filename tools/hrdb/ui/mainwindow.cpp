@@ -72,18 +72,18 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     m_pRunningSquare->setFixedSize(10, 25);
     m_pRunningSquare->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed));
     m_pStartStopButton = new QPushButton("Break", this);
-    m_pStepIntoButton = new QPushButton("(S)tep", this);
-    m_pStepOverButton = new QPushButton("(N)ext", this);
+    m_pStepIntoButton = new QPushButton("Step", this);
+    m_pStepOverButton = new QPushButton("Next", this);
 
-    m_pStartStopButton->setToolTip("Ctrl+R: Run/Stop, Esc: Stop");
-    m_pStepIntoButton->setToolTip("S: Execute one instruction.\n"
+    m_pStartStopButton->setToolTip("Start/Stop execution");
+    m_pStepIntoButton->setToolTip("Execute one instruction.\n"
             "Jumps into subroutines.\n"
             "Ctrl+S: skip instruction.");
-    m_pStepOverButton->setToolTip("N: Stop at next instruction in memory.\n"
+    m_pStepOverButton->setToolTip("Stop at next instruction in memory.\n"
             "Jumps over subroutines and through backwards loops.");
 
-    m_pRunToButton = new QPushButton("Run (U)ntil:", this);
-    m_pRunToButton->setToolTip("U: Run until specified condition");
+    m_pRunToButton = new QPushButton("Run Until:", this);
+    m_pRunToButton->setToolTip("Run until specified condition");
 
     m_pRunToCombo = new QComboBox(this);
     m_pRunToCombo->insertItem(kRunToRts, "RTS");
@@ -102,18 +102,15 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     for (int i = 0; i < kNumDisasmViews; ++i)
     {
         m_pDisasmWidgets[i] = new DisasmWindow(this, &m_session, i);
-        if (i == 0)
-            m_pDisasmWidgets[i]->setWindowTitle("Disassembly 1 (Alt+D)");
-        else
-            m_pDisasmWidgets[i]->setWindowTitle(QString::asprintf("Disassembly %d", i + 1));
+        m_pDisasmWidgets[i]->setWindowTitle(QString::asprintf("Disassembly %d", i + 1));
     }
 
     static const char* windowTitles[4] =
     {
-        "Memory 1 (Alt+M)",
-        "Memory 2 (Alt+2)",
-        "Memory 3 (Alt+3)",
-        "Memory 4 (Alt+4)"
+        "Memory 1",
+        "Memory 2",
+        "Memory 3",
+        "Memory 4"
     };
 
     for (int i = 0; i < kNumMemoryViews; ++i)
@@ -223,21 +220,20 @@ MainWindow::MainWindow(Session& session, QWidget *parent)
     // Keyboard shortcuts
 #define BDG(str)   m_session.GetBinding(str)
     new QShortcut(BDG("startStop"),               this, SLOT(startStopClickedSlot()));
-    new QShortcut(QKeySequence("Esc"),            this, SLOT(breakPressedSlot()));
-    new QShortcut(QKeySequence("S"),              this, SLOT(singleStepClickedSlot()));
-    new QShortcut(QKeySequence("Shift+S"),        this, SLOT(singleStepDspClickedSlot()));
-    new QShortcut(QKeySequence("Ctrl+S"),         this, SLOT(skipPressedSlot()));
-    new QShortcut(QKeySequence("N"),              this, SLOT(nextClickedSlot()));
-    new QShortcut(QKeySequence("Shift+N"),        this, SLOT(nextDspClickedSlot()));
-    new QShortcut(QKeySequence("U"),              this, SLOT(runToClickedSlot()));
-    new QShortcut(QKeySequence("Ctrl+Shift+U"),   this, SLOT(cycleRunToSlot()));
+    new QShortcut(BDG("break"),                   this, SLOT(breakPressedSlot()));
+    new QShortcut(BDG("step"),                    this, SLOT(singleStepClickedSlot()));
+    new QShortcut(BDG("stepDsp"),                 this, SLOT(singleStepDspClickedSlot()));
+    new QShortcut(BDG("skip"),                    this, SLOT(skipPressedSlot()));
+    new QShortcut(BDG("next"),                    this, SLOT(nextClickedSlot()));
+    new QShortcut(BDG("nextDsp"),                 this, SLOT(nextDspClickedSlot()));
+    new QShortcut(BDG("until"),                   this, SLOT(runToClickedSlot()));
+    new QShortcut(BDG("untilCycle"),              this, SLOT(cycleRunToSlot()));
     // Specific "Run until" modes
-    new QShortcut(QKeySequence("Ctrl+U,S"),       this, SLOT(runToRtsSlot()));
-    new QShortcut(QKeySequence("Ctrl+U,E"),       this, SLOT(runToRteSlot()));
-    new QShortcut(QKeySequence("Ctrl+U,V"),       this, SLOT(runToVblSlot()));
-    new QShortcut(QKeySequence("Ctrl+U,H"),       this, SLOT(runToHblSlot()));
-    new QShortcut(QKeySequence("Ctrl+U,R"),       this, SLOT(runToRamSlot()));
-
+    new QShortcut(BDG("untilRts"),                this, SLOT(runToRtsSlot()));
+    new QShortcut(BDG("untilRte"),                this, SLOT(runToRteSlot()));
+    new QShortcut(BDG("untilVbl"),                this, SLOT(runToVblSlot()));
+    new QShortcut(BDG("untilHbl"),                this, SLOT(runToHblSlot()));
+    new QShortcut(BDG("untilRam"),                this, SLOT(runToRamSlot()));
     new QShortcut(QKeySequence("F5"),            this, SLOT(startStopClickedSlot()));
     new QShortcut(QKeySequence("F11"),           this, SLOT(singleStepClickedSlot()));
     new QShortcut(QKeySequence("F10"),           this, SLOT(nextClickedSlot()));
