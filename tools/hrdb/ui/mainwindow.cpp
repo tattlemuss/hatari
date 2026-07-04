@@ -908,7 +908,7 @@ void MainWindow::createActions()
         m_pDisasmWindowActs[i] = new QAction(m_pDisasmWidgets[i]->windowTitle(), this);
         m_pDisasmWindowActs[i]->setStatusTip(tr("Show the disassembly window"));
         m_pDisasmWindowActs[i]->setCheckable(true);
-        QString binding = QString::asprintf("disasmWindow%d", i);
+        QString binding = QString::asprintf("disasmWindow%d", i + 1);
         m_pDisasmWindowActs[i]->setShortcut(m_session.GetBinding(binding));
     }
 
@@ -917,7 +917,7 @@ void MainWindow::createActions()
         m_pMemoryWindowActs[i] = new QAction(m_pMemoryViewWidgets[i]->windowTitle(), this);
         m_pMemoryWindowActs[i]->setStatusTip(tr("Show the memory window"));
         m_pMemoryWindowActs[i]->setCheckable(true);
-        QString binding = QString::asprintf("memoryWindow%d", i);
+        QString binding = QString::asprintf("memoryWindow%d", i + 1);
         m_pMemoryWindowActs[i]->setShortcut(m_session.GetBinding(binding));
     }
 
