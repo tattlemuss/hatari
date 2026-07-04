@@ -5,7 +5,6 @@
 #include <QFont>
 #include <QProcess>
 #include <QColor>
-#include <QSettings>
 #include <QKeySequence>
 
 #include "launcher.h"
@@ -122,6 +121,7 @@ public:
 
     void loadSettings();
     void saveSettings();
+    void setDefaultBindings();
 
     void resetWarm();
     void resetCold();
@@ -154,8 +154,6 @@ private:
     // Actual stored settings object
     Settings         m_settings;
     LaunchSettings   m_launchSettings;
-
-    QSettings        m_bindings;
 };
 
 #endif // SESSION_H

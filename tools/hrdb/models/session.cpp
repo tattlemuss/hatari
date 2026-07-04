@@ -14,8 +14,7 @@ Session::Session() :
     QObject(),
     m_pFileWatcher(nullptr),
     m_pHatariProcess(nullptr),
-    m_autoConnect(true),
-    m_bindings(":/configs/bindings.ini", QSettings::IniFormat)
+    m_autoConnect(true)
 {
     m_pStartupFile = new QTemporaryFile(this);
     m_pProgramStartScript = new QTemporaryFile(this);
@@ -40,6 +39,7 @@ Session::Session() :
     m_settings.m_profileDisplayMode = Settings::kTotal;
     m_settings.m_liveRefresh = false;
     m_settings.m_font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    setDefaultBindings();
     loadSettings();
     chooseColours();
 }
@@ -73,8 +73,9 @@ void Session::Disconnect()
 
 QKeySequence Session::GetBinding(QString name)
 {
-    QString key = QString("bindings/") + name;
-    QString res = m_bindings.value(key).toString();
+    QString key = QString("Bindings/") + name;
+    QSettings settings;
+    QString res = settings.value(key).toString();
     if (res.size() == 0)
     {
         std::cout << "Missing binding for " << name.toStdString() << std::endl;
@@ -141,6 +142,24 @@ void Session::saveSettings()
     settings.endGroup();
 
     m_launchSettings.saveSettings(settings);
+}
+
+// Apply the default bindings in bindings.ini and copy into the live
+// user settings file if they are missing
+void Session::setDefaultBindings()
+{
+    // Read the default bindings from the included resource...
+    QSettings m_bindings(":/configs/bindings.ini", QSettings::IniFormat);
+
+    // ... and copy them into the "real" settings if they are missing.
+    QStringList keys = m_bindings.allKeys();
+    QSettings settings; // "Real" settings
+    for (QString key : keys)
+    {
+        QString val = m_bindings.value(key).toString();
+        if (!settings.contains(key))
+            settings.setValue(key, val);
+    }
 }
 
 void Session::connectTimerCallback()
