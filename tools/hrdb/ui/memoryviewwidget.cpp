@@ -1324,6 +1324,9 @@ bool MemoryWidget::IsNybble(MemoryWidget::ColumnType type)
 }
 
 //-----------------------------------------------------------------------------
+
+#define BDG(str)   m_pSession->GetBinding(str)
+
 //-----------------------------------------------------------------------------
 MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) :
     QDockWidget(parent),
@@ -1339,10 +1342,10 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
 
     // Search action created first so we can pass it to the child widget
     QAction* pMenuSearchAction = new QAction("Search...", this);
-    pMenuSearchAction->setShortcut(QKeySequence("Ctrl+F"));
+    pMenuSearchAction->setShortcut(BDG("memoryFind"));
     connect(pMenuSearchAction, &QAction::triggered, this, &MemoryWindow::findClickedSlot);
     QAction* pMenuSaveAction = new QAction("Write to File...", this);
-    pMenuSaveAction->setShortcut(QKeySequence("Ctrl+W"));
+    pMenuSaveAction->setShortcut(BDG("memoryWrite"));
     connect(pMenuSaveAction, &QAction::triggered, this, &MemoryWindow::saveBinClickedSlot);
 
     m_pSymbolTableModel = new SymbolTableModel(this, m_pTargetModel->GetSymbolTable());
@@ -1409,11 +1412,11 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
     syncUiElements();
 
     // The scope here is explained at https://forum.qt.io/topic/67981/qshortcut-multiple-widget-instances/2
-    new QShortcut(QKeySequence("Ctrl+F"),         this, SLOT(findClickedSlot()),    nullptr, Qt::WidgetWithChildrenShortcut);
-    new QShortcut(QKeySequence("Ctrl+W"),         this, SLOT(saveBinClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
-    new QShortcut(QKeySequence("F3"),             this, SLOT(nextClickedSlot()),    nullptr, Qt::WidgetWithChildrenShortcut);
-    new QShortcut(QKeySequence("Ctrl+G"),         this, SLOT(gotoClickedSlot()),    nullptr, Qt::WidgetWithChildrenShortcut);
-    new QShortcut(QKeySequence("Ctrl+L"),         this, SLOT(lockClickedSlot()),    nullptr, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(BDG("memoryFind"),         this, SLOT(findClickedSlot()),    nullptr, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(BDG("memoryWrite"),        this, SLOT(saveBinClickedSlot()), nullptr, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(BDG("memoryFindNext"),     this, SLOT(nextClickedSlot()),    nullptr, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(BDG("memoryGoto"),         this, SLOT(gotoClickedSlot()),    nullptr, Qt::WidgetWithChildrenShortcut);
+    new QShortcut(BDG("memoryLock"),         this, SLOT(lockToggledSlot()),    nullptr, Qt::WidgetWithChildrenShortcut);
 
     connect(m_pAddressEdit,  &QLineEdit::returnPressed,                this, &MemoryWindow::returnPressedSlot);
     connect(m_pAddressEdit,  &QLineEdit::textChanged,                  this, &MemoryWindow::textEditedSlot);
@@ -1635,6 +1638,12 @@ void MemoryWindow::gotoClickedSlot()
 void MemoryWindow::lockClickedSlot()
 {
     m_pMemoryWidget->SetLock(m_pLockCheckBox->isChecked());
+}
+
+void MemoryWindow::lockToggledSlot()
+{
+    m_pMemoryWidget->SetLock(!m_pMemoryWidget->IsLocked());
+    syncUiElements();
 }
 
 void MemoryWindow::searchResultsSlot(uint64_t responseId)

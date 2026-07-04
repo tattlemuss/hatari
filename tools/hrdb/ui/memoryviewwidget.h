@@ -320,6 +320,7 @@ public slots:
     void nextClickedSlot();
     void gotoClickedSlot();
     void lockClickedSlot();
+    void lockToggledSlot();
     void searchResultsSlot(uint64_t responseId);
     void symbolTableChangedSlot(uint64_t responseId);
     void syncUiElements();
