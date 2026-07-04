@@ -853,6 +853,33 @@ void MainWindow::requestMainState(uint32_t pc)
     m_mainStateCompleteRequest = m_pDispatcher->InsertFlush();
 }
 
+QString MakeWindowTitle(QString type, int index, QString binding)
+{
+    QString str;
+    QTextStream ref(&str);
+    ref << type;
+
+    // Optional index
+    if (index >= 0)
+        ref << " " << (index + 1);
+
+    // Optional key binding
+    if (binding.size() != 0)
+        ref << " (" << binding << ")";
+    return str;
+}
+
+QString MakeActionTitle(QString type, int index)
+{
+    QString str;
+    QTextStream ref(&str);
+    ref << type;
+    // Optional index
+    if (index >= 0)
+        ref << " " << (index + 1);
+    return str;
+}
+
 void MainWindow::createActions()
 {
     // "File"
@@ -905,46 +932,80 @@ void MainWindow::createActions()
     // "Window"
     for (int i = 0; i < kNumDisasmViews; ++i)
     {
-        m_pDisasmWindowActs[i] = new QAction(m_pDisasmWidgets[i]->windowTitle(), this);
+        QString binding = QString::asprintf("disasmWindow%d", i + 1);
+        QKeySequence seq = m_session.GetBinding(binding);
+        m_pDisasmWidgets[i]->setWindowTitle(MakeWindowTitle("Disassembly", i, seq.toString()));
+        m_pDisasmWindowActs[i] = new QAction(MakeActionTitle("Disassembly", i), this);
         m_pDisasmWindowActs[i]->setStatusTip(tr("Show the disassembly window"));
         m_pDisasmWindowActs[i]->setCheckable(true);
-        QString binding = QString::asprintf("disasmWindow%d", i + 1);
-        m_pDisasmWindowActs[i]->setShortcut(m_session.GetBinding(binding));
+        m_pDisasmWindowActs[i]->setShortcut(seq);
     }
 
     for (int i = 0; i < kNumMemoryViews; ++i)
     {
-        m_pMemoryWindowActs[i] = new QAction(m_pMemoryViewWidgets[i]->windowTitle(), this);
+        QString binding = QString::asprintf("memoryWindow%d", i + 1);
+        QKeySequence seq = m_session.GetBinding(binding);
+        m_pMemoryViewWidgets[i]->setWindowTitle(MakeWindowTitle("Memory", i, seq.toString()));
+        m_pMemoryWindowActs[i] = new QAction(MakeActionTitle("Memory", i), this);
         m_pMemoryWindowActs[i]->setStatusTip(tr("Show the memory window"));
         m_pMemoryWindowActs[i]->setCheckable(true);
-        QString binding = QString::asprintf("memoryWindow%d", i + 1);
-        m_pMemoryWindowActs[i]->setShortcut(m_session.GetBinding(binding));
+        m_pMemoryWindowActs[i]->setShortcut(seq);
     }
 
-    m_pGraphicsInspectorAct = new QAction(tr("&Graphics Inspector"), this);
-    m_pGraphicsInspectorAct->setShortcut(m_session.GetBinding("graphicsInspector"));
-    m_pGraphicsInspectorAct->setStatusTip(tr("Show the Graphics Inspector"));
-    m_pGraphicsInspectorAct->setCheckable(true);
+    {
+        QString binding = QString("graphicsInspector");
+        QKeySequence seq = m_session.GetBinding(binding);
+        m_pGraphicsInspector->setWindowTitle(MakeWindowTitle("Graphics Inspector", -1, seq.toString()));
 
-    m_pBreakpointsWindowAct = new QAction(tr("&Breakpoints"), this);
-    m_pBreakpointsWindowAct->setShortcut(m_session.GetBinding("breakpointsWindow"));
-    m_pBreakpointsWindowAct->setStatusTip(tr("Show the Breakpoints window"));
-    m_pBreakpointsWindowAct->setCheckable(true);
+        m_pGraphicsInspectorAct = new QAction(tr("&Graphics Inspector"), this);
+        m_pGraphicsInspectorAct->setStatusTip(tr("Show the Graphics Inspector"));
+        m_pGraphicsInspectorAct->setCheckable(true);
+        m_pGraphicsInspectorAct->setShortcut(seq);
+    }
 
-    m_pConsoleWindowAct = new QAction(tr("&Console"), this);
-    m_pConsoleWindowAct->setShortcut(m_session.GetBinding("consoleWindow"));
-    m_pConsoleWindowAct->setStatusTip(tr("Show the Console window"));
-    m_pConsoleWindowAct->setCheckable(true);
+    {
+        QString binding = QString("breakpointsWindow");
+        QKeySequence seq = m_session.GetBinding(binding);
+        m_pBreakpointsWidget->setWindowTitle(MakeWindowTitle("Breakpoints", -1, seq.toString()));
 
-    m_pHardwareWindowAct = new QAction(tr("&Hardware"), this);
-    m_pHardwareWindowAct->setShortcut(m_session.GetBinding("hardwareWindow"));
-    m_pHardwareWindowAct->setStatusTip(tr("Show the Hardware window"));
-    m_pHardwareWindowAct->setCheckable(true);
+        m_pBreakpointsWindowAct = new QAction(tr("&Breakpoints"), this);
+        m_pBreakpointsWindowAct->setShortcut(seq);
+        m_pBreakpointsWindowAct->setStatusTip(tr("Show the Breakpoints window"));
+        m_pBreakpointsWindowAct->setCheckable(true);
+    }
 
-    m_pProfileWindowAct = new QAction(tr("&Profile"), this);
-    m_pProfileWindowAct->setShortcut(m_session.GetBinding("profileWindow"));
-    m_pProfileWindowAct->setStatusTip(tr("Show the Profile window"));
-    m_pProfileWindowAct->setCheckable(true);
+    {
+        QString binding = QString("consoleWindow");
+        QKeySequence seq = m_session.GetBinding(binding);
+        m_pConsoleWindow->setWindowTitle(MakeWindowTitle("Console", -1, seq.toString()));
+
+        m_pConsoleWindowAct = new QAction(tr("&Console"), this);
+        m_pConsoleWindowAct->setShortcut(seq);
+        m_pConsoleWindowAct->setStatusTip(tr("Show the Console window"));
+        m_pConsoleWindowAct->setCheckable(true);
+    }
+
+    {
+        QString binding = QString("hardwareWindow");
+        QKeySequence seq = m_session.GetBinding(binding);
+        m_pHardwareWindow->setWindowTitle(MakeWindowTitle("Hardware", -1, seq.toString()));
+
+        m_pHardwareWindowAct = new QAction(tr("&Hardware"), this);
+        m_pHardwareWindowAct->setShortcut(seq);
+        m_pHardwareWindowAct->setStatusTip(tr("Show the Hardware window"));
+        m_pHardwareWindowAct->setCheckable(true);
+    }
+
+    {
+        QString binding = QString("profileWindow");
+        QKeySequence seq = m_session.GetBinding(binding);
+        m_pProfileWindow->setWindowTitle(MakeWindowTitle("Profile", -1, seq.toString()));
+
+        m_pProfileWindowAct = new QAction(tr("&Profile"), this);
+        m_pProfileWindowAct->setShortcut(seq);
+        m_pProfileWindowAct->setStatusTip(tr("Show the Profile window"));
+        m_pProfileWindowAct->setCheckable(true);
+    }
 
     for (int i = 0; i < kNumDisasmViews; ++i)
         connect(m_pDisasmWindowActs[i], &QAction::triggered, this,     [=] () { this->enableVis(m_pDisasmWidgets[i]); m_pDisasmWidgets[i]->keyFocus(); } );
