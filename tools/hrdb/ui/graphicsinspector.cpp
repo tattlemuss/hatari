@@ -283,6 +283,11 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
     connect(m_pOverlayRegistersAction,      &QAction::triggered,          this, &GraphicsInspectorWidget::overlayRegistersChanged);
     connect(m_pOverlayVideoAction,          &QAction::triggered,          this, &GraphicsInspectorWidget::overlayVideoChanged);
 
+    {
+        QKeySequence seq = m_pSession->GetBinding("contextMenu");
+        new QShortcut(seq, this, SLOT(KeyboardContextMenu()), nullptr, Qt::WidgetWithChildrenShortcut);
+    }
+
     loadSettings();
     UpdateUIElements();
     DisplayAddress();
@@ -362,16 +367,7 @@ void GraphicsInspectorWidget::keyPressEvent(QKeyEvent* ev)
     Qt::KeyboardModifiers modif = ev->modifiers() & ~(Qt::KeypadModifier | Qt::GroupSwitchModifier);
 
     bool shift = (modif.testFlag(Qt::KeyboardModifier::ShiftModifier));
-    // Handle keyboard shortcuts with scope here, since QShortcut is global
-    if (modif == Qt::ControlModifier)
-    {
-        switch (ev->key())
-        {
-            case Qt::Key_Space:     KeyboardContextMenu();    return;
-            default: break;
-        }
-    }
-    else
+    if (modif != Qt::ControlModifier)
     {
         if (ev->key() == Qt::Key::Key_Up)
             offset = shift ? -8 * data.bytesPerLine : -data.bytesPerLine;

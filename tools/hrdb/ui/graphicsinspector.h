@@ -64,6 +64,7 @@ private slots:
     void rightStrideClicked();
     void heightChangedSlot(int height);
     void saveImageClicked();
+    void KeyboardContextMenu();
 
 private:
     void updateInfoLine();
@@ -139,7 +140,6 @@ private:
     bool CreateAnnotation(NonAntiAliasImage::Annotation &annot, uint32_t address,
                           const EffectiveData &data, const char* label);
 
-    void KeyboardContextMenu();
     void ContextMenu(QPoint pos);
 
     // Calc how many bytes a "chunk" of pixels constitutes, which is 16 pixels.
