@@ -932,7 +932,7 @@ void MainWindow::createActions()
     // "Window"
     for (int i = 0; i < kNumDisasmViews; ++i)
     {
-        QString binding = QString::asprintf("disasmWindow%d", i + 1);
+        QString binding = QString::asprintf("focusDisasm%d", i + 1);
         QKeySequence seq = m_session.GetBinding(binding);
         m_pDisasmWidgets[i]->setWindowTitle(MakeWindowTitle("Disassembly", i, seq.toString()));
         m_pDisasmWindowActs[i] = new QAction(MakeActionTitle("Disassembly", i), this);
@@ -943,7 +943,7 @@ void MainWindow::createActions()
 
     for (int i = 0; i < kNumMemoryViews; ++i)
     {
-        QString binding = QString::asprintf("memoryWindow%d", i + 1);
+        QString binding = QString::asprintf("focusMemory%d", i + 1);
         QKeySequence seq = m_session.GetBinding(binding);
         m_pMemoryViewWidgets[i]->setWindowTitle(MakeWindowTitle("Memory", i, seq.toString()));
         m_pMemoryWindowActs[i] = new QAction(MakeActionTitle("Memory", i), this);
@@ -953,7 +953,7 @@ void MainWindow::createActions()
     }
 
     {
-        QString binding = QString("graphicsInspector");
+        QString binding = QString("focusGraphics");
         QKeySequence seq = m_session.GetBinding(binding);
         m_pGraphicsInspector->setWindowTitle(MakeWindowTitle("Graphics Inspector", -1, seq.toString()));
 
@@ -964,7 +964,7 @@ void MainWindow::createActions()
     }
 
     {
-        QString binding = QString("breakpointsWindow");
+        QString binding = QString("focusBreakpoints");
         QKeySequence seq = m_session.GetBinding(binding);
         m_pBreakpointsWidget->setWindowTitle(MakeWindowTitle("Breakpoints", -1, seq.toString()));
 
@@ -975,7 +975,7 @@ void MainWindow::createActions()
     }
 
     {
-        QString binding = QString("consoleWindow");
+        QString binding = QString("focusConsole");
         QKeySequence seq = m_session.GetBinding(binding);
         m_pConsoleWindow->setWindowTitle(MakeWindowTitle("Console", -1, seq.toString()));
 
@@ -986,7 +986,7 @@ void MainWindow::createActions()
     }
 
     {
-        QString binding = QString("hardwareWindow");
+        QString binding = QString("focusHardware");
         QKeySequence seq = m_session.GetBinding(binding);
         m_pHardwareWindow->setWindowTitle(MakeWindowTitle("Hardware", -1, seq.toString()));
 
@@ -997,7 +997,7 @@ void MainWindow::createActions()
     }
 
     {
-        QString binding = QString("profileWindow");
+        QString binding = QString("focusProfile");
         QKeySequence seq = m_session.GetBinding(binding);
         m_pProfileWindow->setWindowTitle(MakeWindowTitle("Profile", -1, seq.toString()));
 
