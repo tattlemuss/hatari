@@ -1,4 +1,5 @@
 #include "session.h"
+#include <iostream>
 #include <QtNetwork>
 #include <QTimer>
 #include <QFontDatabase>
@@ -74,6 +75,10 @@ QKeySequence Session::GetBinding(QString name)
 {
     QString key = QString("bindings/") + name;
     QString res = m_bindings.value(key).toString();
+    if (res.size() == 0)
+    {
+        std::cout << "Missing binding for " << name.toStdString() << std::endl;
+    }
     return QKeySequence(res);
 }
 
