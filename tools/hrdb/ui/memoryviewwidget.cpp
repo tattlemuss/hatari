@@ -83,6 +83,38 @@ static QString CreateTooltip(uint32_t address, const SymbolTable& symTable, uint
     return final;
 }
 
+
+static QString AnnotateDspAddress(MemSpace space, uint32_t addr)
+{
+    switch (space)
+    {
+    case MEM_X:
+        if (addr < 0x200)
+            return "Internal";
+        if (addr >= 0x8000)
+            break;
+        addr &= 0x3fff;
+        return QString::asprintf("=P:$%04x", addr + 0x4000);
+    case MEM_Y:
+        if (addr < 0x200)
+            return "Internal";
+        if (addr >= 0x8000)
+            break;
+        addr &= 0x3fff;
+        return QString::asprintf("=P:$%04x", addr);
+    case MEM_P:
+        if (addr < 0x200)
+            return "Internal";
+        if (addr < 0x4000)
+            return QString::asprintf("=Y:$%04x", addr);
+        if (addr < 0x8000)
+            return QString::asprintf("=X:$%04x", addr - 0x4000);
+    default:
+        break;
+    }
+    return "-";
+}
+
 static int32_t GetDivider(MemSpace space)
 {
     if (space != MEM_CPU)
@@ -836,6 +868,13 @@ void MemoryWidget::paintEvent(QPaintEvent* ev)
                 QChar st = r.m_text.at(col);
                 painter.setPen(changed ? m_pSession->m_changedColour: pal.text().color());
                 painter.drawText(x, text_y, st);
+            }
+            // Extra memory annotation in DSP modes
+            if (m_address.space != MEM_CPU)
+            {
+                int x2 = GetPixelFromCol(m_columnMap.size() + 2);
+                QString annot = AnnotateDspAddress(m_address.space, rowAddr);
+                painter.drawText(x2, text_y, annot);
             }
         }
 
