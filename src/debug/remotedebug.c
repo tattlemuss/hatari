@@ -1832,7 +1832,7 @@ static bool RemoteDebug_BreakLoop(void)
 			{
 				// disconnected
 				SetStatusbarMessage(state);
-			}RemoteDebugState_UpdateAccepted
+			}
 		}
 	}
 	bRemoteBreakIsActive = false;
