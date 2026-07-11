@@ -1412,6 +1412,39 @@ static int RemoteDebug_histget(int nArgc, char *psArgs[], RemoteDebugState* stat
 }
 
 // -----------------------------------------------------------------------------
+static void RemoteDebugAccessBreakpoint(uaecptr start, uae_u32 size)
+{
+	// We should really register the break after the instruction has been completed
+	DebugUI(REASON_CPU_BREAKPOINT);
+}
+
+// -----------------------------------------------------------------------------
+/* Set the memory access breakpoint at an address range.
+ *
+ * Input: "hist <cpu_enable:hex> <dsp_enable:hex> <limit:hex>
+ *
+ * Output: "OK"/"NG"
+ */
+static int RemoteDebug_accbp(int nArgc, char *psArgs[], RemoteDebugState* state)
+{
+	if (nArgc != 4)
+		return 1;
+
+	uint32_t mask = 0;
+	uint32_t address = 0;
+	uint32_t size = 0;
+	if (!read_hex32_value(psArgs[1], &mask))
+		return 1;
+	if (!read_hex32_value(psArgs[2], &address))
+		return 1;
+	if (!read_hex32_value(psArgs[3], &size))
+		return 1;
+	memory_register_breakpoint(RemoteDebugAccessBreakpoint, mask, address, size);
+	send_str(state, "OK");
+	return 0;
+}
+
+// -----------------------------------------------------------------------------
 /* DebugUI command structure */
 typedef struct
 {
@@ -1448,6 +1481,7 @@ static const rdbcommand_t remoteDebugCommandList[] = {
 	{ RemoteDebug_dmem,		"dmem"		, true		},
 	{ RemoteDebug_histset,	"histset"	, true		},
 	{ RemoteDebug_histget,	"histget"	, true		},
+	{ RemoteDebug_accbp,	"accbp"		, true		},
 
 	/* Terminator */
 	{ NULL, NULL }

@@ -559,10 +559,37 @@ static uae_u8 * REGPARAM3 BusErrMem_xlate (uaecptr addr)
 /*static uae_u8 *STmemory;*/
 #define STmemory STRam
 
+static uae_u8 breakpoint_mask = 0;
+static uaecptr breakpoint_start_address = 0;
+static uaecptr breakpoint_end_address = 0;
+static memory_breakpoint_func breakpoint_func = NULL;
+
+static void check_mem_breakpoint(uae_u8 mask, uaecptr addr, uae_s8 size)
+{
+	if (!breakpoint_func)
+		return;
+	if ((mask & breakpoint_mask) == 0)
+		return;
+	if (addr >= breakpoint_end_address)
+		return;
+	if (addr + size <= breakpoint_start_address)
+		return;
+	breakpoint_func(addr, size);
+}
+
+void memory_register_breakpoint(memory_breakpoint_func func, uae_u8 mask, uaecptr start, uae_u32 size)
+{
+	breakpoint_mask = mask;
+	breakpoint_start_address = start;
+	breakpoint_end_address = start + size;
+	breakpoint_func = func;
+}
+
 static uae_u32 REGPARAM3 STmem_lget(uaecptr addr)
 {
 	addr -= STmem_start & STmem_mask;
 	addr &= STmem_mask;
+	check_mem_breakpoint(MEMORY_BP_MASK_READ, addr, 4);
 	return do_get_mem_long(STmemory + addr);
 }
 
@@ -570,6 +597,7 @@ static uae_u32 REGPARAM3 STmem_wget(uaecptr addr)
 {
 	addr -= STmem_start & STmem_mask;
 	addr &= STmem_mask;
+	check_mem_breakpoint(MEMORY_BP_MASK_READ, addr, 2);
 	return do_get_mem_word(STmemory + addr);
 }
 
@@ -577,6 +605,7 @@ static uae_u32 REGPARAM3 STmem_bget(uaecptr addr)
 {
 	addr -= STmem_start & STmem_mask;
 	addr &= STmem_mask;
+	check_mem_breakpoint(MEMORY_BP_MASK_READ, addr, 1);
 	return STmemory[addr];
 }
 
@@ -584,6 +613,7 @@ static void REGPARAM3 STmem_lput(uaecptr addr, uae_u32 l)
 {
 	addr -= STmem_start & STmem_mask;
 	addr &= STmem_mask;
+	check_mem_breakpoint(MEMORY_BP_MASK_WRITE, addr, 4);
 	do_put_mem_long(STmemory + addr, l);
 }
 
@@ -591,6 +621,7 @@ static void REGPARAM3 STmem_wput(uaecptr addr, uae_u32 w)
 {
 	addr -= STmem_start & STmem_mask;
 	addr &= STmem_mask;
+	check_mem_breakpoint(MEMORY_BP_MASK_WRITE, addr, 2);
 	do_put_mem_word(STmemory + addr, w);
 }
 
@@ -598,6 +629,7 @@ static void REGPARAM3 STmem_bput(uaecptr addr, uae_u32 b)
 {
 	addr -= STmem_start & STmem_mask;
 	addr &= STmem_mask;
+	check_mem_breakpoint(MEMORY_BP_MASK_WRITE, addr, 1);
 	STmemory[addr] = b;
 }
 
@@ -621,6 +653,7 @@ static uae_u32 REGPARAM3 STmem_lget_MMU(uaecptr addr)
 {
 	addr -= STmem_start & STmem_mask;
 	addr &= STmem_mask;
+	check_mem_breakpoint(MEMORY_BP_MASK_READ, addr, 4);
 	addr = STMemory_MMU_Translate_Addr ( addr );
 	return do_get_mem_long(STmemory + addr);
 }
@@ -629,6 +662,7 @@ static uae_u32 REGPARAM3 STmem_wget_MMU(uaecptr addr)
 {
 	addr -= STmem_start & STmem_mask;
 	addr &= STmem_mask;
+	check_mem_breakpoint(MEMORY_BP_MASK_READ, addr, 2);
 	addr = STMemory_MMU_Translate_Addr ( addr );
 	return do_get_mem_word(STmemory + addr);
 }
@@ -637,6 +671,7 @@ static uae_u32 REGPARAM3 STmem_bget_MMU(uaecptr addr)
 {
 	addr -= STmem_start & STmem_mask;
 	addr &= STmem_mask;
+	check_mem_breakpoint(MEMORY_BP_MASK_READ, addr, 1);
 	addr = STMemory_MMU_Translate_Addr ( addr );
 	return STmemory[addr];
 }
@@ -645,6 +680,7 @@ static void REGPARAM3 STmem_lput_MMU(uaecptr addr, uae_u32 l)
 {
 	addr -= STmem_start & STmem_mask;
 	addr &= STmem_mask;
+	check_mem_breakpoint(MEMORY_BP_MASK_WRITE, addr, 4);
 	addr = STMemory_MMU_Translate_Addr ( addr );
 	do_put_mem_long(STmemory + addr, l);
 }
@@ -653,6 +689,7 @@ static void REGPARAM3 STmem_wput_MMU(uaecptr addr, uae_u32 w)
 {
 	addr -= STmem_start & STmem_mask;
 	addr &= STmem_mask;
+	check_mem_breakpoint(MEMORY_BP_MASK_WRITE, addr, 2);
 	addr = STMemory_MMU_Translate_Addr ( addr );
 	do_put_mem_word(STmemory + addr, w);
 }
@@ -661,6 +698,7 @@ static void REGPARAM3 STmem_bput_MMU(uaecptr addr, uae_u32 b)
 {
 	addr -= STmem_start & STmem_mask;
 	addr &= STmem_mask;
+	check_mem_breakpoint(MEMORY_BP_MASK_WRITE, addr, 1);
 	addr = STMemory_MMU_Translate_Addr ( addr );
 	STmemory[addr] = b;
 }
@@ -679,6 +717,7 @@ static uae_u32 REGPARAM3 SysMem_lget(uaecptr addr)
 
 	addr -= STmem_start & STmem_mask;
 	addr &= STmem_mask;
+	check_mem_breakpoint(MEMORY_BP_MASK_READ, addr, 4);
 
 	/* Only CPU will trigger bus error if bit S=0, not the blitter or the debugger */
 	if(addr < 0x800 && !is_super_access(true) && BusMode == BUS_MODE_CPU)
@@ -696,6 +735,7 @@ static uae_u32 REGPARAM3 SysMem_wget(uaecptr addr)
 
 	addr -= STmem_start & STmem_mask;
 	addr &= STmem_mask;
+	check_mem_breakpoint(MEMORY_BP_MASK_READ, addr, 2);
 
 	/* Only CPU will trigger bus error if bit S=0, not the blitter or the debugger */
 	if(addr < 0x800 && !is_super_access(true) && BusMode == BUS_MODE_CPU)
@@ -713,6 +753,7 @@ static uae_u32 REGPARAM3 SysMem_bget(uaecptr addr)
 
 	addr -= STmem_start & STmem_mask;
 	addr &= STmem_mask;
+	check_mem_breakpoint(MEMORY_BP_MASK_READ, addr, 1);
 
 	/* Only CPU will trigger bus error if bit S=0, not the blitter or the debugger */
 	if(addr < 0x800 && !is_super_access(true) && BusMode == BUS_MODE_CPU)
@@ -730,6 +771,7 @@ static void REGPARAM3 SysMem_lput(uaecptr addr, uae_u32 l)
 
 	addr -= STmem_start & STmem_mask;
 	addr &= STmem_mask;
+	check_mem_breakpoint(MEMORY_BP_MASK_WRITE, addr, 4);
 
 	if(addr < 0x8 || (addr < 0x800 && !is_super_access(false)))
 	{
@@ -746,6 +788,7 @@ static void REGPARAM3 SysMem_wput(uaecptr addr, uae_u32 w)
 
 	addr -= STmem_start & STmem_mask;
 	addr &= STmem_mask;
+	check_mem_breakpoint(MEMORY_BP_MASK_WRITE, addr, 2);
 
 	/* Only CPU will trigger bus error if bit S=0, not the blitter */
 	if (addr < 0x8 || (addr < 0x800 && !is_super_access(false)))
@@ -771,6 +814,7 @@ static void REGPARAM3 SysMem_bput(uaecptr addr, uae_u32 b)
 
 	addr -= STmem_start & STmem_mask;
 	addr &= STmem_mask;
+	check_mem_breakpoint(MEMORY_BP_MASK_WRITE, addr, 1);
 
 	if (addr < 0x8 || (addr < 0x800 && !is_super_access(false)))
 	{
@@ -789,6 +833,7 @@ static uae_u32 REGPARAM3 SysMem_lget_MMU(uaecptr addr)
 
 	addr -= STmem_start & STmem_mask;
 	addr &= STmem_mask;
+	check_mem_breakpoint(MEMORY_BP_MASK_READ, addr, 4);
 
 	if (addr < 0x800 && !is_super_access(true))
 	{
@@ -806,6 +851,7 @@ static uae_u32 REGPARAM3 SysMem_wget_MMU(uaecptr addr)
 
 	addr -= STmem_start & STmem_mask;
 	addr &= STmem_mask;
+	check_mem_breakpoint(MEMORY_BP_MASK_READ, addr, 2);
 
 	/* Only CPU will trigger bus error if bit S=0, not the blitter */
 	if (addr < 0x800 && !is_super_access(true) && BusMode == BUS_MODE_CPU)
@@ -824,6 +870,7 @@ static uae_u32 REGPARAM3 SysMem_bget_MMU(uaecptr addr)
 
 	addr -= STmem_start & STmem_mask;
 	addr &= STmem_mask;
+	check_mem_breakpoint(MEMORY_BP_MASK_READ, addr, 1);
 
 	if (addr < 0x800 && !is_super_access(true))
 	{
@@ -841,6 +888,7 @@ static void REGPARAM3 SysMem_lput_MMU(uaecptr addr, uae_u32 l)
 
 	addr -= STmem_start & STmem_mask;
 	addr &= STmem_mask;
+	check_mem_breakpoint(MEMORY_BP_MASK_WRITE, addr, 4);
 
 	if (addr < 0x8 || (addr < 0x800 && !is_super_access(false)))
 	{
@@ -858,6 +906,7 @@ static void REGPARAM3 SysMem_wput_MMU(uaecptr addr, uae_u32 w)
 
 	addr -= STmem_start & STmem_mask;
 	addr &= STmem_mask;
+	check_mem_breakpoint(MEMORY_BP_MASK_WRITE, addr, 2);
 
 	/* Only CPU will trigger bus error if bit S=0, not the blitter */
 	if (addr < 0x8 || (addr < 0x800 && !is_super_access(false)))
@@ -884,6 +933,7 @@ static void REGPARAM3 SysMem_bput_MMU(uaecptr addr, uae_u32 b)
 
 	addr -= STmem_start & STmem_mask;
 	addr &= STmem_mask;
+	check_mem_breakpoint(MEMORY_BP_MASK_WRITE, addr, 1);
 
 	if (addr < 0x8 || (addr < 0x800 && !is_super_access(false)))
 	{

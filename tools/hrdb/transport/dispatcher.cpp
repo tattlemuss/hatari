@@ -212,6 +212,19 @@ uint64_t Dispatcher::SetRegister(Processor proc, int reg, uint32_t val)
     }
 }
 
+uint64_t Dispatcher::SetAccessBreakpoint(bool read, bool write, uint32_t address, uint32_t size)
+{
+    uint8_t mask = 0;
+    if (read)
+        mask |= 1;
+    if (write)
+        mask |= 2;
+
+    const char* cmd = "accbp";
+    QString command = QString::asprintf("%s %x %x %x", cmd, mask, address, size);
+    return SendCommandPacket(command.toStdString().c_str());
+}
+
 uint64_t Dispatcher::SetExceptionMask(uint32_t mask)
 {
     return SendCommandPacket(QString::asprintf("exmask %x", mask).toStdString().c_str());

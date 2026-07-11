@@ -928,4 +928,11 @@ typedef struct UaeMemoryMap {
 
 void uae_memory_map(UaeMemoryMap *map);
 
+typedef void (*memory_breakpoint_func)(uaecptr start, uae_u32 size);
+
+#define MEMORY_BP_MASK_READ		(1)
+#define MEMORY_BP_MASK_WRITE	(2)
+
+void memory_register_breakpoint(memory_breakpoint_func func, uae_u8 mask, uaecptr start, uae_u32 size);
+
 #endif /* UAE_MEMORY_H */
