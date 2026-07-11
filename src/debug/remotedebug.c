@@ -1,11 +1,11 @@
 /*
  * Hatari - remotedebug.c
- * 
+ *
  * This file is distributed under the GNU General Public License, version 2
  * or at your option any later version. Read the file gpl.txt for details.
- * 
+ *
  * Remote debugging support via a network port.
- * 
+ *
  */
 
 #include "remotedebug.h"
@@ -373,7 +373,7 @@ static void RemoteDebug_NotifyProfile(RemoteDebugState* state)
 	send_sep(state);
 	send_hex(state, Profile_CpuIsEnabled() ? 1 : 0);
 	send_sep(state);
-	
+
 	index = 0;
 	lastaddr = 0;
 	while (Profile_CpuQuery(index, &result))
@@ -595,11 +595,11 @@ static const RemoteDebugDspReg g_remoteDebugDspRegs[] =
 };
 
 /**
- * Dump register contents. 
+ * Dump register contents.
  * This also includes Hatari variables, which we treat as a subset of regs.
- * 
+ *
  * Input: "regs\n"
- * 
+ *
  * Output: "regs <reg:value>*N\n"
  */
 static int RemoteDebug_regs(int nArgc, char *psArgs[], RemoteDebugState* state)
@@ -935,7 +935,7 @@ static int RemoteDebug_symlist(int nArgc, char *psArgs[], RemoteDebugState* stat
 	send_sep(state);
 	send_hex(state, count);
 	send_sep(state);
-	
+
 	for (i = 0; i < count; ++i)
 	{
 		rdb_symbol_t query;
@@ -956,7 +956,7 @@ static int RemoteDebug_symlist(int nArgc, char *psArgs[], RemoteDebugState* stat
  *
  * Input: exmask
  * Input: exmask <new_mask:hex>
- * 
+ *
  *  returns "OK <mask val:hex>"" */
 static int RemoteDebug_exmask(int nArgc, char *psArgs[], RemoteDebugState* state)
 {
@@ -1504,7 +1504,7 @@ static int RemoteDebug_Parse(const char *input_orig, RemoteDebugState* state)
 		psArgs[1] = input + strlen(psArgs[0]) + 1;
 		nArgc = 2;
 	}
-	
+
 	if (nArgc >= ARRAY_SIZE(psArgs))
 	{
 		retval = -1;
@@ -1712,7 +1712,7 @@ static void RemoteDebugState_UpdateAccepted(RemoteDebugState* state)
 
 	// Read input and accumulate a command (blocking)
 	remaining = sizeof(state->cmd_buf);
-	int bytes = recv(state->AcceptedFD, 
+	int bytes = recv(state->AcceptedFD,
 		state->cmd_buf,
 		remaining,
 		0);
@@ -1892,7 +1892,7 @@ static int RemoteDebugState_InitServer(RemoteDebugState* state)
 		state->SocketFD =-1;
 		return 1;
 	}
-  
+
 	if (listen(state->SocketFD, 1) == -1) {
 		fprintf(stderr, "Failed to listen() on socket\n");
 		RDB_CLOSE(state->SocketFD);
@@ -1900,7 +1900,7 @@ static int RemoteDebugState_InitServer(RemoteDebugState* state)
 		return 1;
 	}
 
-	// Socket is now in a listening state and could accept 
+	// Socket is now in a listening state and could accept
 	printf("Remote Debug Listening on port %d, protocol %x\n", RDB_PORT, REMOTEDEBUG_PROTOCOL_ID);
 	return 0;
 }
@@ -1921,15 +1921,15 @@ static void RemoteDebugState_Update(RemoteDebugState* state)
 		// Connection is active
 		// Read input and accumulate a command
 		remaining = sizeof(state->cmd_buf);
-		
+
 #if HAVE_UNIX_DOMAIN_SOCKETS
-		int bytes = recv(state->AcceptedFD, 
+		int bytes = recv(state->AcceptedFD,
 			state->cmd_buf,
 			remaining,
 			MSG_DONTWAIT);
 #endif
 #if HAVE_WINSOCK_SOCKETS
-		int bytes = recv(state->AcceptedFD, 
+		int bytes = recv(state->AcceptedFD,
 			state->cmd_buf,
 			remaining,
 			0);
@@ -1968,7 +1968,7 @@ void RemoteDebug_Init(void)
 {
 	printf("Starting remote debug\n");
 	RemoteDebugState_Init(&g_rdbState);
-	
+
 #if HAVE_WINSOCK_SOCKETS
 	WORD wVersionRequested;
 	WSADATA wsaData;
@@ -2016,7 +2016,7 @@ bool RemoteDebug_Update(void)
 
 /**
  * Debugger invocation if requested by remote debugger.
- * 
+ *
  * NOTE: we could just run our own loop here, rather than going through DebugUI?
  */
 void RemoteDebug_CheckRemoteBreak(void)
