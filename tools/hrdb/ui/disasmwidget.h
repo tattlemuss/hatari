@@ -38,8 +38,14 @@ public:
 
     bool SetAddress(std::string addr);
     bool SetSearchResultAddress(uint32_t addr);
-    void MoveUp();
-    void MoveDown();
+
+    // Choose address for a line up movement
+    uint32_t GetAddressUp() const;
+    // Choose address for a line down movement
+    uint32_t GetAddressDown() const;
+
+    void MoveUpKey();
+    void MoveDownKey();
     void MoveUpMin();
     void MoveDownMin();
 

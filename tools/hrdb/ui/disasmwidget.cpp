@@ -185,7 +185,81 @@ bool DisasmWidget::SetSearchResultAddress(uint32_t addr)
     return true;
 }
 
-void DisasmWidget::MoveUp()
+uint32_t DisasmWidget::GetAddressUp() const
+{
+    // Disassemble upwards to see if something sensible appears.
+    // Stop at the first valid instruction opcode.
+    for (uint32_t off = m_minInstSize; off <= m_maxInstSize; off += m_minInstSize)
+    {
+        uint32_t targetAddr = m_logicalAddr - off;
+
+        // TODO: this is rather ugly.
+        if (m_proc == kProcCpu)
+        {
+            // Check valid memory
+            if (m_memory.GetAddress() > targetAddr ||
+                m_memory.GetAddress() + m_memory.GetSize() <= targetAddr)
+            {
+                continue;
+            }
+            // Get memory buffer for this range
+            uint32_t offset = targetAddr - m_memory.GetAddress();
+            uint32_t size = m_memory.GetSize() - offset;
+
+            hop68::buffer_reader disasmBuf(m_memory.GetData() + offset, size, m_memory.GetAddress() + offset);
+            hop68::instruction inst;
+            Disassembler::decode_inst(disasmBuf, inst, m_pTargetModel->GetDisasmSettings());
+            if (inst.opcode != hop68::Opcode::NONE)
+            {
+                return targetAddr;
+            }
+        }
+        else
+        {
+            // Check valid memory
+            if (m_memory.GetAddress() > targetAddr ||
+                m_memory.GetAddress() + m_memory.GetSize() / 3 <= targetAddr)
+            {
+                continue;
+            }
+            // Get memory buffer for this range
+            uint32_t offset = targetAddr - m_memory.GetAddress();
+            uint32_t size = m_memory.GetSize() - offset * 3;
+
+            hop56::buffer_reader disasmBuf(m_memory.GetData() + offset * 3, size, m_memory.GetAddress() + offset);
+            hop56::instruction inst;
+            hop56::decode_settings dummy;
+            Disassembler56::decode_inst(disasmBuf, inst, dummy);
+            if (inst.opcode != hop56::Opcode::INVALID)
+            {
+                return targetAddr;
+            }
+        }
+    }
+
+    // Clamp at low memory
+    if (m_logicalAddr > m_minInstSize)
+        return m_logicalAddr - m_minInstSize;
+    return 0;
+}
+
+uint32_t DisasmWidget::GetAddressDown() const
+{
+    if (m_disasm.size() > 0)
+    {
+        // Find our current line in disassembly
+        for (int i = 0; i < m_disasm.size(); ++i)
+        {
+            if (m_disasm[i].address == m_logicalAddr)
+                return m_disasm[i].GetEndAddr();
+        }
+        // Default to line 1
+        return m_disasm[0].GetEndAddr();
+    }
+    return m_logicalAddr + m_minInstSize;
+}
+
+void DisasmWidget::MoveUpKey()
 {
     if (m_cursorRow != 0)
     {
@@ -197,94 +271,20 @@ void DisasmWidget::MoveUp()
     if (m_requestId != 0)
         return; // not up to date
 
-    // Disassemble upwards to see if something sensible appears.
-    // Stop at the first valid instruction opcode.
-    if (m_requestId == 0)
-    {
-        for (uint32_t off = m_minInstSize; off <= m_maxInstSize; off += m_minInstSize)
-        {
-            uint32_t targetAddr = m_logicalAddr - off;
-
-            // TODO: this is rather ugly.
-            if (m_proc == kProcCpu)
-            {
-                // Check valid memory
-                if (m_memory.GetAddress() > targetAddr ||
-                    m_memory.GetAddress() + m_memory.GetSize() <= targetAddr)
-                {
-                    continue;
-                }
-                // Get memory buffer for this range
-                uint32_t offset = targetAddr - m_memory.GetAddress();
-                uint32_t size = m_memory.GetSize() - offset;
-
-                hop68::buffer_reader disasmBuf(m_memory.GetData() + offset, size, m_memory.GetAddress() + offset);
-                hop68::instruction inst;
-                Disassembler::decode_inst(disasmBuf, inst, m_pTargetModel->GetDisasmSettings());
-                if (inst.opcode != hop68::Opcode::NONE)
-                {
-                    SetAddress(targetAddr);
-                    return;
-                }
-            }
-            else
-            {
-                // Check valid memory
-                if (m_memory.GetAddress() > targetAddr ||
-                    m_memory.GetAddress() + m_memory.GetSize() / 3 <= targetAddr)
-                {
-                    continue;
-                }
-                // Get memory buffer for this range
-                uint32_t offset = targetAddr - m_memory.GetAddress();
-                uint32_t size = m_memory.GetSize() - offset * 3;
-
-                hop56::buffer_reader disasmBuf(m_memory.GetData() + offset * 3, size, m_memory.GetAddress() + offset);
-                hop56::instruction inst;
-                hop56::decode_settings dummy;
-                Disassembler56::decode_inst(disasmBuf, inst, dummy);
-                if (inst.opcode != hop56::Opcode::INVALID)
-                {
-                    SetAddress(targetAddr);
-                    return;
-                }
-            }
-        }
-    }
-
-    if (m_logicalAddr > m_minInstSize)
-        SetAddress(m_logicalAddr - m_minInstSize);
-    else
-        SetAddress(0);
+    SetAddress(GetAddressUp());
 }
 
-void DisasmWidget::MoveDown()
+void DisasmWidget::MoveDownKey()
 {
-    if (m_requestId != 0)
-        return; // not up to date
-
     if (m_cursorRow < m_rowCount -1)
     {
         ++m_cursorRow;
         update();
         return;
     }
-
-    if (m_disasm.size() > 0)
-    {
-        // Find our current line in disassembly
-        for (int i = 0; i < m_disasm.size(); ++i)
-        {
-            if (m_disasm[i].address == m_logicalAddr)
-            {
-                // This will go off and request the memory itself
-                SetAddress(m_disasm[i].GetEndAddr());
-                return;
-            }
-        }
-        // Default to line 1
-        SetAddress(m_disasm[0].GetEndAddr());
-    }
+    if (m_requestId != 0)
+        return; // not up to date
+    SetAddress(GetAddressDown());
 }
 
 void DisasmWidget::PageUp()
@@ -346,12 +346,9 @@ void DisasmWidget::MouseScrollUp()
     if (m_requestId != 0)
         return; // not up to date
 
-    // Mouse wheel moves a fixed number of bytes so up/down comes back to the same place
-    uint32_t moveSize = m_minInstSize * static_cast<uint32_t>(m_rowCount);
-    if (m_logicalAddr > moveSize)
-        SetAddress(m_logicalAddr - moveSize);
-    else
-        SetAddress(0);
+    // Effectively move by 2 keypresses
+    m_logicalAddr = GetAddressUp();
+    SetAddress(GetAddressUp());
 }
 
 void DisasmWidget::MouseScrollDown()
@@ -359,9 +356,9 @@ void DisasmWidget::MouseScrollDown()
     if (m_requestId != 0)
         return; // not up to date
 
-    // Mouse wheel moves a fixed number of bytes so up/down comes back to the same place
-    uint32_t moveSize = m_minInstSize * static_cast<uint32_t>(m_rowCount);
-    SetAddress(m_logicalAddr + moveSize);
+    // Effectively move by 2 keypresses
+    m_logicalAddr = GetAddressDown();
+    SetAddress(GetAddressDown());
 }
 
 void DisasmWidget::RunToRow(int row)
@@ -682,8 +679,8 @@ void DisasmWidget::keyPressEvent(QKeyEvent* event)
         {
             switch (event->key())
             {
-            case Qt::Key_Up:         MoveUp();              return;
-            case Qt::Key_Down:       MoveDown();            return;
+            case Qt::Key_Up:         MoveUpKey();           return;
+            case Qt::Key_Down:       MoveDownKey();         return;
             case Qt::Key_Left:       MoveUpMin();           return;
             case Qt::Key_Right:      MoveDownMin();         return;
             case Qt::Key_PageUp:     PageUp();              return;
@@ -1715,12 +1712,12 @@ void DisasmWindow::saveSettings()
 
 void DisasmWindow::keyDownPressed()
 {
-    m_pDisasmWidget->MoveDown();
+    m_pDisasmWidget->MoveDownKey();
 }
 
 void DisasmWindow::keyUpPressed()
 {
-    m_pDisasmWidget->MoveUp();
+    m_pDisasmWidget->MoveUpKey();
 }
 
 void DisasmWindow::keyLeftPressed()
