@@ -17,6 +17,7 @@
 #include "../models/session.h"
 #include "quicklayout.h"
 #include "exceptiondialog.h"
+#include "qtversionwrapper.h"
 
 #ifdef Q_OS_MACOS
 #define USE_MAC_BUNDLE
@@ -176,7 +177,7 @@ RunDialog::RunDialog(QWidget *parent, Session* pSession) :
     connect(pHatariConfigButton, &QPushButton::clicked, this, &RunDialog::hatariConfigClicked);
     connect(m_pWatcherFilesTextEdit, &QLineEdit::textChanged, this, &RunDialog::watcherTextChanged);
     connect(m_pWatcherCheckBox, &QCheckBox::stateChanged, this, &RunDialog::watcherActiveChanged);
-    connect(m_pFastLaunchCheckBox, &QCheckBox::stateChanged, this, &RunDialog::fastLaunchChanged);   
+    connect(m_pFastLaunchCheckBox, &CHECKBOX_CHANGED_EVENT, this, &RunDialog::fastLaunchChanged);
     connect(pOkButton, &QPushButton::clicked, this, &RunDialog::okClicked);
     connect(pCancelButton, &QPushButton::clicked, this, &RunDialog::reject);
     connect(m_pBreakModeCombo, SIGNAL(activated(int)), SLOT(breakModeChangedSlot(int)));  // this is user-changed

@@ -1645,8 +1645,8 @@ DisasmWindow::DisasmWindow(QWidget *parent, Session* pSession, int windowIndex) 
     connect(m_pProcButton,  &QPushButton::clicked,                    this, &DisasmWindow::procChangedClicked);
     connect(m_pAddressEdit, &QLineEdit::returnPressed,                this, &DisasmWindow::returnPressedSlot);
     connect(m_pAddressEdit, &QLineEdit::textEdited,                   this, &DisasmWindow::textChangedSlot);
-    connect(m_pFollowPC,    &QCheckBox::stateChanged,                 this, &DisasmWindow::followPCClickedSlot);
-    connect(m_pShowHex,     &QCheckBox::stateChanged,                 this, &DisasmWindow::showHexClickedSlot);
+    connect(m_pFollowPC,    &CHECKBOX_CHANGED_EVENT,                  this, &DisasmWindow::followPCClickedSlot);
+    connect(m_pShowHex,     &CHECKBOX_CHANGED_EVENT,                  this, &DisasmWindow::showHexClickedSlot);
     connect(m_pSession,     &Session::addressRequested,               this, &DisasmWindow::requestAddress);
     connect(m_pTargetModel, &TargetModel::searchResultsChangedSignal, this, &DisasmWindow::searchResultsSlot);
     connect(m_pTargetModel, &TargetModel::symbolTableChangedSignal,   this, &DisasmWindow::symbolTableChangedSlot);

@@ -30,6 +30,7 @@
 #include "elidedlabel.h"
 #include "quicklayout.h"
 #include "symboltext.h"
+#include "qtversionwrapper.h"
 
 /* A note on memory requests:
 
@@ -262,8 +263,8 @@ GraphicsInspectorWidget::GraphicsInspectorWidget(QWidget *parent,
 
     connect(m_pBitmapAddressLineEdit,       &QLineEdit::returnPressed,    this, &GraphicsInspectorWidget::bitmapAddressChanged);
     connect(m_pPaletteAddressLineEdit,      &QLineEdit::returnPressed,    this, &GraphicsInspectorWidget::paletteAddressChanged);
-    connect(m_pLockAddressToVideoCheckBox,  &QCheckBox::stateChanged,     this, &GraphicsInspectorWidget::lockAddressToVideoChanged);
-    connect(m_pLockAddressToVideoCheckBox,  &QCheckBox::stateChanged,     this, &GraphicsInspectorWidget::lockAddressToVideoChanged);
+    connect(m_pLockAddressToVideoCheckBox,  &CHECKBOX_CHANGED_EVENT,      this, &GraphicsInspectorWidget::lockAddressToVideoChanged);
+    connect(m_pLockAddressToVideoCheckBox,  &CHECKBOX_CHANGED_EVENT,      this, &GraphicsInspectorWidget::lockAddressToVideoChanged);
 
     connect(m_pModeComboBox,           SIGNAL(activated(int)),            SLOT(modeChangedSlot(int)));  // this is user-changed
     connect(m_pPaletteComboBox,        SIGNAL(currentIndexChanged(int)),  SLOT(paletteChangedSlot(int)));

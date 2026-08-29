@@ -1417,7 +1417,7 @@ MemoryWindow::MemoryWindow(QWidget *parent, Session* pSession, int windowIndex) 
 
     connect(m_pAddressEdit,  &QLineEdit::returnPressed,                this, &MemoryWindow::returnPressedSlot);
     connect(m_pAddressEdit,  &QLineEdit::textChanged,                  this, &MemoryWindow::textEditedSlot);
-    connect(m_pLockCheckBox, &QCheckBox::stateChanged,                 this, &MemoryWindow::lockClickedSlot);
+    connect(m_pLockCheckBox, &CHECKBOX_CHANGED_EVENT,                  this, &MemoryWindow::lockClickedSlot);
     connect(m_pSession,      &Session::addressRequested,               this, &MemoryWindow::requestAddress);
     connect(m_pMemoryWidget, &MemoryWidget::cursorChangedSignal,       this, &MemoryWindow::cursorChangedSlot);
     connect(m_pMemoryWidget, &MemoryWidget::spaceChangedSignal,        this, &MemoryWindow::syncUiElements);

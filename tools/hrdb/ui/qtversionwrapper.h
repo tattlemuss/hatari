@@ -13,5 +13,10 @@
 
 #endif //version 5
 
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 7, 0))
+#define CHECKBOX_CHANGED_EVENT    QCheckBox::checkStateChanged
+#else
+#define CHECKBOX_CHANGED_EVENT    QCheckBox::stateChanged
+#endif
 
 #endif // QTVERSIONWRAPPER_H
