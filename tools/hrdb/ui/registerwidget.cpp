@@ -432,7 +432,7 @@ void RegisterWidget::mainStateUpdated()
     if (pMem)
     {
         hop68::buffer_reader disasmBuf(pMem->GetData(), pMem->GetSize(), pMem->GetAddress());
-        Disassembler::decode_buf(disasmBuf, m_disasm, m_pTargetModel->GetDisasmSettings(), pMem->GetAddress(), 2);
+        Disassembler::decode_buf(disasmBuf, m_disasm, m_pTargetModel->GetDisasmSettings(), pMem->GetAddress(), 2, -1);
         // Update used registers
         if (m_disasm.lines.size() > 0)
             m_cpuRegMask = DisAnalyse::getRegisterUsage(m_disasm.lines[0].inst);

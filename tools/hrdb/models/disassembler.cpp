@@ -14,7 +14,48 @@ void Disassembler::decode_inst(buffer_reader& buf, instruction& inst, const deco
     decode(inst, buf, settings);
 }
 
-int Disassembler::decode_buf(buffer_reader& buf, disassembly& disasm, const decode_settings& settings, uint32_t address, int32_t maxLines)
+static void add_instruction_and_advance(buffer_reader& buf, Disassembler::disassembly& disasm,
+                                        Disassembler::line& line)
+{
+    // Save copy of instruction memory
+    {
+        uint16_t count = line.inst.byte_count;
+        if (count > 10)
+            count = 10;
+
+        buffer_reader buf_copy(buf);
+        buf_copy.read(line.mem, count);
+    }
+    disasm.lines.push_back(line);
+    buf.advance(line.inst.byte_count);
+}
+
+static void add_dcws(buffer_reader& buf, Disassembler::disassembly& disasm,
+                     uint32_t address, int32_t maxLines,
+                     uint32_t byteCount)
+{
+    uint32_t added = 0;
+    while (added < byteCount && buf.get_remain() >= 2)
+    {
+        Disassembler::line line;
+        buffer_reader buf_copy(buf);
+
+        line.address = buf.get_pos() + address;
+        line.inst.reset();
+        // Create a dummy DC.W
+        line.inst.address = line.address;
+        line.inst.opcode = Opcode::NONE;
+        buf_copy.read_word(line.inst.header);
+
+        add_instruction_and_advance(buf, disasm, line);
+        added += 2;
+        if (disasm.lines.size() >= maxLines)
+            break;
+    }
+}
+
+int Disassembler::decode_buf(buffer_reader& buf, disassembly& disasm, const decode_settings& settings,
+                             uint32_t address, int32_t maxLines, uint32_t pcSplit)
 {
     while (buf.get_remain() >= 2)
     {
@@ -27,20 +68,18 @@ int Disassembler::decode_buf(buffer_reader& buf, disassembly& disasm, const deco
             decode(line.inst, buf_copy, settings);
         }
 
-        // Save copy of instruction memory
+        // Decide if this instruction now spans PC
+        uint32_t distanceToPc = pcSplit - line.address;
+        if (distanceToPc > 0 && distanceToPc < line.inst.byte_count)
         {
-            uint16_t count = line.inst.byte_count;
-            if (count > 10)
-                count = 10;
-
-            buffer_reader buf_copy(buf);
-            buf_copy.read(line.mem, count);
+            // Straddles PC so split here
+            add_dcws(buf, disasm, address, maxLines, distanceToPc);
+        }
+        else
+        {
+            add_instruction_and_advance(buf, disasm, line);
         }
 
-        // Handle failure
-        disasm.lines.push_back(line);
-
-        buf.advance(line.inst.byte_count);
         if (disasm.lines.size() >= maxLines)
             break;
     }

@@ -48,7 +48,8 @@ public:
     static void decode_inst(hop68::buffer_reader& buf, hop68::instruction& inst, const hop68::decode_settings& settings);
 
     // Decode a block of instructions
-    static int decode_buf(hop68::buffer_reader& buf, disassembly& disasm, const hop68::decode_settings& settings, uint32_t address, int32_t maxLines);
+    static int decode_buf(hop68::buffer_reader& buf, disassembly& disasm, const hop68::decode_settings& settings,
+                          uint32_t address, int32_t maxLines, uint32_t pcSplit);
 
     // Format a single instruction and its arguments
     static void print(const hop68::instruction& inst, /*const symbols& symbols, */ uint32_t inst_address, QTextStream& ref, bool bDisassHexNumerics );

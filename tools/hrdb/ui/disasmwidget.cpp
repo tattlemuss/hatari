@@ -779,7 +779,8 @@ void DisasmWidget::CalcDisasm68()
     hop68::buffer_reader disasmBuf(m_memory.GetData() + offset, size, m_memory.GetAddress() + offset);
 
     Disassembler::disassembly tmp;
-    Disassembler::decode_buf(disasmBuf, tmp, m_pTargetModel->GetDisasmSettings(), m_logicalAddr, m_rowCount);
+    Disassembler::decode_buf(disasmBuf, tmp, m_pTargetModel->GetDisasmSettings(), m_logicalAddr, m_rowCount,
+        m_pTargetModel->GetStartStopPC(kProcCpu));
 
     // Convert to shared format
     size_t rowCount = tmp.lines.size();

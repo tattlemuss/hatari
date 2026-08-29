@@ -301,7 +301,7 @@ void MainWindow::memoryChanged(int slot, uint64_t /*commandId*/)
         {
             // Fetch data and decode the next instruction.
             hop68::buffer_reader disasmBuf(pMem->GetData(), pMem->GetSize(), pMem->GetAddress());
-            Disassembler::decode_buf(disasmBuf, m_disasm, m_pTargetModel->GetDisasmSettings(), pMem->GetAddress(), 1);
+            Disassembler::decode_buf(disasmBuf, m_disasm, m_pTargetModel->GetDisasmSettings(), pMem->GetAddress(), 1, -1);
         }
     }
     if (slot == MemorySlot::kMainDspPC)
