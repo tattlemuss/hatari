@@ -98,21 +98,16 @@ void SaveBinDialog::showEvent(QShowEvent *event)
 
 void SaveBinDialog::filenameClicked()
 {
-    QFileDialog dialog(this,
-                       tr("Choose output filename"));
-    QStringList fileNames;
-    if (dialog.exec())
-    {
-        fileNames = dialog.selectedFiles();
-        if (fileNames.length() > 0)
-        {
-            QString name = QDir::toNativeSeparators(fileNames[0]);
-            m_pFilenameTextEdit->setText(name);
-            CheckInputs();
-            m_returnedSettings = m_localSettings;
-        }
-    }
+    QString filter = "";
+    QString filename = QFileDialog::getSaveFileName(
+        this,
+        tr("Choose output filename"),
+        QString(),
+        filter);
 
+    m_pFilenameTextEdit->setText(filename);
+    CheckInputs();
+    m_returnedSettings = m_localSettings;
 }
 
 void SaveBinDialog::okClicked()
