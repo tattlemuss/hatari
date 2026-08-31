@@ -211,7 +211,7 @@ bool ApplyOp(uint64_t val1, uint64_t val2, Token::Type op, uint64_t& result)
             return false;
         result = val1 / val2; return true;
     }
-    assert(0);
+    // This can fire with malformed input e.g. "2(2"
     return false;
 }
 
@@ -225,12 +225,12 @@ static int Precedence(Token::Type type)
     case Token::MUL: case Token::DIV:
         return 2;
     case Token::CONSTANT:
-        assert(0);
+        assert(0);  // This can't happen because CONSTANT is never pushed to "ops" below
         return 0;
     default:
         break;
     }
-    // Braces?
+    // Braces
     return 0;
 }
 
