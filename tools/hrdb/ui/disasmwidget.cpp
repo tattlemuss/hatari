@@ -1420,6 +1420,12 @@ void DisasmWidget::copyRightClick()
         ref.setFieldWidth(30);
         ref << line.disasm;
 
+        if (m_bShowHex)
+        {
+            ref.setFieldWidth(26);
+            ref << QString("; ") + line.hex + "  ";
+        }
+
         if (line.comments.size() != 0)
         {
             ref.setFieldWidth(0);
