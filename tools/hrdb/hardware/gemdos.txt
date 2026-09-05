@@ -21,13 +21,13 @@ ENUM Opcode		GemDOS Opcode number
 	Slbopen			0x16	(MagiC)
 	Slbclose		0x17	 (MagiC)
 	Dgetdrv			0x19	Get default drive
-	Fsetdta			0x1A	Set Distk Transfer Address
+	Fsetdta			0x1A	Set Disk Transfer Address
 	Super			0x20	Get/set/inquire Supervisor Mode
 	Tgetdate		0x2A	Get date
 	Tsetdate		0x2B	Set date
 	Tgettime		0x2C	Get time
 	Tsettime		0x2D	Set time
-	Fgetdta			0x2F	Get Distk Transfer Address
+	Fgetdta			0x2F	Get Disk Transfer Address
 	Sversion		0x30	Get Version Number
 	Ptermres		0x31	Terminate and stay resident
 	Sconfig			0x33	(MagiC)

@@ -28,13 +28,13 @@ const char* GetString(Opcode val)
 	if (val==Opcode::Slbopen) return "(MagiC)";
 	if (val==Opcode::Slbclose) return "(MagiC)";
 	if (val==Opcode::Dgetdrv) return "Get default drive";
-	if (val==Opcode::Fsetdta) return "Set Distk Transfer Address";
+	if (val==Opcode::Fsetdta) return "Set Disk Transfer Address";
 	if (val==Opcode::Super) return "Get/set/inquire Supervisor Mode";
 	if (val==Opcode::Tgetdate) return "Get date";
 	if (val==Opcode::Tsetdate) return "Set date";
 	if (val==Opcode::Tgettime) return "Get time";
 	if (val==Opcode::Tsettime) return "Set time";
-	if (val==Opcode::Fgetdta) return "Get Distk Transfer Address";
+	if (val==Opcode::Fgetdta) return "Get Disk Transfer Address";
 	if (val==Opcode::Sversion) return "Get Version Number";
 	if (val==Opcode::Ptermres) return "Terminate and stay resident";
 	if (val==Opcode::Sconfig) return "(MagiC)";
@@ -421,13 +421,13 @@ const stgen::StringDef g_enumDescs_Opcode[] = {
 	{ 22, "(MagiC)" },
 	{ 23, "(MagiC)" },
 	{ 25, "Get default drive" },
-	{ 26, "Set Distk Transfer Address" },
+	{ 26, "Set Disk Transfer Address" },
 	{ 32, "Get/set/inquire Supervisor Mode" },
 	{ 42, "Get date" },
 	{ 43, "Set date" },
 	{ 44, "Get time" },
 	{ 45, "Set time" },
-	{ 47, "Get Distk Transfer Address" },
+	{ 47, "Get Disk Transfer Address" },
 	{ 48, "Get Version Number" },
 	{ 49, "Terminate and stay resident" },
 	{ 51, "(MagiC)" },

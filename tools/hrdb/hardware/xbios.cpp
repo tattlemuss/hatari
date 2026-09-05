@@ -14,22 +14,21 @@ const char* GetString(Opcode val)
 	if (val==Opcode::Setscreen) return "Set screen resolution, base addresses";
 	if (val==Opcode::Setpalette) return "Set colour palette";
 	if (val==Opcode::Setcolor) return "Set single colour";
-	if (val==Opcode::Floprd) return "";
-	if (val==Opcode::Flopwr) return "";
-	if (val==Opcode::Flopfmt) return "";
-	if (val==Opcode::Dbmsg) return "Atari Debugger";
+	if (val==Opcode::Floprd) return "Read floppy disk sectors";
+	if (val==Opcode::Flopwr) return "Write floppy disk sectors";
+	if (val==Opcode::Flopfmt) return "Format floppy disk track";
 	if (val==Opcode::Midiws) return "";
 	if (val==Opcode::Mfpint) return "";
 	if (val==Opcode::Iorec) return "";
 	if (val==Opcode::Rsconf) return "";
 	if (val==Opcode::Keytbl) return "";
 	if (val==Opcode::Random) return "";
-	if (val==Opcode::Protobt) return "";
-	if (val==Opcode::Flopver) return "";
-	if (val==Opcode::Scrdmp) return "";
+	if (val==Opcode::Protobt) return "Generate floppy boot sector";
+	if (val==Opcode::Flopver) return "Verify floppy disk sectors";
+	if (val==Opcode::Scrdmp) return "Print screen dump";
 	if (val==Opcode::Cursconf) return "";
-	if (val==Opcode::Settime) return "";
-	if (val==Opcode::Gettime) return "";
+	if (val==Opcode::Settime) return "Set time and date";
+	if (val==Opcode::Gettime) return "Get time and date";
 	if (val==Opcode::Bioskeys) return "";
 	if (val==Opcode::Ikbdws) return "";
 	if (val==Opcode::Jdisint) return "";
@@ -37,21 +36,21 @@ const char* GetString(Opcode val)
 	if (val==Opcode::Giaccess) return "";
 	if (val==Opcode::Offgibit) return "";
 	if (val==Opcode::Ongibit) return "";
-	if (val==Opcode::Xbtimer) return "";
+	if (val==Opcode::Xbtimer) return "Set MFP timer";
 	if (val==Opcode::Dosound) return "";
-	if (val==Opcode::Setprt) return "";
+	if (val==Opcode::Setprt) return "Set/get printer settings";
 	if (val==Opcode::Kbdvbase) return "";
 	if (val==Opcode::Kbrate) return "";
-	if (val==Opcode::Prtblk) return "";
+	if (val==Opcode::Prtblk) return "Print parameter block";
 	if (val==Opcode::Vsync) return "";
-	if (val==Opcode::Supexec) return "";
+	if (val==Opcode::Supexec) return "Call routine in Supervisor Mode";
 	if (val==Opcode::Puntaes) return "";
-	if (val==Opcode::Floprate) return "TOS 1.04";
-	if (val==Opcode::DMAread) return "";
-	if (val==Opcode::DMAwrite) return "";
+	if (val==Opcode::Floprate) return "Set floppy drive seekrate and timeout (TOS 1.04)";
+	if (val==Opcode::DMAread) return "Read HDD sectors";
+	if (val==Opcode::DMAwrite) return "Writefabi HDD sectors";
 	if (val==Opcode::Bconmap) return "TOS 2";
-	if (val==Opcode::NVMaccess) return "TOS 3";
-	if (val==Opcode::Waketime) return "TOS 2.06, ST-Book";
+	if (val==Opcode::NVMaccess) return "Read/write non-volatile RAM (TOS 3+)";
+	if (val==Opcode::Waketime) return "(TOS 2.06, ST-Book)";
 	if (val==Opcode::Blitmode) return "";
 	if (val==Opcode::EsetPalette) return "";
 	if (val==Opcode::EgetPalette) return "";
@@ -65,26 +64,26 @@ const char* GetString(Opcode val)
 	if (val==Opcode::VsetRGB) return "(Falcon)";
 	if (val==Opcode::VgetRGB) return "(Falcon)";
 	if (val==Opcode::VcheckMode) return "(Falcon), MilanTOS";
-	if (val==Opcode::Dsp_DoBlock) return "(Falcon)";
-	if (val==Opcode::Dsp_BlkHandShake) return "(Falcon)";
+	if (val==Opcode::Dsp_DoBlock) return "Transfer data block (Falcon)";
+	if (val==Opcode::Dsp_BlkHandShake) return "Transfer handshaked (Falcon)";
 	if (val==Opcode::Dsp_BlkUnpacked) return "(Falcon)";
 	if (val==Opcode::Dsp_InStream) return "(Falcon)";
 	if (val==Opcode::Dsp_OutStream) return "(Falcon)";
 	if (val==Opcode::Dsp_IOStream) return "(Falcon)";
 	if (val==Opcode::Dsp_RemoveInterrupts) return "(Falcon)";
-	if (val==Opcode::Dsp_GetWordSize) return "(Falcon)";
+	if (val==Opcode::Dsp_GetWordSize) return "Get DSP word size (Falcon)";
 	if (val==Opcode::Dsp_Lock) return "(Falcon)";
 	if (val==Opcode::Dsp_Unlock) return "(Falcon)";
-	if (val==Opcode::Dsp_Available) return "(Falcon)";
+	if (val==Opcode::Dsp_Available) return "Get DSP free memory (Falcon)";
 	if (val==Opcode::Dsp_Reserve) return "(Falcon)";
 	if (val==Opcode::Dsp_LoadProg) return "(Falcon)";
-	if (val==Opcode::Dsp_ExecProg) return "(Falcon)";
-	if (val==Opcode::Dsp_ExecBoot) return "(Falcon)";
+	if (val==Opcode::Dsp_ExecProg) return "Execute DSP program (Falcon)";
+	if (val==Opcode::Dsp_ExecBoot) return "Load DSP boot program (Falcon)";
 	if (val==Opcode::Dsp_LodToBinary) return "(Falcon)";
 	if (val==Opcode::Dsp_TriggerHC) return "(Falcon)";
 	if (val==Opcode::Dsp_RequestUniqueAbility) return "(Falcon)";
-	if (val==Opcode::Dsp_GetProgAbility) return "(Falcon)";
-	if (val==Opcode::Dsp_FlushSubroutines) return "(Falcon)";
+	if (val==Opcode::Dsp_GetProgAbility) return "Request program identification (Falcon)";
+	if (val==Opcode::Dsp_FlushSubroutines) return "Remove DSP subroutines (Falcon)";
 	if (val==Opcode::Dsp_LoadSubroutine) return "(Falcon)";
 	if (val==Opcode::Dsp_InqSubrAbility) return "(Falcon)";
 	if (val==Opcode::Dsp_RunSubroutine) return "(Falcon)";
@@ -92,8 +91,8 @@ const char* GetString(Opcode val)
 	if (val==Opcode::Dsp_Hf1) return "(Falcon)";
 	if (val==Opcode::Dsp_Hf2) return "(Falcon)";
 	if (val==Opcode::Dsp_Hf3) return "(Falcon)";
-	if (val==Opcode::Dsp_BlkWords) return "(Falcon)";
-	if (val==Opcode::Dsp_BlkBytes) return "(Falcon)";
+	if (val==Opcode::Dsp_BlkWords) return "Transfer DSP word data (Falcon)";
+	if (val==Opcode::Dsp_BlkBytes) return "Transfer DSP byte data (Falcon)";
 	if (val==Opcode::Dsp_HStat) return "(Falcon)";
 	if (val==Opcode::Dsp_SetVectors) return "(Falcon)";
 	if (val==Opcode::Dsp_MultBlocks) return "(Falcon)";
@@ -127,7 +126,6 @@ const char* GetEnumString(Opcode val)
 	if (val==Opcode::Floprd) return "Floprd";
 	if (val==Opcode::Flopwr) return "Flopwr";
 	if (val==Opcode::Flopfmt) return "Flopfmt";
-	if (val==Opcode::Dbmsg) return "Dbmsg";
 	if (val==Opcode::Midiws) return "Midiws";
 	if (val==Opcode::Mfpint) return "Mfpint";
 	if (val==Opcode::Iorec) return "Iorec";
@@ -233,22 +231,21 @@ const stgen::StringDef g_enumDescs_Opcode[] = {
 	{ 5, "Set screen resolution, base addresses" },
 	{ 6, "Set colour palette" },
 	{ 7, "Set single colour" },
-	{ 8, "" },
-	{ 9, "" },
-	{ 10, "" },
-	{ 11, "Atari Debugger" },
+	{ 8, "Read floppy disk sectors" },
+	{ 9, "Write floppy disk sectors" },
+	{ 10, "Format floppy disk track" },
 	{ 12, "" },
 	{ 13, "" },
 	{ 14, "" },
 	{ 15, "" },
 	{ 16, "" },
 	{ 17, "" },
-	{ 18, "" },
-	{ 19, "" },
-	{ 20, "" },
+	{ 18, "Generate floppy boot sector" },
+	{ 19, "Verify floppy disk sectors" },
+	{ 20, "Print screen dump" },
 	{ 21, "" },
-	{ 22, "" },
-	{ 23, "" },
+	{ 22, "Set time and date" },
+	{ 23, "Get time and date" },
 	{ 24, "" },
 	{ 25, "" },
 	{ 26, "" },
@@ -256,21 +253,21 @@ const stgen::StringDef g_enumDescs_Opcode[] = {
 	{ 28, "" },
 	{ 29, "" },
 	{ 30, "" },
-	{ 31, "" },
+	{ 31, "Set MFP timer" },
 	{ 32, "" },
-	{ 33, "" },
+	{ 33, "Set/get printer settings" },
 	{ 34, "" },
 	{ 35, "" },
-	{ 36, "" },
+	{ 36, "Print parameter block" },
 	{ 37, "" },
-	{ 38, "" },
+	{ 38, "Call routine in Supervisor Mode" },
 	{ 39, "" },
-	{ 41, "TOS 1.04" },
-	{ 42, "" },
-	{ 43, "" },
+	{ 41, "Set floppy drive seekrate and timeout (TOS 1.04)" },
+	{ 42, "Read HDD sectors" },
+	{ 43, "Writefabi HDD sectors" },
 	{ 44, "TOS 2" },
-	{ 46, "TOS 3" },
-	{ 47, "TOS 2.06, ST-Book" },
+	{ 46, "Read/write non-volatile RAM (TOS 3+)" },
+	{ 47, "(TOS 2.06, ST-Book)" },
 	{ 64, "" },
 	{ 84, "" },
 	{ 85, "" },
@@ -284,26 +281,26 @@ const stgen::StringDef g_enumDescs_Opcode[] = {
 	{ 93, "(Falcon)" },
 	{ 94, "(Falcon)" },
 	{ 95, "(Falcon), MilanTOS" },
-	{ 96, "(Falcon)" },
-	{ 97, "(Falcon)" },
+	{ 96, "Transfer data block (Falcon)" },
+	{ 97, "Transfer handshaked (Falcon)" },
 	{ 98, "(Falcon)" },
 	{ 99, "(Falcon)" },
 	{ 100, "(Falcon)" },
 	{ 101, "(Falcon)" },
 	{ 102, "(Falcon)" },
-	{ 103, "(Falcon)" },
+	{ 103, "Get DSP word size (Falcon)" },
 	{ 104, "(Falcon)" },
 	{ 105, "(Falcon)" },
-	{ 106, "(Falcon)" },
+	{ 106, "Get DSP free memory (Falcon)" },
 	{ 107, "(Falcon)" },
 	{ 108, "(Falcon)" },
-	{ 109, "(Falcon)" },
-	{ 110, "(Falcon)" },
+	{ 109, "Execute DSP program (Falcon)" },
+	{ 110, "Load DSP boot program (Falcon)" },
 	{ 111, "(Falcon)" },
 	{ 112, "(Falcon)" },
 	{ 113, "(Falcon)" },
-	{ 114, "(Falcon)" },
-	{ 115, "(Falcon)" },
+	{ 114, "Request program identification (Falcon)" },
+	{ 115, "Remove DSP subroutines (Falcon)" },
 	{ 116, "(Falcon)" },
 	{ 117, "(Falcon)" },
 	{ 118, "(Falcon)" },
@@ -311,8 +308,8 @@ const stgen::StringDef g_enumDescs_Opcode[] = {
 	{ 120, "(Falcon)" },
 	{ 121, "(Falcon)" },
 	{ 122, "(Falcon)" },
-	{ 123, "(Falcon)" },
-	{ 124, "(Falcon)" },
+	{ 123, "Transfer DSP word data (Falcon)" },
+	{ 124, "Transfer DSP byte data (Falcon)" },
 	{ 125, "(Falcon)" },
 	{ 126, "(Falcon)" },
 	{ 127, "(Falcon)" },

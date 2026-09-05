@@ -34,13 +34,13 @@ enum class Opcode : uint32_t {
 	Slbopen              =     22, /* (MagiC) */
 	Slbclose             =     23, /* (MagiC) */
 	Dgetdrv              =     25, /* Get default drive */
-	Fsetdta              =     26, /* Set Distk Transfer Address */
+	Fsetdta              =     26, /* Set Disk Transfer Address */
 	Super                =     32, /* Get/set/inquire Supervisor Mode */
 	Tgetdate             =     42, /* Get date */
 	Tsetdate             =     43, /* Set date */
 	Tgettime             =     44, /* Get time */
 	Tsettime             =     45, /* Set time */
-	Fgetdta              =     47, /* Get Distk Transfer Address */
+	Fgetdta              =     47, /* Get Disk Transfer Address */
 	Sversion             =     48, /* Get Version Number */
 	Ptermres             =     49, /* Terminate and stay resident */
 	Sconfig              =     51, /* (MagiC) */
