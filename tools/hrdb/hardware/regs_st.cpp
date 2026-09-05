@@ -498,7 +498,7 @@ const stgen::FieldDef g_fieldDef_VID_PAL_0_BLUE_ST = {
 const stgen::FieldDef g_fieldDef_VID_PAL_0_BLUE_STE = {
   VID_PAL_0, VID_PAL_0_BLUE_STE_MASK,
   2, VID_PAL_0_BLUE_STE_SHIFT,
-  "BLUE_STE", nullptr, "Blue" };
+  "BLUE_STE", nullptr, "Blue (STE)" };
 const stgen::FieldDef g_fieldDef_VID_PAL_0_GREEN_ST = {
   VID_PAL_0, VID_PAL_0_GREEN_ST_MASK,
   2, VID_PAL_0_GREEN_ST_SHIFT,
@@ -506,7 +506,7 @@ const stgen::FieldDef g_fieldDef_VID_PAL_0_GREEN_ST = {
 const stgen::FieldDef g_fieldDef_VID_PAL_0_GREEN_STE = {
   VID_PAL_0, VID_PAL_0_GREEN_STE_MASK,
   2, VID_PAL_0_GREEN_STE_SHIFT,
-  "GREEN_STE", nullptr, "Green" };
+  "GREEN_STE", nullptr, "Green (STE)" };
 const stgen::FieldDef g_fieldDef_VID_PAL_0_RED_ST = {
   VID_PAL_0, VID_PAL_0_RED_ST_MASK,
   2, VID_PAL_0_RED_ST_SHIFT,
@@ -514,7 +514,7 @@ const stgen::FieldDef g_fieldDef_VID_PAL_0_RED_ST = {
 const stgen::FieldDef g_fieldDef_VID_PAL_0_RED_STE = {
   VID_PAL_0, VID_PAL_0_RED_STE_MASK,
   2, VID_PAL_0_RED_STE_SHIFT,
-  "RED_STE", nullptr, "Red" };
+  "RED_STE", nullptr, "Red (STE)" };
 const stgen::FieldDef g_fieldDef_VID_SHIFTER_RES_RES = {
   VID_SHIFTER_RES, VID_SHIFTER_RES_RES_MASK,
   1, VID_SHIFTER_RES_RES_SHIFT,

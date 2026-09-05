@@ -7,7 +7,7 @@ namespace Xbios {
 const char* GetString(Opcode val)
 {
 	if (val==Opcode::Initmouse) return "Initialize mouse pointer";
-	if (val==Opcode::Ssbrk) return "";
+	if (val==Opcode::Ssbrk) return "Save memory space";
 	if (val==Opcode::Physbase) return "Get physical screen base";
 	if (val==Opcode::Logbase) return "Get logical screen base";
 	if (val==Opcode::Getrez) return "Get screen resolution";
@@ -17,41 +17,41 @@ const char* GetString(Opcode val)
 	if (val==Opcode::Floprd) return "Read floppy disk sectors";
 	if (val==Opcode::Flopwr) return "Write floppy disk sectors";
 	if (val==Opcode::Flopfmt) return "Format floppy disk track";
-	if (val==Opcode::Midiws) return "";
-	if (val==Opcode::Mfpint) return "";
-	if (val==Opcode::Iorec) return "";
-	if (val==Opcode::Rsconf) return "";
-	if (val==Opcode::Keytbl) return "";
-	if (val==Opcode::Random) return "";
+	if (val==Opcode::Midiws) return "Write string to MIDI";
+	if (val==Opcode::Mfpint) return "Set MFP vector";
+	if (val==Opcode::Iorec) return "Return record buffer";
+	if (val==Opcode::Rsconf) return "Set RS232 config";
+	if (val==Opcode::Keytbl) return "Set keyboard table";
+	if (val==Opcode::Random) return "Random number";
 	if (val==Opcode::Protobt) return "Generate floppy boot sector";
 	if (val==Opcode::Flopver) return "Verify floppy disk sectors";
 	if (val==Opcode::Scrdmp) return "Print screen dump";
-	if (val==Opcode::Cursconf) return "";
+	if (val==Opcode::Cursconf) return "Set cursor config";
 	if (val==Opcode::Settime) return "Set time and date";
 	if (val==Opcode::Gettime) return "Get time and date";
-	if (val==Opcode::Bioskeys) return "";
-	if (val==Opcode::Ikbdws) return "";
-	if (val==Opcode::Jdisint) return "";
-	if (val==Opcode::Jenabint) return "";
-	if (val==Opcode::Giaccess) return "";
-	if (val==Opcode::Offgibit) return "";
-	if (val==Opcode::Ongibit) return "";
+	if (val==Opcode::Bioskeys) return "Restore keyboard table";
+	if (val==Opcode::Ikbdws) return "Send to IKBD";
+	if (val==Opcode::Jdisint) return "Disable MFP interrupt";
+	if (val==Opcode::Jenabint) return "Enable MFP interrupt";
+	if (val==Opcode::Giaccess) return "Write soundchip register";
+	if (val==Opcode::Offgibit) return "Set soundchip Port A";
+	if (val==Opcode::Ongibit) return "Clear soundchip Port A";
 	if (val==Opcode::Xbtimer) return "Set MFP timer";
-	if (val==Opcode::Dosound) return "";
-	if (val==Opcode::Setprt) return "Set/get printer settings";
-	if (val==Opcode::Kbdvbase) return "";
-	if (val==Opcode::Kbrate) return "";
+	if (val==Opcode::Dosound) return "Run sound commands";
+	if (val==Opcode::Setprt) return "Set/get printer config";
+	if (val==Opcode::Kbdvbase) return "Get keyboard vector table";
+	if (val==Opcode::Kbrate) return "Set keyboard repeat rate";
 	if (val==Opcode::Prtblk) return "Print parameter block";
-	if (val==Opcode::Vsync) return "";
+	if (val==Opcode::Vsync) return "Wait for Video sync";
 	if (val==Opcode::Supexec) return "Call routine in Supervisor Mode";
-	if (val==Opcode::Puntaes) return "";
+	if (val==Opcode::Puntaes) return "Disable Address";
 	if (val==Opcode::Floprate) return "Set floppy drive seekrate and timeout (TOS 1.04)";
 	if (val==Opcode::DMAread) return "Read HDD sectors";
-	if (val==Opcode::DMAwrite) return "Writefabi HDD sectors";
+	if (val==Opcode::DMAwrite) return "Write HDD sectors";
 	if (val==Opcode::Bconmap) return "TOS 2";
 	if (val==Opcode::NVMaccess) return "Read/write non-volatile RAM (TOS 3+)";
 	if (val==Opcode::Waketime) return "(TOS 2.06, ST-Book)";
-	if (val==Opcode::Blitmode) return "";
+	if (val==Opcode::Blitmode) return "Read/write blitter config";
 	if (val==Opcode::EsetPalette) return "";
 	if (val==Opcode::EgetPalette) return "";
 	if (val==Opcode::EsetGray) return "";
@@ -224,7 +224,7 @@ const char* GetEnumString(Opcode val)
 }
 const stgen::StringDef g_enumDescs_Opcode[] = {
 	{ 0, "Initialize mouse pointer" },
-	{ 1, "" },
+	{ 1, "Save memory space" },
 	{ 2, "Get physical screen base" },
 	{ 3, "Get logical screen base" },
 	{ 4, "Get screen resolution" },
@@ -234,41 +234,41 @@ const stgen::StringDef g_enumDescs_Opcode[] = {
 	{ 8, "Read floppy disk sectors" },
 	{ 9, "Write floppy disk sectors" },
 	{ 10, "Format floppy disk track" },
-	{ 12, "" },
-	{ 13, "" },
-	{ 14, "" },
-	{ 15, "" },
-	{ 16, "" },
-	{ 17, "" },
+	{ 12, "Write string to MIDI" },
+	{ 13, "Set MFP vector" },
+	{ 14, "Return record buffer" },
+	{ 15, "Set RS232 config" },
+	{ 16, "Set keyboard table" },
+	{ 17, "Random number" },
 	{ 18, "Generate floppy boot sector" },
 	{ 19, "Verify floppy disk sectors" },
 	{ 20, "Print screen dump" },
-	{ 21, "" },
+	{ 21, "Set cursor config" },
 	{ 22, "Set time and date" },
 	{ 23, "Get time and date" },
-	{ 24, "" },
-	{ 25, "" },
-	{ 26, "" },
-	{ 27, "" },
-	{ 28, "" },
-	{ 29, "" },
-	{ 30, "" },
+	{ 24, "Restore keyboard table" },
+	{ 25, "Send to IKBD" },
+	{ 26, "Disable MFP interrupt" },
+	{ 27, "Enable MFP interrupt" },
+	{ 28, "Write soundchip register" },
+	{ 29, "Set soundchip Port A" },
+	{ 30, "Clear soundchip Port A" },
 	{ 31, "Set MFP timer" },
-	{ 32, "" },
-	{ 33, "Set/get printer settings" },
-	{ 34, "" },
-	{ 35, "" },
+	{ 32, "Run sound commands" },
+	{ 33, "Set/get printer config" },
+	{ 34, "Get keyboard vector table" },
+	{ 35, "Set keyboard repeat rate" },
 	{ 36, "Print parameter block" },
-	{ 37, "" },
+	{ 37, "Wait for Video sync" },
 	{ 38, "Call routine in Supervisor Mode" },
-	{ 39, "" },
+	{ 39, "Disable Address" },
 	{ 41, "Set floppy drive seekrate and timeout (TOS 1.04)" },
 	{ 42, "Read HDD sectors" },
-	{ 43, "Writefabi HDD sectors" },
+	{ 43, "Write HDD sectors" },
 	{ 44, "TOS 2" },
 	{ 46, "Read/write non-volatile RAM (TOS 3+)" },
 	{ 47, "(TOS 2.06, ST-Book)" },
-	{ 64, "" },
+	{ 64, "Read/write blitter config" },
 	{ 84, "" },
 	{ 85, "" },
 	{ 86, "" },
